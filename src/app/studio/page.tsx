@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '@/lib/LanguageContext';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
@@ -184,7 +184,7 @@ export default function StudioPage() {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem('stylemix:model-photo');
+      const stored = window.localStorage.getItem('freestyle:model-photo');
       if (stored) {
         setModelPhotoPreview(stored);
       }
@@ -516,6 +516,14 @@ export default function StudioPage() {
     });
   };
 
+  const handleItemNodeChange = useCallback((id: string, node: HTMLDivElement | null) => {
+    itemRefs.current[id] = node;
+  }, []);
+
+  const handleTextNodeChange = useCallback((id: string, node: HTMLDivElement | null) => {
+    textRefs.current[id] = node;
+  }, []);
+
   const renderCanvasToDataUrl = async () => {
     if (!canvasRef.current) return null;
     const bounds = canvasRef.current.getBoundingClientRect();
@@ -576,7 +584,7 @@ export default function StudioPage() {
     const imageDataUrl = await renderCanvasToDataUrl();
     if (!imageDataUrl) return;
     const link = document.createElement('a');
-    link.download = `stylemix-${Date.now()}.png`;
+    link.download = `freestyle-${Date.now()}.png`;
     link.href = imageDataUrl;
     link.click();
   };
@@ -708,7 +716,7 @@ export default function StudioPage() {
       if (!value) return;
       setModelPhotoPreview(value);
       try {
-        window.localStorage.setItem('stylemix:model-photo', value);
+        window.localStorage.setItem('freestyle:model-photo', value);
       } catch {
         // ignore storage failures
       }
@@ -781,7 +789,7 @@ export default function StudioPage() {
   const handleTryOnDownload = () => {
     if (!tryOnResultImage) return;
     const link = document.createElement('a');
-    link.download = `stylemix-tryon-${Date.now()}.png`;
+    link.download = `freestyle-tryon-${Date.now()}.png`;
     link.href = tryOnResultImage;
     link.click();
   };
@@ -830,8 +838,8 @@ export default function StudioPage() {
 
         <StudioCanvas
           canvasRef={canvasRef}
-          itemRefs={itemRefs}
-          textRefs={textRefs}
+          onItemNodeChange={handleItemNodeChange}
+          onTextNodeChange={handleTextNodeChange}
           canvasSize={canvasSize}
           customRatio={customRatio}
           onCustomRatioChange={setCustomRatio}

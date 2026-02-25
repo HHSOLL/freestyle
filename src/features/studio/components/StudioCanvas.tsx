@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type DragControls, useDragControls } from 'framer-motion';
 import {
   Download,
   Maximize2,
@@ -15,14 +15,14 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import type { MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from 'react';
 import { canvasSizeOptions, presetColors } from '../constants';
 import type { Asset, CanvasItem, CanvasSize, TextItem } from '../types';
 
 type StudioCanvasProps = {
   canvasRef: MutableRefObject<HTMLDivElement | null>;
-  itemRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
-  textRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
+  onItemNodeChange: (id: string, node: HTMLDivElement | null) => void;
+  onTextNodeChange: (id: string, node: HTMLDivElement | null) => void;
   canvasSize: CanvasSize;
   customRatio: { w: number; h: number };
   onCustomRatioChange: (ratio: { w: number; h: number }) => void;
@@ -56,10 +56,175 @@ type StudioCanvasProps = {
   onRemoveText: (id: string) => void;
 };
 
+type AlphaMask = {
+  width: number;
+  height: number;
+  alpha: Uint8ClampedArray;
+};
+
+type CanvasAssetMotionItemProps = {
+  item: CanvasItem;
+  asset: Asset;
+  canvasRef: MutableRefObject<HTMLDivElement | null>;
+  onSetItemRef: (id: string, node: HTMLDivElement | null) => void;
+  onSelectItem: (id: string) => void;
+  onDragEnd: (id: string, offset: { x: number; y: number }) => void;
+  onRemoveItem: (id: string) => void;
+  getAlphaMask: (src: string) => Promise<AlphaMask | null>;
+};
+
+const HIT_TEST_ALPHA_THRESHOLD = 12;
+
+const clampPixel = (value: number, maxExclusive: number) =>
+  Math.max(0, Math.min(maxExclusive - 1, value));
+
+const createAlphaMask = async (src: string): Promise<AlphaMask | null> => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Failed to load image for alpha hit-test.'));
+      image.src = src;
+    });
+
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    if (!width || !height) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+
+    context.clearRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    const data = context.getImageData(0, 0, width, height).data;
+
+    const alpha = new Uint8ClampedArray(width * height);
+    for (let pixel = 0; pixel < alpha.length; pixel += 1) {
+      alpha[pixel] = data[pixel * 4 + 3] ?? 0;
+    }
+
+    return {
+      width,
+      height,
+      alpha,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const isOpaquePixelHit = (
+  container: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+  alphaMask: AlphaMask
+) => {
+  const image = container.querySelector<HTMLImageElement>('[data-canvas-asset-image="true"]');
+  if (!image) return false;
+
+  const rect = image.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+  if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+    return false;
+  }
+
+  const normalizedX = (clientX - rect.left) / rect.width;
+  const normalizedY = (clientY - rect.top) / rect.height;
+  const sourceX = clampPixel(Math.floor(normalizedX * alphaMask.width), alphaMask.width);
+  const sourceY = clampPixel(Math.floor(normalizedY * alphaMask.height), alphaMask.height);
+  const alpha = alphaMask.alpha[sourceY * alphaMask.width + sourceX] ?? 0;
+  return alpha > HIT_TEST_ALPHA_THRESHOLD;
+};
+
+function CanvasAssetMotionItem({
+  item,
+  asset,
+  canvasRef,
+  onSetItemRef,
+  onSelectItem,
+  onDragEnd,
+  onRemoveItem,
+  getAlphaMask,
+}: CanvasAssetMotionItemProps) {
+  const dragControls: DragControls = useDragControls();
+
+  const handlePointerDown = useCallback(
+    async (event: ReactPointerEvent<HTMLDivElement>) => {
+      if ((event.target as HTMLElement).closest('button')) return;
+
+      const pointerEvent = event.nativeEvent;
+      const currentTarget = event.currentTarget;
+      const { clientX, clientY } = pointerEvent;
+      const alphaMask = await getAlphaMask(asset.imageSrc);
+
+      if (alphaMask && !isOpaquePixelHit(currentTarget, clientX, clientY, alphaMask)) {
+        return;
+      }
+
+      onSelectItem(item.id);
+      dragControls.start(pointerEvent, { snapToCursor: false });
+    },
+    [asset.imageSrc, dragControls, getAlphaMask, item.id, onSelectItem]
+  );
+
+  return (
+    <motion.div
+      drag
+      dragListener={false}
+      dragControls={dragControls}
+      dragMomentum={false}
+      dragConstraints={canvasRef}
+      initial={{ opacity: 0, scale: 0.7 }}
+      animate={{ opacity: 1, scale: item.scale, x: item.x, y: item.y, rotate: item.rotation }}
+      exit={{ opacity: 0, scale: 0.7 }}
+      onPointerDown={handlePointerDown}
+      onDragEnd={(_, info) => onDragEnd(item.id, info.offset)}
+      ref={(node) => {
+        onSetItemRef(item.id, node);
+      }}
+      className="absolute z-[10] cursor-grab active:cursor-grabbing group"
+      style={{
+        left: '50%',
+        top: '50%',
+        width: 224,
+        height: 288,
+        marginLeft: -112,
+        marginTop: -144,
+      }}
+    >
+      <div className="relative w-full h-full flex items-center justify-center p-4">
+        <img
+          src={asset.imageSrc}
+          alt={asset.name}
+          data-canvas-asset-image="true"
+          className="max-w-full max-h-full object-contain pointer-events-none select-none drop-shadow-2xl"
+          draggable={false}
+        />
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemoveItem(item.id);
+          }}
+          className="absolute -top-2 -right-2 bg-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:bg-black hover:text-white border border-black/5"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 export function StudioCanvas({
   canvasRef,
-  itemRefs,
-  textRefs,
+  onItemNodeChange,
+  onTextNodeChange,
   canvasSize,
   customRatio,
   onCustomRatioChange,
@@ -92,6 +257,25 @@ export function StudioCanvas({
   onRemoveItem,
   onRemoveText,
 }: StudioCanvasProps) {
+  const alphaMaskCacheRef = useRef<Map<string, Promise<AlphaMask | null>>>(new Map());
+
+  const getAlphaMask = useCallback(async (src: string) => {
+    const cached = alphaMaskCacheRef.current.get(src);
+    if (cached) return cached;
+
+    const loader = createAlphaMask(src);
+    alphaMaskCacheRef.current.set(src, loader);
+    return loader;
+  }, []);
+
+  useEffect(() => {
+    for (const item of canvasItems) {
+      const asset = assetById.get(item.assetId);
+      if (!asset?.imageSrc) continue;
+      void getAlphaMask(asset.imageSrc);
+    }
+  }, [assetById, canvasItems, getAlphaMask]);
+
   const selectedAspectRatio =
     canvasSize === 'square'
       ? '1 / 1'
@@ -315,47 +499,17 @@ export function StudioCanvas({
                 const asset = assetById.get(item.assetId);
                 if (!asset) return null;
                 return (
-                  <motion.div
+                  <CanvasAssetMotionItem
                     key={item.id}
-                    drag
-                    dragMomentum={false}
-                    dragConstraints={canvasRef}
-                    initial={{ opacity: 0, scale: 0.7 }}
-                    animate={{ opacity: 1, scale: item.scale, x: item.x, y: item.y, rotate: item.rotation }}
-                    exit={{ opacity: 0, scale: 0.7 }}
-                    onPointerDown={() => onSelectItem(item.id)}
-                    onDragEnd={(_, info) => onDragEnd(item.id, info.offset)}
-                    ref={(node) => {
-                      itemRefs.current[item.id] = node;
-                    }}
-                    className="absolute z-[10] cursor-grab active:cursor-grabbing group"
-                    style={{
-                      left: '50%',
-                      top: '50%',
-                      width: 224,
-                      height: 288,
-                      marginLeft: -112,
-                      marginTop: -144,
-                    }}
-                  >
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                      <img
-                        src={asset.imageSrc}
-                        alt={asset.name}
-                        className="max-w-full max-h-full object-contain pointer-events-none select-none drop-shadow-2xl"
-                        draggable={false}
-                      />
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onRemoveItem(item.id);
-                        }}
-                        className="absolute -top-2 -right-2 bg-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:bg-black hover:text-white border border-black/5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </motion.div>
+                    item={item}
+                    asset={asset}
+                    canvasRef={canvasRef}
+                    onSetItemRef={onItemNodeChange}
+                    onSelectItem={onSelectItem}
+                    onDragEnd={onDragEnd}
+                    onRemoveItem={onRemoveItem}
+                    getAlphaMask={getAlphaMask}
+                  />
                 );
               })}
             </AnimatePresence>
@@ -377,7 +531,7 @@ export function StudioCanvas({
                   onPointerDown={() => onSelectText(textItem.id)}
                   onDragEnd={(_, info) => onTextDragEnd(textItem.id, info.offset)}
                   ref={(node) => {
-                    textRefs.current[textItem.id] = node;
+                    onTextNodeChange(textItem.id, node);
                   }}
                   className="absolute cursor-grab active:cursor-grabbing group whitespace-nowrap font-black tracking-tight"
                   style={{ left: '50%', top: '50%', color: textItem.color, fontSize: textItem.fontSize }}

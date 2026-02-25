@@ -20,6 +20,7 @@ const FETCH_BODY_TIMEOUT_MS = 20_000;
 
 export type CandidateSource =
   | "direct"
+  | "musinsa_structured"
   | "jsonld"
   | "og"
   | "twitter"
@@ -182,6 +183,23 @@ const MODEL_URL_KEYWORDS = [
   "onbody",
   "착용",
   "코디",
+];
+
+const MUSINSA_MODEL_URL_KEYWORDS = [
+  "/images/style/",
+  "/images/snap/",
+  "/images/codimap/",
+  "/images/coordi/",
+  "lookbook",
+  "staff",
+  "magazine",
+];
+
+const MUSINSA_PRODUCT_URL_KEYWORDS = [
+  "/images/goods/",
+  "/images/goods_img/",
+  "/goods_img/",
+  "product_img",
 ];
 
 const PRODUCT_URL_KEYWORDS = [
@@ -363,7 +381,35 @@ const extractPageTitle = (html: string) => {
   return null;
 };
 
-const scoreCandidateKeywords = (url: string) => {
+const isMusinsaProductPageUrl = (input: string) => {
+  try {
+    const parsed = new URL(input);
+    return (
+      (parsed.hostname === "musinsa.com" || parsed.hostname.endsWith(".musinsa.com")) &&
+      /^\/products\/\d+/.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const scoreMusinsaCandidateUrl = (url: string) => {
+  const lower = url.toLowerCase();
+  let score = 0;
+
+  for (const token of MUSINSA_PRODUCT_URL_KEYWORDS) {
+    if (lower.includes(token)) score += 60;
+  }
+  for (const token of MUSINSA_MODEL_URL_KEYWORDS) {
+    if (lower.includes(token)) score -= 90;
+  }
+
+  if (lower.includes("thumbnail")) score -= 8;
+  if (lower.includes("_60.") || lower.includes("_120.") || lower.includes("_150.")) score -= 20;
+  return score;
+};
+
+const scoreCandidateKeywords = (url: string, pageUrl?: string) => {
   const lower = url.toLowerCase();
   let score = 0;
 
@@ -381,12 +427,16 @@ const scoreCandidateKeywords = (url: string) => {
   if (lower.includes("prd_img")) score += 20;
   if (lower.includes("_big") || lower.includes("_1200") || lower.includes("_1000")) score += 12;
   if (lower.endsWith(".svg")) score -= 100;
+  if (pageUrl && isMusinsaProductPageUrl(pageUrl)) {
+    score += scoreMusinsaCandidateUrl(url);
+  }
 
   return score;
 };
 
 const sourcePriorityByType: Record<CandidateSource, number> = {
   direct: 240,
+  musinsa_structured: 180,
   jsonld: 130,
   og: 90,
   twitter: 70,
@@ -592,8 +642,51 @@ const extractSrcSetUrls = (value: string) =>
     .map((entry) => entry.trim().split(/\s+/)[0])
     .filter(Boolean);
 
+const collectMusinsaStructuredImageUrls = (html: string) => {
+  const urls = new Set<string>();
+  const scriptPattern = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = scriptPattern.exec(html)) !== null) {
+    const scriptText = decodeHtmlEntities((match[1] || "").trim());
+    if (!scriptText) continue;
+
+    const lower = scriptText.toLowerCase();
+    if (!lower.includes("goods") && !lower.includes("product") && !lower.includes("musinsa")) {
+      continue;
+    }
+
+    const normalizedScriptText = scriptText.replace(/\\\//g, "/");
+    const urlPattern =
+      /["']((?:https?:)?\/\/[^"'<>\s\\]+?\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"'<>\s\\]*)?|\/[^"'<>\s\\]+?\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"'<>\s\\]*)?)["']/gi;
+    let urlMatch: RegExpExecArray | null;
+
+    while ((urlMatch = urlPattern.exec(normalizedScriptText)) !== null) {
+      const rawCandidate = urlMatch[1];
+      if (!rawCandidate) continue;
+
+      const candidate = rawCandidate.startsWith("//") ? `https:${rawCandidate}` : rawCandidate;
+      if (!candidate) continue;
+
+      const candidateLower = candidate.toLowerCase();
+      if (
+        !candidateLower.includes("musinsa") &&
+        !candidateLower.includes("msscdn") &&
+        !candidateLower.includes("/images/goods/") &&
+        !candidateLower.includes("/images/goods_img/")
+      ) {
+        continue;
+      }
+      urls.add(candidate);
+    }
+  }
+
+  return Array.from(urls);
+};
+
 const collectImageCandidatesFromHtml = (html: string, baseUrl: string) => {
   const candidates = new Map<string, ImageCandidateDraft>();
+  const isMusinsaPage = isMusinsaProductPageUrl(baseUrl);
   let discoveryIndex = 0;
 
   const registerCandidate = (rawUrl: string, source: CandidateSource) => {
@@ -601,7 +694,7 @@ const collectImageCandidatesFromHtml = (html: string, baseUrl: string) => {
     if (!normalized) return;
 
     const sourcePriority = sourcePriorityByType[source] ?? 0;
-    const keywordScore = scoreCandidateKeywords(normalized);
+    const keywordScore = scoreCandidateKeywords(normalized, baseUrl);
     const existing = candidates.get(normalized);
 
     if (existing) {
@@ -630,6 +723,12 @@ const collectImageCandidatesFromHtml = (html: string, baseUrl: string) => {
   const jsonLdImages = collectJsonLdProductImageUrls(html);
   for (const imageUrl of jsonLdImages) {
     registerCandidate(imageUrl, "jsonld");
+  }
+  if (isMusinsaPage) {
+    const structuredMusinsaImages = collectMusinsaStructuredImageUrls(html);
+    for (const imageUrl of structuredMusinsaImages) {
+      registerCandidate(imageUrl, "musinsa_structured");
+    }
   }
 
   const metaPatterns: Array<{ pattern: RegExp; source: CandidateSource }> = [
@@ -909,7 +1008,7 @@ export const resolveProductImageCandidates = async (
       throw new Error("Could not read image metadata.");
     }
 
-    const directKeywordScore = scoreCandidateKeywords(finalUrl);
+    const directKeywordScore = scoreCandidateKeywords(finalUrl, finalUrl);
     const directResolutionScore = scoreByResolution(width, height);
     const candidate: ResolvedImageCandidate = {
       url: finalUrl,

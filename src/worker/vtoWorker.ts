@@ -1,11 +1,7 @@
-import dotenv from "dotenv";
-import path from "node:path";
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import type { VtoJobData, VtoJobResult } from "../lib/vtoQueue";
 import { requireRedisUrl, serverConfig } from "../lib/serverConfig";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const connection = new IORedis(requireRedisUrl(), {
   maxRetriesPerRequest: null,

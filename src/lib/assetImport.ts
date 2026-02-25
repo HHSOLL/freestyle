@@ -125,6 +125,65 @@ const isModelLikeCandidate = (candidate: ResolvedImageCandidate) =>
 const isTrustedNoFaceCandidate = (candidate: ResolvedImageCandidate) =>
   candidate.human?.detector === "blazeface" && (candidate.human.facesOverMinArea ?? 0) === 0;
 
+const isMusinsaProductUrl = (input: string) => {
+  try {
+    const parsed = new URL(input);
+    return (
+      (parsed.hostname === "musinsa.com" || parsed.hostname.endsWith(".musinsa.com")) &&
+      /^\/products\/\d+/.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isMusinsaModelLikeImageUrl = (inputUrl: string) => {
+  const lower = inputUrl.toLowerCase();
+  return (
+    lower.includes("/images/style/") ||
+    lower.includes("/images/snap/") ||
+    lower.includes("/images/codimap/") ||
+    lower.includes("/images/coordi/") ||
+    lower.includes("lookbook") ||
+    lower.includes("staff")
+  );
+};
+
+const isLikelyMusinsaStandaloneCandidate = (candidate: ResolvedImageCandidate) => {
+  const lower = candidate.url.toLowerCase();
+  if (isMusinsaModelLikeImageUrl(lower)) return false;
+  if (candidate.source === "musinsa_structured") return true;
+  if (
+    lower.includes("msscdn") &&
+    lower.includes("/images/") &&
+    !lower.includes("/images/style/") &&
+    !lower.includes("/images/snap/") &&
+    !lower.includes("/images/codimap/") &&
+    !lower.includes("/images/coordi/")
+  ) {
+    return true;
+  }
+  return (
+    lower.includes("/images/goods/") ||
+    lower.includes("/images/goods_img/") ||
+    lower.includes("/goods_img/") ||
+    lower.includes("product_img") ||
+    lower.includes("/product/") ||
+    lower.includes("/products/")
+  );
+};
+
+const prioritizeMusinsaStandaloneCandidates = (candidates: ResolvedImageCandidate[]) => {
+  if (candidates.length <= 1) return candidates;
+
+  const preferred = candidates.filter((candidate) => isLikelyMusinsaStandaloneCandidate(candidate));
+  if (preferred.length === 0) return candidates;
+
+  const preferredUrls = new Set(preferred.map((candidate) => candidate.url));
+  const others = candidates.filter((candidate) => !preferredUrls.has(candidate.url));
+  return [...preferred, ...others];
+};
+
 const buildProcessingMeta = (
   candidate: ResolvedImageCandidate,
   quality: CutoutQuality,
@@ -191,13 +250,21 @@ export const importAssetFromUrlAndSave = async (
   }
 
   const strictNoModel = serverConfig.strictNoModelImport;
+  const isMusinsaImport =
+    isMusinsaProductUrl(options.url) || isMusinsaProductUrl(resolvedCandidates.pageUrl);
+  const candidatePool = isMusinsaImport
+    ? resolvedCandidates.candidates.slice(0, Math.max(maxCandidates, 24))
+    : candidates;
   const enforceTrustedNoFace = strictNoModel && serverConfig.humanDetectionMode === "face";
   const noFaceCandidates = enforceTrustedNoFace
-    ? candidates.filter((candidate) => isTrustedNoFaceCandidate(candidate))
-    : candidates.filter((candidate) => !isModelLikeCandidate(candidate));
-  const modelCandidates = candidates.filter((candidate) => isModelLikeCandidate(candidate));
+    ? candidatePool.filter((candidate) => isTrustedNoFaceCandidate(candidate))
+    : candidatePool.filter((candidate) => !isModelLikeCandidate(candidate));
+  const modelCandidates = candidatePool.filter((candidate) => isModelLikeCandidate(candidate));
+  const prioritizedNoFaceCandidates = isMusinsaImport
+    ? prioritizeMusinsaStandaloneCandidates(noFaceCandidates)
+    : noFaceCandidates;
 
-  if (strictNoModel && noFaceCandidates.length === 0) {
+  if (strictNoModel && prioritizedNoFaceCandidates.length === 0) {
     const selectionAttempts = candidates.slice(0, 3).map((candidate) => ({
       candidateUrl: candidate.url,
       source: candidate.source,
@@ -217,7 +284,18 @@ export const importAssetFromUrlAndSave = async (
     );
   }
 
-  const attemptWindow = noFaceCandidates.slice(0, Math.min(noFaceCandidates.length, maxRemovebgAttempts));
+  const attemptLimit = isMusinsaImport ? Math.max(maxRemovebgAttempts, 8) : maxRemovebgAttempts;
+  const attemptWindow = prioritizedNoFaceCandidates.slice(
+    0,
+    Math.min(prioritizedNoFaceCandidates.length, attemptLimit)
+  );
+  if (isMusinsaImport && attemptWindow.length < attemptLimit) {
+    const standaloneFallbacks = prioritizeMusinsaStandaloneCandidates(resolvedCandidates.candidates)
+      .filter((candidate) => isLikelyMusinsaStandaloneCandidate(candidate))
+      .filter((candidate) => !attemptWindow.some((entry) => entry.url === candidate.url))
+      .slice(0, attemptLimit - attemptWindow.length);
+    attemptWindow.push(...standaloneFallbacks);
+  }
   if (!strictNoModel && modelCandidates.length > 0) {
     const fallbackModelCandidate = modelCandidates[0];
     if (

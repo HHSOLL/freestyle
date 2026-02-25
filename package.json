@@ -1,5 +1,5 @@
 {
-  "name": "fsp",
+  "name": "freestyle",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,9 +12,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "smoke:human-signals": "ts-node --project tsconfig.worker.json --transpile-only scripts/human-signal-smoke.ts",
-    "worker:bg": "ts-node -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/bgRemovalWorker.ts",
-    "worker:import": "ts-node -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/importWorker.ts",
-    "worker:vto": "ts-node -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/vtoWorker.ts"
+    "worker:bg": "DOTENV_CONFIG_PATH=.env.local ts-node -r dotenv/config -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/bgRemovalWorker.ts",
+    "worker:import": "DOTENV_CONFIG_PATH=.env.local ts-node -r dotenv/config -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/importWorker.ts",
+    "worker:vto": "DOTENV_CONFIG_PATH=.env.local ts-node -r dotenv/config -r tsconfig-paths/register --project tsconfig.worker.json --transpile-only src/worker/vtoWorker.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

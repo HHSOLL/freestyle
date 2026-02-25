@@ -1,6 +1,4 @@
-import dotenv from "dotenv";
 import fs from "node:fs/promises";
-import path from "node:path";
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import {
@@ -14,8 +12,6 @@ import {
 } from "../lib/assetProcessing";
 import type { BgRemovalJobData, BgRemovalJobResult } from "../lib/bgRemovalQueue";
 import { requireRedisUrl, serverConfig } from "../lib/serverConfig";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const connection = new IORedis(requireRedisUrl(), {
   maxRetriesPerRequest: null,

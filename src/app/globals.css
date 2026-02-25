@@ -27,7 +27,7 @@
 :root {
   --radius: 0.5rem;
 
-  /* StyleMix Palette */
+  /* FreeStyle Palette */
   --background: oklch(0.99 0 0);
   /* Pure White/Near White */
   --foreground: oklch(0.20 0.02 30);

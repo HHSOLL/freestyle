@@ -4,6 +4,7 @@ export type TrendStyle = 'street' | 'formal' | 'dandy';
 
 export interface TrendItem {
   id: number;
+  creator: string;
   nameKey: string;
   descKey: string;
   image: string;

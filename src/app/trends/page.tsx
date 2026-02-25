@@ -41,6 +41,13 @@ export default function TrendsPage() {
   const [selectedSeason, setSelectedSeason] = useState<TrendSeason | CategoryFilter>('all');
   const [selectedStyle, setSelectedStyle] = useState<TrendStyle | CategoryFilter>('all');
 
+  const getPillClassName = (isActive: boolean) =>
+    `px-5 py-2 rounded-full border text-[12px] font-bold tracking-[0.03em] transition-all ${
+      isActive
+        ? 'bg-black text-white border-black shadow-[0_10px_24px_-14px_rgba(0,0,0,0.9)]'
+        : 'bg-white/75 backdrop-blur text-black/55 border-black/10 hover:text-black hover:border-black/25'
+    }`;
+
   const loadMore = useCallback(() => {
     if (loading) return;
     setLoading(true);
@@ -94,36 +101,28 @@ export default function TrendsPage() {
   }, [loadMore]);
 
   return (
-    <div className="min-h-screen pt-32 pb-20 px-8 bg-white">
+    <div className="min-h-screen pt-32 pb-20 px-5 md:px-8 bg-white">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 space-y-5 border-b border-black/5 pb-6">
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <div className="mb-10 rounded-[28px] border border-black/10 bg-gradient-to-br from-white via-[#f8f6f2] to-[#f1eee8] shadow-[0_30px_80px_-45px_rgba(0,0,0,0.45)] px-5 py-6 md:px-8 md:py-8 space-y-6">
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
             <button
               type="button"
               onClick={() => setSortMode('popular')}
-              className={`px-5 py-2 rounded-full border text-[11px] font-bold tracking-widest uppercase transition-colors ${
-                sortMode === 'popular'
-                  ? 'bg-black text-white border-black'
-                  : 'bg-white text-black/50 border-black/10 hover:text-black'
-              }`}
+              className={getPillClassName(sortMode === 'popular')}
             >
               {t('trends.sort.popular')}
             </button>
             <button
               type="button"
               onClick={() => setSortMode('latest')}
-              className={`px-5 py-2 rounded-full border text-[11px] font-bold tracking-widest uppercase transition-colors ${
-                sortMode === 'latest'
-                  ? 'bg-black text-white border-black'
-                  : 'bg-white text-black/50 border-black/10 hover:text-black'
-              }`}
+              className={getPillClassName(sortMode === 'latest')}
             >
               {t('trends.sort.latest')}
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black tracking-[0.2em] uppercase text-black/40">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <span className="w-[68px] text-[12px] font-black tracking-[0.12em] uppercase text-black/40">
               {t('trends.filter.gender')}
             </span>
             {genderFilters.map((filter) => {
@@ -133,11 +132,7 @@ export default function TrendsPage() {
                   key={filter.value}
                   type="button"
                   onClick={() => setSelectedGender(filter.value)}
-                  className={`px-4 py-1.5 rounded-full border text-[11px] font-bold transition-colors ${
-                    isActive
-                      ? 'bg-black text-white border-black'
-                      : 'bg-white text-black/50 border-black/10 hover:text-black'
-                  }`}
+                  className={getPillClassName(isActive)}
                 >
                   {t(filter.labelKey)}
                 </button>
@@ -145,8 +140,8 @@ export default function TrendsPage() {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black tracking-[0.2em] uppercase text-black/40">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <span className="w-[68px] text-[12px] font-black tracking-[0.12em] uppercase text-black/40">
               {t('trends.filter.season')}
             </span>
             {seasonFilters.map((filter) => {
@@ -156,11 +151,7 @@ export default function TrendsPage() {
                   key={filter.value}
                   type="button"
                   onClick={() => setSelectedSeason(filter.value)}
-                  className={`px-4 py-1.5 rounded-full border text-[11px] font-bold transition-colors ${
-                    isActive
-                      ? 'bg-black text-white border-black'
-                      : 'bg-white text-black/50 border-black/10 hover:text-black'
-                  }`}
+                  className={getPillClassName(isActive)}
                 >
                   {t(filter.labelKey)}
                 </button>
@@ -168,8 +159,8 @@ export default function TrendsPage() {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black tracking-[0.2em] uppercase text-black/40">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <span className="w-[68px] text-[12px] font-black tracking-[0.12em] uppercase text-black/40">
               {t('trends.filter.style')}
             </span>
             {styleFilters.map((filter) => {
@@ -179,11 +170,7 @@ export default function TrendsPage() {
                   key={filter.value}
                   type="button"
                   onClick={() => setSelectedStyle(filter.value)}
-                  className={`px-4 py-1.5 rounded-full border text-[11px] font-bold transition-colors ${
-                    isActive
-                      ? 'bg-black text-white border-black'
-                      : 'bg-white text-black/50 border-black/10 hover:text-black'
-                  }`}
+                  className={getPillClassName(isActive)}
                 >
                   {t(filter.labelKey)}
                 </button>

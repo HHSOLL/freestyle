@@ -11,7 +11,7 @@ type TrendGridProps = {
 
 export function TrendGrid({ t, items, onSelectTrend }: TrendGridProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-12">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8 lg:gap-10">
       {items.map((style, index) => (
         <motion.div
           key={`${style.id}-${index}`}
@@ -24,7 +24,7 @@ export function TrendGrid({ t, items, onSelectTrend }: TrendGridProps) {
           <div
             className={`relative aspect-[4/5] ${
               style.color || 'bg-gray-50'
-            } rounded-[24px] md:rounded-[48px] lg:rounded-[64px] overflow-hidden border border-black/5 shadow-sm group-hover:shadow-2xl group-hover:shadow-black/5 transition-all duration-700`}
+            } min-h-[320px] sm:min-h-[340px] rounded-[24px] md:rounded-[48px] lg:rounded-[56px] overflow-hidden border border-black/5 shadow-sm group-hover:shadow-2xl group-hover:shadow-black/5 transition-all duration-700`}
           >
             <Image
               src={style.image}

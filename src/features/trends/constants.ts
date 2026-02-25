@@ -3,6 +3,7 @@ import type { TrendItem } from './types';
 export const INITIAL_TRENDS: TrendItem[] = [
   {
     id: 1,
+    creator: '@mina.park',
     nameKey: 'trends.style1.name',
     descKey: 'trends.style1.desc',
     image: '/trend-ojos.png',
@@ -15,6 +16,7 @@ export const INITIAL_TRENDS: TrendItem[] = [
   },
   {
     id: 2,
+    creator: '@atelier.nova',
     nameKey: 'trends.style2.name',
     descKey: 'trends.style2.desc',
     image: '/trend-notknowing.png',
@@ -27,6 +29,7 @@ export const INITIAL_TRENDS: TrendItem[] = [
   },
   {
     id: 3,
+    creator: '@jin.stylelab',
     nameKey: 'trends.style3.name',
     descKey: 'trends.style3.desc',
     image: '/trend-newalrin.png',
@@ -39,6 +42,7 @@ export const INITIAL_TRENDS: TrendItem[] = [
   },
   {
     id: 4,
+    creator: '@urban.kit',
     nameKey: 'trends.style4.name',
     descKey: 'trends.style4.desc',
     image: '/trend-painpleasure.png',
@@ -51,6 +55,7 @@ export const INITIAL_TRENDS: TrendItem[] = [
   },
   {
     id: 5,
+    creator: '@sohee.edit',
     nameKey: 'trends.style5.name',
     descKey: 'trends.style5.desc',
     image: '/trend-deinet.png',
@@ -63,6 +68,7 @@ export const INITIAL_TRENDS: TrendItem[] = [
   },
   {
     id: 6,
+    creator: '@dandy.room',
     nameKey: 'trends.style6.name',
     descKey: 'trends.style6.desc',
     image: '/black-puffer.jpg',

@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Image from 'next/image';
-import { TREND_TAG_KEYS } from '../constants';
 import type { TrendItem, TrendTranslator } from '../types';
 
 type TrendModalProps = {
@@ -11,128 +10,100 @@ type TrendModalProps = {
 };
 
 export function TrendModal({ t, selectedTrend, onClose }: TrendModalProps) {
+  const resolveCategoryLabel = (trend: TrendItem) => {
+    return [
+      t(`trends.filter.gender.${trend.gender}`),
+      t(`trends.filter.season.${trend.season}`),
+      t(`trends.filter.style.${trend.style}`),
+    ].join(' / ');
+  };
+
   return (
     <AnimatePresence>
       {selectedTrend && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/95 backdrop-blur-xl"
+            className="absolute inset-0 bg-black/92 backdrop-blur-md"
           />
           <motion.div
-            initial={{ opacity: 0, y: 40, rotate: -2 }}
-            animate={{ opacity: 1, y: 0, rotate: 0 }}
-            exit={{ opacity: 0, y: 40, rotate: 2 }}
-            className="relative w-full max-w-6xl bg-[#fafafa] rounded-[48px] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row min-h-[80vh]"
+            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            className="relative w-full max-w-6xl rounded-[34px] border border-white/20 overflow-hidden bg-[#f7f6f3] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.65)]"
           >
-            <div className="flex-1 relative bg-[#efefef] overflow-hidden flex items-center justify-center">
-              <div
-                className="absolute inset-0 opacity-30"
-                style={{
-                  backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)',
-                  backgroundSize: '16px 16px',
-                }}
-              />
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 z-20 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white/80 border border-black/10 hover:bg-white transition-colors"
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-black/35" />
+            </button>
 
-              <motion.div
-                initial={{ scale: 1.1, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="relative w-full h-full p-8 md:p-12"
-              >
-                <Image
-                  src={selectedTrend.image}
-                  alt={t('trends.alt.editorial')}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
-                  priority
+            <div className="grid lg:grid-cols-[minmax(420px,1fr)_1fr]">
+              <div className="relative overflow-hidden bg-[#eceae6] min-h-[420px] sm:min-h-[520px] lg:min-h-[760px]">
+                <div
+                  className="absolute inset-0 opacity-35"
+                  style={{
+                    backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)',
+                    backgroundSize: '18px 18px',
+                  }}
                 />
-              </motion.div>
 
-              <div className="absolute bottom-10 left-10 mix-blend-difference text-white/40 text-[9px] font-bold tracking-[0.5em] uppercase vertical-text origin-bottom-left rotate-[-90deg]">
-                {t('trends.meta.archive_prefix')} - {selectedTrend.id}
-              </div>
-            </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/10" />
 
-            <div className="flex-1 p-16 md:p-24 flex flex-col justify-between relative bg-white">
-              <button
-                onClick={onClose}
-                className="absolute top-12 right-12 w-12 h-12 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors group"
-              >
-                <X className="w-5 h-5 text-black/20 group-hover:text-black" />
-              </button>
-
-              <div className="space-y-16">
                 <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
+                  initial={{ scale: 1.05, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                  className="absolute inset-4 sm:inset-8 flex items-center justify-center"
                 >
-                  <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-black/30 block mb-6">
-                    {t('trends.popup.title')} - 001
-                  </span>
-                  <h2 className="text-6xl md:text-8xl font-serif font-light leading-[0.8] tracking-tighter text-black">
-                    {t(selectedTrend.nameKey).split(' ')[0]} <br />
-                    <span className="italic text-black/40 ml-0 md:ml-12 lowercase">
-                      {t(selectedTrend.nameKey).split(' ')[1] || ''}
-                    </span>
-                  </h2>
+                  <div className="relative w-full h-full max-w-[620px]">
+                    <Image
+                      src={selectedTrend.image}
+                      alt={t('trends.alt.editorial')}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-contain rounded-[20px] shadow-[0_20px_50px_-25px_rgba(0,0,0,0.4)]"
+                      priority
+                    />
+                  </div>
                 </motion.div>
+              </div>
 
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="space-y-8"
-                >
-                  <p className="text-xl md:text-2xl font-serif leading-relaxed text-black/70 italic">
-                    &quot;{t(selectedTrend.descKey)}&quot;
+              <div className="p-6 sm:p-10 lg:p-14 flex flex-col justify-center gap-7 bg-gradient-to-b from-white via-[#faf9f6] to-[#f4f2ec]">
+                <div className="space-y-1">
+                  <p className="text-[11px] tracking-[0.22em] uppercase text-black/35 font-bold">
+                    {t('trends.detail.creator')}
                   </p>
-                  <div className="flex flex-wrap gap-3">
-                    {TREND_TAG_KEYS.map((tagKey) => (
-                      <span
-                        key={tagKey}
-                        className="px-4 py-2 border border-black/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-black/40"
-                      >
-                        #{t(tagKey)}
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                className="pt-16 border-t border-black/5 flex items-center justify-between"
-              >
-                <div className="flex gap-12">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-black/30 mb-2">
-                      {t('trends.meta.popularity_label')}
-                    </div>
-                    <div className="text-xl font-serif text-black font-medium">
-                      {t('trends.meta.popularity_value')}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-black/30 mb-2">
-                      {t('trends.meta.context_label')}
-                    </div>
-                    <div className="text-xl font-serif text-black font-medium">
-                      {t('trends.meta.context_value')}
-                    </div>
-                  </div>
+                  <p className="text-xl sm:text-2xl font-semibold tracking-tight text-black">{selectedTrend.creator}</p>
                 </div>
-                <button className="px-8 py-4 bg-black text-white rounded-full text-[11px] font-bold tracking-widest uppercase hover:px-12 transition-all">
-                  {t('trends.cta.explore')}
-                </button>
-              </motion.div>
+
+                <div className="space-y-1">
+                  <p className="text-[11px] tracking-[0.22em] uppercase text-black/35 font-bold">
+                    {t('trends.detail.outfit')}
+                  </p>
+                  <p className="text-3xl sm:text-4xl font-serif leading-tight text-black">{t(selectedTrend.nameKey)}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[11px] tracking-[0.22em] uppercase text-black/35 font-bold">
+                    {t('trends.detail.category')}
+                  </p>
+                  <p className="text-sm sm:text-base text-black/75">{resolveCategoryLabel(selectedTrend)}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[11px] tracking-[0.22em] uppercase text-black/35 font-bold">
+                    {t('trends.detail.description')}
+                  </p>
+                  <p className="text-base sm:text-lg leading-relaxed text-black/70">
+                    {t(selectedTrend.descKey)}
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>

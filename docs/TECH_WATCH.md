@@ -16,7 +16,7 @@
 - Supabase 서버/SDK 변경사항
 
 ## 마지막 점검일
-- 2026-02-18
+- 2026-02-25
 
 ## 점검 로그
 ### 2026-02-11
@@ -36,7 +36,7 @@
   - Supabase는 pgmq 기반 Queues와 pg_cron 기반 Cron 운영 흐름이 문서화되어 있음.
   - Cloud Run Jobs는 장시간/병렬 배치 실행(최대 10,000 task) 운영 패턴이 성숙.
 - 우리 프로젝트 영향:
-  - fsp의 BullMQ + Redis 워커는 장시간 작업이 있어 웹/워커 분리가 가능한 배포 모델이 유리.
+  - FreeStyle의 BullMQ + Redis 워커는 장시간 작업이 있어 웹/워커 분리가 가능한 배포 모델이 유리.
   - 로컬 파일 저장 폴백은 운영 환경에서 오브젝트 스토리지로 치환 필요.
   - Vercel 단독 배포보다는 워커 런타임이 있는 조합(예: Render/Railway/Cloud Run)이 더 안정적.
 - 적용 여부:
@@ -141,6 +141,61 @@
   - 본 문서 업데이트
   - `README.md`
   - `docs/DEVELOPMENT_GUIDE.md`
+
+### 2026-02-20
+- 확인 소스:
+  - Next.js 공식 블로그 (`nextjs.org/blog`)
+  - React 공식 블로그/보안 공지 (`react.dev/blog`)
+  - TypeScript 공식 블로그 (`devblogs.microsoft.com/typescript`)
+  - BullMQ GitHub 릴리즈 (`github.com/taskforcesh/bullmq/releases`)
+  - Supabase changelog (`supabase.com/changelog`)
+- 신규 변화 요약:
+  - 프레임워크/런타임(Next.js, React, TypeScript) 모두 최신 패치 추적 우선순위가 유지되며, 즉시 아키텍처 변경이 필요한 신규 운영 이슈는 확인되지 않음.
+  - BullMQ/백그라운드 처리 및 Supabase 운영 관점에서도 현재 큐 기반 구조를 뒤집을 수준의 변경은 없음.
+- 우리 프로젝트 영향:
+  - 오늘 작업 범위(무신사 단독컷 후보 강화, 알파 픽셀 기반 캔버스 hit-test)는 현행 스택/운영 원칙 위에서 적용 가능.
+  - import 품질은 사이트 특화 후보 수집(구조화 스크립트) + 경로 힌트 가중치 방식으로 점진 개선하는 전략을 유지.
+- 적용 여부:
+  - 코드 반영 완료:
+    - 무신사 상세페이지 후보 수집 강화(구조화 스크립트 URL 수집 + goods 경로 우선 가중치)
+    - 무신사 import 시 단독컷 후보 우선 시도 로직 추가
+    - Studio 캔버스 알파 픽셀 기반 선택/드래그 hit-test 추가
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+- 반영 문서:
+  - 본 문서 업데이트
+  - `README.md`
+  - `docs/DEVELOPMENT_GUIDE.md`
+  - `docs/MAINTENANCE_PLAYBOOK.md`
+
+### 2026-02-25
+- 확인 소스:
+  - Next.js 공식 블로그 (`nextjs.org/blog`)
+  - React 공식 블로그 (`react.dev/blog`)
+  - TypeScript 공식 블로그 (`devblogs.microsoft.com/typescript`)
+  - BullMQ GitHub 릴리즈 (`github.com/taskforcesh/bullmq/releases`)
+  - Supabase changelog (`supabase.com/changelog`)
+- 신규 변화 요약:
+  - 워커/큐 기반 앱에서 환경변수 로딩 시점이 import 초기화보다 늦으면 런타임 설정 누락이 발생할 수 있으며, 최근 운영 사례에서도 preload 패턴 사용이 일반적임.
+- 우리 프로젝트 영향:
+  - 워커 파일 내부 `dotenv.config()`는 CommonJS import 초기화 이후 실행되어 `serverConfig`가 빈 환경값으로 고정될 수 있음.
+  - 실제 증상: `.env.local`에 `REMOVE_BG_API_KEY`가 있어도 링크 import에서 `CUTOUT_NOT_AVAILABLE` 발생.
+- 적용 여부:
+  - 코드 반영 완료:
+    - worker 스크립트를 `-r dotenv/config` preload 방식으로 변경
+    - `DOTENV_CONFIG_PATH=.env.local`를 worker 실행 명령에 고정
+    - worker 파일 내 중복 `dotenv.config()` 제거
+    - 무신사 링크 import에서 후보 풀/시도 수 fallback 확대(단독컷 패턴 후보 재시도) 반영
+  - 검증:
+    - `removeBgKeyLoaded true` 확인
+    - `npm run lint`, `npm run build` 통과
+- 반영 문서:
+  - 본 문서 업데이트
+  - `README.md`
+  - `docs/DEVELOPMENT_GUIDE.md`
+  - `docs/MAINTENANCE_PLAYBOOK.md`
 
 ## 로그 템플릿
 ### YYYY-MM-DD

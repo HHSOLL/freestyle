@@ -1,14 +1,16 @@
 # Development Guide
 
 ## 1. 목적
-이 문서는 StyleMix 코드베이스를 개발/확장할 때 필요한 기본 설계와 개발 규칙을 정리합니다.
+이 문서는 FreeStyle 코드베이스를 개발/확장할 때 필요한 기본 설계와 개발 규칙을 정리합니다.
 
 ## 2. 디렉토리 구조
 - `src/app`: App Router 페이지/라우트 핸들러
 - `src/app/api`: API 엔드포인트
 - `src/components`: 공용 UI/레이아웃 컴포넌트
+- `src/components/brand`: 브랜드 로고 컴포넌트
 - `src/features`: 도메인별 기능 컴포넌트/타입/상수
   - `studio`, `profile`, `trends`, `community`
+- `public/branding`: FreeStyle 로고/마크 SVG 에셋
 - `src/lib`: 도메인 로직(에셋 처리, 저장소, 큐)
 - `src/lib/serverConfig.ts`: 서버 런타임 설정/운영 안전 가드
 - `src/worker`: BullMQ 워커
@@ -38,13 +40,16 @@
 - `src/lib/importQueue.ts`: 임포트(`url|cart|file`) 작업 큐
 - `src/worker/*.ts`: 실제 처리 워커(`import`, `bgRemoval`, `vto`)
 - Redis URL/동시성/외부 API 키는 `serverConfig`를 통해 단일 경로로 읽음
+- 워커 실행 스크립트는 `-r dotenv/config` + `DOTENV_CONFIG_PATH=.env.local`로 환경변수를 preload해 import 시점 설정 누락을 방지한다.
 
 5. 페이지 구성 원칙
 - 페이지(`src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `src/features/<domain>/components`로 분리한다.
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
+- Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
 - `/trends` 페이지는 단일 피드 화면으로 운영하며, 정렬(인기순/최신순)과 카테고리 필터(성별/계절/스타일)를 함께 제공한다.
+- `/trends` 상세 모달은 이미지 가시성을 유지하도록 최소 높이를 보장하고, 텍스트는 제작자/코디명/카테고리/간단 설명 중심으로 제한한다.
 
 ## 4. 개발 규칙
 - 타입 안정성 우선: `any` 사용 금지, `unknown + narrowing` 권장
@@ -59,7 +64,10 @@
 ## 5. 링크/장바구니 import 품질 규칙
 1. 후보 선택
 - 단일 대표 이미지 1개만 사용하지 않고 다중 후보(JSON-LD Product image, meta, img, background-image)를 수집한다.
+- 특정 쇼핑몰(예: 무신사 상세페이지)은 구조화 스크립트에서 이미지 URL을 추가 수집해 단독 상품컷 후보를 보강한다.
 - URL 키워드 기반 스코어링으로 모델컷/썸네일 패널티, 상품 상세컷 보너스를 적용한다.
+- 무신사 링크(`musinsa.com/products/*`)는 goods 경로(`/images/goods/*`) 보너스와 스타일/스냅 경로 패널티를 함께 적용해 단독 상품컷을 우선한다.
+- 무신사 링크는 기본 후보 상위 N에서 실패하더라도 더 넓은 후보 풀(최대 24)과 추가 시도(기본 8)로 단독컷 패턴 후보를 재시도한다.
 - 얼굴 신호 기반 재랭킹(P1): 상위 K 후보만 얼굴 분석을 수행하고 모델컷 패널티를 점수에 반영한다.
 - 얼굴 모델 로딩은 `HUMAN_FACE_MODEL_SOURCE`로 제어한다(운영 기본 local 권장).
 - 후보/원본 URL fetch는 redirect 체인을 수동 추적하며 매 hop마다 안전 URL 검증을 수행한다.

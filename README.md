@@ -1,16 +1,19 @@
-# StyleMix (fsp)
+# FreeStyle
 
 AI 기반 스타일 큐레이션/가상 피팅 실험을 위한 Next.js 애플리케이션입니다.
 
 ## 핵심 기능
 - Studio: 에셋 업로드/URL 임포트/장바구니 링크 임포트, 배경 제거, 캔버스 조합
   - 임포트는 `import-jobs` 큐를 통해 비동기 처리(대량/지연 작업 안정화)
+  - 캔버스 아이템 선택/드래그는 이미지 알파 픽셀 기준 hit-test를 사용(투명 영역 클릭/드래그 방지)
   - 캔버스 비율(custom w:h)과 너비(%)를 조절해도 비율을 유지한 채 다운로드 가능
-  - URL/장바구니 임포트는 다중 후보 수집(JSON-LD/meta/img) + 스코어링 + 누끼 품질 검증 + 알파 기반 트리밍으로 저장
+  - URL/장바구니 임포트는 다중 후보 수집(JSON-LD/meta/img/구조화 스크립트) + 스코어링 + 누끼 품질 검증 + 알파 기반 트리밍으로 저장
+  - 무신사(`musinsa.com/products/*`) 링크는 구조화 스크립트 후보 + goods 경로 힌트 우선순위를 적용해 단독 상품컷을 우선 시도
+  - 무신사 링크는 단독컷 누락을 줄이기 위해 후보 풀/시도 수를 확대하고 단독컷 패턴 후보를 보강 시도
 - AI Try-on: 큐 기반 가상 피팅 요청/결과 조회
 - AI Review: 코디 이미지 기반 스타일 피드백 생성
 - Outfit Share: 코디 저장 및 슬러그 기반 공유 페이지
-- Feed(/trends): 트렌드 피드(인기순/최신순 + 성별/계절/스타일 카테고리 필터)
+- Feed(/trends): 트렌드 피드(인기순/최신순 + 성별/계절/스타일 필터), 상세 모달은 제작자/코디명/카테고리/설명 중심으로 제공
 - Profile: 개인 아카이브
 
 ## 기술 스택
@@ -42,6 +45,7 @@ Turbopack 개발 서버가 필요하면 `npm run dev:turbo`를 사용합니다.
 npm run dev:all
 ```
 `dev:all`은 `next dev + import/bg/vto worker`를 함께 실행합니다.
+워커 스크립트는 `dotenv/config`를 preload해 `.env.local`을 프로세스 시작 시점에 먼저 로드합니다.
 
 품질 점검:
 ```bash
@@ -55,6 +59,8 @@ npm run check
 - `src/app/**/page.tsx`: 상태/데이터 흐름 중심
 - `src/features/<domain>/components`: 화면 조각/프리젠테이션
 - `src/features/<domain>/{types,constants,utils}.ts`: 도메인 로직 단위 분리
+- `src/components/brand`: FreeStyle 로고 컴포넌트
+- `public/branding`: FreeStyle 브랜드 에셋(`freestyle-logo.svg`, `freestyle-mark.svg`)
 
 현재 `studio`, `profile`, `trends(feed)`는 기능 단위 컴포넌트 구조를 사용합니다.
 

@@ -40,6 +40,7 @@
 - 증상: `removedBackground=false`, 경고 반환
 - 점검: `REMOVE_BG_API_KEY`, 입력 파일 형식/크기
 - 링크/장바구니 import 경로에서는 누끼 실패 자산을 저장하지 않도록 동작함(실패 코드 확인)
+- `CUTOUT_NOT_AVAILABLE`가 반복되면 워커 실행 방식(`npm run worker:*` 또는 `npm run dev:all`)에서 `.env.local` preload가 적용됐는지 먼저 확인한다.
 
 3. 리뷰 생성 실패
 - 점검: `GEMINI_API_KEY`, 모델명, 요청 payload 크기
@@ -56,6 +57,11 @@
 - `FETCH_BLOCKED_OR_LOGIN_REQUIRED`: 대상 페이지 접근 제한/로그인 필요
 - `UNKNOWN_IMPORT_ERROR`: 상기 분류 외 예외
 - `NO_IMPORTABLE_PRODUCTS`: 장바구니 import에서 모든 항목이 실패
+
+무신사 상세페이지 품질 보강:
+- `musinsa.com/products/*`는 구조화 스크립트 후보와 goods 경로 힌트를 우선해 단독 상품컷을 먼저 시도한다.
+- 단독컷이 아닌 스타일/스냅 이미지가 계속 선택되면 `attempts`의 `candidateUrl`, `source`, `finalScore`를 확인해 키워드 가중치와 차단 패턴을 조정한다.
+- 무신사 링크에서 `ONLY_MODEL_IMAGES_FOUND`가 반복되면 상위 후보 외 fallback 후보 재시도(확대된 후보 풀/시도 수) 결과를 우선 확인한다.
 
 운영 원칙:
 - 위 코드가 발생하면 실패 항목으로만 집계하고 에셋 저장은 하지 않는다.

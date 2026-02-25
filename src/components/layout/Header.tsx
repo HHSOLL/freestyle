@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export function Header() {
     const pathname = usePathname();
@@ -20,8 +21,8 @@ export function Header() {
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5 bg-white/80 backdrop-blur-md transition-all border-b border-black/5">
             {/* Logo */}
             <div className="flex-1">
-                <Link href="/" className="text-2xl font-serif font-bold tracking-tight text-foreground hover:opacity-90">
-                    StyleMix
+                <Link href="/" className="inline-flex items-center hover:opacity-90" aria-label="FreeStyle home">
+                    <BrandLogo priority />
                 </Link>
             </div>
 

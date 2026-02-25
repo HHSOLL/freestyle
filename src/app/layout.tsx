@@ -6,8 +6,16 @@ import { LanguageProvider } from "@/lib/LanguageContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "STYLMIX | 비주얼 인텔리전스 아카이브",
+  title: "FreeStyle | 비주얼 인텔리전스 아카이브",
   description: "현대적 큐레이션을 위한 고해상도 디지털 아틀리에.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico?v=2" },
+      { url: "/icon.svg?v=2", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico?v=2",
+    apple: "/apple-icon.png?v=2",
+  },
 };
 
 const a2jFont = localFont({

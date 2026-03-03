@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
-import type { ImportAttemptLog } from "@/lib/assetImport";
+import type { ImportAttemptLog, ImportImageCandidate } from "@/lib/assetImport";
 import { requireRedisUrl } from "@/lib/serverConfig";
 
 export type ImportJobAsset = {
@@ -21,6 +21,7 @@ export type ImportJobFailureItem = {
   error: string;
   code: string;
   attempts?: ImportAttemptLog[];
+  candidates?: ImportImageCandidate[];
 };
 
 export type ImportJobData =
@@ -30,6 +31,7 @@ export type ImportJobData =
       category: string;
       name?: string;
       sourceUrl?: string;
+      selectedImageUrl?: string;
     }
   | {
       type: "cart";
@@ -61,6 +63,7 @@ export type ImportJobResult =
       code: string;
       error: string;
       attempts?: ImportAttemptLog[];
+      candidates?: ImportImageCandidate[];
     }
   | {
       type: "cart";

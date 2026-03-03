@@ -20,6 +20,7 @@ const FETCH_BODY_TIMEOUT_MS = 20_000;
 
 export type CandidateSource =
   | "direct"
+  | "musinsa_goods_state"
   | "musinsa_structured"
   | "jsonld"
   | "og"
@@ -198,7 +199,9 @@ const MUSINSA_MODEL_URL_KEYWORDS = [
 const MUSINSA_PRODUCT_URL_KEYWORDS = [
   "/images/goods/",
   "/images/goods_img/",
+  "/images/prd_img/",
   "/goods_img/",
+  "detail_",
   "product_img",
 ];
 
@@ -406,6 +409,18 @@ const scoreMusinsaCandidateUrl = (url: string) => {
 
   if (lower.includes("thumbnail")) score -= 8;
   if (lower.includes("_60.") || lower.includes("_120.") || lower.includes("_150.")) score -= 20;
+  if (lower.includes("/images/prd_img/")) score += 70;
+  if (lower.includes("detail_")) score += 36;
+  if (
+    lower.includes("/images/brand/") ||
+    lower.includes("/mfile_") ||
+    lower.includes("/goodsdetail/banner/") ||
+    lower.includes("/campaign_service/") ||
+    lower.includes("/favicon/") ||
+    lower.includes("/static/assets/")
+  ) {
+    score -= 140;
+  }
   return score;
 };
 
@@ -436,6 +451,7 @@ const scoreCandidateKeywords = (url: string, pageUrl?: string) => {
 
 const sourcePriorityByType: Record<CandidateSource, number> = {
   direct: 240,
+  musinsa_goods_state: 230,
   musinsa_structured: 180,
   jsonld: 130,
   og: 90,
@@ -448,7 +464,12 @@ const sourcePriorityByType: Record<CandidateSource, number> = {
 const normalizeUrlCandidate = (candidate: string, baseUrl: string) => {
   if (!candidate || candidate.startsWith("javascript:") || candidate.startsWith("#")) return null;
   try {
-    const resolved = new URL(decodeHtmlEntities(candidate.trim()), baseUrl);
+    const normalizedCandidate = decodeHtmlEntities(candidate.trim());
+    const musinsaCdnCandidate =
+      isMusinsaProductPageUrl(baseUrl) && normalizedCandidate.startsWith("/images/")
+        ? `https://image.msscdn.net${normalizedCandidate}`
+        : normalizedCandidate;
+    const resolved = new URL(musinsaCdnCandidate, baseUrl);
     return assertSafeRemoteUrl(resolved.toString()).toString();
   } catch {
     return null;
@@ -642,6 +663,46 @@ const extractSrcSetUrls = (value: string) =>
     .map((entry) => entry.trim().split(/\s+/)[0])
     .filter(Boolean);
 
+const isLikelyMusinsaProductImageUrl = (input: string) => {
+  const lower = input.toLowerCase();
+  const hasProductToken =
+    lower.includes("/images/goods/") ||
+    lower.includes("/images/goods_img/") ||
+    lower.includes("/goods_img/") ||
+    lower.includes("/images/prd_img/") ||
+    lower.includes("detail_");
+  if (!hasProductToken) return false;
+  if (
+    lower.includes("/images/brand/") ||
+    lower.includes("/mfile_") ||
+    lower.includes("/campaign_service/") ||
+    lower.includes("/goodsdetail/banner/") ||
+    lower.includes("/favicon/") ||
+    lower.includes("/static/assets/")
+  ) {
+    return false;
+  }
+  return true;
+};
+
+const collectMusinsaGoodsStateImageUrls = (html: string) => {
+  const urls = new Set<string>();
+  const normalizedHtml = html.replace(/\\\//g, "/");
+  const stateImagePattern =
+    /"(?:thumbnailImageUrl|imageUrl)"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"]*)?)"/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = stateImagePattern.exec(normalizedHtml)) !== null) {
+    const raw = match[1];
+    if (!raw) continue;
+    const candidate = raw.startsWith("//") ? `https:${raw}` : raw;
+    if (!isLikelyMusinsaProductImageUrl(candidate)) continue;
+    urls.add(candidate);
+  }
+
+  return Array.from(urls);
+};
+
 const collectMusinsaStructuredImageUrls = (html: string) => {
   const urls = new Set<string>();
   const scriptPattern = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
@@ -673,8 +734,12 @@ const collectMusinsaStructuredImageUrls = (html: string) => {
         !candidateLower.includes("musinsa") &&
         !candidateLower.includes("msscdn") &&
         !candidateLower.includes("/images/goods/") &&
-        !candidateLower.includes("/images/goods_img/")
+        !candidateLower.includes("/images/goods_img/") &&
+        !candidateLower.includes("/images/prd_img/")
       ) {
+        continue;
+      }
+      if (!isLikelyMusinsaProductImageUrl(candidateLower)) {
         continue;
       }
       urls.add(candidate);
@@ -725,6 +790,10 @@ const collectImageCandidatesFromHtml = (html: string, baseUrl: string) => {
     registerCandidate(imageUrl, "jsonld");
   }
   if (isMusinsaPage) {
+    const goodsStateImages = collectMusinsaGoodsStateImageUrls(html);
+    for (const imageUrl of goodsStateImages) {
+      registerCandidate(imageUrl, "musinsa_goods_state");
+    }
     const structuredMusinsaImages = collectMusinsaStructuredImageUrls(html);
     for (const imageUrl of structuredMusinsaImages) {
       registerCandidate(imageUrl, "musinsa_structured");

@@ -28,17 +28,37 @@ export type ImportAttemptLog = {
   quality?: CutoutQuality;
 };
 
+export type ImportImageCandidate = {
+  id: string;
+  url: string;
+  source: string;
+  finalScore: number;
+  width: number;
+  height: number;
+  isModelLike: boolean;
+  facesOverMinArea: number;
+  detector?: string;
+};
+
 export class AssetImportError extends Error {
   code: AssetImportFailureCode;
   status: number;
   attempts?: ImportAttemptLog[];
+  candidates?: ImportImageCandidate[];
 
-  constructor(code: AssetImportFailureCode, message: string, status = 422, attempts?: ImportAttemptLog[]) {
+  constructor(
+    code: AssetImportFailureCode,
+    message: string,
+    status = 422,
+    attempts?: ImportAttemptLog[],
+    candidates?: ImportImageCandidate[]
+  ) {
     super(message);
     this.name = "AssetImportError";
     this.code = code;
     this.status = status;
     this.attempts = attempts;
+    this.candidates = candidates;
   }
 }
 
@@ -50,6 +70,7 @@ export type ImportAssetAndSaveOptions = {
   sourceUrl?: string;
   maxCandidates?: number;
   maxRemovebgAttempts?: number;
+  selectedImageUrl?: string;
 };
 
 export type ImportedAssetResult = {
@@ -119,6 +140,17 @@ const buildAssetName = (explicitName: string | undefined, title: string | null, 
   return "Imported item";
 };
 
+const uniqueByCandidateUrl = (candidates: ResolvedImageCandidate[]) => {
+  const seen = new Set<string>();
+  const unique: ResolvedImageCandidate[] = [];
+  for (const candidate of candidates) {
+    if (seen.has(candidate.url)) continue;
+    seen.add(candidate.url);
+    unique.push(candidate);
+  }
+  return unique;
+};
+
 const isModelLikeCandidate = (candidate: ResolvedImageCandidate) =>
   (candidate.human?.facesOverMinArea ?? 0) > 0;
 
@@ -149,10 +181,24 @@ const isMusinsaModelLikeImageUrl = (inputUrl: string) => {
   );
 };
 
+const isDecorativeAssetUrl = (inputUrl: string) => {
+  const lower = inputUrl.toLowerCase();
+  return (
+    lower.includes("logo") ||
+    lower.includes("favicon") ||
+    lower.includes("/images/brand/") ||
+    lower.includes("/mfile_") ||
+    lower.includes("/campaign_service/") ||
+    lower.includes("/goodsdetail/banner/") ||
+    lower.includes("/static/assets/")
+  );
+};
+
 const isLikelyMusinsaStandaloneCandidate = (candidate: ResolvedImageCandidate) => {
   const lower = candidate.url.toLowerCase();
+  if (isDecorativeAssetUrl(lower)) return false;
   if (isMusinsaModelLikeImageUrl(lower)) return false;
-  if (candidate.source === "musinsa_structured") return true;
+  if (candidate.source === "musinsa_goods_state" || candidate.source === "musinsa_structured") return true;
   if (
     lower.includes("msscdn") &&
     lower.includes("/images/") &&
@@ -166,7 +212,9 @@ const isLikelyMusinsaStandaloneCandidate = (candidate: ResolvedImageCandidate) =
   return (
     lower.includes("/images/goods/") ||
     lower.includes("/images/goods_img/") ||
+    lower.includes("/images/prd_img/") ||
     lower.includes("/goods_img/") ||
+    lower.includes("detail_") ||
     lower.includes("product_img") ||
     lower.includes("/product/") ||
     lower.includes("/products/")
@@ -217,10 +265,65 @@ const buildProcessingMeta = (
   };
 };
 
+const buildImportCandidatePreviews = (
+  candidates: ResolvedImageCandidate[],
+  maxCount = 12,
+  isMusinsaImport = false
+): ImportImageCandidate[] => {
+  const uniqueCandidates = uniqueByCandidateUrl(candidates).filter(
+    (candidate) =>
+      candidate.url.trim().length > 0 &&
+      !isDecorativeAssetUrl(candidate.url) &&
+      candidate.width >= 220 &&
+      candidate.height >= 220
+  );
+
+  const musinsaRepresentativeCandidates = uniqueCandidates.filter(
+    (candidate) =>
+      (candidate.source === "musinsa_goods_state" || candidate.source === "musinsa_structured") &&
+      isLikelyMusinsaStandaloneCandidate(candidate)
+  );
+  const productLikeCandidates = uniqueCandidates.filter((candidate) =>
+    isLikelyMusinsaStandaloneCandidate(candidate)
+  );
+  const fallbackCandidates = uniqueByCandidateUrl(candidates).filter(
+    (candidate) => candidate.url.trim().length > 0
+  );
+  const previewPool = isMusinsaImport
+    ? musinsaRepresentativeCandidates.length > 0
+      ? musinsaRepresentativeCandidates
+      : productLikeCandidates.length > 0
+        ? productLikeCandidates
+        : uniqueCandidates.length > 0
+          ? uniqueCandidates
+          : fallbackCandidates
+    : productLikeCandidates.length > 0
+      ? productLikeCandidates
+      : uniqueCandidates.length > 0
+        ? uniqueCandidates
+        : fallbackCandidates;
+  const previewLimit = Math.max(maxCount, previewPool.length);
+
+  return previewPool
+    .slice(0, previewLimit)
+    .map((candidate) => ({
+      id: `${candidate.discoveryIndex}:${candidate.source}:${candidate.url}`,
+      url: candidate.url,
+      source: candidate.source,
+      finalScore: candidate.finalScore,
+      width: candidate.width,
+      height: candidate.height,
+      isModelLike: isModelLikeCandidate(candidate),
+      facesOverMinArea: candidate.human?.facesOverMinArea ?? 0,
+      detector: candidate.human?.detector,
+    }));
+};
+
 export const importAssetFromUrlAndSave = async (
   options: ImportAssetAndSaveOptions
 ): Promise<ImportedAssetResult> => {
   const source = options.source ?? "import";
+  const selectedImageUrl = options.selectedImageUrl?.trim() || undefined;
   const maxCandidates = Math.max(1, Math.floor(options.maxCandidates ?? 8));
   const maxRemovebgAttempts = Math.max(1, Math.floor(options.maxRemovebgAttempts ?? 3));
   const attempts: ImportAttemptLog[] = [];
@@ -228,9 +331,10 @@ export const importAssetFromUrlAndSave = async (
 
   let resolvedCandidates: Awaited<ReturnType<typeof resolveProductImageCandidates>>;
   try {
+    const likelyMusinsaInput = isMusinsaProductUrl(options.url);
     resolvedCandidates = await resolveProductImageCandidates(options.url, {
-      maxCandidatesCollected: 200,
-      maxCandidatesScored: 40,
+      maxCandidatesCollected: likelyMusinsaInput ? 320 : 200,
+      maxCandidatesScored: likelyMusinsaInput ? 160 : 40,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to resolve image candidates.";
@@ -252,9 +356,30 @@ export const importAssetFromUrlAndSave = async (
   const strictNoModel = serverConfig.strictNoModelImport;
   const isMusinsaImport =
     isMusinsaProductUrl(options.url) || isMusinsaProductUrl(resolvedCandidates.pageUrl);
+  const candidatePoolBase = isMusinsaImport
+    ? resolvedCandidates.candidates.slice(0, Math.max(maxCandidates, 120))
+    : resolvedCandidates.candidates.slice(0, Math.max(maxCandidates, 40));
   const candidatePool = isMusinsaImport
-    ? resolvedCandidates.candidates.slice(0, Math.max(maxCandidates, 24))
-    : candidates;
+    ? prioritizeMusinsaStandaloneCandidates(candidatePoolBase)
+    : candidatePoolBase;
+  const importCandidatePreviews = buildImportCandidatePreviews(
+    candidatePool,
+    isMusinsaImport ? 24 : 24,
+    isMusinsaImport
+  );
+  const selectedCandidate = selectedImageUrl
+    ? candidatePool.find((candidate) => candidate.url === selectedImageUrl)
+    : undefined;
+  const hasSelectedCandidate = Boolean(selectedCandidate);
+  if (selectedImageUrl && !selectedCandidate) {
+    throw new AssetImportError(
+      "NO_IMAGE_FOUND",
+      "The selected image candidate is no longer available.",
+      422,
+      undefined,
+      importCandidatePreviews
+    );
+  }
   const enforceTrustedNoFace = strictNoModel && serverConfig.humanDetectionMode === "face";
   const noFaceCandidates = enforceTrustedNoFace
     ? candidatePool.filter((candidate) => isTrustedNoFaceCandidate(candidate))
@@ -264,7 +389,7 @@ export const importAssetFromUrlAndSave = async (
     ? prioritizeMusinsaStandaloneCandidates(noFaceCandidates)
     : noFaceCandidates;
 
-  if (strictNoModel && prioritizedNoFaceCandidates.length === 0) {
+  if (strictNoModel && prioritizedNoFaceCandidates.length === 0 && !hasSelectedCandidate) {
     const selectionAttempts = candidates.slice(0, 3).map((candidate) => ({
       candidateUrl: candidate.url,
       source: candidate.source,
@@ -280,34 +405,48 @@ export const importAssetFromUrlAndSave = async (
       "ONLY_MODEL_IMAGES_FOUND",
       "Only model-like images were detected; strict mode blocked import.",
       422,
-      selectionAttempts
+      selectionAttempts,
+      importCandidatePreviews
     );
   }
 
   const attemptLimit = isMusinsaImport ? Math.max(maxRemovebgAttempts, 8) : maxRemovebgAttempts;
-  const attemptWindow = prioritizedNoFaceCandidates.slice(
+  const attemptWindow: ResolvedImageCandidate[] = [];
+  const pushUniqueCandidate = (candidate: ResolvedImageCandidate | undefined) => {
+    if (!candidate) return;
+    if (attemptWindow.some((entry) => entry.url === candidate.url)) return;
+    attemptWindow.push(candidate);
+  };
+
+  if (selectedCandidate) {
+    pushUniqueCandidate(selectedCandidate);
+  }
+
+  const prioritizedWindow = prioritizedNoFaceCandidates.slice(
     0,
     Math.min(prioritizedNoFaceCandidates.length, attemptLimit)
   );
+  for (const candidate of prioritizedWindow) {
+    pushUniqueCandidate(candidate);
+  }
+
   if (isMusinsaImport && attemptWindow.length < attemptLimit) {
     const standaloneFallbacks = prioritizeMusinsaStandaloneCandidates(resolvedCandidates.candidates)
       .filter((candidate) => isLikelyMusinsaStandaloneCandidate(candidate))
       .filter((candidate) => !attemptWindow.some((entry) => entry.url === candidate.url))
       .slice(0, attemptLimit - attemptWindow.length);
-    attemptWindow.push(...standaloneFallbacks);
+    for (const candidate of standaloneFallbacks) {
+      pushUniqueCandidate(candidate);
+    }
   }
   if (!strictNoModel && modelCandidates.length > 0) {
     const fallbackModelCandidate = modelCandidates[0];
-    if (
-      fallbackModelCandidate &&
-      !attemptWindow.some((candidate) => candidate.url === fallbackModelCandidate.url)
-    ) {
-      attemptWindow.push(fallbackModelCandidate);
-    }
+    pushUniqueCandidate(fallbackModelCandidate);
   }
 
   for (let index = 0; index < attemptWindow.length; index += 1) {
     const candidate = attemptWindow[index];
+    const isUserSelectedCandidate = Boolean(selectedImageUrl && candidate.url === selectedImageUrl);
 
     const removed = await removeBackground(candidate.buffer, candidate.mime, { crop: true });
     if (!removed.removedBackground) {
@@ -341,7 +480,10 @@ export const importAssetFromUrlAndSave = async (
       minTrimSizePx: 64,
     });
 
-    if (!processed.quality.pass) {
+    const allowManualQualityBypass =
+      isUserSelectedCandidate && processed.quality.reason !== "FOREGROUND_TOO_SMALL";
+
+    if (!processed.quality.pass && !allowManualQualityBypass) {
       attempts.push({
         candidateUrl: candidate.url,
         source: candidate.source,
@@ -355,15 +497,27 @@ export const importAssetFromUrlAndSave = async (
       continue;
     }
 
+    if (allowManualQualityBypass) {
+      mergedWarnings.add(`MANUAL_SELECTION_QUALITY_BYPASS:${processed.quality.reason}`);
+    }
+
     const imageDataUrl = toImageDataUrl(processed.buffer, processed.mime);
     const warnings = removed.warnings ?? [];
     for (const warning of warnings) {
       mergedWarnings.add(warning);
     }
-    const processingMeta = buildProcessingMeta(candidate, processed.quality, {
+    const baseProcessingMeta = buildProcessingMeta(candidate, processed.quality, {
       rect: processed.trimRect,
       originalSize: processed.originalSize,
     });
+    const processingMeta: Record<string, unknown> = allowManualQualityBypass
+      ? {
+          ...baseProcessingMeta,
+          manualSelectionBypass: {
+            reason: processed.quality.reason,
+          },
+        }
+      : baseProcessingMeta;
 
     const record = await saveAsset({
       name: buildAssetName(options.name, resolvedCandidates.title, index),
@@ -406,5 +560,11 @@ export const importAssetFromUrlAndSave = async (
     UNKNOWN_IMPORT_ERROR: "Could not import a valid product asset.",
   };
 
-  throw new AssetImportError(finalCode, defaultMessageByCode[finalCode], 422, attempts);
+  throw new AssetImportError(
+    finalCode,
+    defaultMessageByCode[finalCode],
+    422,
+    attempts,
+    importCandidatePreviews
+  );
 };

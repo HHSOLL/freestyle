@@ -66,6 +66,5 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const payload = includeDebugAttempts ? result : withoutAttempts(result);
   await job.remove().catch(() => undefined);
 
-  const statusCode = result.status === "failed" ? 422 : 200;
-  return NextResponse.json(payload, { status: statusCode });
+  return NextResponse.json(payload, { status: 200 });
 }

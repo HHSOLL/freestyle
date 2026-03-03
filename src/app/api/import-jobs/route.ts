@@ -134,12 +134,14 @@ const queueJsonImport = async (request: Request) => {
   }
 
   const name = readOptionalString(body.name);
+  const selectedImageUrl = readOptionalString(body.selectedImageUrl);
   await queueImportJob(jobId, {
     type: "url",
     url,
     category,
     name,
     sourceUrl: url,
+    selectedImageUrl,
   });
 
   return NextResponse.json({ jobId, status: "queued" });

@@ -6,6 +6,7 @@ import {
   type AssetImportFailureCode,
   importAssetFromUrlAndSave,
   type ImportAttemptLog,
+  type ImportImageCandidate,
 } from "../lib/assetImport";
 import {
   fetchProductLinksFromCartUrl,
@@ -87,12 +88,13 @@ const toFailureCodeFromMessage = (message: string): AssetImportFailureCode => {
 const mapImportErrorToFailure = (
   error: unknown,
   fallback: { code?: string; message: string }
-): { code: string; message: string; attempts?: ImportAttemptLog[] } => {
+): { code: string; message: string; attempts?: ImportAttemptLog[]; candidates?: ImportImageCandidate[] } => {
   if (error instanceof AssetImportError) {
     return {
       code: error.code,
       message: error.message,
       attempts: error.attempts,
+      candidates: error.candidates,
     };
   }
 
@@ -124,6 +126,7 @@ const processUrlImportJob = async (job: Job<ImportJobData, ImportJobResult>) => 
       sourceUrl: payload.sourceUrl ?? payload.url,
       maxCandidates: 8,
       maxRemovebgAttempts: 3,
+      selectedImageUrl: payload.selectedImageUrl,
     });
 
     return {
@@ -145,6 +148,7 @@ const processUrlImportJob = async (job: Job<ImportJobData, ImportJobResult>) => 
       code: failure.code,
       error: failure.message,
       attempts: failure.attempts,
+      candidates: failure.candidates,
     } satisfies ImportJobResult;
   }
 };
@@ -192,6 +196,7 @@ const processCartImportJob = async (job: Job<ImportJobData, ImportJobResult>) =>
               error: failure.message,
               code: failure.code,
               attempts: failure.attempts,
+              candidates: failure.candidates,
             },
           };
         } finally {

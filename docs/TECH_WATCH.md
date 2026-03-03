@@ -16,7 +16,7 @@
 - Supabase 서버/SDK 변경사항
 
 ## 마지막 점검일
-- 2026-02-25
+- 2026-02-28
 
 ## 점검 로그
 ### 2026-02-11
@@ -191,6 +191,40 @@
   - 검증:
     - `removeBgKeyLoaded true` 확인
     - `npm run lint`, `npm run build` 통과
+- 반영 문서:
+  - 본 문서 업데이트
+  - `README.md`
+  - `docs/DEVELOPMENT_GUIDE.md`
+  - `docs/MAINTENANCE_PLAYBOOK.md`
+
+### 2026-02-28
+- 확인 소스:
+  - Next.js 블로그 RSS (`https://nextjs.org/feed.xml`)
+    - 최신: `Building Next.js for an agentic future` (2026-02-12)
+  - React 블로그 RSS (`https://react.dev/feed.xml`)
+    - 최신: `The React Foundation: A New Home for React Hosted by the Linux Foundation` (2026-02-24)
+  - TypeScript 블로그 RSS (`https://devblogs.microsoft.com/typescript/feed/`)
+    - 최신: `Announcing TypeScript 6.0 Beta` (2026-02-11)
+  - BullMQ GitHub Releases (`https://api.github.com/repos/taskforcesh/bullmq/releases`)
+    - 최신: `v5.70.1` (published 2026-02-23)
+  - Supabase Changelog (`https://supabase.com/changelog`)
+    - 최신: `Breaking Change: Removing access to OpenAPI spec via the anon key` (2026-02-17)
+- 신규 변화 요약:
+  - 프레임워크/런타임 보안 및 운영 안정성 공지 흐름이 계속 빨라지고 있어, import/worker 구조처럼 비동기 분리 아키텍처 유지가 유효함.
+  - TypeScript 6.0 Beta 공개로 향후 타입체크 엄격도 변화 가능성이 있어, `unknown + narrowing` 기반 입력 검증 규칙을 유지하는 것이 안전함.
+  - BullMQ 5.70.x 라인이 유지되고 있어 큐 기반 import/try-on 경로의 업데이트 추적 우선순위가 계속 높음.
+- 우리 프로젝트 영향:
+  - 오늘 작업 범위(대표 이미지 후보 확장, source link 노출)는 현재 아키텍처 위에서 안전하게 반영 가능하며, 추가 인프라 전환 필요는 없음.
+  - URL import 실패 시 사용자 수동 선택 성공률을 높이기 위해 후보 노출 범위와 수동 선택 우회 규칙을 강화하는 방향이 타당함.
+- 적용 여부:
+  - 코드 반영 완료:
+    - 무신사 링크 import에서 대표 이미지 후보 노출 범위 확대(상세 대표 이미지군 우선)
+    - 수동 선택 후보(`selectedImageUrl`) 처리 신뢰도 강화
+    - Studio 요약/캔버스에서 `sourceUrl` 말풍선 링크 노출
+  - 문서 동기화 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
 - 반영 문서:
   - 본 문서 업데이트
   - `README.md`

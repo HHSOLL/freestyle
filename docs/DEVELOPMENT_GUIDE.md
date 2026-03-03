@@ -9,7 +9,7 @@
 - `src/components`: 공용 UI/레이아웃 컴포넌트
 - `src/components/brand`: 브랜드 로고 컴포넌트
 - `src/features`: 도메인별 기능 컴포넌트/타입/상수
-  - `studio`, `profile`, `trends`, `community`
+  - `studio`, `profile`, `trends`
 - `public/branding`: FreeStyle 로고/마크 SVG 에셋
 - `src/lib`: 도메인 로직(에셋 처리, 저장소, 큐)
 - `src/lib/serverConfig.ts`: 서버 런타임 설정/운영 안전 가드
@@ -50,6 +50,7 @@
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
 - `/trends` 페이지는 단일 피드 화면으로 운영하며, 정렬(인기순/최신순)과 카테고리 필터(성별/계절/스타일)를 함께 제공한다.
 - `/trends` 상세 모달은 이미지 가시성을 유지하도록 최소 높이를 보장하고, 텍스트는 제작자/코디명/카테고리/간단 설명 중심으로 제한한다.
+- Studio 요약 패널/캔버스는 `asset.sourceUrl`이 있는 항목 클릭 시 링크 말풍선을 노출해 원본 상품 페이지로 즉시 이동할 수 있어야 한다.
 
 ## 4. 개발 규칙
 - 타입 안정성 우선: `any` 사용 금지, `unknown + narrowing` 권장
@@ -65,9 +66,15 @@
 1. 후보 선택
 - 단일 대표 이미지 1개만 사용하지 않고 다중 후보(JSON-LD Product image, meta, img, background-image)를 수집한다.
 - 특정 쇼핑몰(예: 무신사 상세페이지)은 구조화 스크립트에서 이미지 URL을 추가 수집해 단독 상품컷 후보를 보강한다.
+- 무신사 상세페이지는 `window.__MSS__.product.state` / `__NEXT_DATA__`의 `goodsImages`, `thumbnailImageUrl`도 함께 수집해 후보 누락을 줄인다.
+- 무신사의 `/images/*` 상대 경로 후보는 `https://image.msscdn.net` CDN 절대경로로 정규화한 뒤 검증/스코어링한다.
 - URL 키워드 기반 스코어링으로 모델컷/썸네일 패널티, 상품 상세컷 보너스를 적용한다.
 - 무신사 링크(`musinsa.com/products/*`)는 goods 경로(`/images/goods/*`) 보너스와 스타일/스냅 경로 패널티를 함께 적용해 단독 상품컷을 우선한다.
 - 무신사 링크는 기본 후보 상위 N에서 실패하더라도 더 넓은 후보 풀(최대 24)과 추가 시도(기본 8)로 단독컷 패턴 후보를 재시도한다.
+- 무신사 링크 후보 모달은 상품 상태/구조화 스크립트에서 찾은 상세 대표 이미지군을 우선해 가능한 많은 후보를 보여준다(색상/컷 직접 선택 용도).
+- URL import가 `ONLY_MODEL_IMAGES_FOUND`로 실패하면, 상위 후보 URL/썸네일 목록을 클라이언트에 전달하고 사용자가 후보를 직접 선택해 재시도할 수 있다.
+- 사용자가 선택한 후보 URL은 `selectedImageUrl`로 워커에 전달되며, 해당 후보를 우선 처리한 뒤 일반 fallback 후보를 순차 시도한다.
+- 수동 선택(`selectedImageUrl`) 후보는 자동 품질 검증 실패 시에도 최소 안전 조건(초소형 foreground 제외)에서 우회 저장을 허용해 false-negative를 줄인다.
 - 얼굴 신호 기반 재랭킹(P1): 상위 K 후보만 얼굴 분석을 수행하고 모델컷 패널티를 점수에 반영한다.
 - 얼굴 모델 로딩은 `HUMAN_FACE_MODEL_SOURCE`로 제어한다(운영 기본 local 권장).
 - 후보/원본 URL fetch는 redirect 체인을 수동 추적하며 매 hop마다 안전 URL 검증을 수행한다.

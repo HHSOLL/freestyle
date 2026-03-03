@@ -60,13 +60,18 @@
 
 무신사 상세페이지 품질 보강:
 - `musinsa.com/products/*`는 구조화 스크립트 후보와 goods 경로 힌트를 우선해 단독 상품컷을 먼저 시도한다.
+- 무신사 상품 상태 스크립트(`goodsImages`, `thumbnailImageUrl`)에서 추출한 후보를 우선 사용하며, 로고/배너/파비콘 경로는 후보에서 제외한다.
+- 자동 판별 실패 시 후보 모달에는 무신사 상세 대표 이미지군을 넓게 노출해 사용자가 색상/컷을 직접 고를 수 있게 유지한다.
 - 단독컷이 아닌 스타일/스냅 이미지가 계속 선택되면 `attempts`의 `candidateUrl`, `source`, `finalScore`를 확인해 키워드 가중치와 차단 패턴을 조정한다.
 - 무신사 링크에서 `ONLY_MODEL_IMAGES_FOUND`가 반복되면 상위 후보 외 fallback 후보 재시도(확대된 후보 풀/시도 수) 결과를 우선 확인한다.
+- URL import UI는 `ONLY_MODEL_IMAGES_FOUND` 시 후보 이미지 선택 모달을 제공한다. 사용자가 선택한 `selectedImageUrl` 재시도에서도 실패하면 `attempts`의 stage/quality를 확인해 임계값 또는 소스 스코어를 조정한다.
+- 수동 후보 선택에서도 실패가 반복되면 `attempts[].stage === "trim"` + `quality.reason`을 먼저 보고 `FOREGROUND_TOO_SMALL` 외 과검증 케이스인지 확인한다.
 
 운영 원칙:
 - 위 코드가 발생하면 실패 항목으로만 집계하고 에셋 저장은 하지 않는다.
 - 장바구니 import는 부분 성공을 허용하며 실패 항목을 `failed[]`로 반환한다.
 - 임포트는 기본적으로 `/api/import-jobs` 비동기 큐 경로를 사용한다(대량 처리/타임아웃 회피).
+- URL/장바구니 import로 저장된 asset은 `sourceUrl`을 유지하고, Studio 요약/캔버스에서 말풍선 링크로 노출한다(운영 중 링크 누락 시 저장 payload 점검).
 - 로컬 `index.json` 저장은 프로세스 내 mutex + atomic write를 사용한다. 다중 인스턴스 운영에서는 DB/오브젝트 스토리지 기반 저장소를 기본으로 사용한다.
 - 운영 환경 응답에서는 `attempts` 상세 디버그 정보 노출을 비활성화한다(개발 환경에서만 활성화).
 - 운영에서는 `ALLOWED_IMAGE_HOSTS`를 반드시 설정해야 URL/장바구니 import API가 동작한다.

@@ -1,7 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { Save, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ExternalLink, Save, X } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { formatSourceLink } from '../utils';
 import type { Asset, CanvasItem, StudioTranslator } from '../types';
 
 type SummaryPanelProps = {
@@ -27,6 +30,8 @@ export function SummaryPanel({
   onOpenTryOnModal,
   onOpenSaveModal,
 }: SummaryPanelProps) {
+  const [openLinkItemId, setOpenLinkItemId] = useState<string | null>(null);
+
   return (
     <div className="p-6 flex flex-col h-full bg-white">
       <div className="flex items-center justify-between mb-8">
@@ -47,26 +52,60 @@ export function SummaryPanel({
           return (
             <div
               key={item.id}
-              className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${
+              className={`relative flex items-center gap-4 p-3 rounded-xl border transition-all ${
                 selectedItemId === item.id ? 'bg-black text-white' : 'bg-white border-black/5'
               }`}
             >
-              <div className="w-10 h-10 bg-[#F3F3F3] rounded-lg overflow-hidden shrink-0">
-                <img
-                  src={asset.imageSrc}
-                  alt={asset.name}
-                  className="w-full h-full object-contain p-1 mix-blend-multiply"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold truncate">{asset.name}</p>
-              </div>
               <button
-                onClick={() => onRemoveFromCanvas(item.id)}
+                type="button"
+                onClick={() => {
+                  if (!asset.sourceUrl) return;
+                  setOpenLinkItemId((prev) => (prev === item.id ? null : item.id));
+                }}
+                className={`flex items-center gap-4 flex-1 min-w-0 text-left ${
+                  asset.sourceUrl ? 'cursor-pointer' : 'cursor-default'
+                }`}
+              >
+                <div className="w-10 h-10 bg-[#F3F3F3] rounded-lg overflow-hidden shrink-0">
+                  <img
+                    src={asset.imageSrc}
+                    alt={asset.name}
+                    className="w-full h-full object-contain p-1 mix-blend-multiply"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold truncate">{asset.name}</p>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  setOpenLinkItemId((prev) => (prev === item.id ? null : prev));
+                  onRemoveFromCanvas(item.id);
+                }}
                 className="p-1 px-2 border rounded-md hover:bg-black/5 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
+              <AnimatePresence>
+                {openLinkItemId === item.id && asset.sourceUrl && (
+                  <motion.a
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    href={asset.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="absolute left-12 top-full mt-2 z-20 max-w-[260px] rounded-2xl bg-black text-white px-3 py-2 text-[11px] font-semibold shadow-xl"
+                  >
+                    <span className="block truncate">{formatSourceLink(asset.sourceUrl)}</span>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-white/80">
+                      <ExternalLink className="w-3 h-3" />
+                      {t('studio.asset.link.open') || 'Open product link'}
+                    </span>
+                    <span className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-black" />
+                  </motion.a>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}

@@ -44,6 +44,17 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type ImportJobPendingStatus = 'waiting' | 'active' | 'delayed' | 'paused' | 'waiting-children' | 'queued';
 
+type ImportImageCandidate = {
+  id: string;
+  url: string;
+  source: string;
+  finalScore: number;
+  width: number;
+  height: number;
+  isModelLike: boolean;
+  facesOverMinArea: number;
+};
+
 type ImportJobUrlCompleted = {
   status: 'completed';
   type: 'url';
@@ -72,8 +83,10 @@ type ImportJobFileCompleted = {
 
 type ImportJobFailed = {
   status: 'failed';
+  type?: 'url' | 'cart' | 'file';
   code?: string;
   error?: string;
+  candidates?: unknown[];
 };
 
 type ImportJobPollResult =
@@ -82,6 +95,59 @@ type ImportJobPollResult =
   | ImportJobFileCompleted
   | ImportJobFailed
   | { status: ImportJobPendingStatus; progress?: unknown };
+
+class ImportJobFailureError extends Error {
+  code?: string;
+  type?: 'url' | 'cart' | 'file';
+  candidates: ImportImageCandidate[];
+
+  constructor(message: string, details: { code?: string; type?: 'url' | 'cart' | 'file'; candidates?: ImportImageCandidate[] }) {
+    super(message);
+    this.name = 'ImportJobFailureError';
+    this.code = details.code;
+    this.type = details.type;
+    this.candidates = details.candidates ?? [];
+  }
+}
+
+const toImportImageCandidate = (value: unknown): ImportImageCandidate | null => {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.url !== 'string' || record.url.trim().length === 0) return null;
+  if (typeof record.source !== 'string') return null;
+  if (typeof record.finalScore !== 'number' || !Number.isFinite(record.finalScore)) return null;
+  if (typeof record.width !== 'number' || !Number.isFinite(record.width) || record.width <= 0) return null;
+  if (typeof record.height !== 'number' || !Number.isFinite(record.height) || record.height <= 0) return null;
+  const trimmedUrl = record.url.trim();
+  const id =
+    typeof record.id === 'string' && record.id.trim().length > 0
+      ? record.id.trim()
+      : `${record.source}:${trimmedUrl}:${record.width}x${record.height}`;
+  return {
+    id,
+    url: trimmedUrl,
+    source: record.source,
+    finalScore: record.finalScore,
+    width: record.width,
+    height: record.height,
+    isModelLike: Boolean(record.isModelLike),
+    facesOverMinArea:
+      typeof record.facesOverMinArea === 'number' && Number.isFinite(record.facesOverMinArea)
+        ? record.facesOverMinArea
+        : 0,
+  };
+};
+
+const dedupeImportCandidates = (candidates: ImportImageCandidate[]) => {
+  const unique = new Map<string, ImportImageCandidate>();
+  for (const candidate of candidates) {
+    if (!candidate.url) continue;
+    if (!unique.has(candidate.url)) {
+      unique.set(candidate.url, candidate);
+    }
+  }
+  return Array.from(unique.values());
+};
 
 const normalizeReviewResult = (value: unknown): ReviewResult | null => {
   if (!value || typeof value !== 'object') return null;
@@ -133,6 +199,9 @@ export default function StudioPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
+  const [isImportCandidateModalOpen, setIsImportCandidateModalOpen] = useState(false);
+  const [importCandidates, setImportCandidates] = useState<ImportImageCandidate[]>([]);
+  const [selectedImportCandidateUrl, setSelectedImportCandidateUrl] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState('');
@@ -291,7 +360,18 @@ export default function StudioPage() {
 
       if (status === 'failed') {
         const failed = data as ImportJobFailed;
-        throw new Error(failed.error || t('studio.import.error_generic'));
+        const candidates = Array.isArray(failed.candidates)
+          ? failed.candidates
+              .map((candidate: unknown) => toImportImageCandidate(candidate))
+              .filter((candidate: ImportImageCandidate | null): candidate is ImportImageCandidate =>
+                Boolean(candidate)
+              )
+          : [];
+        throw new ImportJobFailureError(failed.error || t('studio.import.error_generic'), {
+          code: failed.code,
+          type: failed.type,
+          candidates,
+        });
       }
 
       if (
@@ -317,48 +397,94 @@ export default function StudioPage() {
     throw new Error(t('studio.vto.timeout') || 'Import timed out.');
   };
 
+  const runUrlImport = async (candidateUrl?: string) => {
+    const queueRes = await fetch('/api/import-jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'url',
+        url: importUrl.trim(),
+        name: newItemName,
+        category: newItemCategory,
+        selectedImageUrl: candidateUrl,
+      }),
+    });
+    const queueData = await queueRes.json();
+    if (!queueRes.ok || typeof queueData?.jobId !== 'string') {
+      throw new Error(typeof queueData?.error === 'string' ? queueData.error : t('studio.import.error_generic'));
+    }
+
+    const result = await pollImportJob(queueData.jobId, () => {
+      setProcessingStatus(t('studio.import.loading'));
+    });
+    if (result.type !== 'url') {
+      throw new Error(t('studio.import.error_generic'));
+    }
+    return result;
+  };
+
+  const finalizeImportedUrlAsset = (result: ImportJobUrlCompleted) => {
+    const savedAsset = toAsset(result.asset);
+    if (savedAsset) {
+      setUserAssets((prev) => [savedAsset, ...prev]);
+    }
+    setIsImportCandidateModalOpen(false);
+    setImportCandidates([]);
+    setSelectedImportCandidateUrl('');
+    setIsImportModalOpen(false);
+    setImportUrl('');
+    setNewItemName('');
+  };
+
   const handleImportSubmit = async () => {
     if (!importUrl.trim()) return;
     setIsProcessing(true);
     try {
       setProcessingStatus(t('studio.import.loading'));
-      const queueRes = await fetch('/api/import-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'url',
-          url: importUrl.trim(),
-          name: newItemName,
-          category: newItemCategory,
-        }),
-      });
-      const queueData = await queueRes.json();
-      if (!queueRes.ok || typeof queueData?.jobId !== 'string') {
-        throw new Error(
-          typeof queueData?.error === 'string' ? queueData.error : t('studio.import.error_generic')
-        );
-      }
+      const result = await runUrlImport();
+      finalizeImportedUrlAsset(result);
+    } catch (error: unknown) {
+      const canPromptManualCandidateSelection =
+        error instanceof ImportJobFailureError &&
+        error.type === 'url' &&
+        (error.code === 'ONLY_MODEL_IMAGES_FOUND' || error.code === 'CUTOUT_QUALITY_TOO_LOW') &&
+        dedupeImportCandidates(error.candidates).length > 0;
 
-      const result = await pollImportJob(queueData.jobId, () => {
-        setProcessingStatus(t('studio.import.loading'));
-      });
-      if (result.type !== 'url') {
-        throw new Error(t('studio.import.error_generic'));
+      if (canPromptManualCandidateSelection && error instanceof ImportJobFailureError) {
+        const dedupedCandidates = dedupeImportCandidates(error.candidates);
+        setImportCandidates(dedupedCandidates);
+        setSelectedImportCandidateUrl(dedupedCandidates[0]?.url ?? '');
+        setIsImportModalOpen(false);
+        setIsImportCandidateModalOpen(true);
+      } else {
+        alert(getErrorMessage(error, t('studio.import.error_generic')));
       }
+    } finally {
+      setIsProcessing(false);
+      setProcessingStatus('');
+    }
+  };
 
-      const savedAsset = toAsset(result.asset);
-      if (savedAsset) {
-        setUserAssets((prev) => [savedAsset, ...prev]);
-      }
-      setIsImportModalOpen(false);
-      setImportUrl('');
-      setNewItemName('');
+  const handleImportWithSelectedCandidate = async () => {
+    if (!selectedImportCandidateUrl.trim() || !importUrl.trim()) return;
+    setIsProcessing(true);
+    try {
+      setProcessingStatus(t('studio.import.loading'));
+      const result = await runUrlImport(selectedImportCandidateUrl.trim());
+      finalizeImportedUrlAsset(result);
     } catch (error: unknown) {
       alert(getErrorMessage(error, t('studio.import.error_generic')));
     } finally {
       setIsProcessing(false);
       setProcessingStatus('');
     }
+  };
+
+  const closeImportModals = () => {
+    setIsImportModalOpen(false);
+    setIsImportCandidateModalOpen(false);
+    setImportCandidates([]);
+    setSelectedImportCandidateUrl('');
   };
 
   const handleUploadSubmit = async () => {
@@ -862,6 +988,7 @@ export default function StudioPage() {
           onDownloadCanvas={downloadCanvasAsImage}
           onOpenSummary={() => setIsSummaryOpen(true)}
           onOpenAssetLibrary={() => setIsAssetLibraryOpen(true)}
+          productLinkLabel={t('studio.asset.link.open') || 'Open product link'}
           canvasItems={canvasItems}
           textItems={textItems}
           assetById={assetById}
@@ -912,8 +1039,14 @@ export default function StudioPage() {
         categories={categories}
         isProcessing={isProcessing}
         processingStatus={processingStatus}
-        onCloseImportModal={() => setIsImportModalOpen(false)}
+        onCloseImportModal={closeImportModals}
         onImportSubmit={handleImportSubmit}
+        isImportCandidateModalOpen={isImportCandidateModalOpen}
+        importCandidates={importCandidates}
+        selectedImportCandidateUrl={selectedImportCandidateUrl}
+        onSelectedImportCandidateUrlChange={setSelectedImportCandidateUrl}
+        onCloseImportCandidateModal={closeImportModals}
+        onImportWithSelectedCandidate={handleImportWithSelectedCandidate}
         isCartImportModalOpen={isCartImportModalOpen}
         cartImportUrl={cartImportUrl}
         onCartImportUrlChange={setCartImportUrl}

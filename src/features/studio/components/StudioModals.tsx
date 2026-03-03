@@ -21,6 +21,17 @@ type ReviewResult = {
   summary?: string;
 };
 
+type ImportImageCandidate = {
+  id: string;
+  url: string;
+  source: string;
+  finalScore: number;
+  width: number;
+  height: number;
+  isModelLike: boolean;
+  facesOverMinArea: number;
+};
+
 type StudioModalsProps = {
   t: StudioTranslator;
   isSaveModalOpen: boolean;
@@ -45,6 +56,12 @@ type StudioModalsProps = {
   processingStatus: string;
   onCloseImportModal: () => void;
   onImportSubmit: () => void;
+  isImportCandidateModalOpen: boolean;
+  importCandidates: ImportImageCandidate[];
+  selectedImportCandidateUrl: string;
+  onSelectedImportCandidateUrlChange: (value: string) => void;
+  onCloseImportCandidateModal: () => void;
+  onImportWithSelectedCandidate: () => void;
   isCartImportModalOpen: boolean;
   cartImportUrl: string;
   onCartImportUrlChange: (value: string) => void;
@@ -111,6 +128,12 @@ export function StudioModals({
   processingStatus,
   onCloseImportModal,
   onImportSubmit,
+  isImportCandidateModalOpen,
+  importCandidates,
+  selectedImportCandidateUrl,
+  onSelectedImportCandidateUrlChange,
+  onCloseImportCandidateModal,
+  onImportWithSelectedCandidate,
   isCartImportModalOpen,
   cartImportUrl,
   onCartImportUrlChange,
@@ -155,7 +178,7 @@ export function StudioModals({
   return (
     <AnimatePresence>
       {isSaveModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div key="save-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -183,7 +206,7 @@ export function StudioModals({
       )}
 
       {isTextModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div key="text-modal" className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -213,7 +236,7 @@ export function StudioModals({
       )}
 
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div key="import-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -293,8 +316,90 @@ export function StudioModals({
         </div>
       )}
 
+      {isImportCandidateModalOpen && (
+        <div key="import-candidate-modal" className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-4xl bg-white rounded-[40px] p-8 md:p-10 space-y-6 shadow-2xl"
+          >
+            <div>
+              <h2 className="text-2xl md:text-3xl font-serif mb-2">
+                {t('studio.import.candidate.title') || 'Pick the product-only image'}
+              </h2>
+              <p className="text-sm text-black/45">
+                {t('studio.import.candidate.desc') ||
+                  'Automatic detection failed. Choose the best standalone front shot and retry.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[52vh] overflow-y-auto pr-1">
+              {importCandidates.map((candidate, index) => {
+                const selected = selectedImportCandidateUrl === candidate.url;
+                return (
+                  <button
+                    key={`${candidate.id}-${index}`}
+                    type="button"
+                    onClick={() => onSelectedImportCandidateUrlChange(candidate.url)}
+                    className={`group text-left rounded-3xl overflow-hidden border transition-all ${
+                      selected ? 'border-black shadow-md' : 'border-black/10 hover:border-black/30'
+                    }`}
+                  >
+                    <div className="aspect-square bg-black/[0.03]">
+                      <img
+                        src={candidate.url}
+                        alt="candidate"
+                        className="w-full h-full object-contain bg-white"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="px-4 py-3 space-y-1.5">
+                      <p className="text-xs font-bold text-black/60 truncate">{candidate.source}</p>
+                      <p className="text-[11px] text-black/50">
+                        {candidate.width}×{candidate.height}
+                      </p>
+                      <p className={`text-[11px] font-semibold ${candidate.isModelLike ? 'text-black/45' : 'text-black/75'}`}>
+                        {candidate.isModelLike
+                          ? `${t('studio.import.candidate.model_hint') || 'Model-like detected'} (${candidate.facesOverMinArea})`
+                          : t('studio.import.candidate.product_hint') || 'Likely standalone product'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-4 pt-2">
+              <Button
+                variant="ghost"
+                className="flex-1 h-14 rounded-2xl"
+                onClick={onCloseImportCandidateModal}
+                disabled={isProcessing}
+              >
+                {t('studio.import.cancel')}
+              </Button>
+              <Button
+                className="flex-1 h-14 rounded-2xl bg-black text-white"
+                onClick={onImportWithSelectedCandidate}
+                disabled={isProcessing || !selectedImportCandidateUrl}
+              >
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    {processingStatus || t('studio.import.loading')}
+                  </>
+                ) : (
+                  t('studio.import.candidate.cta') || 'Use this image'
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {isCartImportModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div key="cart-import-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -367,7 +472,7 @@ export function StudioModals({
       )}
 
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div key="upload-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -455,7 +560,7 @@ export function StudioModals({
       )}
 
       {isReviewModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+        <div key="review-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -608,7 +713,7 @@ export function StudioModals({
       )}
 
       {isTryOnModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+        <div key="tryon-modal" className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}

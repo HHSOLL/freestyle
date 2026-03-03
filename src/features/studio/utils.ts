@@ -14,6 +14,17 @@ export const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+export const formatSourceLink = (sourceUrl: string) => {
+  try {
+    const parsed = new URL(sourceUrl);
+    const trimmedPath =
+      parsed.pathname.length > 36 ? `${parsed.pathname.slice(0, 33)}...` : parsed.pathname;
+    return `${parsed.hostname}${trimmedPath}`;
+  } catch {
+    return sourceUrl.length > 52 ? `${sourceUrl.slice(0, 49)}...` : sourceUrl;
+  }
+};
+
 export const toAsset = (value: unknown): Asset | null => {
   if (!value || typeof value !== 'object') return null;
 

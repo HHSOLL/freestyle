@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, type DragControls, useDragControls } from 'framer-motion';
 import {
   Download,
+  ExternalLink,
   Maximize2,
   Minus,
   Palette,
@@ -15,8 +16,16 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { canvasSizeOptions, presetColors } from '../constants';
+import { formatSourceLink } from '../utils';
 import type { Asset, CanvasItem, CanvasSize, TextItem } from '../types';
 
 type StudioCanvasProps = {
@@ -45,6 +54,7 @@ type StudioCanvasProps = {
   onDownloadCanvas: () => void;
   onOpenSummary: () => void;
   onOpenAssetLibrary: () => void;
+  productLinkLabel: string;
   canvasItems: CanvasItem[];
   textItems: TextItem[];
   assetById: Map<string, Asset>;
@@ -70,6 +80,9 @@ type CanvasAssetMotionItemProps = {
   onSelectItem: (id: string) => void;
   onDragEnd: (id: string, offset: { x: number; y: number }) => void;
   onRemoveItem: (id: string) => void;
+  onToggleLinkBubble: (id: string, sourceUrl?: string) => void;
+  isLinkBubbleVisible: boolean;
+  productLinkLabel: string;
   getAlphaMask: (src: string) => Promise<AlphaMask | null>;
 };
 
@@ -151,6 +164,9 @@ function CanvasAssetMotionItem({
   onSelectItem,
   onDragEnd,
   onRemoveItem,
+  onToggleLinkBubble,
+  isLinkBubbleVisible,
+  productLinkLabel,
   getAlphaMask,
 }: CanvasAssetMotionItemProps) {
   const dragControls: DragControls = useDragControls();
@@ -169,9 +185,10 @@ function CanvasAssetMotionItem({
       }
 
       onSelectItem(item.id);
+      onToggleLinkBubble(item.id, asset.sourceUrl);
       dragControls.start(pointerEvent, { snapToCursor: false });
     },
-    [asset.imageSrc, dragControls, getAlphaMask, item.id, onSelectItem]
+    [asset.imageSrc, asset.sourceUrl, dragControls, getAlphaMask, item.id, onSelectItem, onToggleLinkBubble]
   );
 
   return (
@@ -189,6 +206,7 @@ function CanvasAssetMotionItem({
       ref={(node) => {
         onSetItemRef(item.id, node);
       }}
+      data-canvas-item="true"
       className="absolute z-[10] cursor-grab active:cursor-grabbing group"
       style={{
         left: '50%',
@@ -216,6 +234,28 @@ function CanvasAssetMotionItem({
         >
           <X className="w-3 h-3" />
         </button>
+        <AnimatePresence>
+          {isLinkBubbleVisible && asset.sourceUrl && (
+            <motion.a
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              href={asset.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              data-link-bubble="true"
+              onPointerDown={(event) => event.stopPropagation()}
+              className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[240px] rounded-2xl bg-black text-white px-3 py-2 text-[11px] font-semibold shadow-xl"
+            >
+              <span className="block truncate">{formatSourceLink(asset.sourceUrl)}</span>
+              <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-white/80">
+                <ExternalLink className="w-3 h-3" />
+                {productLinkLabel}
+              </span>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-black" />
+            </motion.a>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -247,6 +287,7 @@ export function StudioCanvas({
   onDownloadCanvas,
   onOpenSummary,
   onOpenAssetLibrary,
+  productLinkLabel,
   canvasItems,
   textItems,
   assetById,
@@ -258,6 +299,7 @@ export function StudioCanvas({
   onRemoveText,
 }: StudioCanvasProps) {
   const alphaMaskCacheRef = useRef<Map<string, Promise<AlphaMask | null>>>(new Map());
+  const [linkBubbleItemId, setLinkBubbleItemId] = useState<string | null>(null);
 
   const getAlphaMask = useCallback(async (src: string) => {
     const cached = alphaMaskCacheRef.current.get(src);
@@ -275,6 +317,18 @@ export function StudioCanvas({
       void getAlphaMask(asset.imageSrc);
     }
   }, [assetById, canvasItems, getAlphaMask]);
+
+  const onToggleLinkBubble = useCallback((id: string, sourceUrl?: string) => {
+    if (!sourceUrl) {
+      setLinkBubbleItemId(null);
+      return;
+    }
+    setLinkBubbleItemId((prev) => (prev === id ? null : id));
+  }, []);
+  const activeLinkBubbleItemId =
+    linkBubbleItemId && canvasItems.some((item) => item.id === linkBubbleItemId)
+      ? linkBubbleItemId
+      : null;
 
   const selectedAspectRatio =
     canvasSize === 'square'
@@ -472,6 +526,12 @@ export function StudioCanvas({
 
         <div
           ref={canvasRef}
+          onPointerDown={(event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('[data-canvas-item="true"]')) return;
+            if (target.closest('[data-link-bubble="true"]')) return;
+            setLinkBubbleItemId(null);
+          }}
           className={`relative transition-all duration-700 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] overflow-hidden bg-white border border-black/5 ${
             canvasSize === 'auto' ? 'w-full h-full' : 'rounded-[48px]'
           }`}
@@ -507,7 +567,13 @@ export function StudioCanvas({
                     onSetItemRef={onItemNodeChange}
                     onSelectItem={onSelectItem}
                     onDragEnd={onDragEnd}
-                    onRemoveItem={onRemoveItem}
+                    onRemoveItem={(id) => {
+                      setLinkBubbleItemId((prev) => (prev === id ? null : prev));
+                      onRemoveItem(id);
+                    }}
+                    onToggleLinkBubble={onToggleLinkBubble}
+                    isLinkBubbleVisible={activeLinkBubbleItemId === item.id}
+                    productLinkLabel={productLinkLabel}
                     getAlphaMask={getAlphaMask}
                   />
                 );

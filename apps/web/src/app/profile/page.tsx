@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { AuthGate } from '@/components/auth/AuthGate';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/LanguageContext';
 import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { ProfileAssetsSection } from '@/features/profile/components/ProfileAssetsSection';
@@ -67,6 +69,7 @@ const toAssetSummary = (value: unknown): AssetSummary | null => {
 
 export default function ProfilePage() {
   const { t } = useLanguage();
+  const { isLoading: isAuthLoading, user } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>('archive');
   const [outfits, setOutfits] = useState<OutfitSummary[]>([]);
   const [assets, setAssets] = useState<AssetSummary[]>([]);
@@ -76,6 +79,7 @@ export default function ProfilePage() {
   const [assetCategory, setAssetCategory] = useState('all');
 
   useEffect(() => {
+    if (isAuthLoading || !user) return;
     const loadData = async () => {
       try {
         const [{ response: outfitsRes, data: outfitsData }, { response: assetsRes, data: assetsData }] =
@@ -104,7 +108,7 @@ export default function ProfilePage() {
     };
 
     loadData();
-  }, []);
+  }, [isAuthLoading, user]);
 
   const filteredOutfits = useMemo(() => {
     const query = archiveQuery.trim().toLowerCase();
@@ -175,6 +179,19 @@ export default function ProfilePage() {
       alert(message);
     }
   };
+
+  if (isAuthLoading) {
+    return <div className="min-h-[calc(100vh-4rem)] bg-[#F8F9FA]" />;
+  }
+
+  if (!user) {
+    return (
+      <AuthGate
+        title="Profile Access"
+        description="보관한 코디와 등록한 에셋은 로그인한 사용자 기준으로만 조회됩니다."
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pt-24 pb-24">

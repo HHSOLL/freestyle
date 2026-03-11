@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export function Header() {
     const pathname = usePathname();
     const { language, setLanguage, t } = useLanguage();
+    const { user, signOut } = useAuth();
 
     const navLinks = [
         { href: "/studio", label: t('nav.studio') },
@@ -66,6 +68,27 @@ export function Header() {
                     <ShoppingBag className="h-5 w-5" />
                     <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
                 </Button>
+                {user ? (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            signOut().catch((error) => {
+                                const message = error instanceof Error ? error.message : "Failed to sign out.";
+                                alert(message);
+                            });
+                        }}
+                        className="ml-2 rounded-full border border-black/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-black/65 transition hover:border-black/25 hover:text-black"
+                    >
+                        {user.email?.split("@")[0] || "Account"}
+                    </button>
+                ) : (
+                    <Link
+                        href="/studio"
+                        className="ml-2 rounded-full border border-black/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-black/65 transition hover:border-black/25 hover:text-black"
+                    >
+                        Sign In
+                    </Link>
+                )}
             </div>
         </header>
     );

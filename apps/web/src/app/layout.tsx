@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Header } from "@/components/layout/Header";
 import MobileNav from "@/components/layout/MobileNav";
+import { AuthProvider } from "@/lib/AuthContext";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import "./globals.css";
 
@@ -42,13 +43,15 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${a2jFont.variable} font-sans antialiased bg-background text-foreground`}>
-        <LanguageProvider>
-          <Header />
-          <main className="min-h-screen pt-16">
-            {children}
-          </main>
-          <MobileNav />
-        </LanguageProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <Header />
+            <main className="min-h-screen pt-16">
+              {children}
+            </main>
+            <MobileNav />
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );

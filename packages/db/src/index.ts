@@ -32,6 +32,134 @@ const parseRows = <T>(input: unknown): T[] => {
   return input as T[];
 };
 
+const isMissingRpcError = (message: string) =>
+  message.includes("Could not find the function public.claim_jobs") ||
+  message.includes("Could not find the function public.heartbeat_jobs") ||
+  message.includes("Could not find the function public.requeue_stale_jobs");
+
+type StaleJobRow = Pick<
+  JobRecord,
+  "id" | "attempt" | "max_attempts" | "run_after" | "error_code" | "error_message" | "completed_at"
+>;
+
+const claimJobsWithoutRpc = async (supabase: SupabaseClient, workerName: string, jobTypes: JobType[], batchSize: number) => {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("status", "queued")
+    .in("job_type", jobTypes)
+    .lte("run_after", now)
+    .order("priority", { ascending: true })
+    .order("created_at", { ascending: true })
+    .limit(Math.max(batchSize, batchSize * 3));
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const claimed: JobRecord[] = [];
+  for (const candidate of parseRows<JobRecord>(data)) {
+    if (claimed.length >= batchSize) break;
+
+    const timestamp = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
+      .from("jobs")
+      .update({
+        status: "processing",
+        locked_by: workerName,
+        locked_at: timestamp,
+        heartbeat_at: timestamp,
+        attempt: Number(candidate.attempt ?? 0) + 1,
+        updated_at: timestamp,
+      })
+      .eq("id", candidate.id)
+      .eq("status", "queued")
+      .is("locked_by", null)
+      .select("*")
+      .maybeSingle();
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    if (updated) {
+      claimed.push(updated as JobRecord);
+    }
+  }
+
+  return claimed;
+};
+
+const heartbeatJobsWithoutRpc = async (supabase: SupabaseClient, workerName: string, jobIds: string[]) => {
+  const { error } = await supabase
+    .from("jobs")
+    .update({
+      heartbeat_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", jobIds)
+    .eq("locked_by", workerName)
+    .eq("status", "processing");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
+const requeueStaleJobsWithoutRpc = async (supabase: SupabaseClient, minutes: number, limit: number) => {
+  const staleBefore = new Date(Date.now() - minutes * 60_000).toISOString();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id, attempt, max_attempts, run_after, error_code, error_message, completed_at")
+    .eq("status", "processing")
+    .lt("heartbeat_at", staleBefore)
+    .order("heartbeat_at", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  let count = 0;
+  for (const stale of parseRows<StaleJobRow>(data)) {
+    const attempt = Number(stale.attempt ?? 0);
+    const maxAttempts = Number(stale.max_attempts ?? 5);
+    const isTerminal = attempt >= maxAttempts;
+    const patch: Record<string, unknown> = {
+      status: isTerminal ? "failed" : "queued",
+      locked_by: null,
+      locked_at: null,
+      heartbeat_at: null,
+      updated_at: new Date().toISOString(),
+      error_code: isTerminal ? stale.error_code ?? "STALE_TIMEOUT" : stale.error_code ?? null,
+      error_message: isTerminal
+        ? stale.error_message ?? "Job became stale and exceeded max attempts."
+        : stale.error_message ?? null,
+      completed_at: isTerminal ? new Date().toISOString() : stale.completed_at ?? null,
+    };
+
+    if (!isTerminal) {
+      const backoffSeconds = Math.min(300, Math.max(3, Math.round(Math.pow(2, attempt))));
+      patch.run_after = new Date(Date.now() + backoffSeconds * 1000).toISOString();
+    }
+
+    const { error: updateError } = await supabase
+      .from("jobs")
+      .update(patch)
+      .eq("id", stale.id)
+      .eq("status", "processing");
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    count += 1;
+  }
+
+  return count;
+};
+
 export const createJob = async (input: {
   userId: string;
   jobType: JobType;
@@ -105,6 +233,9 @@ export const claimJobs = async (workerName: string, jobTypes: JobType[], batchSi
   });
 
   if (error) {
+    if (isMissingRpcError(error.message)) {
+      return claimJobsWithoutRpc(supabase, workerName, jobTypes, batchSize);
+    }
     throw new Error(error.message);
   }
 
@@ -118,7 +249,13 @@ export const heartbeatJobs = async (workerName: string, jobIds: string[]) => {
     p_worker_name: workerName,
     p_job_ids: jobIds,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingRpcError(error.message)) {
+      await heartbeatJobsWithoutRpc(supabase, workerName, jobIds);
+      return;
+    }
+    throw new Error(error.message);
+  }
 };
 
 export const completeJob = async (jobId: string, workerName: string, result: Record<string, unknown>) => {
@@ -203,7 +340,12 @@ export const requeueStaleJobs = async (minutes = 5, limit = 100) => {
     p_stale_before: staleBefore,
     p_limit: limit,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingRpcError(error.message)) {
+      return requeueStaleJobsWithoutRpc(supabase, minutes, limit);
+    }
+    throw new Error(error.message);
+  }
   return Number(data ?? 0);
 };
 

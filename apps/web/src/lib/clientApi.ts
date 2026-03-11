@@ -29,6 +29,11 @@ const normalizePublicApiBaseUrl = (value: string | undefined) => {
 
 const publicApiBaseUrl = normalizePublicApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 const serverApiBaseUrl = normalizePublicApiBaseUrl(process.env.BACKEND_ORIGIN);
+let accessToken: string | null = null;
+
+export const setApiAccessToken = (token: string | null) => {
+  accessToken = token?.trim() || null;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -50,7 +55,17 @@ export const buildApiPath = (path: string) => {
   return `${baseUrl}${normalizedPath}`;
 };
 
-export const apiFetch = (path: string, init?: RequestInit) => fetch(buildApiPath(path), init);
+export const apiFetch = (path: string, init?: RequestInit) => {
+  const headers = new Headers(init?.headers);
+  if (accessToken && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${accessToken}`);
+  }
+
+  return fetch(buildApiPath(path), {
+    ...init,
+    headers,
+  });
+};
 
 export const apiFetchJson = async <T>(
   path: string,

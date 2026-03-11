@@ -1,7 +1,8 @@
 # Railway Service: worker_background_removal
 
 ## Runtime
-- Entry: `node dist/workers/background_removal/src/worker.js`
+- Dockerfile: `infra/docker/railway/worker-background-removal.Dockerfile`
+- Start Command: `npm run serve:worker:background-removal`
 
 ## Handles
 - `background_removal.process`
@@ -17,3 +18,4 @@
 - `REMOVE_BG_ENDPOINT`
 - `REMOVE_BG_SIZE`
 - Worker polling envs (`WORKER_*`)
+- `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-background-removal.Dockerfile`

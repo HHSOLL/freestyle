@@ -1,7 +1,8 @@
 # Railway Service: worker_tryon
 
 ## Runtime
-- Entry: `node dist/workers/tryon/src/worker.js`
+- Dockerfile: `infra/docker/railway/worker-tryon.Dockerfile`
+- Start Command: `npm run serve:worker:tryon`
 
 ## Handles
 - `tryon.generate`
@@ -14,3 +15,4 @@
 ## Optional
 - `TRYON_PROVIDER`
 - Worker polling envs (`WORKER_*`)
+- `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-tryon.Dockerfile`

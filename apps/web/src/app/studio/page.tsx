@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AuthGate } from '@/components/auth/AuthGate';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import { apiFetch, apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
@@ -159,6 +161,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 export default function StudioPage() {
   const { t, language } = useLanguage();
+  const { isLoading: isAuthLoading, user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('all');
@@ -221,6 +224,7 @@ export default function StudioPage() {
   const nextZIndex = useRef(1);
 
   useEffect(() => {
+    if (isAuthLoading || !user) return;
     const loadAssets = async () => {
       try {
         const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
@@ -238,7 +242,7 @@ export default function StudioPage() {
       }
     };
     loadAssets();
-  }, []);
+  }, [isAuthLoading, user]);
 
   useEffect(() => {
     try {
@@ -727,6 +731,19 @@ export default function StudioPage() {
       setCartImportCategory(value);
     }
   };
+
+  if (isAuthLoading) {
+    return <div className="min-h-[calc(100vh-4rem)] bg-[#f7f7f5]" />;
+  }
+
+  if (!user) {
+    return (
+      <AuthGate
+        title="Studio Access"
+        description="에셋 가져오기, 코디 요약, 가상 피팅은 로그인 세션이 있어야 실행됩니다."
+      />
+    );
+  }
 
   const getCanvasAssetItems = () => {
     return canvasItems

@@ -17,13 +17,17 @@
 ## 2. 배포 전 체크리스트
 1. 환경 변수 확인
 - Vercel 프론트의 `BACKEND_ORIGIN` 설정 여부(`/api/*` -> Railway `/v1/*` rewrite)
+- Vercel 프론트의 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 여부
 - Vercel 프로젝트 루트가 `apps/web`인지, 또는 루트 배포 시 `npm run build`가 `@freestyle/web`를 호출하는지 확인
+- `apps/web` 내부에 `postcss.config.mjs`와 Tailwind/PostCSS 의존성이 존재하는지 확인(독립 workspace 빌드 기준)
 - Supabase 관련 키 (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`)
+- Railway 각 서비스에 `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/<service>.Dockerfile`가 설정되어 있는지 확인
 - Storage provider 설정 (`STORAGE_PROVIDER=supabase|s3`, 필요 시 `S3_*`)
 - AI provider 키 (`BG_REMOVAL_API_KEY`, `VTO_*`, `EVALUATOR_*`)
 - worker polling 설정 (`WORKER_POLL_INTERVAL_MS`, `WORKER_CLAIM_BATCH`, `WORKER_HEARTBEAT_SEC`)
 2. 데이터 경로 확인
 - Supabase Storage bucket 또는 S3 bucket 접근 권한
+- Supabase Storage bucket(`freestyle-assets`) public URL이 유효한지 확인
 3. 큐 워커 가동 확인
 - `worker_importer`
 - `worker_background_removal`
@@ -47,6 +51,7 @@
 - 증상: job이 `queued`에서 오래 대기
 - 점검: worker 프로세스 상태, `claim_jobs` RPC 권한, `jobs(status, run_after)` 인덱스
 - 점검: stale job이 쌓이면 `requeue_stale_jobs` 동작/heartbeat 지연 여부 확인
+- 호환 fallback: 원격 DB에 jobs RPC가 아직 없으면 워커는 optimistic claim fallback으로 구동된다. 다중 인스턴스 확장 전에는 반드시 `002_jobs_tables.sql`의 RPC를 원격 DB에 적용한다.
 
 3. 배경 제거 실패
 - 증상: `removedBackground=false`, 경고 반환

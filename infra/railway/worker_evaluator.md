@@ -1,7 +1,8 @@
 # Railway Service: worker_evaluator
 
 ## Runtime
-- Entry: `node dist/workers/evaluator/src/worker.js`
+- Dockerfile: `infra/docker/railway/worker-evaluator.Dockerfile`
+- Start Command: `npm run serve:worker:evaluator`
 
 ## Handles
 - `evaluator.outfit`
@@ -14,3 +15,4 @@
 - `EVALUATOR_PROVIDER`
 - `EVALUATOR_MODEL`
 - Worker polling envs (`WORKER_*`)
+- `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-evaluator.Dockerfile`

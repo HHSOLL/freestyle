@@ -1,7 +1,8 @@
 # Railway Service: worker_importer
 
 ## Runtime
-- Entry: `node dist/workers/importer/src/worker.js`
+- Dockerfile: `infra/docker/railway/worker-importer.Dockerfile`
+- Start Command: `npm run serve:worker:importer`
 
 ## Handles
 - `import.product_url`
@@ -18,3 +19,4 @@
 - `WORKER_POLL_INTERVAL_MS=750`
 - `WORKER_CLAIM_BATCH=10`
 - `WORKER_HEARTBEAT_SEC=10`
+- `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-importer.Dockerfile`

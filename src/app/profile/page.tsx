@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/lib/LanguageContext';
+import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { ProfileAssetsSection } from '@/features/profile/components/ProfileAssetsSection';
 import { ProfileArchiveSection } from '@/features/profile/components/ProfileArchiveSection';
 import { ProfileHeaderCard } from '@/features/profile/components/ProfileHeaderCard';
@@ -65,9 +66,11 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [outfitsRes, assetsRes] = await Promise.all([fetch('/api/outfits'), fetch('/api/assets')]);
-        const outfitsData = await outfitsRes.json();
-        const assetsData = await assetsRes.json();
+        const [{ response: outfitsRes, data: outfitsData }, { response: assetsRes, data: assetsData }] =
+          await Promise.all([
+            apiFetchJson<{ outfits?: unknown[] }>('/api/outfits'),
+            apiFetchJson<{ assets?: unknown[] }>('/api/assets'),
+          ]);
 
         if (outfitsRes.ok && Array.isArray(outfitsData?.outfits)) {
           const parsedOutfits = outfitsData.outfits
@@ -131,13 +134,33 @@ export default function ProfilePage() {
   };
 
   const deleteOutfit = async (id: string) => {
-    await fetch(`/api/outfits/${id}`, { method: 'DELETE' });
-    setOutfits((prev) => prev.filter((item) => item.id !== id));
+    try {
+      const { response, data } = await apiFetchJson<Record<string, unknown>>(`/api/outfits/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, 'Failed to delete outfit.'));
+      }
+      setOutfits((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete outfit.';
+      alert(message);
+    }
   };
 
   const deleteAsset = async (id: string) => {
-    await fetch(`/api/assets/${id}`, { method: 'DELETE' });
-    setAssets((prev) => prev.filter((item) => item.id !== id));
+    try {
+      const { response, data } = await apiFetchJson<Record<string, unknown>>(`/api/assets/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, 'Failed to delete asset.'));
+      }
+      setAssets((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete asset.';
+      alert(message);
+    }
   };
 
   return (

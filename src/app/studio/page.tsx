@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '@/lib/LanguageContext';
+import { apiFetch } from '@/lib/clientApi';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
 import { StudioDrawers } from '@/features/studio/components/StudioDrawers';
@@ -236,7 +237,7 @@ export default function StudioPage() {
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        const res = await fetch('/api/assets');
+        const res = await apiFetch('/api/assets');
         const data = await res.json();
         if (res.ok && Array.isArray(data?.assets)) {
           const parsedAssets = data.assets
@@ -350,7 +351,7 @@ export default function StudioPage() {
     const maxAttempts = 120;
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const res = await fetch(`/api/import-jobs/${jobId}`);
+      const res = await apiFetch(`/api/import-jobs/${jobId}`);
       const data = (await res.json()) as ImportJobPollResult;
       const status = typeof data?.status === 'string' ? data.status : '';
 
@@ -398,7 +399,7 @@ export default function StudioPage() {
   };
 
   const runUrlImport = async (candidateUrl?: string) => {
-    const queueRes = await fetch('/api/import-jobs', {
+    const queueRes = await apiFetch('/api/import-jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -498,7 +499,7 @@ export default function StudioPage() {
       formData.append('name', newItemName || t('studio.asset.uploaded'));
       formData.append('category', newItemCategory);
 
-      const queueRes = await fetch('/api/import-jobs', {
+      const queueRes = await apiFetch('/api/import-jobs', {
         method: 'POST',
         body: formData,
       });
@@ -545,7 +546,7 @@ export default function StudioPage() {
   const deleteAsset = async (id: string) => {
     if (!confirm(t('studio.asset.delete_confirm') || 'Delete this asset?')) return;
     try {
-      const res = await fetch(`/api/assets/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/assets/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       setUserAssets((prev) => prev.filter((asset) => asset.id !== id));
     } catch (error: unknown) {
@@ -743,7 +744,7 @@ export default function StudioPage() {
     setIsCartImporting(true);
     setCartImportStatus(t('studio.cart_import.loading') || 'Importing...');
     try {
-      const queueRes = await fetch('/api/import-jobs', {
+      const queueRes = await apiFetch('/api/import-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -813,7 +814,7 @@ export default function StudioPage() {
         personalColor: reviewPersonalColor || undefined,
       };
 
-      const res = await fetch('/api/ai/review', {
+      const res = await apiFetch('/api/ai/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -853,7 +854,7 @@ export default function StudioPage() {
   const pollTryOnJob = async (jobId: string) => {
     const maxAttempts = 45;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const res = await fetch(`/api/ai/tryon/${jobId}`);
+      const res = await apiFetch(`/api/ai/tryon/${jobId}`);
       const data = await res.json();
       const status = typeof data?.status === 'string' ? data.status : '';
 
@@ -889,7 +890,7 @@ export default function StudioPage() {
     setTryOnError(null);
     setTryOnResultImage(null);
     try {
-      const res = await fetch('/api/ai/tryon', {
+      const res = await apiFetch('/api/ai/tryon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

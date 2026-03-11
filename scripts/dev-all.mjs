@@ -40,13 +40,10 @@ const shutdown = (code) => {
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
-if (!process.env.REDIS_URL) {
-  spawnProcess("redis", "redis-server", []);
-} else {
-  console.log("[dev-all] REDIS_URL detected. Skipping local Redis.");
-}
-
 spawnProcess("next-dev", npmCmd, ["run", "dev"]);
-spawnProcess("bg-worker", npmCmd, ["run", "worker:bg"]);
-spawnProcess("import-worker", npmCmd, ["run", "worker:import"]);
-spawnProcess("vto-worker", npmCmd, ["run", "worker:vto"]);
+spawnProcess("api", npmCmd, ["run", "dev:api"]);
+spawnProcess("worker-importer", npmCmd, ["run", "dev:worker:importer"]);
+spawnProcess("worker-background-removal", npmCmd, ["run", "dev:worker:background-removal"]);
+spawnProcess("worker-asset-processor", npmCmd, ["run", "dev:worker:asset"]);
+spawnProcess("worker-evaluator", npmCmd, ["run", "dev:worker:evaluator"]);
+spawnProcess("worker-tryon", npmCmd, ["run", "dev:worker:tryon"]);

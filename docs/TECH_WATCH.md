@@ -12,13 +12,65 @@
 - React 릴리즈 노트
 - TypeScript 릴리즈 노트
 - Tailwind CSS 릴리즈 노트
-- BullMQ/IORedis 변경사항
 - Supabase 서버/SDK 변경사항
+- Railway 배포/운영 문서
+- npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-02-28
+- 2026-03-11
 
 ## 점검 로그
+### 2026-03-11
+- 확인 소스:
+  - Next.js 공식 블로그 / 릴리즈 노트 (`nextjs.org/blog`)
+  - React 공식 블로그 / 보안 공지 (`react.dev/blog`)
+  - TypeScript 공식 블로그 (`devblogs.microsoft.com/typescript`)
+  - Supabase changelog (`supabase.com/changelog`)
+  - Railway 공식 문서 (`docs.railway.com`)
+- 신규 변화 요약:
+  - 2026-03-10 점검 이후, 현재 운영 판단을 뒤집을 수준의 신규 아키텍처 변경 사항은 확인되지 않았다.
+  - Vercel/Next 워크스페이스 빌드는 프론트 워크스페이스 자체 lockfile을 둘 때 가장 안정적으로 동작한다는 점을 오늘 검증으로 재확인했다.
+- 우리 프로젝트 영향:
+  - Vercel 프론트는 `apps/web` 루트와 `apps/web/package-lock.json` 기준으로 빌드하는 구성을 유지한다.
+  - 루트 npm 스크립트도 `apps/web` 직접 실행 경로를 사용해 로컬/CI/Vercel의 빌드 경로 차이를 줄인다.
+- 적용 여부:
+  - 코드 반영 완료:
+    - 루트 `package.json`의 웹 관련 스크립트를 `npm --prefix apps/web ...` 기준으로 정리
+    - `apps/web/package-lock.json` 추가로 Next SWC lockfile patch 경고 제거
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
+### 2026-03-10
+- 확인 소스:
+  - Next.js 공식 블로그 (`nextjs.org/blog/next-16`, `nextjs.org/blog/our-journey-with-caching`)
+  - React 공식 블로그 (`react.dev/blog/2026/02/24/react-foundation`, `react.dev/blog/2025/12/18/react-vulnerabilities-2025`)
+  - TypeScript 공식 블로그 (`devblogs.microsoft.com/typescript/typescript-native-port`)
+  - Supabase changelog / developer updates (`supabase.com/changelog`, `supabase.com/developer-updates`)
+  - Railway 공식 문서 (`docs.railway.com/guides/monorepo`, `docs.railway.com/reference/errors/restart-policy`)
+  - npm registry latest stable 확인 (`npm view next version`, `npm view react version`, `npm view react-dom version`)
+- 신규 변화 요약:
+  - Next.js 16 운영 권장사항은 App Router 기준 유지되며, 캐싱/trace root/monorepo 배포 설정의 중요성이 계속 강조되고 있다.
+  - React는 2025-12 RSC 취약점 공지 이후 패치 라인을 유지해야 하며, 2026-03-10 기준 `react/react-dom 19.2.4`가 최신 stable이다.
+  - Next.js stable은 2026-03-10 기준 `16.1.6`이며, 프론트 워크스페이스 분리 시 `outputFileTracingRoot`/workspace root 고정이 빌드 안정성에 직접 영향을 준다.
+  - Supabase는 2026-02 developer updates에서 PostgREST v14/JWT cache/schema cache 개선을 반영했고, Queue/Storage 중심 구성이 계속 강화되고 있다.
+  - Railway 문서 기준으로 monorepo service source 지정과 restart policy, ephemeral filesystem 제약을 명확히 관리해야 한다.
+- 우리 프로젝트 영향:
+  - 프론트 실코드는 `apps/web`를 단일 소유 경로로 두고, Vercel 배포 루트도 `apps/web`로 맞추는 것이 가장 안정적이다.
+  - `react/react-dom`은 보안 패치 라인(`19.2.4`)으로, `next`는 `16.1.6`으로 올리는 것이 타당하다.
+  - Railway API/worker는 로컬 파일시스템에 결과물을 남기지 않고 Supabase Storage 중심으로 운영해야 한다.
+  - `/api/*` 레거시 경로보다 `/v1/*` 계약을 단일 소스로 유지해야 프론트/백엔드 분리가 단순해진다.
+- 적용 여부:
+  - 코드 반영 완료:
+    - `apps/web` 기준 `/v1/*` API 호출 전면 전환
+    - `apps/web/next.config.ts`에 workspace root / `outputFileTracingRoot` 고정
+    - `scripts/dev-all.mjs`를 `apps/api + 5 workers` 기준으로 재구성
+    - deprecated 체인(`tfjs-node`, `bullmq`, `ioredis`) 제거 후 lockfile 재생성
+    - `next 16.1.6`, `react/react-dom 19.2.4`로 패치 업그레이드
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+
 ### 2026-02-11
 - 초기 운영 템플릿 생성.
 - 이후부터는 작업 시작 시 "당일 미점검" 상태에서만 최신 변경사항을 확인하고 기록.
@@ -230,6 +282,75 @@
   - `README.md`
   - `docs/DEVELOPMENT_GUIDE.md`
   - `docs/MAINTENANCE_PLAYBOOK.md`
+
+### 2026-03-03
+- 확인 소스:
+  - Next.js 블로그 RSS (`https://nextjs.org/feed.xml`)
+    - 최신: `Building Next.js for an agentic future` (2026-02-12)
+  - React 블로그 RSS (`https://react.dev/feed.xml`)
+    - 최신: `The React Foundation: A New Home for React Hosted by the Linux Foundation` (2026-02-24)
+  - TypeScript 블로그 RSS (`https://devblogs.microsoft.com/typescript/feed/`)
+    - 최신: `Announcing TypeScript 6.0 Beta` (2026-02-11)
+  - BullMQ GitHub Releases (`https://api.github.com/repos/taskforcesh/bullmq/releases`)
+    - 최신: `v5.70.1` (published 2026-02-23)
+  - Supabase Changelog (`https://supabase.com/changelog`)
+    - 상단 공지 유지: `Breaking Change: Removing access to OpenAPI spec via the anon key` (2026-02-17)
+- 신규 변화 요약:
+  - 프론트/백 분리 운영(Vercel + 별도 API/Worker 런타임)이 여전히 실무적으로 유효하며, 큐/장시간 작업은 워커 런타임 분리 전략이 안정적이다.
+  - 타입/런타임 업데이트 주기가 빨라져 API 경계와 환경변수 규약을 코드 레벨에서 명시하는 것이 중요하다.
+- 우리 프로젝트 영향:
+  - 배포 토폴로지를 `Vercel(프론트) + Railway(API/Worker) + Supabase`로 확정하고, 프론트 `/api/*` rewrite 경계를 표준화할 필요가 있음.
+  - 클라이언트 API 호출을 공통 계층으로 통합해 배포 환경별 변경 비용을 줄이는 것이 타당함.
+- 적용 여부:
+  - 코드 반영 완료:
+    - `next.config.ts`에 `BACKEND_ORIGIN` 기반 `/api/:path*` rewrite 추가
+    - `src/lib/clientApi.ts` 추가(`apiFetch`, `apiFetchJson`, 에러 메시지 추출 유틸)
+    - `studio/profile`의 클라이언트 API 호출을 공통 계층으로 전환
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/DEPLOYMENT_STACK_DECISION.md`
+    - `.env.example` 추가
+- 반영 문서:
+  - 본 문서 업데이트
+  - `README.md`
+  - `docs/DEVELOPMENT_GUIDE.md`
+  - `docs/MAINTENANCE_PLAYBOOK.md`
+
+### 2026-03-05
+- 확인 소스:
+  - Next.js 블로그 RSS (`https://nextjs.org/feed.xml`)
+    - 최신: `Building Next.js for an agentic future` (2026-02-12)
+  - React 블로그 RSS (`https://react.dev/feed.xml`)
+    - 최신: `The React Foundation: A New Home for React Hosted by the Linux Foundation` (2026-02-24)
+  - TypeScript 블로그 RSS (`https://devblogs.microsoft.com/typescript/feed/`)
+    - 최신: `Announcing TypeScript 6.0 Beta` (2026-02-11)
+  - BullMQ GitHub Releases (`https://api.github.com/repos/taskforcesh/bullmq/releases`)
+    - 최신: `v5.70.2` (published 2026-03-05)
+  - Supabase Changelog (`https://supabase.com/changelog`)
+    - 상단 공지 유지: `Breaking Change: Removing access to OpenAPI spec via the anon key` (2026-02-17)
+- 신규 변화 요약:
+  - BullMQ 최신 릴리즈가 계속 나오고 있으나, 본 전환에서는 Redis/BullMQ를 크리티컬 패스에서 제거하고 Postgres polling queue를 채택하는 방향이 운영 단순성에 더 유리함.
+  - Supabase changelog의 보안 관련 breaking change 흐름이 유지되어, service-role/anon-key 사용 경계를 분리한 API 설계가 중요함.
+  - React/Next/TS 최신 릴리즈 주기는 빠르지만, 현재 우선순위는 인프라 경계 정리(Vercel web + Railway API/workers + Supabase)와 작업 파이프라인 안정화임.
+- 우리 프로젝트 영향:
+  - 모노레포 분리(`apps/web`, `apps/api`, `workers/*`, `packages/*`)와 jobs polling 구조를 도입해 무거운 처리를 worker 전용 경로로 강제.
+  - API 계약(`/v1/*`)을 단일 `jobs` 소스오브트루스로 정렬하고, 프론트는 job 생성/조회만 수행하도록 분리.
+  - Supabase Storage 우선 + S3 adapter fallback 구조를 유지.
+- 적용 여부:
+  - 코드/문서 반영 진행:
+    - `apps/api` Fastify 라우트 추가
+    - `workers/*` 5종 추가
+    - `packages/{db,queue,storage,shared}` 보강
+    - `supabase/migrations/*` 추가
+    - 아키텍처/배포/런북 문서 추가
+- 반영 문서:
+  - 본 문서 업데이트
+  - `docs/architecture.md`
+  - `docs/api-contract.md`
+  - `docs/worker-playbook.md`
+  - `docs/DEPLOYMENT_STACK_DECISION.md`
 
 ## 로그 템플릿
 ### YYYY-MM-DD

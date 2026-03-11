@@ -4,47 +4,54 @@
 이 문서는 FreeStyle 코드베이스를 개발/확장할 때 필요한 기본 설계와 개발 규칙을 정리합니다.
 
 ## 2. 디렉토리 구조
-- `src/app`: App Router 페이지/라우트 핸들러
-- `src/app/api`: API 엔드포인트
-- `src/components`: 공용 UI/레이아웃 컴포넌트
-- `src/components/brand`: 브랜드 로고 컴포넌트
-- `src/features`: 도메인별 기능 컴포넌트/타입/상수
-  - `studio`, `profile`, `trends`
-- `public/branding`: FreeStyle 로고/마크 SVG 에셋
-- `src/lib`: 도메인 로직(에셋 처리, 저장소, 큐)
-- `src/lib/serverConfig.ts`: 서버 런타임 설정/운영 안전 가드
-- `src/worker`: BullMQ 워커
+- `apps/web`: Vercel 배포 대상 Next.js 프론트엔드
+- `apps/api`: Railway 배포 대상 Fastify API (`/v1/*`)
+- `workers/*`: 배경 처리 전용 워커(importer/background_removal/asset_processor/evaluator/tryon)
+- `packages/shared`: 공통 types/zod schemas/constants
+- `packages/db`: Supabase DB query layer + job RPC 호출
+- `packages/queue`: Postgres jobs polling loop
+- `packages/storage`: Supabase/S3 어댑터
+- `packages/observability`: 구조화 로깅
+- `supabase/migrations`: 스키마/인덱스/RLS/RPC SQL
+- `infra`: 배포 설정 문서 및 운영 runbook
 - `docs`: 운영/개발 문서
 
 ## 3. 핵심 아키텍처
-1. 에셋 처리
-- `/api/import-jobs`에서 URL/장바구니/파일 임포트 job enqueue
-- `/api/import-jobs/[jobId]`에서 임포트 진행 상태/결과 조회
-- `/api/assets/from-file`, `/api/assets/from-url`, `/api/assets/from-cart`는 하위 호환용 동기 경로로 유지
-- `src/lib/assetProcessing.ts`에서 안전 URL 검증, 후보 이미지 수집/스코어링, 배경 제거, 알파 기반 트리밍 담당
-- `src/lib/assetImport.ts`에서 단건/장바구니 공통 import 오케스트레이션(후보 재시도, 품질 검증, 저장) 담당
-- `src/lib/assetStore.ts`에서 에셋 인덱스/파일 저장(인덱스 갱신은 mutex + atomic rename으로 직렬화)
+1. 프론트엔드/백엔드 경계
+- 프론트(Vercel)는 페이지/UI/상태조회 렌더링만 담당하고, 백엔드(Railway API)는 `/v1/*` job 생성/조회만 담당한다.
+- heavy task(이미지 파싱, 누끼, 임베딩, 평가, VTO)는 Railway worker에서만 수행한다.
+- `BACKEND_ORIGIN` rewrite로 웹 `/api/:path*`, `/v1/:path*`를 Railway `/v1/:path*`로 전달한다.
+- 서버 컴포넌트/SSR fetch는 rewrite를 타지 않으므로 `buildApiPath`에서 `BACKEND_ORIGIN` 또는 `NEXT_PUBLIC_API_BASE_URL` 절대 URL을 우선 사용한다.
 
-2. 코디 저장/공유
-- `/api/outfits` 저장
-- `/share/[slug]` 공유 렌더링
-- `src/lib/outfitStore.ts`가 Supabase/로컬 폴백을 추상화
+2. 에셋 처리
+- API에서 다음 job 생성 endpoint 제공:
+  - `POST /v1/jobs/import/product`
+  - `POST /v1/jobs/import/cart`
+  - `POST /v1/jobs/import/upload`
+  - `GET /v1/jobs/:job_id`
+- importer worker가 `products`, `product_images`, `assets(original)`를 생성하고 `background_removal.process`를 enqueue한다.
+- background_removal worker가 `assets.cutout_image_url`을 생성하고 `asset_processor.process`를 enqueue한다.
+- asset_processor worker가 썸네일/pHash/카테고리를 생성한 뒤 `assets.status='ready'`로 종료한다.
 
-3. AI 기능
-- `/api/ai/review`: Gemini 기반 리뷰 생성
-- `/api/ai/tryon`, `/api/ai/tryon/[jobId]`: VTO 큐 요청/조회
-- Studio 화면에서 캔버스 렌더를 이미지로 캡처해 리뷰/피팅 API로 전달
+3. 코디 저장/공유
+- 공유/조회는 Railway API 기준 `GET /v1/outfits`, `GET /v1/outfits/share/:slug`를 사용한다.
+- 프론트 프로필/공유 페이지는 `apps/web/src/lib/clientApi.ts`를 통해 동일한 `/v1/*` 계약을 사용한다.
+- 코디 저장(write) 경로는 후속 단계에서 `/v1/outfits`로 일원화할 예정이며, 새 기능은 루트 Next route handler를 기준으로 추가하지 않는다.
 
-4. 큐/워커
-- `src/lib/vtoQueue.ts`, `src/lib/bgRemovalQueue.ts`: lazy queue 생성
-- `src/lib/importQueue.ts`: 임포트(`url|cart|file`) 작업 큐
-- `src/worker/*.ts`: 실제 처리 워커(`import`, `bgRemoval`, `vto`)
-- Redis URL/동시성/외부 API 키는 `serverConfig`를 통해 단일 경로로 읽음
-- 워커 실행 스크립트는 `-r dotenv/config` + `DOTENV_CONFIG_PATH=.env.local`로 환경변수를 preload해 import 시점 설정 누락을 방지한다.
+4. AI 기능
+- `POST /v1/jobs/evaluations` / `GET /v1/evaluations/:id`
+- `POST /v1/jobs/tryons` / `GET /v1/tryons/:id`
+- evaluator/tryon worker가 비동기 처리 후 상태/결과를 기록한다.
 
-5. 페이지 구성 원칙
-- 페이지(`src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
-- UI는 `src/features/<domain>/components`로 분리한다.
+5. 큐/워커
+- 큐 백엔드는 Postgres `jobs` 테이블이다.
+- claim은 RPC `claim_jobs` + `FOR UPDATE SKIP LOCKED`를 사용한다.
+- heartbeat/reaper는 `heartbeat_jobs`, `requeue_stale_jobs` RPC로 수행한다.
+- `packages/queue`의 공통 런타임이 retry/backoff/poison 처리 규칙을 제공한다.
+
+6. 페이지 구성 원칙
+- 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
+- UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
@@ -57,9 +64,10 @@
 - API 입력 검증: 필수 필드/타입 체크 후 처리
 - 오류 처리: 사용자 메시지와 내부 로그를 분리
 - 빌드 안정성: 모듈 import 시 외부 자원(Redis 등) 즉시 연결 금지, lazy init 사용
+- 클라이언트 API 호출은 `apiFetch` 계층을 통해 일관화하고, 경로 하드코딩 분산을 피한다.
 - 대형 페이지는 기능 단위 컴포넌트 분리를 기본값으로 적용
 - 운영 안전 가드: 운영 환경에서 로컬 파일시스템 저장은 기본 차단(명시적 opt-in 필요)
-- 전역 타이포그래피는 `src/app/layout.tsx`의 `next/font/local` 등록(A2J)과 `src/app/globals.css`의 `--font-sans`, `--font-serif` 변수 매핑으로 일관되게 관리한다.
+- 전역 타이포그래피는 `apps/web/src/app/layout.tsx`의 `next/font/local` 등록(A2J)과 `apps/web/src/app/globals.css`의 `--font-sans`, `--font-serif` 변수 매핑으로 일관되게 관리한다.
 - Studio 캔버스 이미지 export 텍스트도 `document.body`의 계산된 폰트 패밀리를 사용해 화면 렌더와 결과물이 동일하도록 유지한다.
 
 ## 5. 링크/장바구니 import 품질 규칙
@@ -72,8 +80,8 @@
 - 무신사 링크(`musinsa.com/products/*`)는 goods 경로(`/images/goods/*`) 보너스와 스타일/스냅 경로 패널티를 함께 적용해 단독 상품컷을 우선한다.
 - 무신사 링크는 기본 후보 상위 N에서 실패하더라도 더 넓은 후보 풀(최대 24)과 추가 시도(기본 8)로 단독컷 패턴 후보를 재시도한다.
 - 무신사 링크 후보 모달은 상품 상태/구조화 스크립트에서 찾은 상세 대표 이미지군을 우선해 가능한 많은 후보를 보여준다(색상/컷 직접 선택 용도).
-- URL import가 `ONLY_MODEL_IMAGES_FOUND`로 실패하면, 상위 후보 URL/썸네일 목록을 클라이언트에 전달하고 사용자가 후보를 직접 선택해 재시도할 수 있다.
-- 사용자가 선택한 후보 URL은 `selectedImageUrl`로 워커에 전달되며, 해당 후보를 우선 처리한 뒤 일반 fallback 후보를 순차 시도한다.
+- URL import가 자동 선택 실패로 종료되면, 상위 후보 URL/썸네일 목록을 `jobs.result.candidates`로 클라이언트에 전달하고 사용자가 후보를 직접 선택해 재시도할 수 있다.
+- 사용자가 선택한 후보 URL은 `selected_image_url`로 importer job payload에 전달되며, 해당 후보를 우선 처리한 뒤 일반 fallback 후보를 순차 시도한다.
 - 수동 선택(`selectedImageUrl`) 후보는 자동 품질 검증 실패 시에도 최소 안전 조건(초소형 foreground 제외)에서 우회 저장을 허용해 false-negative를 줄인다.
 - 얼굴 신호 기반 재랭킹(P1): 상위 K 후보만 얼굴 분석을 수행하고 모델컷 패널티를 점수에 반영한다.
 - 얼굴 모델 로딩은 `HUMAN_FACE_MODEL_SOURCE`로 제어한다(운영 기본 local 권장).
@@ -101,9 +109,15 @@
 2. `.env.local` 준비
 3. 웹만 개발: `npm run dev` (webpack 모드, 안정성 우선)
 4. Turbopack 확인이 필요하면: `npm run dev:turbo`
-5. 워커 포함 개발: `npm run dev:all`
-  - `next dev + worker:import + worker:bg + worker:vto`
-6. 품질 점검:
+5. API 개발: `npm run dev:api`
+6. 워커 개발:
+  - `npm run dev:worker:importer`
+  - `npm run dev:worker:background-removal`
+  - `npm run dev:worker:asset`
+  - `npm run dev:worker:evaluator`
+  - `npm run dev:worker:tryon`
+7. 통합 개발 스크립트: `npm run dev:all` (`apps/web + apps/api + 모든 worker`)
+8. 품질 점검:
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`

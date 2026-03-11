@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": false
+  },
+  "include": [
+    "apps/api/src/**/*.ts",
+    "workers/*/src/**/*.ts",
+    "packages/*/src/**/*.ts"
+  ]
+}

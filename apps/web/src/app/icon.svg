@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">FreeStyle Mark</title>
+  <desc id="desc">Rounded square monogram logo for FreeStyle.</desc>
+  <defs>
+    <linearGradient id="freestyleGlow" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E8E9EE"/>
+      <stop offset="1" stop-color="#A9AFBC"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="32" y="32" width="448" height="448" rx="116" fill="#0D0F16"/>
+
+  <path d="M152 148H300V194H198V238H278V282H198V364H152V148Z" fill="white"/>
+  <path d="M334 176C363 176 386 188 386 214C386 235 373 249 353 255C376 261 394 277 394 305C394 337 367 356 329 356C301 356 278 348 258 335L273 304C289 316 306 322 323 322C341 322 352 316 352 304C352 292 340 286 320 286H294V252H316C335 252 347 245 347 232C347 221 338 215 324 215C309 215 294 221 278 232L262 201C282 184 306 176 334 176Z" fill="url(#freestyleGlow)"/>
+</svg>

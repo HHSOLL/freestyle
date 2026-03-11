@@ -1,50 +1,63 @@
 # Deployment Stack Decision
 
-Date: 2026-02-13  
-Status: Accepted (pre-deploy, functionality-first phase)
+Date: 2026-03-05  
+Status: Accepted (updated)
 
-## 1. 현재 단계 원칙
-- 지금은 배포 실행 단계가 아니라 **기능 완성 우선 단계**다.
-- 단, 추후 운영 리스크를 줄이기 위해 기술스택 선택은 선제적으로 고정한다.
-- 신규 구현은 아래 결정 스택과 충돌하지 않게 작성한다.
+## 1. 결정 요약
+운영 스택을 아래 조합으로 고정한다.
 
-## 2. 채택 스택 (Primary)
-1. Web/API: Render Web Service (`next build` + `next start`)
-2. Background Processing: Render Background Worker 2개
-   - `npm run worker:bg`
-   - `npm run worker:vto`
-3. Queue/Cache: Managed Redis/Valkey (BullMQ 연결)
-4. Data: Supabase Postgres + Supabase Storage
+1. Frontend(Web): Vercel
+2. Backend(API): Railway (`apps/api`, Fastify `/v1/*`)
+3. Background Processing: Railway Worker
+   - `worker_importer`
+   - `worker_background_removal`
+   - `worker_asset_processor`
+   - `worker_evaluator`
+   - `worker_tryon`
+4. Queue: Supabase Postgres `jobs` polling (`FOR UPDATE SKIP LOCKED`)
+5. Data/Auth/Storage: Supabase
 
-## 3. 왜 이 조합인가
-- 현재 코드 구조가 이미 `Next.js + BullMQ + Redis + 별도 worker` 패턴을 전제로 함.
-- 웹과 워커를 같은 벤더에서 분리 운영하기 쉬워 장애 격리가 단순함.
-- Supabase는 이미 `outfitStore` 경로에 통합되어 있어 전환 비용이 낮음.
-- 향후 대체 가능성(Cloud Run/Railway) 대비, 코드 변경량 대비 운영 복잡도 균형이 가장 좋음.
+## 2. 채택 이유
+- Next.js UI 배포 DX와 글로벌 엣지 전달은 Vercel이 가장 효율적이다.
+- Postgres `jobs` polling은 Redis 인프라 의존성을 제거하면서도 worker 분리를 유지할 수 있다.
+- Supabase는 Postgres/Auth/Storage를 한 번에 제공해 데이터 계층 일관성이 높다.
+- 프론트와 API를 물리 분리해 장애 전파 범위를 줄일 수 있다.
 
-## 4. 비교 후보와 보류 사유
-1. Vercel(Web) + Render(Worker) + Supabase
-- 장점: Next.js 배포 DX 우수
-- 보류: 멀티 벤더 운영 복잡도 증가
+## 3. 코드 반영 원칙
+1. 프론트의 `/api/*`, `/v1/*` 요청은 `BACKEND_ORIGIN` rewrite를 통해 Railway `/v1/*` API로 전달한다.
+2. 프론트 실코드 기준 경로는 `apps/web/src/**`이며, 클라이언트 API 호출은 `apps/web/src/lib/clientApi.ts`(`apiFetch`, `apiFetchJson`, `buildApiPath`)를 사용한다.
+3. API와 worker는 `packages/{shared,db,queue,storage}` 공통 계층을 통해 동작한다.
+4. heavy task는 worker에서만 수행하고 API는 job 생성/조회만 담당한다.
 
-2. Railway 올인원
-- 장점: 단일 플랫폼 운영 단순
-- 보류: 현재 팀 표준/운영 가드 문서가 Render 중심으로 정리되는 중
+## 4. 환경 변수 분리 원칙
+1. Vercel(frontend)
+- Project Root: `apps/web`
+- `BACKEND_ORIGIN=https://<railway-api-domain>`
+- (선택) `NEXT_PUBLIC_API_BASE_URL` 직접 호출이 필요할 때만 사용
 
-3. Cloud Run + Managed Redis/Postgres
-- 장점: 고확장/고제어
-- 보류: 현재 단계(기능 완성 우선) 대비 운영 복잡도 과다
+2. Railway(api/worker)
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_STORAGE_BUCKET`
+- `STORAGE_PROVIDER=supabase|s3`
+- `BG_REMOVAL_API_KEY`(or `REMOVE_BG_API_KEY`), `VTO_*`, `EVALUATOR_*`
+- `WORKER_POLL_INTERVAL_MS`, `WORKER_CLAIM_BATCH`, `WORKER_HEARTBEAT_SEC`
 
-## 5. 코드 반영 원칙
-- 환경변수는 `src/lib/serverConfig.ts`로 단일화한다.
-- 운영 환경(`NODE_ENV=production`)에서
-  - `REDIS_URL` 미설정 시 큐 경로는 명시적으로 실패해야 한다.
-  - 로컬 파일시스템 저장은 기본 차단하고, 필요 시 `ALLOW_FILESYSTEM_STORAGE_IN_PRODUCTION=true`로만 허용한다.
-- 기능 개발 시 스토리지/큐 경계는 유지하고 하드코딩을 피한다.
+## 5. 비교 후보와 보류 사유
+1. Railway 올인원
+- 장점: 단일 벤더 단순성
+- 보류: 프론트 배포 DX/캐시 전략에서 Vercel 이점이 더 큼
 
-## 6. 배포 직전 체크(기능 완료 후)
-1. 모든 로컬 폴백 경로 점검(운영에서 의도치 않은 파일 저장 제거)
-2. Supabase Storage 버킷/RLS 정책 확정
-3. 워커 동시성/재시도 정책 확정
-4. 장애 대응 런북 최종 점검
-5. `lint + typecheck + build` 및 핵심 API smoke 테스트 통과
+2. Vercel 단독 + 외부 큐 서비스 최소화
+- 장점: 단순 배포
+- 보류: 장시간 백그라운드 작업 안정성/제어가 제한됨
+
+3. Cloud Run + GCP managed services
+- 장점: 고확장/세밀 제어
+- 보류: 현재 팀 운영 복잡도 대비 과투자
+
+## 6. 배포 직전 체크
+1. Vercel `BACKEND_ORIGIN` rewrite 정상 동작 확인
+2. Railway API health + worker 프로세스 기동 확인
+3. `jobs` RPC(`claim_jobs`, `heartbeat_jobs`, `requeue_stale_jobs`) smoke test
+4. Supabase Auth/Storage/Postgres 권한(RLS/서비스키) 확인
+5. `lint + typecheck + build` 및 주요 API smoke 테스트 통과

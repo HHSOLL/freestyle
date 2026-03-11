@@ -1,0 +1,112 @@
+import sharp from "sharp";
+import { getAssetById, updateAsset } from "@freestyle/db";
+import { logger } from "@freestyle/observability";
+import { runWorkerLoop } from "@freestyle/queue";
+import { JOB_TYPES, type AssetProcessorJobPayload } from "@freestyle/shared";
+import { getStorageAdapter } from "@freestyle/storage";
+
+const inferCategory = (hint: string | undefined, sourceUrl: string) => {
+  if (hint?.trim()) return hint.trim();
+  const lower = sourceUrl.toLowerCase();
+  if (lower.includes("hoodie")) return "hoodie";
+  if (lower.includes("jacket")) return "jacket";
+  if (lower.includes("pants") || lower.includes("trouser")) return "pants";
+  if (lower.includes("skirt")) return "skirt";
+  if (lower.includes("dress")) return "dress";
+  if (lower.includes("shoe") || lower.includes("sneaker")) return "shoes";
+  return "tops";
+};
+
+const computePerceptualHash = async (buffer: Buffer) => {
+  const raw = await sharp(buffer)
+    .grayscale()
+    .resize(8, 8, { fit: "fill" })
+    .raw()
+    .toBuffer();
+
+  const avg = raw.reduce((sum, value) => sum + value, 0) / raw.length;
+  let bits = "";
+  for (const value of raw) {
+    bits += value >= avg ? "1" : "0";
+  }
+
+  let hex = "";
+  for (let i = 0; i < bits.length; i += 4) {
+    hex += Number.parseInt(bits.slice(i, i + 4), 2).toString(16);
+  }
+  return hex;
+};
+
+const fetchBuffer = async (url: string) => {
+  const response = await fetch(url, { redirect: "follow" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch asset image (${response.status}).`);
+  }
+  const contentType = response.headers.get("content-type") || "image/png";
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    contentType,
+  };
+};
+
+const main = async () => {
+  await runWorkerLoop({
+    workerName: process.env.WORKER_NAME || "worker_asset_processor",
+    jobTypes: [JOB_TYPES.ASSET_PROCESSOR_PROCESS],
+    handler: async ({ job }) => {
+      const payload = job.payload as unknown as AssetProcessorJobPayload;
+      if (!payload.asset_id) {
+        throw new Error("Invalid asset processor payload.");
+      }
+
+      const asset = await getAssetById(payload.asset_id);
+      if (!asset) {
+        throw new Error(`Asset ${payload.asset_id} not found.`);
+      }
+
+      const sourceUrl = asset.cutout_image_url || asset.original_image_url;
+      const { buffer, contentType } = await fetchBuffer(sourceUrl);
+      const storage = getStorageAdapter();
+
+      const small = await sharp(buffer)
+        .resize({ width: 256, height: 256, fit: "inside", withoutEnlargement: true })
+        .png()
+        .toBuffer();
+      const medium = await sharp(buffer)
+        .resize({ width: 768, height: 768, fit: "inside", withoutEnlargement: true })
+        .png()
+        .toBuffer();
+
+      const smallUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-sm.png`, small, "image/png");
+      const mediumUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-md.png`, medium, "image/png");
+
+      const pHash = await computePerceptualHash(buffer);
+      const category = inferCategory(payload.category_hint, sourceUrl);
+
+      const updated = await updateAsset(asset.id, {
+        thumbnail_small_url: smallUpload.url,
+        thumbnail_medium_url: mediumUpload.url,
+        category,
+        perceptual_hash: pHash,
+        embedding_model: process.env.EMBEDDING_MODEL || null,
+        status: "ready",
+      });
+
+      return {
+        asset_id: asset.id,
+        category: updated.category,
+        perceptual_hash: pHash,
+        thumbnail_small_url: smallUpload.url,
+        thumbnail_medium_url: mediumUpload.url,
+        content_type: contentType,
+      };
+    },
+  });
+};
+
+main().catch((error) => {
+  logger.error("worker.asset_processor.crash", {
+    message: error instanceof Error ? error.message : "Unknown error",
+  });
+  process.exit(1);
+});

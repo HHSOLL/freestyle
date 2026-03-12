@@ -10,6 +10,12 @@ export type WorkerHandlerContext = {
 
 export type WorkerHandler = (ctx: WorkerHandlerContext) => Promise<Record<string, unknown>>;
 
+export type WorkerDefinition = {
+  workerName: string;
+  jobTypes: JobType[];
+  handler: WorkerHandler;
+};
+
 export type WorkerLoopOptions = {
   workerName?: string;
   jobTypes: JobType[];
@@ -18,6 +24,11 @@ export type WorkerLoopOptions = {
   heartbeatIntervalMs?: number;
   staleJobMinutes?: number;
   handler: WorkerHandler;
+};
+
+export type WorkerRouterOptions = Omit<WorkerLoopOptions, "jobTypes" | "handler"> & {
+  workers: WorkerDefinition[];
+  jobTypes?: JobType[];
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -114,4 +125,41 @@ export const runWorkerLoop = async (options: WorkerLoopOptions) => {
       await delay(Math.max(1000, pollIntervalMs));
     }
   }
+};
+
+export const runWorkerRouter = async (options: WorkerRouterOptions) => {
+  const routeMap = new Map<JobType, WorkerDefinition>();
+
+  for (const worker of options.workers) {
+    for (const jobType of worker.jobTypes) {
+      if (routeMap.has(jobType)) {
+        throw new Error(`Duplicate worker route detected for job type "${jobType}".`);
+      }
+      routeMap.set(jobType, worker);
+    }
+  }
+
+  const configuredJobTypes = options.jobTypes?.length ? options.jobTypes : Array.from(routeMap.keys());
+  const selectedJobTypes = configuredJobTypes.filter((jobType) => routeMap.has(jobType));
+
+  if (selectedJobTypes.length === 0) {
+    throw new Error("No worker job types are configured.");
+  }
+
+  return runWorkerLoop({
+    workerName: options.workerName,
+    jobTypes: selectedJobTypes,
+    pollIntervalMs: options.pollIntervalMs,
+    claimBatchSize: options.claimBatchSize,
+    heartbeatIntervalMs: options.heartbeatIntervalMs,
+    staleJobMinutes: options.staleJobMinutes,
+    handler: async (ctx) => {
+      const worker = routeMap.get(ctx.job.job_type);
+      if (!worker) {
+        throw new Error(`No handler registered for job type "${ctx.job.job_type}".`);
+      }
+
+      return worker.handler(ctx);
+    },
+  });
 };

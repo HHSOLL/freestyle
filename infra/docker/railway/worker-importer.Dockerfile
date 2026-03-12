@@ -10,6 +10,7 @@ COPY packages ./packages
 RUN npm ci --include=dev
 
 ENV NODE_ENV=production
-ENV WORKER_NAME=worker_importer
+ENV WORKER_NAME=worker
+ENV WORKER_JOB_TYPES=all
 
-CMD ["npm", "run", "serve:worker:importer"]
+CMD ["npm", "run", "serve:worker"]

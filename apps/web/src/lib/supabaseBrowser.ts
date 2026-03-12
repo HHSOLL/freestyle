@@ -4,19 +4,30 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let browserClient: SupabaseClient | null = null;
 
-const getEnv = (key: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") => {
-  const value = process.env[key]?.trim();
-  return value && value.length > 0 ? value : null;
+const browserEnv = {
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "",
+  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "",
+  authKakaoEnabled: process.env.NEXT_PUBLIC_AUTH_KAKAO_ENABLED?.trim().toLowerCase() || "",
+  authNaverEnabled: process.env.NEXT_PUBLIC_AUTH_NAVER_ENABLED?.trim().toLowerCase() || "",
+};
+
+const toPublicBoolean = (value: string) => {
+  return value === "1" || value === "true" || value === "yes" || value === "on";
 };
 
 export const isSupabaseBrowserConfigured = () =>
-  Boolean(getEnv("NEXT_PUBLIC_SUPABASE_URL") && getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
+  Boolean(browserEnv.supabaseUrl && browserEnv.supabaseAnonKey);
+
+export const getSocialAuthAvailability = () => ({
+  kakao: toPublicBoolean(browserEnv.authKakaoEnabled),
+  naver: toPublicBoolean(browserEnv.authNaverEnabled),
+});
 
 export const getSupabaseBrowserClient = () => {
   if (browserClient) return browserClient;
 
-  const url = getEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const anonKey = getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const url = browserEnv.supabaseUrl || null;
+  const anonKey = browserEnv.supabaseAnonKey || null;
 
   if (!url || !anonKey) {
     throw new Error("Supabase browser environment variables are not configured.");

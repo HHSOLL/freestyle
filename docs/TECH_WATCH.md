@@ -37,6 +37,8 @@
   - 코드 반영 완료:
     - 루트 `package.json`의 웹 관련 스크립트를 `npm --prefix apps/web ...` 기준으로 정리
     - `apps/web/package-lock.json` 추가로 Next SWC lockfile patch 경고 제거
+    - Railway 비용 최소화를 위해 통합 worker 런타임(`workers/runtime`) 추가
+    - `scripts/dev-all.mjs`를 `apps/api + 통합 worker` 기준으로 단순화
   - 문서 반영 완료:
     - 본 문서 업데이트
 

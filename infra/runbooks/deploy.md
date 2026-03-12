@@ -10,13 +10,14 @@
 
 ## 2. Railway Deploy
 1. Deploy `api` service.
-2. Deploy workers in order:
-- importer
-- background_removal
-- asset_processor
-- evaluator
-- tryon
-3. Verify each service has required environment variables.
+2. 기본 운영은 `worker_importer`만 배포/상시 실행한다.
+3. `worker_importer` 환경 변수:
+- `WORKER_NAME=worker`
+- `WORKER_JOB_TYPES=all`
+- `WORKER_POLL_INTERVAL_MS=3000`
+- `WORKER_CLAIM_BATCH=5`
+4. 고부하가 확인될 때만 stage별 worker를 추가 배포한다.
+5. Verify each service has required environment variables.
 
 ## 3. Vercel Deploy
 1. Set root directory to `apps/web`.

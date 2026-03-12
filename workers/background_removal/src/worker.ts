@@ -1,6 +1,8 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createJob, updateAsset } from "@freestyle/db";
 import { logger } from "@freestyle/observability";
-import { runWorkerLoop } from "@freestyle/queue";
+import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import {
   JOB_TYPES,
   type BackgroundRemovalJobPayload,
@@ -40,53 +42,62 @@ const removeBackground = async (imageUrl: string) => {
   return Buffer.from(await response.arrayBuffer());
 };
 
-const main = async () => {
-  await runWorkerLoop({
-    workerName: process.env.WORKER_NAME || "worker_background_removal",
-    jobTypes: [JOB_TYPES.BACKGROUND_REMOVAL_PROCESS],
-    handler: async ({ job }) => {
-      const payload = job.payload as unknown as BackgroundRemovalJobPayload;
-      if (!payload.asset_id || !payload.image_url) {
-        throw new Error("Invalid background removal job payload.");
-      }
+export const backgroundRemovalWorkerDefinition: WorkerDefinition = {
+  workerName: "worker_background_removal",
+  jobTypes: [JOB_TYPES.BACKGROUND_REMOVAL_PROCESS],
+  handler: async ({ job }) => {
+    const payload = job.payload as unknown as BackgroundRemovalJobPayload;
+    if (!payload.asset_id || !payload.image_url) {
+      throw new Error("Invalid background removal job payload.");
+    }
 
-      try {
-        const cutoutBuffer = await removeBackground(payload.image_url);
-        const storage = getStorageAdapter();
-        const key = `assets/${payload.asset_id}/cutout.png`;
-        const uploaded = await storage.uploadBuffer(key, cutoutBuffer, "image/png");
+    try {
+      const cutoutBuffer = await removeBackground(payload.image_url);
+      const storage = getStorageAdapter();
+      const key = `assets/${payload.asset_id}/cutout.png`;
+      const uploaded = await storage.uploadBuffer(key, cutoutBuffer, "image/png");
 
-        await updateAsset(payload.asset_id, {
-          cutout_image_url: uploaded.url,
-          mask_url: null,
-          status: "pending",
-        });
+      await updateAsset(payload.asset_id, {
+        cutout_image_url: uploaded.url,
+        mask_url: null,
+        status: "pending",
+      });
 
-        const nextJob = await createJob({
-          userId: job.user_id,
-          jobType: JOB_TYPES.ASSET_PROCESSOR_PROCESS,
-          payload: {
-            asset_id: payload.asset_id,
-            category_hint: payload.category_hint,
-          },
-        });
-
-        return {
+      const nextJob = await createJob({
+        userId: job.user_id,
+        jobType: JOB_TYPES.ASSET_PROCESSOR_PROCESS,
+        payload: {
           asset_id: payload.asset_id,
-          cutout_image_url: uploaded.url,
-          next_job_id: nextJob.id,
-        };
-      } catch (error) {
-        await updateAsset(payload.asset_id, { status: "failed" });
-        throw error;
-      }
-    },
-  });
+          category_hint: payload.category_hint,
+        },
+      });
+
+      return {
+        asset_id: payload.asset_id,
+        cutout_image_url: uploaded.url,
+        next_job_id: nextJob.id,
+      };
+    } catch (error) {
+      await updateAsset(payload.asset_id, { status: "failed" });
+      throw error;
+    }
+  },
 };
 
-main().catch((error) => {
-  logger.error("worker.background_removal.crash", {
-    message: error instanceof Error ? error.message : "Unknown error",
+export const runBackgroundRemovalWorker = () =>
+  runWorkerLoop({
+    workerName: process.env.WORKER_NAME || backgroundRemovalWorkerDefinition.workerName,
+    jobTypes: backgroundRemovalWorkerDefinition.jobTypes,
+    handler: backgroundRemovalWorkerDefinition.handler,
   });
-  process.exit(1);
-});
+
+const isDirectRun = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isDirectRun) {
+  runBackgroundRemovalWorker().catch((error) => {
+    logger.error("worker.background_removal.crash", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    process.exit(1);
+  });
+}

@@ -6,7 +6,7 @@
 ## 2. 디렉토리 구조
 - `apps/web`: Vercel 배포 대상 Next.js 프론트엔드
 - `apps/api`: Railway 배포 대상 Fastify API (`/v1/*`)
-- `workers/*`: 배경 처리 전용 워커(importer/background_removal/asset_processor/evaluator/tryon)
+- `workers/*`: 배경 처리 워커 정의 + 통합 런타임(`workers/runtime`)
 - `packages/shared`: 공통 types/zod schemas/constants
 - `packages/db`: Supabase DB query layer + job RPC 호출
 - `packages/queue`: Postgres jobs polling loop
@@ -23,6 +23,8 @@
 - `BACKEND_ORIGIN` rewrite로 웹 `/api/:path*`, `/v1/:path*`를 Railway `/v1/:path*`로 전달한다.
 - 서버 컴포넌트/SSR fetch는 rewrite를 타지 않으므로 `buildApiPath`에서 `BACKEND_ORIGIN` 또는 `NEXT_PUBLIC_API_BASE_URL` 절대 URL을 우선 사용한다.
 - 인증은 `apps/web/src/lib/AuthContext.tsx`에서 Supabase browser session을 구독하고, `apps/web/src/lib/clientApi.ts`가 access token을 `Authorization: Bearer`로 자동 부착한다.
+- 로그인 콜백은 `apps/web/src/app/auth/callback/page.tsx`에서 수신한다. magic link / Kakao / Naver 브리지 모두 이 경로로 수렴시킨다.
+- Kakao는 Supabase native OAuth provider를 사용하고, Naver는 `apps/api/src/routes/auth.routes.ts`의 OAuth bridge가 Naver 검증 후 Supabase admin magic link를 생성한다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
 
 2. 에셋 처리
@@ -45,17 +47,24 @@
 - `POST /v1/jobs/tryons` / `GET /v1/tryons/:id`
 - evaluator/tryon worker가 비동기 처리 후 상태/결과를 기록한다.
 
-5. 큐/워커
+5. 인증 라우트
+- `GET /v1/auth/naver/start?redirect_to=<absolute-url>`
+- `GET /v1/auth/naver/callback`
+- `redirect_to`는 절대 URL이어야 하며, API origin policy(`CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`)를 통과해야 한다.
+- Naver callback은 state(HMAC) 검증 후 profile email을 Supabase admin `generateLink(type=magiclink)`에 연결한다.
+
+6. 큐/워커
 - 큐 백엔드는 Postgres `jobs` 테이블이다.
 - claim은 RPC `claim_jobs` + `FOR UPDATE SKIP LOCKED`를 사용한다.
 - heartbeat/reaper는 `heartbeat_jobs`, `requeue_stale_jobs` RPC로 수행한다.
 - 원격 프로젝트에 jobs RPC가 아직 없는 경우, `packages/db`는 단일 인스턴스 배포 기준 optimistic claim/update fallback으로 계속 동작한다. 운영에서는 RPC 마이그레이션 적용을 우선하고, fallback은 호환성 안전장치로만 간주한다.
 - `packages/queue`의 공통 런타임이 retry/backoff/poison 처리 규칙을 제공한다.
 
-6. 페이지 구성 원칙
+7. 페이지 구성 원칙
 - 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
+- `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
@@ -69,6 +78,7 @@
 - 오류 처리: 사용자 메시지와 내부 로그를 분리
 - 빌드 안정성: 모듈 import 시 외부 자원(Redis 등) 즉시 연결 금지, lazy init 사용
 - 클라이언트 API 호출은 `apiFetch` 계층을 통해 일관화하고, 경로 하드코딩 분산을 피한다.
+- OAuth redirect, magic link redirect 같은 브라우저 왕복 경로는 반드시 절대 URL + allowlist 검증을 같이 둔다. 상대 경로 임의 결합은 금지한다.
 - 대형 페이지는 기능 단위 컴포넌트 분리를 기본값으로 적용
 - 운영 안전 가드: 운영 환경에서 로컬 파일시스템 저장은 기본 차단(명시적 opt-in 필요)
 - 전역 타이포그래피는 `apps/web/src/app/layout.tsx`의 `next/font/local` 등록(A2J)과 `apps/web/src/app/globals.css`의 `--font-sans`, `--font-serif` 변수 매핑으로 일관되게 관리한다.
@@ -115,12 +125,13 @@
 4. Turbopack 확인이 필요하면: `npm run dev:turbo`
 5. API 개발: `npm run dev:api`
 6. 워커 개발:
+  - `npm run dev:worker`
   - `npm run dev:worker:importer`
   - `npm run dev:worker:background-removal`
   - `npm run dev:worker:asset`
   - `npm run dev:worker:evaluator`
   - `npm run dev:worker:tryon`
-7. 통합 개발 스크립트: `npm run dev:all` (`apps/web + apps/api + 모든 worker`)
+7. 통합 개발 스크립트: `npm run dev:all` (`apps/web + apps/api + 통합 worker`)
 8. 품질 점검:
 - `npm run lint`
 - `npm run typecheck`

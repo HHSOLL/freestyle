@@ -1,7 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { getAssetById, updateAsset } from "@freestyle/db";
 import { logger } from "@freestyle/observability";
-import { runWorkerLoop } from "@freestyle/queue";
+import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import { JOB_TYPES, type AssetProcessorJobPayload } from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
 
@@ -49,64 +51,73 @@ const fetchBuffer = async (url: string) => {
   };
 };
 
-const main = async () => {
-  await runWorkerLoop({
-    workerName: process.env.WORKER_NAME || "worker_asset_processor",
-    jobTypes: [JOB_TYPES.ASSET_PROCESSOR_PROCESS],
-    handler: async ({ job }) => {
-      const payload = job.payload as unknown as AssetProcessorJobPayload;
-      if (!payload.asset_id) {
-        throw new Error("Invalid asset processor payload.");
-      }
+export const assetProcessorWorkerDefinition: WorkerDefinition = {
+  workerName: "worker_asset_processor",
+  jobTypes: [JOB_TYPES.ASSET_PROCESSOR_PROCESS],
+  handler: async ({ job }) => {
+    const payload = job.payload as unknown as AssetProcessorJobPayload;
+    if (!payload.asset_id) {
+      throw new Error("Invalid asset processor payload.");
+    }
 
-      const asset = await getAssetById(payload.asset_id);
-      if (!asset) {
-        throw new Error(`Asset ${payload.asset_id} not found.`);
-      }
+    const asset = await getAssetById(payload.asset_id);
+    if (!asset) {
+      throw new Error(`Asset ${payload.asset_id} not found.`);
+    }
 
-      const sourceUrl = asset.cutout_image_url || asset.original_image_url;
-      const { buffer, contentType } = await fetchBuffer(sourceUrl);
-      const storage = getStorageAdapter();
+    const sourceUrl = asset.cutout_image_url || asset.original_image_url;
+    const { buffer, contentType } = await fetchBuffer(sourceUrl);
+    const storage = getStorageAdapter();
 
-      const small = await sharp(buffer)
-        .resize({ width: 256, height: 256, fit: "inside", withoutEnlargement: true })
-        .png()
-        .toBuffer();
-      const medium = await sharp(buffer)
-        .resize({ width: 768, height: 768, fit: "inside", withoutEnlargement: true })
-        .png()
-        .toBuffer();
+    const small = await sharp(buffer)
+      .resize({ width: 256, height: 256, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    const medium = await sharp(buffer)
+      .resize({ width: 768, height: 768, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
 
-      const smallUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-sm.png`, small, "image/png");
-      const mediumUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-md.png`, medium, "image/png");
+    const smallUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-sm.png`, small, "image/png");
+    const mediumUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-md.png`, medium, "image/png");
 
-      const pHash = await computePerceptualHash(buffer);
-      const category = inferCategory(payload.category_hint, sourceUrl);
+    const pHash = await computePerceptualHash(buffer);
+    const category = inferCategory(payload.category_hint, sourceUrl);
 
-      const updated = await updateAsset(asset.id, {
-        thumbnail_small_url: smallUpload.url,
-        thumbnail_medium_url: mediumUpload.url,
-        category,
-        perceptual_hash: pHash,
-        embedding_model: process.env.EMBEDDING_MODEL || null,
-        status: "ready",
-      });
+    const updated = await updateAsset(asset.id, {
+      thumbnail_small_url: smallUpload.url,
+      thumbnail_medium_url: mediumUpload.url,
+      category,
+      perceptual_hash: pHash,
+      embedding_model: process.env.EMBEDDING_MODEL || null,
+      status: "ready",
+    });
 
-      return {
-        asset_id: asset.id,
-        category: updated.category,
-        perceptual_hash: pHash,
-        thumbnail_small_url: smallUpload.url,
-        thumbnail_medium_url: mediumUpload.url,
-        content_type: contentType,
-      };
-    },
-  });
+    return {
+      asset_id: asset.id,
+      category: updated.category,
+      perceptual_hash: pHash,
+      thumbnail_small_url: smallUpload.url,
+      thumbnail_medium_url: mediumUpload.url,
+      content_type: contentType,
+    };
+  },
 };
 
-main().catch((error) => {
-  logger.error("worker.asset_processor.crash", {
-    message: error instanceof Error ? error.message : "Unknown error",
+export const runAssetProcessorWorker = () =>
+  runWorkerLoop({
+    workerName: process.env.WORKER_NAME || assetProcessorWorkerDefinition.workerName,
+    jobTypes: assetProcessorWorkerDefinition.jobTypes,
+    handler: assetProcessorWorkerDefinition.handler,
   });
-  process.exit(1);
-});
+
+const isDirectRun = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isDirectRun) {
+  runAssetProcessorWorker().catch((error) => {
+    logger.error("worker.asset_processor.crash", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    process.exit(1);
+  });
+}

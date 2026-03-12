@@ -1,7 +1,8 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { getTryonById, updateTryon } from "@freestyle/db";
 import { logger } from "@freestyle/observability";
-import { runWorkerLoop } from "@freestyle/queue";
+import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import { JOB_TYPES, type TryonJobPayload } from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
 
@@ -29,45 +30,54 @@ const copyInputAsOutput = async (tryonId: string, inputImageUrl: string) => {
   return storage.uploadBuffer(key, buffer, contentType);
 };
 
-const main = async () => {
-  await runWorkerLoop({
-    workerName: process.env.WORKER_NAME || "worker_tryon",
-    jobTypes: [JOB_TYPES.TRYON_GENERATE],
-    handler: async ({ job }) => {
-      const payload = job.payload as unknown as TryonJobPayload;
-      if (!payload.tryon_id || !payload.input_image_url) {
-        throw new Error("Invalid try-on payload.");
-      }
+export const tryonWorkerDefinition: WorkerDefinition = {
+  workerName: "worker_tryon",
+  jobTypes: [JOB_TYPES.TRYON_GENERATE],
+  handler: async ({ job }) => {
+    const payload = job.payload as unknown as TryonJobPayload;
+    if (!payload.tryon_id || !payload.input_image_url) {
+      throw new Error("Invalid try-on payload.");
+    }
 
-      const row = await getTryonById(payload.tryon_id);
-      if (!row) {
-        throw new Error(`Try-on ${payload.tryon_id} not found.`);
-      }
+    const row = await getTryonById(payload.tryon_id);
+    if (!row) {
+      throw new Error(`Try-on ${payload.tryon_id} not found.`);
+    }
 
-      await updateTryon(row.id, {
-        status: "processing",
-        provider: process.env.TRYON_PROVIDER || "fallback-copy",
-      });
+    await updateTryon(row.id, {
+      status: "processing",
+      provider: process.env.TRYON_PROVIDER || "fallback-copy",
+    });
 
-      const output = await copyInputAsOutput(row.id, payload.input_image_url);
-      const updated = await updateTryon(row.id, {
-        status: "succeeded",
-        output_image_url: output.url,
-        provider_job_id: output.key,
-      });
+    const output = await copyInputAsOutput(row.id, payload.input_image_url);
+    const updated = await updateTryon(row.id, {
+      status: "succeeded",
+      output_image_url: output.url,
+      provider_job_id: output.key,
+    });
 
-      return {
-        tryon_id: updated.id,
-        output_image_url: updated.output_image_url,
-        provider: updated.provider,
-      };
-    },
-  });
+    return {
+      tryon_id: updated.id,
+      output_image_url: updated.output_image_url,
+      provider: updated.provider,
+    };
+  },
 };
 
-main().catch((error) => {
-  logger.error("worker.tryon.crash", {
-    message: error instanceof Error ? error.message : "Unknown error",
+export const runTryonWorker = () =>
+  runWorkerLoop({
+    workerName: process.env.WORKER_NAME || tryonWorkerDefinition.workerName,
+    jobTypes: tryonWorkerDefinition.jobTypes,
+    handler: tryonWorkerDefinition.handler,
   });
-  process.exit(1);
-});
+
+const isDirectRun = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isDirectRun) {
+  runTryonWorker().catch((error) => {
+    logger.error("worker.tryon.crash", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    process.exit(1);
+  });
+}

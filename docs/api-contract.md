@@ -3,6 +3,20 @@
 ## Auth
 - 모든 endpoint는 `Authorization: Bearer <supabase_jwt>` 필요
 - 실패 시 `401 UNAUTHORIZED`
+- 예외:
+  - `GET /v1/auth/naver/start`
+  - `GET /v1/auth/naver/callback`
+  - 로그인 시작/콜백용 공개 endpoint
+
+### `GET /v1/auth/naver/start?redirect_to=https://<web-origin>/auth/callback?next=%2Fstudio`
+- `redirect_to`는 절대 URL이어야 함
+- API의 `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS` allowlist를 통과해야 함
+- 성공 시 Naver authorize URL로 `302 redirect`
+
+### `GET /v1/auth/naver/callback`
+- Naver callback 공개 endpoint
+- 성공 시 Supabase admin magic link(`action_link`)로 `302 redirect`
+- 실패 시 가능한 경우 `redirect_to`에 `error_description`을 붙여 다시 redirect
 
 ## Jobs Import
 

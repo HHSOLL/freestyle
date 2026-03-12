@@ -741,6 +741,7 @@ export default function StudioPage() {
       <AuthGate
         title="Studio Access"
         description="에셋 가져오기, 코디 요약, 가상 피팅은 로그인 세션이 있어야 실행됩니다."
+        nextPath="/studio"
       />
     );
   }

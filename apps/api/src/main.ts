@@ -8,16 +8,25 @@ import { registerAssetRoutes } from "./routes/assets.routes.js";
 import { registerEvaluationRoutes } from "./routes/evaluations.routes.js";
 import { registerOutfitRoutes } from "./routes/outfits.routes.js";
 import { registerTryonRoutes } from "./routes/tryons.routes.js";
+import { registerAuthRoutes } from "./routes/auth.routes.js";
+import { buildOriginPolicy } from "./lib/originPolicy.js";
 
 const port = Number.parseInt(process.env.PORT || "8080", 10);
 const host = process.env.HOST || "0.0.0.0";
 
 const buildServer = () => {
   const app = Fastify({ logger: true, bodyLimit: 20 * 1024 * 1024 });
+  const originPolicy = buildOriginPolicy();
 
   app.register(sensible);
   app.register(cors, {
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map((item) => item.trim()) : true,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      callback(null, originPolicy.isAllowedOrigin(origin) ? origin : false);
+    },
     credentials: true,
   });
   app.register(multipart, {
@@ -30,6 +39,7 @@ const buildServer = () => {
   registerHealthRoutes(app);
 
   app.register(async (v1) => {
+    registerAuthRoutes(v1);
     registerJobRoutes(v1);
     registerAssetRoutes(v1);
     registerEvaluationRoutes(v1);

@@ -6,14 +6,16 @@ import { useAuth } from "@/lib/AuthContext";
 type AuthGateProps = {
   title: string;
   description: string;
+  nextPath?: string;
 };
 
-export function AuthGate({ title, description }: AuthGateProps) {
-  const { isConfigured, isLoading, requestMagicLink } = useAuth();
+export function AuthGate({ title, description, nextPath }: AuthGateProps) {
+  const { isConfigured, isLoading, requestMagicLink, signInWithProvider, socialAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<"kakao" | "naver" | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,12 +29,25 @@ export function AuthGate({ title, description }: AuthGateProps) {
 
     try {
       setIsSubmitting(true);
-      await requestMagicLink(email);
+      await requestMagicLink(email, nextPath);
       setMessage("로그인 링크를 보냈습니다. 메일에서 링크를 열어주세요.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "로그인 링크를 보낼 수 없습니다.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSocialSignIn = async (provider: "kakao" | "naver") => {
+    setMessage(null);
+    setErrorMessage(null);
+
+    try {
+      setActiveProvider(provider);
+      await signInWithProvider(provider, nextPath);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "소셜 로그인을 시작할 수 없습니다.");
+      setActiveProvider(null);
     }
   };
 
@@ -48,30 +63,66 @@ export function AuthGate({ title, description }: AuthGateProps) {
             `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 가 설정되지 않았습니다.
           </div>
         ) : (
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-            <label className="block text-xs font-bold uppercase tracking-[0.2em] text-black/45">
-              Email
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                className="mt-3 w-full rounded-2xl border border-black/10 bg-[#faf9f7] px-4 py-4 text-base text-black outline-none transition focus:border-black/30"
-              />
-            </label>
+          <div className="mt-8 space-y-6">
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={isLoading || activeProvider !== null || !socialAuth.kakao}
+                onClick={() => {
+                  void handleSocialSignIn("kakao");
+                }}
+                className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#f7d35f]/60 bg-[#fee500] px-6 text-sm font-extrabold text-[#191600] transition hover:brightness-[0.98] disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
+              >
+                {activeProvider === "kakao" ? "카카오 로그인 연결 중..." : "카카오로 계속하기"}
+              </button>
+              <button
+                type="button"
+                disabled={isLoading || activeProvider !== null || !socialAuth.naver}
+                onClick={() => {
+                  void handleSocialSignIn("naver");
+                }}
+                className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#00c73c]/20 bg-[#03c75a] px-6 text-sm font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
+              >
+                {activeProvider === "naver" ? "네이버 로그인 연결 중..." : "네이버로 계속하기"}
+              </button>
+              {!socialAuth.kakao || !socialAuth.naver ? (
+                <p className="text-xs leading-5 text-black/40">
+                  일부 소셜 로그인은 아직 배포 환경 설정이 끝나지 않아 비활성화되어 있습니다.
+                </p>
+              ) : null}
+            </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="inline-flex h-14 w-full items-center justify-center rounded-full bg-black px-6 text-sm font-bold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:bg-black/25"
-            >
-              {isSubmitting ? "링크 전송 중..." : "이메일 로그인 링크 받기"}
-            </button>
+            <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-black/30">
+              <span className="h-px flex-1 bg-black/10" />
+              Email Link
+              <span className="h-px flex-1 bg-black/10" />
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                Email
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="mt-3 w-full rounded-2xl border border-black/10 bg-[#faf9f7] px-4 py-4 text-base text-black outline-none transition focus:border-black/30"
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || isLoading || activeProvider !== null}
+                className="inline-flex h-14 w-full items-center justify-center rounded-full bg-black px-6 text-sm font-bold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:bg-black/25"
+              >
+                {isSubmitting ? "링크 전송 중..." : "이메일 로그인 링크 받기"}
+              </button>
+            </form>
 
             {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
             {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-          </form>
+          </div>
         )}
       </div>
     </div>

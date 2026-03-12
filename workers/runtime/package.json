@@ -1,0 +1,5 @@
+{
+  "name": "@freestyle/worker-runtime",
+  "private": true,
+  "type": "module"
+}

@@ -13,15 +13,21 @@
 - `/v1/assets`
 - `/v1/jobs/evaluations`
 - `/v1/jobs/tryons`
+- `/v1/auth/naver/start`
+- `/auth/callback`
 
 ## 2. 배포 전 체크리스트
 1. 환경 변수 확인
 - Vercel 프론트의 `BACKEND_ORIGIN` 설정 여부(`/api/*` -> Railway `/v1/*` rewrite)
 - Vercel 프론트의 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 여부
+- Vercel 프론트의 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED` 설정 여부
 - Vercel 프로젝트 루트가 `apps/web`인지, 또는 루트 배포 시 `npm run build`가 `@freestyle/web`를 호출하는지 확인
 - `apps/web` 내부에 `postcss.config.mjs`와 Tailwind/PostCSS 의존성이 존재하는지 확인(독립 workspace 빌드 기준)
 - Supabase 관련 키 (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`)
+- Supabase Auth `site_url`, `uri_allow_list`에 현재 운영 도메인과 `/auth/callback`이 등록되어 있는지 확인
 - Railway 각 서비스에 `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/<service>.Dockerfile`가 설정되어 있는지 확인
+- Railway API에 `API_PUBLIC_ORIGIN`, `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`가 운영 도메인 정책과 일치하는지 확인
+- Naver bridge를 쓰는 경우 Railway API에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_STATE_SECRET`가 설정되어 있는지 확인
 - Storage provider 설정 (`STORAGE_PROVIDER=supabase|s3`, 필요 시 `S3_*`)
 - AI provider 키 (`BG_REMOVAL_API_KEY`, `VTO_*`, `EVALUATOR_*`)
 - worker polling 설정 (`WORKER_POLL_INTERVAL_MS`, `WORKER_CLAIM_BATCH`, `WORKER_HEARTBEAT_SEC`)
@@ -29,11 +35,9 @@
 - Supabase Storage bucket 또는 S3 bucket 접근 권한
 - Supabase Storage bucket(`freestyle-assets`) public URL이 유효한지 확인
 3. 큐 워커 가동 확인
-- `worker_importer`
-- `worker_background_removal`
-- `worker_asset_processor`
-- `worker_evaluator`
-- `worker_tryon`
+- 최소 비용 운영이면 `worker_importer`(통합 worker)만 상시 실행
+- scale-out 운영이면 필요한 전용 worker만 추가 실행
+- `WORKER_JOB_TYPES`가 운영 의도와 일치하는지 확인
 - Railway restart policy는 worker/API 모두 `Always` 또는 장애 복구 가능한 값으로 유지하고, ephemeral filesystem에 결과물을 저장하지 않는다.
 4. 오류 로그 확인
 - 네트워크 타임아웃/외부 API 오류/스토리지 권한
@@ -47,9 +51,17 @@
 - 점검: `BACKEND_ORIGIN` 값, Railway `api` 서비스 도메인/헬스체크, rewrite 적용 여부
 - 점검: 필요 시 `NEXT_PUBLIC_API_BASE_URL` 직접 호출 모드로 우회하되 CORS 설정 동기화
 
+1-1. 소셜 로그인/리다이렉트 이슈
+- 증상: OAuth 후 로그인은 되었는데 엉뚱한 도메인/페이지로 이동하거나 바로 실패
+- 점검: Supabase Auth `site_url`, `uri_allow_list`, Vercel 운영 도메인(`/auth/callback`)
+- 점검: Kakao는 Supabase provider enabled 상태와 redirect URL 등록 여부
+- 점검: Naver는 Railway `API_PUBLIC_ORIGIN`과 Naver developer console redirect URL 일치 여부
+- 점검: `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`에 현재 Vercel preview/production origin이 포함되는지 확인
+
 2. Jobs polling 이슈
 - 증상: job이 `queued`에서 오래 대기
 - 점검: worker 프로세스 상태, `claim_jobs` RPC 권한, `jobs(status, run_after)` 인덱스
+- 점검: 통합 worker 사용 중이면 `WORKER_JOB_TYPES=all` 또는 필요한 타입이 포함되어 있는지 확인
 - 점검: stale job이 쌓이면 `requeue_stale_jobs` 동작/heartbeat 지연 여부 확인
 - 호환 fallback: 원격 DB에 jobs RPC가 아직 없으면 워커는 optimistic claim fallback으로 구동된다. 다중 인스턴스 확장 전에는 반드시 `002_jobs_tables.sql`의 RPC를 원격 DB에 적용한다.
 
@@ -98,6 +110,7 @@
 - 링크/이미지 fetch는 redirect hop 검증 + DNS private 대역 차단 + 헤더/바디 타임아웃을 모두 적용한다.
 - 운영에서 `STRICT_NO_MODEL_IMPORT=true`를 유지해 모델컷 전용 후보 저장을 차단한다.
 - 운영에서 `HUMAN_FACE_MODEL_SOURCE=local`을 권장하고, 모델 파일 경로를 배포 아티팩트에 포함한다.
+- Railway 비용을 줄이려면 기본적으로 `api + worker_importer(통합 worker)`만 유지하고, 나머지 worker 서비스는 `scale 0` 또는 제거 상태로 관리한다.
 
 ## 4. 유지보수 원칙
 - 작은 수정도 lint/typecheck/build를 통과시킨다.

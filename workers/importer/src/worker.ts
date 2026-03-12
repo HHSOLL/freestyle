@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import {
   createAsset,
@@ -8,7 +10,7 @@ import {
   updateProductStatus,
 } from "@freestyle/db";
 import { logger } from "@freestyle/observability";
-import { runWorkerLoop } from "@freestyle/queue";
+import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import {
   JOB_TYPES,
   type ImportCartJobPayload,
@@ -391,37 +393,46 @@ const processCartImport = async (userId: string, parentJobId: string, payload: I
   };
 };
 
-const main = async () => {
-  await runWorkerLoop({
-    workerName: process.env.WORKER_NAME || "worker_importer",
-    jobTypes: [JOB_TYPES.IMPORT_PRODUCT_URL, JOB_TYPES.IMPORT_CART_URL, JOB_TYPES.IMPORT_UPLOAD_IMAGE],
-    handler: async ({ job }) => {
-      const userId = job.user_id;
+export const importerWorkerDefinition: WorkerDefinition = {
+  workerName: "worker_importer",
+  jobTypes: [JOB_TYPES.IMPORT_PRODUCT_URL, JOB_TYPES.IMPORT_CART_URL, JOB_TYPES.IMPORT_UPLOAD_IMAGE],
+  handler: async ({ job }) => {
+    const userId = job.user_id;
 
-      if (job.job_type === JOB_TYPES.IMPORT_PRODUCT_URL) {
-        return processProductImport(userId, job.payload as unknown as ImportProductJobPayload);
-      }
+    if (job.job_type === JOB_TYPES.IMPORT_PRODUCT_URL) {
+      return processProductImport(userId, job.payload as unknown as ImportProductJobPayload);
+    }
 
-      if (job.job_type === JOB_TYPES.IMPORT_UPLOAD_IMAGE) {
-        return processUploadImport(userId, job.payload as unknown as ImportUploadJobPayload);
-      }
+    if (job.job_type === JOB_TYPES.IMPORT_UPLOAD_IMAGE) {
+      return processUploadImport(userId, job.payload as unknown as ImportUploadJobPayload);
+    }
 
-      if (job.job_type === JOB_TYPES.IMPORT_CART_URL) {
-        return processCartImport(
-          userId,
-          job.id,
-          job.payload as unknown as ImportCartJobPayload
-        );
-      }
+    if (job.job_type === JOB_TYPES.IMPORT_CART_URL) {
+      return processCartImport(
+        userId,
+        job.id,
+        job.payload as unknown as ImportCartJobPayload
+      );
+    }
 
-      throw new Error(`Unsupported importer job type: ${job.job_type}`);
-    },
-  });
+    throw new Error(`Unsupported importer job type: ${job.job_type}`);
+  },
 };
 
-main().catch((error) => {
-  logger.error("worker.importer.crash", {
-    message: error instanceof Error ? error.message : "Unknown error",
+export const runImporterWorker = () =>
+  runWorkerLoop({
+    workerName: process.env.WORKER_NAME || importerWorkerDefinition.workerName,
+    jobTypes: importerWorkerDefinition.jobTypes,
+    handler: importerWorkerDefinition.handler,
   });
-  process.exit(1);
-});
+
+const isDirectRun = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isDirectRun) {
+  runImporterWorker().catch((error) => {
+    logger.error("worker.importer.crash", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    process.exit(1);
+  });
+}

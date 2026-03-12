@@ -6,13 +6,13 @@
 
 ## Service Boundaries
 - Web: UI, 인증 세션, job 생성 요청, 상태 폴링, 결과 렌더
+- Web auth flow:
+  - Email/Kakao -> Supabase session
+  - Naver -> Railway OAuth bridge -> Supabase admin magic link -> Supabase session
 - API: 인증/입력 검증/행 생성/잡 enqueue/status 조회
 - Workers:
-  - importer
-  - background_removal
-  - asset_processor
-  - evaluator
-  - tryon
+  - 기본 운영: runtime worker 1개가 importer/background_removal/asset_processor/evaluator/tryon을 모두 라우팅
+  - 확장 운영: 병목 단계만 전용 worker로 분리
 
 > 참고: 기존 루트 `src/app/api/*` 레거시 핸들러는 저장소 호환성 때문에 남아 있을 수 있으나, 프로덕션 런타임 소유권은 Railway `apps/api`의 `/v1/*` 계약으로 고정한다.
 
@@ -24,11 +24,13 @@
   - Claim batch: `WORKER_CLAIM_BATCH` (default 10)
   - Heartbeat: `WORKER_HEARTBEAT_SEC` (default 10s)
   - Stale timeout: `WORKER_STALE_JOB_MINUTES` (default 5m)
+  - Route filter: `WORKER_JOB_TYPES` (`all` 또는 comma-separated job types)
 
 ## Data Isolation
 - 모든 사용자 데이터 테이블은 `user_id` 소유권 기반
 - RLS 정책은 `auth.uid() = user_id`
 - API/Workers는 service-role 키로 동작 (RLS bypass)
+- 브라우저 redirect/OAuth callback은 `site_url`, `uri_allow_list`, `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`를 함께 맞춰야 한다.
 
 ## Pipeline
 1. Importer

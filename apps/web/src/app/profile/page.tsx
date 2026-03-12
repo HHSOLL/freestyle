@@ -189,6 +189,7 @@ export default function ProfilePage() {
       <AuthGate
         title="Profile Access"
         description="보관한 코디와 등록한 에셋은 로그인한 사용자 기준으로만 조회됩니다."
+        nextPath="/profile"
       />
     );
   }

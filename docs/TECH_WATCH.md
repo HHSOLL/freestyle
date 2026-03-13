@@ -17,9 +17,46 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-11
+- 2026-03-13
 
 ## 점검 로그
+### 2026-03-13
+- 확인 소스:
+  - Gemini API 모델 문서 (`ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview?hl=ko`)
+  - Gemini API 모델 문서 (`ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview?hl=ko`)
+  - Gemini API 이미지 생성/편집 가이드 (`ai.google.dev/gemini-api/docs/image-generation?hl=ko`)
+- 신규 변화 요약:
+  - 코디 평가는 텍스트/경량 멀티모달 모델인 `gemini-3.1-flash-lite-preview`로 충분하며, `generateContent` + JSON schema 응답으로 워커에서 안정적으로 구조화 결과를 받을 수 있다.
+  - 가상 피팅은 전용 VTO 프로바이더 대신 `gemini-3.1-flash-image-preview`의 이미지 편집 경로를 활용할 수 있다. 사람 사진과 의류 이미지를 함께 입력하고, 텍스트 지시문으로 의상 교체/착용 편집을 수행하는 방식이다.
+  - 별도 vendor SDK 없이 Google Generative Language REST API로 일관되게 호출 가능해 worker 배포 구성을 단순화할 수 있다.
+- 우리 프로젝트 영향:
+  - evaluator worker는 규칙 기반 fallback을 제거하고 Gemini API 기반 구조화 평가로 교체한다.
+  - tryon worker는 복사 fallback을 제거하고 Gemini 이미지 편집 모델 기반 결과 생성으로 교체한다.
+  - `nanobanana2/fal` 의존성은 유지하지 않고, Gemini 계열 키/모델 환경변수로 통일한다.
+- 적용 여부:
+  - 코드 반영 예정:
+    - importer/evaluator/tryon runtime 교체
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
+### 2026-03-12
+- 확인 소스:
+  - Next.js 공식 블로그 / 릴리즈 노트 (`nextjs.org/blog`, `nextjs.org/blog/next-16-1`)
+  - Supabase changelog (`supabase.com/changelog`)
+  - Railway scaling 문서 (`docs.railway.com/reference/scaling`)
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`)
+- 신규 변화 요약:
+  - `next 16.1.6`, `react/react-dom 19.2.4` 최신 stable 기준은 어제와 동일하다.
+  - Railway scaling 문서는 replica 조정이 전체 재배포 없이 적용되는 운영 모델을 유지하고 있으며, 저부하 서비스 수를 줄이는 방향이 여전히 유효하다.
+  - Supabase changelog의 2026-03-11 변경은 Edge Functions 간 재귀/중첩 호출 rate limit과 anon key의 schema spec 접근 축소가 핵심이며, 현재 Railway worker + service-role 운영 구조에는 직접 충돌하지 않는다.
+- 우리 프로젝트 영향:
+  - 프론트/백/워커의 현재 버전 고정 전략을 유지한다.
+  - Railway 비용 최적화는 `api + 통합 worker 1개` 기본 운영이 계속 타당하다.
+  - Supabase anon key는 브라우저 세션/일반 Data API 범위로만 사용하고, schema spec이나 관리성 호출은 계속 server-side/service-role로 한정한다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
 ### 2026-03-11
 - 확인 소스:
   - Next.js 공식 블로그 / 릴리즈 노트 (`nextjs.org/blog`)

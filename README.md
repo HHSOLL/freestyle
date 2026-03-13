@@ -105,8 +105,9 @@ npm run check
 - `NEXT_PUBLIC_API_BASE_URL` (rewrite를 쓰지 않는 직접 호출 모드에서만 사용)
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (웹 로그인/세션)
 - `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED` (프론트 소셜 로그인 버튼 노출/활성 상태)
-- `GEMINI_API_KEY` (AI 리뷰)
-- `VTO_ENDPOINT`, `VTO_API_KEY` (가상 피팅 프로바이더)
+- `GEMINI_API_KEY` (Gemini 기반 코디 평가 + 가상 피팅 공통 기본 키)
+- `EVALUATOR_GEMINI_API_KEY`, `EVALUATOR_MODEL` (평가 전용 키/모델 override, 기본 모델: `gemini-3.1-flash-lite-preview`)
+- `TRYON_GEMINI_API_KEY`, `TRYON_MODEL` (가상 피팅 전용 키/모델 override, 기본 모델: `gemini-3.1-flash-image-preview`)
 - `REMOVE_BG_API_KEY` (배경 제거)
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (Supabase 연동 시)
 - `SUPABASE_STORAGE_BUCKET` (Supabase Storage 버킷)
@@ -120,8 +121,7 @@ npm run check
 - `ALLOWED_IMAGE_HOSTS`, `ASSET_STORAGE_PATH`, `ASSET_INDEX_PATH`
 - `OUTFITS_STORAGE_PATH`, `BG_REMOVAL_CONCURRENCY`, `VTO_CONCURRENCY`
 - `IMPORT_CONCURRENCY`, `IMPORT_CART_ITEM_CONCURRENCY`
-- `GEMINI_REVIEW_MODEL`, `REMOVE_BG_ENDPOINT`, `REMOVE_BG_SIZE`
-- `VTO_PROVIDER`, `VTO_AUTH_HEADER`, `VTO_AUTH_SCHEME`
+- `GEMINI_MAX_ATTEMPTS`, `REMOVE_BG_ENDPOINT`, `REMOVE_BG_SIZE`
 - `HUMAN_DETECTION_MODE`, `HUMAN_DETECTION_MAX_CANDIDATES`, `HUMAN_DETECTION_MAX_SIDE`
 - `HUMAN_FACE_MIN_AREA_RATIO`, `HUMAN_FACE_PENALTY_BASE`, `HUMAN_FACE_PENALTY_SLOPE`
 - `HUMAN_FACE_MODEL_SOURCE`, `HUMAN_FACE_MODEL_PATH`, `HUMAN_FACE_MODEL_URL`
@@ -129,6 +129,11 @@ npm run check
 - `ALLOW_FILESYSTEM_STORAGE_IN_PRODUCTION`
   - 기본값은 `false`이며, 운영 환경에서 로컬 파일시스템 저장을 실수로 사용하는 것을 막습니다.
   - 운영에서 파일시스템 저장을 강제로 허용하려면 명시적으로 `true`를 설정해야 합니다.
+
+운영 메모:
+- evaluator worker는 Gemini `gemini-3.1-flash-lite-preview`를 사용해 구조화된 JSON 평가를 저장합니다.
+- tryon worker는 Gemini `gemini-3.1-flash-image-preview`를 사용해 사람 사진 + 의류 asset을 입력으로 받아 결과 이미지를 생성합니다.
+- Gemini 이미지 모델은 계정별 quota/billing 상태에 크게 영향을 받습니다. `GEMINI_RATE_LIMITED`가 발생하면 코드 문제가 아니라 현재 프로젝트의 이미지 생성 quota 부족일 가능성을 먼저 확인해야 합니다.
 
 얼굴 신호 기반 후보 재랭킹(P1):
 - `HUMAN_DETECTION_MODE=none|face` (기본 `none`)

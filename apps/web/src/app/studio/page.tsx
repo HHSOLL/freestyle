@@ -870,12 +870,21 @@ export default function StudioPage() {
 
       const explanation = isRecord(evaluationResponse.data.explanation) ? evaluationResponse.data.explanation : null;
       const parsed = normalizeReviewResult({
-        overallScore: evaluationResponse.data.compatibility_score ?? undefined,
-        mood: typeof explanation?.score_band === 'string' ? explanation.score_band : undefined,
-        itemBreakdown: Array.isArray(explanation?.details)
-          ? explanation.details.filter((item): item is string => typeof item === 'string')
-          : undefined,
-        summary: typeof explanation?.summary === 'string' ? explanation.summary : undefined,
+        ...(explanation || {}),
+        overallScore:
+          evaluationResponse.data.compatibility_score ??
+          (typeof explanation?.overallScore === 'number' ? explanation.overallScore : undefined),
+        mood:
+          typeof explanation?.mood === 'string'
+            ? explanation.mood
+            : typeof explanation?.score_band === 'string'
+              ? explanation.score_band
+              : undefined,
+        itemBreakdown: Array.isArray(explanation?.itemBreakdown)
+          ? explanation.itemBreakdown.filter((item): item is string => typeof item === 'string')
+          : Array.isArray(explanation?.details)
+            ? explanation.details.filter((item): item is string => typeof item === 'string')
+            : undefined,
       });
       setReviewResult(parsed);
       setReviewRawText(explanation ? JSON.stringify(explanation, null, 2) : null);

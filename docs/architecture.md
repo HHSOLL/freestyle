@@ -47,7 +47,7 @@
 - `assets.status=ready`
 
 4. Evaluator
-- 코디 payload 평가 후 `outfit_evaluations` 업데이트
+- Gemini `gemini-3.1-flash-lite-preview`로 코디 payload를 평가하고 구조화된 explanation을 `outfit_evaluations`에 저장
 
 5. Try-on
-- 입력 이미지 + asset 기반 결과 생성/저장 후 `tryons` 업데이트
+- Gemini `gemini-3.1-flash-image-preview`로 입력 이미지 + asset 기반 결과를 생성/저장하고 `tryons`를 업데이트

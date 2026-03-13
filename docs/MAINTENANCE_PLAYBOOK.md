@@ -29,7 +29,8 @@
 - Railway API에 `API_PUBLIC_ORIGIN`, `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`가 운영 도메인 정책과 일치하는지 확인
 - Naver bridge를 쓰는 경우 Railway API에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_STATE_SECRET`가 설정되어 있는지 확인
 - Storage provider 설정 (`STORAGE_PROVIDER=supabase|s3`, 필요 시 `S3_*`)
-- AI provider 키 (`BG_REMOVAL_API_KEY`, `VTO_*`, `EVALUATOR_*`)
+- AI provider 키 (`BG_REMOVAL_API_KEY`, `GEMINI_API_KEY` 또는 `EVALUATOR_GEMINI_API_KEY`/`TRYON_GEMINI_API_KEY`)
+- Gemini image preview quota가 실제 활성 상태인지 확인 (`GEMINI_RATE_LIMITED` + `limit: 0`이면 코드 문제가 아니라 계정 quota/billing 문제로 간주)
 - worker polling 설정 (`WORKER_POLL_INTERVAL_MS`, `WORKER_CLAIM_BATCH`, `WORKER_HEARTBEAT_SEC`)
 2. 데이터 경로 확인
 - Supabase Storage bucket 또는 S3 bucket 접근 권한

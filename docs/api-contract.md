@@ -102,7 +102,16 @@ Request
 ```json
 {
   "request_payload": {
-    "asset_ids": ["uuid-1", "uuid-2"]
+    "imageDataUrl": "data:image/png;base64,...",
+    "items": [
+      {
+        "name": "블랙 후드 집업",
+        "category": "상의",
+        "sourceUrl": "https://www.musinsa.com/products/5911845"
+      }
+    ],
+    "occasion": "daily",
+    "language": "Korean"
   },
   "idempotency_key": "optional-key"
 }
@@ -114,6 +123,10 @@ Response
   "evaluation_id": "uuid"
 }
 ```
+
+Notes
+- 현재 evaluator worker는 `request_payload.imageDataUrl`를 필수로 사용한다.
+- `asset_ids`만 전달하는 방식은 현재 런타임 구현과 맞지 않으며, 캔버스 렌더 결과를 `data:image/...` 형태로 전달해야 한다.
 
 ### `GET /v1/evaluations/:id`
 - user-owned evaluation row 반환

@@ -12,7 +12,7 @@
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Optional
-- `EVALUATOR_PROVIDER`
 - `EVALUATOR_MODEL`
+- `GEMINI_API_KEY` (or `EVALUATOR_GEMINI_API_KEY` override)
 - Worker polling envs (`WORKER_*`)
 - `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-evaluator.Dockerfile`

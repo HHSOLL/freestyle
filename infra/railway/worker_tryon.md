@@ -13,6 +13,7 @@
 - `STORAGE_PROVIDER`
 
 ## Optional
-- `TRYON_PROVIDER`
+- `GEMINI_API_KEY` (or `TRYON_GEMINI_API_KEY` override)
+- `TRYON_MODEL`
 - Worker polling envs (`WORKER_*`)
 - `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/worker-tryon.Dockerfile`

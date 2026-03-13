@@ -9,6 +9,7 @@ const browserEnv = {
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "",
   authKakaoEnabled: process.env.NEXT_PUBLIC_AUTH_KAKAO_ENABLED?.trim().toLowerCase() || "",
   authNaverEnabled: process.env.NEXT_PUBLIC_AUTH_NAVER_ENABLED?.trim().toLowerCase() || "",
+  authRequired: process.env.NEXT_PUBLIC_AUTH_REQUIRED?.trim().toLowerCase() || "",
 };
 
 const toPublicBoolean = (value: string) => {
@@ -17,6 +18,8 @@ const toPublicBoolean = (value: string) => {
 
 export const isSupabaseBrowserConfigured = () =>
   Boolean(browserEnv.supabaseUrl && browserEnv.supabaseAnonKey);
+
+export const isAuthRequired = () => toPublicBoolean(browserEnv.authRequired);
 
 export const getSocialAuthAvailability = () => ({
   kakao: toPublicBoolean(browserEnv.authKakaoEnabled),

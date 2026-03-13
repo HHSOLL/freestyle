@@ -9,6 +9,7 @@
 - Web auth flow:
   - Email/Kakao -> Supabase session
   - Naver -> Railway OAuth bridge -> Supabase admin magic link -> Supabase session
+  - 로그인 유예 단계에서는 `NEXT_PUBLIC_AUTH_REQUIRED=false`로 두고, 브라우저별 익명 UUID를 `x-anonymous-user-id`로 전송해 Studio 데이터를 분리한다.
 - API: 인증/입력 검증/행 생성/잡 enqueue/status 조회
 - Workers:
   - 기본 운영: runtime worker 1개가 importer/background_removal/asset_processor/evaluator/tryon을 모두 라우팅
@@ -31,6 +32,7 @@
 - RLS 정책은 `auth.uid() = user_id`
 - API/Workers는 service-role 키로 동작 (RLS bypass)
 - 브라우저 redirect/OAuth callback은 `site_url`, `uri_allow_list`, `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`를 함께 맞춰야 한다.
+- 인증 유예 단계에서는 API가 `ALLOW_ANONYMOUS_USER=true`일 때 `x-anonymous-user-id`를 수용한다.
 
 ## Pipeline
 1. Importer

@@ -23,6 +23,7 @@
 - `BACKEND_ORIGIN` rewrite로 웹 `/api/:path*`, `/v1/:path*`를 Railway `/v1/:path*`로 전달한다.
 - 서버 컴포넌트/SSR fetch는 rewrite를 타지 않으므로 `buildApiPath`에서 `BACKEND_ORIGIN` 또는 `NEXT_PUBLIC_API_BASE_URL` 절대 URL을 우선 사용한다.
 - 인증은 `apps/web/src/lib/AuthContext.tsx`에서 Supabase browser session을 구독하고, `apps/web/src/lib/clientApi.ts`가 access token을 `Authorization: Bearer`로 자동 부착한다.
+- 로그인 기능을 뒤로 미루는 단계에서는 `NEXT_PUBLIC_AUTH_REQUIRED=false`와 `ALLOW_ANONYMOUS_USER=true` 조합을 기본값으로 사용한다. 이때 `apps/web/src/lib/clientApi.ts`가 브라우저별 익명 UUID를 `x-anonymous-user-id` 헤더로 보내고, API는 이를 `user_id`로 사용해 asset/job을 분리한다.
 - 로그인 콜백은 `apps/web/src/app/auth/callback/page.tsx`에서 수신한다. magic link / Kakao / Naver 브리지 모두 이 경로로 수렴시킨다.
 - Kakao는 Supabase native OAuth provider를 사용하고, Naver는 `apps/api/src/routes/auth.routes.ts`의 OAuth bridge가 Naver 검증 후 Supabase admin magic link를 생성한다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
@@ -65,6 +66,7 @@
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
 - `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
+- Studio는 `NEXT_PUBLIC_AUTH_REQUIRED=true`일 때만 `AuthGate`를 강제하고, 기본 운영값(`false`)에서는 익명 사용자도 전체 파이프라인을 실행할 수 있어야 한다.
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.

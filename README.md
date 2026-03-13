@@ -105,6 +105,7 @@ npm run check
 - `NEXT_PUBLIC_API_BASE_URL` (rewrite를 쓰지 않는 직접 호출 모드에서만 사용)
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (웹 로그인/세션)
 - `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED` (프론트 소셜 로그인 버튼 노출/활성 상태)
+- `NEXT_PUBLIC_AUTH_REQUIRED` (기본값 `false`, `true`일 때만 Studio 로그인 강제)
 - `GEMINI_API_KEY` (Gemini 기반 코디 평가 + 가상 피팅 공통 기본 키)
 - `EVALUATOR_GEMINI_API_KEY`, `EVALUATOR_MODEL` (평가 전용 키/모델 override, 기본 모델: `gemini-3.1-flash-lite-preview`)
 - `TRYON_GEMINI_API_KEY`, `TRYON_MODEL` (가상 피팅 전용 키/모델 override, 기본 모델: `gemini-3.1-flash-image-preview`)
@@ -114,6 +115,7 @@ npm run check
 - `STORAGE_PROVIDER=supabase|s3`
 - `API_PUBLIC_ORIGIN` (Railway callback URL 구성 시 사용)
 - `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS` (Railway API direct-call / OAuth redirect origin allowlist)
+- `ALLOW_ANONYMOUS_USER` (기본값 `true`, 토큰이 없을 때 브라우저별 익명 UUID 허용)
 - `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_STATE_SECRET` (네이버 OAuth bridge)
 - `WORKER_JOB_TYPES=all|job_type,...` (Railway 통합 worker가 처리할 작업 타입 필터)
 
@@ -131,8 +133,11 @@ npm run check
   - 운영에서 파일시스템 저장을 강제로 허용하려면 명시적으로 `true`를 설정해야 합니다.
 
 운영 메모:
+- 로그인 기능을 미루는 동안 Studio는 브라우저 localStorage 기반 익명 UUID를 `x-anonymous-user-id`로 전송해 사용자별 asset/job을 분리한다.
+- 현재 운영 권장값은 `NEXT_PUBLIC_AUTH_REQUIRED=false`, `ALLOW_ANONYMOUS_USER=true`다.
 - evaluator worker는 Gemini `gemini-3.1-flash-lite-preview`를 사용해 구조화된 JSON 평가를 저장합니다.
 - tryon worker는 Gemini `gemini-3.1-flash-image-preview`를 사용해 사람 사진 + 의류 asset을 입력으로 받아 결과 이미지를 생성합니다.
+- Gemini 키는 프로젝트 단위이므로 평가/가상피팅에 같은 `GEMINI_API_KEY`를 공통 사용하고, 모델만 `EVALUATOR_MODEL`/`TRYON_MODEL`으로 분리하는 구성을 기본값으로 권장합니다.
 - Gemini 이미지 모델은 계정별 quota/billing 상태에 크게 영향을 받습니다. `GEMINI_RATE_LIMITED`가 발생하면 코드 문제가 아니라 현재 프로젝트의 이미지 생성 quota 부족일 가능성을 먼저 확인해야 합니다.
 
 얼굴 신호 기반 후보 재랭킹(P1):

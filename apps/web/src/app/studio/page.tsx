@@ -5,6 +5,7 @@ import { AuthGate } from '@/components/auth/AuthGate';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { apiFetch, apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
+import { isAuthRequired } from '@/lib/supabaseBrowser';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
 import { StudioDrawers } from '@/features/studio/components/StudioDrawers';
@@ -162,6 +163,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export default function StudioPage() {
   const { t, language } = useLanguage();
   const { isLoading: isAuthLoading, user } = useAuth();
+  const authRequired = isAuthRequired();
+  const canAccessStudio = !authRequired || Boolean(user);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('all');
@@ -224,7 +227,7 @@ export default function StudioPage() {
   const nextZIndex = useRef(1);
 
   useEffect(() => {
-    if (isAuthLoading || !user) return;
+    if (isAuthLoading || !canAccessStudio) return;
     const loadAssets = async () => {
       try {
         const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
@@ -242,7 +245,7 @@ export default function StudioPage() {
       }
     };
     loadAssets();
-  }, [isAuthLoading, user]);
+  }, [canAccessStudio, isAuthLoading]);
 
   useEffect(() => {
     try {
@@ -736,7 +739,7 @@ export default function StudioPage() {
     return <div className="min-h-[calc(100vh-4rem)] bg-[#f7f7f5]" />;
   }
 
-  if (!user) {
+  if (!canAccessStudio) {
     return (
       <AuthGate
         title="Studio Access"

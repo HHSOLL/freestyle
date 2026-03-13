@@ -1,4 +1,7 @@
 const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i;
+const ANONYMOUS_USER_STORAGE_KEY = "freestyle:anonymous-user-id";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 const stripApiSuffix = (value: string) => {
@@ -29,10 +32,31 @@ const normalizePublicApiBaseUrl = (value: string | undefined) => {
 
 const publicApiBaseUrl = normalizePublicApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 const serverApiBaseUrl = normalizePublicApiBaseUrl(process.env.BACKEND_ORIGIN);
+const publicAuthRequired = (() => {
+  const value = process.env.NEXT_PUBLIC_AUTH_REQUIRED?.trim().toLowerCase() || "";
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+})();
 let accessToken: string | null = null;
 
 export const setApiAccessToken = (token: string | null) => {
   accessToken = token?.trim() || null;
+};
+
+const getAnonymousUserId = () => {
+  if (typeof window === "undefined" || publicAuthRequired) return null;
+
+  const existing = window.localStorage.getItem(ANONYMOUS_USER_STORAGE_KEY)?.trim() || "";
+  if (UUID_PATTERN.test(existing)) {
+    return existing;
+  }
+
+  const nextId = window.crypto?.randomUUID?.();
+  if (!nextId || !UUID_PATTERN.test(nextId)) {
+    return null;
+  }
+
+  window.localStorage.setItem(ANONYMOUS_USER_STORAGE_KEY, nextId);
+  return nextId;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -59,6 +83,12 @@ export const apiFetch = (path: string, init?: RequestInit) => {
   const headers = new Headers(init?.headers);
   if (accessToken && !headers.has("authorization")) {
     headers.set("authorization", `Bearer ${accessToken}`);
+  }
+  if (!accessToken && !headers.has("x-anonymous-user-id")) {
+    const anonymousUserId = getAnonymousUserId();
+    if (anonymousUserId) {
+      headers.set("x-anonymous-user-id", anonymousUserId);
+    }
   }
 
   return fetch(buildApiPath(path), {

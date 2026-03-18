@@ -81,6 +81,7 @@ npm run dev:worker:tryon
 ```bash
 npm run lint
 npm run typecheck
+npm run build:services
 npm run build
 npm run check
 ```

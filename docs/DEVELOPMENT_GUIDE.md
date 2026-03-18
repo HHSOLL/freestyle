@@ -137,8 +137,9 @@
 8. 품질 점검:
 - `npm run lint`
 - `npm run typecheck`
+- `npm run build:services`
 - `npm run build`
-- `npm run check` (lint + typecheck + build)
+- `npm run check` (lint + typecheck + build:services + build)
 
 ## 7. 변경 시 문서 동기화
 아래 항목 변경 시 문서를 반드시 같이 수정합니다.

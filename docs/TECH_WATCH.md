@@ -17,9 +17,28 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-13
+- 2026-03-18
 
 ## 점검 로그
+### 2026-03-18
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view fastify version`, `npm view @supabase/supabase-js version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)
+  - Railway Production Readiness Checklist (`docs.railway.com/overview/production-readiness-checklist`)
+- 신규 변화 요약:
+  - npm registry 기준 현재 stable은 `next 16.1.7`, `react/react-dom 19.2.4`, `typescript 5.9.3`, `fastify 5.8.2`, `@supabase/supabase-js 2.99.2`, `tailwindcss 4.2.1`, `eslint-config-next 16.1.7`이다.
+  - 우리 저장소는 `react/react-dom 19.2.4`, `tailwindcss 4.2.1`은 이미 최신 stable과 일치한다.
+  - 반면 `next 16.1.6`, `eslint-config-next 16.1.4`, `fastify 5.6.2`, `@supabase/supabase-js 2.91.1`은 뒤처져 있으므로, 현재 구조 안정화 이후 별도 dependency maintenance 배치에서 패치/마이너 업그레이드를 검토하는 것이 타당하다.
+  - Railway 운영 문서는 private networking, restart policy, healthcheck, check suites 같은 production-readiness 기본기를 계속 강조하고 있으며, 현재의 Vercel + Railway + Supabase 분리 운영 방향과 충돌하는 신규 아키텍처 변화는 확인되지 않았다.
+- 우리 프로젝트 영향:
+  - 제품 개발 중 기능 회귀를 줄이려면 웹 빌드만이 아니라 서비스 컴파일(`npm run build:services`)도 일일 품질 점검 기본값으로 포함하는 편이 안전하다.
+  - 배포 구조는 유지하되, 다음 품질 개선 배치에서 `next`/`eslint-config-next` 동기화와 API/worker 의존성 업데이트를 한 번에 처리하는 것이 좋다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - 본 문서 업데이트
+
 ### 2026-03-13
 - 확인 소스:
   - Gemini API 모델 문서 (`ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview?hl=ko`)

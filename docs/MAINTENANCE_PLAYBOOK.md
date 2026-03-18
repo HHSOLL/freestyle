@@ -4,8 +4,9 @@
 1. `docs/TECH_WATCH.md` 당일 점검 여부 확인
 2. `npm run lint`
 3. `npm run typecheck`
-4. `npm run build`
-5. 주요 API smoke check
+4. `npm run build:services`
+5. `npm run build`
+6. 주요 API smoke check
 - `/healthz`
 - `/readyz`
 - `/v1/jobs/import/product`

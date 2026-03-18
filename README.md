@@ -156,6 +156,7 @@ npm run check
 - 지침: `AGENTS.md`
 - 개발 가이드: `docs/DEVELOPMENT_GUIDE.md`
 - 유지보수 플레이북: `docs/MAINTENANCE_PLAYBOOK.md`
+- 서브에이전트 팀/프롬프트: `docs/SUBAGENT_TEAM.md`
 - 기술 동향 점검 로그: `docs/TECH_WATCH.md`
 - 아키텍처: `docs/architecture.md`
 - API 계약: `docs/api-contract.md`

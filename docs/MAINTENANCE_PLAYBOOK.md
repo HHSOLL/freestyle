@@ -47,7 +47,10 @@
 4. 오류 로그 확인
 - 네트워크 타임아웃/외부 API 오류/스토리지 권한
 - Vercel 프론트 5xx/404 발생 시 rewrite 대상(`BACKEND_ORIGIN`) 및 Railway API health 동시 확인
-5. 품질 파이프라인 확인
+5. Vercel Git 배포 경로 확인
+- GitHub 재연결/권한 변경 직후 자동 배포가 멈춘 것처럼 보이면 `main`에 새 커밋을 푸시해 Git 기반 production deployment가 다시 트리거되는지 먼저 확인한다.
+- 자동 배포가 계속 멈추면 Vercel Dashboard의 Deployments 화면에서 Git reference(branch 또는 commit SHA) 기준 수동 deployment를 생성해 우회할 수 있다.
+6. 품질 파이프라인 확인
 - `.github/workflows/quality.yml` 성공 여부 확인
 
 ## 3. 장애 대응 가이드

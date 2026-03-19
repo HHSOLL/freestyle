@@ -17,9 +17,29 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-18
+- 2026-03-19
 
 ## 점검 로그
+### 2026-03-19
+- 확인 소스:
+  - Vercel Git deployment docs (`https://vercel.com/docs/git`)
+  - Vercel Git CLI docs (`https://vercel.com/docs/cli/git`)
+  - 로컬 Vercel CLI 상태 확인 (`vercel whoami`, `vercel ls freestyle`, `vercel inspect freestyle-h3jovnsjb-sols-projects-7e25d3b5.vercel.app`)
+  - npm registry latest stable (`npm view next version`, `npm view eslint-config-next version`)
+- 신규 변화 요약:
+  - Vercel 공식 문서는 Git 연결 프로젝트에서 production branch(`main`)로의 새 커밋이 production deployment를 자동 생성한다고 명시한다.
+  - 자동 배포가 끊겼을 때는 Dashboard에서 Git reference(branch 또는 commit SHA) 기준 수동 deployment를 생성하는 우회 경로가 공식 지원된다.
+  - 2026-03-19 기준 npm stable은 `next 16.2.0`, `eslint-config-next 16.2.0`으로 어제 기록한 `16.1.x`보다 한 단계 올라갔다.
+- 우리 프로젝트 영향:
+  - GitHub 계정 재연결 이후 Vercel Git 배포가 block된 경우, 가장 단순한 1차 확인 방법은 `main`에 새 커밋을 푸시해 production deployment가 다시 생성되는지 보는 것이다.
+  - 이번 점검에서 `freestyle` 프로젝트는 Git 연결/CLI 인증이 정상이며, 최신 production deployment가 `Ready` 상태로 복구된 것을 확인했다.
+  - `next`/`eslint-config-next`는 현재 저장소(`16.1.6`/`16.1.4`)보다 최신 stable이 있으므로 별도 업그레이드 배치에서 호환성 확인 후 반영하는 것이 좋다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - 본 문서 업데이트
+
 ### 2026-03-18
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view fastify version`, `npm view @supabase/supabase-js version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)

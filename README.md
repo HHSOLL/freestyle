@@ -96,7 +96,7 @@ npm run check
 현재 `studio`, `profile`, `trends(feed)`는 기능 단위 컴포넌트 구조를 사용합니다.
 
 ## CI 품질 게이트
-- `.github/workflows/quality.yml`에서 PR/`main` push마다 `lint + typecheck + build`를 검사합니다.
+- `.github/workflows/quality.yml`에서 PR/`main` push마다 `lint + typecheck + build:services + build`를 검사합니다.
 
 ## 환경 변수
 `.env.local`에 설정합니다.

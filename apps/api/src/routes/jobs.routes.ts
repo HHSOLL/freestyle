@@ -4,12 +4,14 @@ import type { FastifyInstance } from "fastify";
 import { getStorageAdapter } from "@freestyle/storage";
 import {
   importCartJobInputSchema,
+  importProductBatchJobInputSchema,
   importProductJobInputSchema,
   importUploadJobInputSchema,
 } from "@freestyle/shared";
 import { requireAuth } from "../modules/auth/auth.js";
 import {
   createCartImportJob,
+  createProductImportJobs,
   createProductImportJob,
   createUploadImportJob,
   getUserJob,
@@ -42,6 +44,30 @@ export const registerJobRoutes = (app: FastifyInstance) => {
 
     const { product, job } = await createProductImportJob(userId, parsed.data);
     return reply.code(201).send({ job_id: job.id, product_id: product.id });
+  });
+
+  app.post("/jobs/import/products/batch", async (request, reply) => {
+    const userId = await requireAuth(request, reply);
+    if (!userId) return;
+
+    const parsed = importProductBatchJobInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "VALIDATION_ERROR",
+        message: parsed.error.issues[0]?.message ?? "Invalid payload.",
+      });
+    }
+
+    const { items, failed } = await createProductImportJobs(userId, parsed.data);
+    const statusCode = items.length === 0 ? 500 : failed.length > 0 ? 207 : 201;
+
+    return reply.code(statusCode).send({
+      requested_count: parsed.data.product_urls.length,
+      queued_count: items.length,
+      failed_count: failed.length,
+      items,
+      failed,
+    });
   });
 
   app.post("/jobs/import/cart", async (request, reply) => {

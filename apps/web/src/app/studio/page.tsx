@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
@@ -9,6 +10,7 @@ import { isAuthRequired } from '@/lib/supabaseBrowser';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
 import { StudioDrawers } from '@/features/studio/components/StudioDrawers';
+import { MusinsaBridgeModal } from '@/features/studio/components/MusinsaBridgeModal';
 import { StudioModals } from '@/features/studio/components/StudioModals';
 import { SummaryPanel } from '@/features/studio/components/SummaryPanel';
 import {
@@ -18,6 +20,11 @@ import {
   DEFAULT_TEXT_COLOR,
   DEFAULT_TEXT_SIZE,
 } from '@/features/studio/constants';
+import {
+  MUSINSA_BRIDGE_QUERY_PARAM,
+  parseMusinsaBridgePayload,
+  type MusinsaBridgePayload,
+} from '@/features/studio/musinsaBridge';
 import { getErrorMessage, isEditableAssetCategory, toAsset } from '@/features/studio/utils';
 import type {
   Asset,
@@ -54,6 +61,28 @@ type JobResponse = {
   } | null;
 };
 
+type BatchImportResponse = {
+  requested_count?: number;
+  queued_count?: number;
+  failed_count?: number;
+  items?: Array<{
+    product_url?: string;
+    product_id?: string;
+    job_id?: string;
+  }>;
+  failed?: Array<{
+    product_url?: string;
+    error_code?: string;
+    message?: string;
+  }>;
+};
+
+type BatchImportItem = {
+  product_url: string;
+  product_id: string;
+  job_id: string;
+};
+
 type EvaluationResponse = {
   id: string;
   compatibility_score: number | null;
@@ -67,6 +96,56 @@ type TryonResponse = {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const BRIDGE_IMPORT_RESOLVE_CONCURRENCY = 4;
+
+const toBatchImportItems = (items: BatchImportResponse["items"]): BatchImportItem[] => {
+  if (!Array.isArray(items)) return [];
+
+  return items.filter(
+    (item): item is BatchImportItem =>
+      typeof item?.product_url === 'string' &&
+      item.product_url.trim().length > 0 &&
+      typeof item.product_id === 'string' &&
+      item.product_id.trim().length > 0 &&
+      typeof item.job_id === 'string' &&
+      item.job_id.trim().length > 0
+  );
+};
+
+const settleWithConcurrency = async <T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> => {
+  const results = new Array<PromiseSettledResult<R>>(items.length);
+  let nextIndex = 0;
+
+  const runWorker = async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      try {
+        const value = await worker(items[index], index);
+        results[index] = { status: 'fulfilled', value };
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason };
+      }
+    }
+  };
+
+  const workerCount = Math.min(Math.max(concurrency, 1), items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+  return results;
+};
+
+const buildBridgeImportIdempotencyKey = (payload: MusinsaBridgePayload) => `musinsa-bridge:${payload.capturedAt}`;
+const formatBridgeImportStatus = (label: string, completed: number, total: number) =>
+  total > 0 ? `${label} ${Math.min(completed, total)}/${total}` : label;
 
 type ImportImageCandidate = {
   id: string;
@@ -163,6 +242,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export default function StudioPage() {
   const { t, language } = useLanguage();
   const { isLoading: isAuthLoading, user } = useAuth();
+  const router = useRouter();
   const authRequired = isAuthRequired();
   const canAccessStudio = !authRequired || Boolean(user);
 
@@ -206,6 +286,11 @@ export default function StudioPage() {
   const [cartImportCategory, setCartImportCategory] = useState<EditableAssetCategory>('custom');
   const [isCartImporting, setIsCartImporting] = useState(false);
   const [cartImportStatus, setCartImportStatus] = useState('');
+  const [bridgePayload, setBridgePayload] = useState<MusinsaBridgePayload | null>(null);
+  const [isBridgeImportModalOpen, setIsBridgeImportModalOpen] = useState(false);
+  const [bridgeImportCategory, setBridgeImportCategory] = useState<EditableAssetCategory>('custom');
+  const [isBridgeImporting, setIsBridgeImporting] = useState(false);
+  const [bridgeImportStatus, setBridgeImportStatus] = useState('');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isTryOnModalOpen, setIsTryOnModalOpen] = useState(false);
   const [reviewGender, setReviewGender] = useState('');
@@ -225,6 +310,7 @@ export default function StudioPage() {
   const textRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nextZIndex = useRef(1);
+  const handledBridgePayloadRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isAuthLoading || !canAccessStudio) return;
@@ -257,6 +343,29 @@ export default function StudioPage() {
       // ignore localStorage read errors
     }
   }, []);
+
+  useEffect(() => {
+    const raw = new URL(window.location.href).searchParams.get(MUSINSA_BRIDGE_QUERY_PARAM);
+    if (!raw || handledBridgePayloadRef.current === raw) return;
+
+    handledBridgePayloadRef.current = raw;
+    const parsed = parseMusinsaBridgePayload(raw);
+    if (!parsed) {
+      router.replace('/studio', { scroll: false });
+      return;
+    }
+
+    setBridgePayload(parsed);
+    setBridgeImportCategory('custom');
+    setIsBridgeImportModalOpen(true);
+    setIsImportModalOpen(false);
+    setIsImportCandidateModalOpen(false);
+    setIsCartImportModalOpen(false);
+
+    const cleanupUrl = new URL(window.location.href);
+    cleanupUrl.searchParams.delete(MUSINSA_BRIDGE_QUERY_PARAM);
+    router.replace(`${cleanupUrl.pathname}${cleanupUrl.search}${cleanupUrl.hash}`, { scroll: false });
+  }, [router]);
 
   const inventory = useMemo<Asset[]>(() => [], []);
   const assets = useMemo(() => [...inventory, ...userAssets], [inventory, userAssets]);
@@ -297,6 +406,10 @@ export default function StudioPage() {
     setSelectedTextId(id);
     setSelectedItemId(null);
   };
+
+  const registerImportedAsset = useCallback((savedAsset: Asset) => {
+    setUserAssets((prev) => [savedAsset, ...prev]);
+  }, []);
 
   const addAssetToCanvas = (asset: Asset) => {
     const id = `${asset.id}-${Date.now()}`;
@@ -422,13 +535,13 @@ export default function StudioPage() {
     return fetchAssetById(assetId);
   };
 
-  const runUrlImport = async (candidateUrl?: string) => {
+  const runUrlImport = async (productUrl: string, categoryHint: EditableAssetCategory, candidateUrl?: string) => {
     const { response, data } = await apiFetchJson<{ job_id?: string }>('/v1/jobs/import/product', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        product_url: importUrl.trim(),
-        category_hint: newItemCategory,
+        product_url: productUrl,
+        category_hint: categoryHint,
         selected_image_url: candidateUrl,
       }),
     });
@@ -443,7 +556,7 @@ export default function StudioPage() {
   };
 
   const finalizeImportedUrlAsset = (savedAsset: Asset) => {
-    setUserAssets((prev) => [savedAsset, ...prev]);
+    registerImportedAsset(savedAsset);
     setIsImportCandidateModalOpen(false);
     setImportCandidates([]);
     setSelectedImportCandidateUrl('');
@@ -457,7 +570,7 @@ export default function StudioPage() {
     setIsProcessing(true);
     try {
       setProcessingStatus(t('studio.import.loading'));
-      const asset = await runUrlImport();
+      const asset = await runUrlImport(importUrl.trim(), newItemCategory);
       finalizeImportedUrlAsset(asset);
     } catch (error: unknown) {
       const canPromptManualCandidateSelection =
@@ -485,7 +598,7 @@ export default function StudioPage() {
     setIsProcessing(true);
     try {
       setProcessingStatus(t('studio.import.loading'));
-      const asset = await runUrlImport(selectedImportCandidateUrl.trim());
+      const asset = await runUrlImport(importUrl.trim(), newItemCategory, selectedImportCandidateUrl.trim());
       finalizeImportedUrlAsset(asset);
     } catch (error: unknown) {
       alert(getErrorMessage(error, t('studio.import.error_generic')));
@@ -825,6 +938,76 @@ export default function StudioPage() {
     }
   };
 
+  const handleBridgeImportSubmit = async () => {
+    if (!bridgePayload?.items.length) return;
+
+    const productUrls = bridgePayload.items.map((item) => item.url);
+    const loadingLabel = t('studio.bridge.loading') || 'Importing...';
+    const fallbackMessage = t('studio.bridge.error_generic') || 'Could not import products from Musinsa.';
+
+    setIsBridgeImporting(true);
+    setBridgeImportStatus(loadingLabel);
+
+    try {
+      const { response, data } = await apiFetchJson<BatchImportResponse>('/v1/jobs/import/products/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_urls: productUrls,
+          category_hint: bridgeImportCategory,
+          idempotency_key: buildBridgeImportIdempotencyKey(bridgePayload),
+        }),
+      });
+
+      const queuedItems = toBatchImportItems(data?.items);
+      if (!response.ok || queuedItems.length === 0) {
+        throw new Error(getApiErrorMessage(data, fallbackMessage));
+      }
+
+      let completedCount = 0;
+      setBridgeImportStatus(formatBridgeImportStatus(loadingLabel, completedCount, queuedItems.length));
+
+      const settled = await settleWithConcurrency(
+        queuedItems,
+        BRIDGE_IMPORT_RESOLVE_CONCURRENCY,
+        async (item) => {
+          try {
+            return await resolveAssetPipeline(item.job_id, fallbackMessage);
+          } finally {
+            completedCount += 1;
+            setBridgeImportStatus(formatBridgeImportStatus(loadingLabel, completedCount, queuedItems.length));
+          }
+        }
+      );
+
+      const parsedAssets = settled
+        .filter((item): item is PromiseFulfilledResult<Asset> => item.status === 'fulfilled')
+        .map((item) => item.value);
+
+      if (parsedAssets.length > 0) {
+        setUserAssets((prev) => [...parsedAssets, ...prev]);
+      }
+
+      const queuedFailureCount =
+        typeof data?.failed_count === 'number' ? data.failed_count : Math.max(0, productUrls.length - queuedItems.length);
+      const processingFailureCount = settled.length - parsedAssets.length;
+      const failedCount = queuedFailureCount + processingFailureCount;
+
+      setIsBridgeImportModalOpen(false);
+      setBridgePayload(null);
+      alert(
+        `${parsedAssets.length}${t('studio.bridge.imported_suffix') || ' products imported.'} ${failedCount}${
+          t('studio.bridge.failed_suffix') || ' products failed.'
+        }`
+      );
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, fallbackMessage));
+    } finally {
+      setIsBridgeImporting(false);
+      setBridgeImportStatus('');
+    }
+  };
+
   const handleReviewGenerate = async () => {
     if (canvasItems.length === 0) {
       alert(t('studio.tryon.error_no_items'));
@@ -1150,6 +1333,27 @@ export default function StudioPage() {
         tryOnError={tryOnError}
         onTryOnGenerate={handleTryOnGenerate}
         onTryOnDownload={handleTryOnDownload}
+      />
+
+      <MusinsaBridgeModal
+        t={t}
+        isOpen={isBridgeImportModalOpen}
+        payload={bridgePayload}
+        categories={categories}
+        selectedCategory={bridgeImportCategory}
+        onSelectedCategoryChange={(value) => {
+          if (isEditableAssetCategory(value)) {
+            setBridgeImportCategory(value);
+          }
+        }}
+        isImporting={isBridgeImporting}
+        importStatus={bridgeImportStatus}
+        onClose={() => {
+          setIsBridgeImportModalOpen(false);
+          setBridgePayload(null);
+          setBridgeImportStatus('');
+        }}
+        onImport={handleBridgeImportSubmit}
       />
     </div>
   );

@@ -17,9 +17,27 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-19
+- 2026-03-24
 
 ## 점검 로그
+### 2026-03-24
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)
+  - 로컬 구현 점검: `apps/web/src/app/studio/page.tsx`, `apps/web/src/features/studio/components/MusinsaBridgeModal.tsx`, `scripts/musinsa-bridge.user.js`
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.1`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.1`이다.
+  - 브라우저 브리지 userscript + Studio 수신 모달은 Next 16/App Router에서 별도 프레임워크 의존성 없이 동작하는 저위험 확장 경로다.
+  - 무신사 연동은 서버 계정 위임이 아니라 사용자 브라우저 세션에서 상품 URL을 추출해 Studio로 넘기는 방식이 가장 안전하다.
+- 우리 프로젝트 영향:
+  - `next`/`eslint-config-next`는 현재 저장소(`16.1.6`/`16.1.4`)와 차이가 커졌으므로, 다음 런타임 업데이트 배치에서 프론트 빌드 호환성 확인이 필요하다.
+  - 이번 브리지 구현은 기존 async import pipeline을 재사용하므로, 별도 queue 스키마나 worker 확장 없이 초기 연결면만 제공한다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - 본 문서 업데이트
+
 ### 2026-03-19
 - 확인 소스:
   - Vercel Git deployment docs (`https://vercel.com/docs/git`)

@@ -37,6 +37,40 @@ Response
 }
 ```
 
+### `POST /v1/jobs/import/products/batch`
+Request
+```json
+{
+  "product_urls": [
+    "https://example.com/product/123",
+    "https://example.com/product/456"
+  ],
+  "category_hint": "jacket",
+  "idempotency_key": "optional-key"
+}
+```
+Response
+```json
+{
+  "requested_count": 2,
+  "queued_count": 2,
+  "failed_count": 0,
+  "items": [
+    {
+      "product_url": "https://example.com/product/123",
+      "product_id": "uuid",
+      "job_id": "uuid"
+    }
+  ],
+  "failed": []
+}
+```
+
+Notes
+- 브라우저 브리지/확장 프로그램이 무신사 좋아요나 장바구니에서 추출한 `product_url[]`를 전달하는 용도로 적합하다.
+- `idempotency_key`가 같은 배치 재전송은 동일 URL 기준으로 job 중복 생성을 줄인다.
+- 일부 URL만 queue 생성에 성공하면 응답은 `207 Multi-Status`가 될 수 있다.
+
 ### `POST /v1/jobs/import/cart`
 Request
 ```json

@@ -31,6 +31,7 @@
 2. 에셋 처리
 - API에서 다음 job 생성 endpoint 제공:
   - `POST /v1/jobs/import/product`
+  - `POST /v1/jobs/import/products/batch`
   - `POST /v1/jobs/import/cart`
   - `POST /v1/jobs/import/upload`
   - `GET /v1/jobs/:job_id`
@@ -99,6 +100,7 @@
 - URL import가 자동 선택 실패로 종료되면, 상위 후보 URL/썸네일 목록을 `jobs.result.candidates`로 클라이언트에 전달하고 사용자가 후보를 직접 선택해 재시도할 수 있다.
 - 사용자가 선택한 후보 URL은 `selected_image_url`로 importer job payload에 전달되며, 해당 후보를 우선 처리한 뒤 일반 fallback 후보를 순차 시도한다.
 - 수동 선택(`selectedImageUrl`) 후보는 자동 품질 검증 실패 시에도 최소 안전 조건(초소형 foreground 제외)에서 우회 저장을 허용해 false-negative를 줄인다.
+- 브라우저 브리지 userscript는 `scripts/musinsa-bridge.user.js`를 사용하고, base64url `musinsa_bridge` query payload로 Studio `/studio` 페이지에 캡처 결과를 전달한다.
 - 얼굴 신호 기반 재랭킹(P1): 상위 K 후보만 얼굴 분석을 수행하고 모델컷 패널티를 점수에 반영한다.
 - 얼굴 모델 로딩은 `HUMAN_FACE_MODEL_SOURCE`로 제어한다(운영 기본 local 권장).
 - 후보/원본 URL fetch는 redirect 체인을 수동 추적하며 매 hop마다 안전 URL 검증을 수행한다.
@@ -117,6 +119,7 @@
 - 실패 코드는 `NO_IMAGE_FOUND`, `ONLY_MODEL_IMAGES_FOUND`, `CUTOUT_NOT_AVAILABLE`, `CUTOUT_QUALITY_TOO_LOW`, `FETCH_BLOCKED_OR_LOGIN_REQUIRED`를 사용한다.
 - 단건/장바구니 모두 동일 파이프라인과 동일 실패 규칙을 사용한다.
 - 단건 import는 서버에서 처리+저장을 완료한 뒤 `asset` 객체를 반환한다(클라이언트 2단계 저장 제거).
+- 브라우저 브리지나 userscript가 상품 URL 배열을 제공하는 경우 `POST /v1/jobs/import/products/batch`로 기존 product import job을 fan-out한다.
 - 장바구니 import는 제한 병렬(동시 3)로 처리하고 실패 항목을 분리 반환한다.
 - `STRICT_NO_MODEL_IMPORT=true`이면 `detector=blazeface`로 검증된 no-face 후보만 저장 후보로 인정한다.
 

@@ -31,6 +31,12 @@ export const importProductJobInputSchema = z.object({
   idempotency_key: z.string().trim().min(1).max(128).optional(),
 });
 
+export const importProductBatchJobInputSchema = z.object({
+  product_urls: z.array(z.url()).min(1).max(100),
+  category_hint: z.string().trim().min(1).max(64).optional(),
+  idempotency_key: z.string().trim().min(1).max(128).optional(),
+});
+
 export const importCartJobInputSchema = z.object({
   cart_url: z.url(),
   max_items: z.number().int().min(1).max(100).optional(),
@@ -54,6 +60,7 @@ export const createTryonInputSchema = z.object({
 });
 
 export type ImportProductJobInput = z.infer<typeof importProductJobInputSchema>;
+export type ImportProductBatchJobInput = z.infer<typeof importProductBatchJobInputSchema>;
 export type ImportCartJobInput = z.infer<typeof importCartJobInputSchema>;
 export type ImportUploadJobInput = z.infer<typeof importUploadJobInputSchema>;
 export type EvaluateOutfitInput = z.infer<typeof evaluateOutfitInputSchema>;

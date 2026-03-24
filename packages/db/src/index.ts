@@ -224,6 +224,29 @@ export const getJobByIdForUser = async (jobId: string, userId: string) => {
   return data as JobRecord;
 };
 
+export const getProductBySourceForUser = async (input: {
+  userId: string;
+  sourceType: ProductRecord["source_type"];
+  sourceUrl: string;
+}) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("user_id", input.userId)
+    .eq("source_type", input.sourceType)
+    .eq("source_url", input.sourceUrl)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = parseRows<ProductRecord>(data);
+  return rows[0] ?? null;
+};
+
 export const claimJobs = async (workerName: string, jobTypes: JobType[], batchSize: number) => {
   const supabase = getAdminClient();
   const { data, error } = await supabase.rpc("claim_jobs", {

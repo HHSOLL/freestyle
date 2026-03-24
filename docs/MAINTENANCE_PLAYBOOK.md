@@ -10,6 +10,7 @@
 - `/healthz`
 - `/readyz`
 - `/v1/jobs/import/product`
+- `/v1/jobs/import/products/batch`
 - `/v1/jobs/{job_id}`
 - `/v1/assets`
 - `/v1/jobs/evaluations`
@@ -93,6 +94,13 @@
 - `FETCH_BLOCKED_OR_LOGIN_REQUIRED`: 대상 페이지 접근 제한/로그인 필요
 - `UNKNOWN_IMPORT_ERROR`: 상기 분류 외 예외
 - `NO_IMPORTABLE_PRODUCTS`: 장바구니 import에서 모든 항목이 실패
+
+브라우저 브리지/무신사 sync:
+- 브라우저 브리지 또는 userscript가 무신사 좋아요/장바구니에서 `product_url[]`를 추출하면 `POST /v1/jobs/import/products/batch`로 fan-out한다.
+- `product_urls`가 중복되면 batch 요청 `idempotency_key`를 붙여 중복 job 생성을 줄인다.
+- 실패가 많으면 입력 URL이 canonical product URL인지, 혹은 로그인 필요한 개인 페이지 URL이 섞였는지 먼저 확인한다.
+- 로컬 브리지 확인은 `scripts/musinsa-bridge.user.js`를 브라우저 확장에 붙여 실행한 뒤, 버튼 `Shift+Click`으로 Studio origin을 로컬 주소로 바꾸고 `/studio?musinsa_bridge=...`로 열린 Studio 모달에서 캡처된 URL 목록과 카테고리 선택이 노출되는지 확인한다.
+- bridge payload 파싱 실패 시에는 query string이 잘렸는지, `source === "musinsa-bridge"`인지, 그리고 `items[]`가 최소 1개 이상인지 확인한다.
 
 무신사 상세페이지 품질 보강:
 - `musinsa.com/products/*`는 구조화 스크립트 후보와 goods 경로 힌트를 우선해 단독 상품컷을 먼저 시도한다.

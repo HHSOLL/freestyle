@@ -1,4 +1,4 @@
-import { createProduct } from "@freestyle/db";
+import { createProduct, getProductBySourceForUser } from "@freestyle/db";
 
 export const createImportedProduct = async (input: {
   userId: string;
@@ -9,5 +9,15 @@ export const createImportedProduct = async (input: {
   title?: string;
   brand?: string;
 }) => {
+  const existingProduct = await getProductBySourceForUser({
+    userId: input.userId,
+    sourceType: input.sourceType,
+    sourceUrl: input.sourceUrl,
+  });
+
+  if (existingProduct) {
+    return existingProduct;
+  }
+
   return createProduct(input);
 };

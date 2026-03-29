@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import sensible from "@fastify/sensible";
+import { assertAdminClientConfig } from "@freestyle/db";
 import { registerHealthRoutes } from "./routes/health.routes.js";
 import { registerJobRoutes } from "./routes/jobs.routes.js";
 import { registerAssetRoutes } from "./routes/assets.routes.js";
@@ -13,6 +14,8 @@ import { buildOriginPolicy } from "./lib/originPolicy.js";
 
 const port = Number.parseInt(process.env.PORT || "8080", 10);
 const host = process.env.HOST || "0.0.0.0";
+
+assertAdminClientConfig();
 
 const buildServer = () => {
   const app = Fastify({ logger: true, bodyLimit: 20 * 1024 * 1024 });

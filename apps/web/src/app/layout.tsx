@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Header } from "@/components/layout/Header";
-import MobileNav from "@/components/layout/MobileNav";
+import { SiteShell } from "@/components/layout/SiteShell";
 import { AuthProvider } from "@/lib/AuthContext";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import "./globals.css";
@@ -45,11 +44,7 @@ export default function RootLayout({
       <body className={`${a2jFont.variable} font-sans antialiased bg-background text-foreground`}>
         <AuthProvider>
           <LanguageProvider>
-            <Header />
-            <main className="min-h-screen pt-16">
-              {children}
-            </main>
-            <MobileNav />
+            <SiteShell>{children}</SiteShell>
           </LanguageProvider>
         </AuthProvider>
       </body>

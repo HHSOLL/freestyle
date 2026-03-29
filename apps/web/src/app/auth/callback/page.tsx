@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 
 const normalizeNextPath = (value: string | null) => {
-  if (!value || !value.startsWith("/")) return "/studio";
+  if (!value || !value.startsWith("/")) return "/app";
   return value;
 };
 

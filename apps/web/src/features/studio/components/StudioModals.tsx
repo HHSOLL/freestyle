@@ -36,6 +36,8 @@ type StudioModalsProps = {
   t: StudioTranslator;
   isSaveModalOpen: boolean;
   saveTitle: string;
+  isSavingOutfit: boolean;
+  saveErrorMessage: string | null;
   onSaveTitleChange: (value: string) => void;
   onCloseSaveModal: () => void;
   onSaveOutfit: () => void;
@@ -108,6 +110,8 @@ export function StudioModals({
   t,
   isSaveModalOpen,
   saveTitle,
+  isSavingOutfit,
+  saveErrorMessage,
   onSaveTitleChange,
   onCloseSaveModal,
   onSaveOutfit,
@@ -193,12 +197,19 @@ export function StudioModals({
               placeholder="Outfit Name"
               className="w-full h-14 bg-black/5 border-0 rounded-2xl px-6 text-sm font-bold"
             />
+            {saveErrorMessage ? (
+              <p className="text-sm leading-6 text-red-600">{saveErrorMessage}</p>
+            ) : null}
             <div className="flex gap-4">
               <Button variant="ghost" className="flex-1 h-14 rounded-2xl" onClick={onCloseSaveModal}>
                 Cancel
               </Button>
-              <Button className="flex-1 h-14 rounded-2xl bg-black text-white" onClick={onSaveOutfit}>
-                Save
+              <Button
+                className="flex-1 h-14 rounded-2xl bg-black text-white"
+                onClick={onSaveOutfit}
+                disabled={isSavingOutfit}
+              >
+                {isSavingOutfit ? t('studio.save.loading') || 'Saving...' : 'Save'}
               </Button>
             </div>
           </motion.div>

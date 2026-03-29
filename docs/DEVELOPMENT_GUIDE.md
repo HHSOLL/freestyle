@@ -25,6 +25,7 @@
 - 인증은 `apps/web/src/lib/AuthContext.tsx`에서 Supabase browser session을 구독하고, `apps/web/src/lib/clientApi.ts`가 access token을 `Authorization: Bearer`로 자동 부착한다.
 - 로그인 기능을 뒤로 미루는 단계에서는 `NEXT_PUBLIC_AUTH_REQUIRED=false`와 `ALLOW_ANONYMOUS_USER=true` 조합을 기본값으로 사용한다. 이때 `apps/web/src/lib/clientApi.ts`가 브라우저별 익명 UUID를 `x-anonymous-user-id` 헤더로 보내고, API는 이를 `user_id`로 사용해 asset/job을 분리한다.
 - 로그인 콜백은 `apps/web/src/app/auth/callback/page.tsx`에서 수신한다. magic link / Kakao / Naver 브리지 모두 이 경로로 수렴시킨다.
+- 별도 `nextPath`가 없을 때 auth 기본 복귀 경로는 `/app`이며, 특정 화면이 필요하면 각 surface가 명시적으로 `nextPath`를 넘긴다.
 - Kakao는 Supabase native OAuth provider를 사용하고, Naver는 `apps/api/src/routes/auth.routes.ts`의 OAuth bridge가 Naver 검증 후 Supabase admin magic link를 생성한다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
 
@@ -40,9 +41,10 @@
 - asset_processor worker가 썸네일/pHash/카테고리를 생성한 뒤 `assets.status='ready'`로 종료한다.
 
 3. 코디 저장/공유
-- 공유/조회는 Railway API 기준 `GET /v1/outfits`, `GET /v1/outfits/share/:slug`를 사용한다.
-- 프론트 프로필/공유 페이지는 `apps/web/src/lib/clientApi.ts`를 통해 동일한 `/v1/*` 계약을 사용한다.
-- 코디 저장(write) 경로는 후속 단계에서 `/v1/outfits`로 일원화할 예정이며, 새 기능은 루트 Next route handler를 기준으로 추가하지 않는다.
+- 저장/조회/삭제는 Railway API 기준 `POST /v1/outfits`, `GET /v1/outfits`, `GET /v1/outfits/:id`, `DELETE /v1/outfits/:id`, `GET /v1/outfits/share/:slug`를 사용한다.
+- `outfits`는 `user_id` 기준 user-owned row로 관리하고, 공유 페이지용 `GET /v1/outfits/share/:slug`만 public read를 허용한다.
+- 프론트 Studio, `/app/looks`, `/app/profile`, 공유 페이지는 모두 `apps/web/src/lib/clientApi.ts`를 통해 동일한 `/v1/*` 계약을 사용한다.
+- Studio 저장은 `apps/web/src/app/studio/page.tsx`에서 직접 `/v1/outfits`를 호출하며, 루트 Next route handler는 더 이상 소스 오브 트루스로 간주하지 않는다.
 
 4. AI 기능
 - `POST /v1/jobs/evaluations` / `GET /v1/evaluations/:id`
@@ -68,6 +70,7 @@
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
 - `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
 - Studio는 `NEXT_PUBLIC_AUTH_REQUIRED=true`일 때만 `AuthGate`를 강제하고, 기본 운영값(`false`)에서는 익명 사용자도 전체 파이프라인을 실행할 수 있어야 한다.
+- 익명 모드가 켜져 있을 때도 `x-anonymous-user-id` 기준으로 assets/outfits ownership이 일관되게 유지되어야 하며, `/app` shell과 Studio가 같은 사용자 공간을 바라봐야 한다.
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.

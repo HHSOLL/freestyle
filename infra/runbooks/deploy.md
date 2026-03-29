@@ -6,7 +6,9 @@
 - `supabase/migrations/002_jobs_tables.sql`
 - `supabase/migrations/003_rls_policies.sql`
 - `supabase/migrations/004_indexes.sql`
+- `supabase/migrations/005_outfits_user_ownership.sql`
 2. Verify tables and RPC functions exist.
+3. Verify `outfits.user_id` is populated and indexed before deploying the new `/v1/outfits` API.
 
 ## 2. Railway Deploy
 1. Deploy `api` service.
@@ -30,5 +32,8 @@
 - `POST /v1/jobs/import/product`
 - `GET /v1/jobs/:job_id`
 - `GET /v1/assets`
+- `POST /v1/outfits`
+- `GET /v1/outfits`
+- `GET /v1/outfits/share/:slug`
 - `POST /v1/jobs/evaluations`
 - `POST /v1/jobs/tryons`

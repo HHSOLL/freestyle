@@ -1,7 +1,8 @@
 # API Contract (`/v1`)
 
 ## Auth
-- 모든 endpoint는 `Authorization: Bearer <supabase_jwt>` 필요
+- 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
+- `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.
 - 실패 시 `401 UNAUTHORIZED`
 - 예외:
   - `GET /v1/auth/naver/start`
@@ -128,6 +129,56 @@ Response
   "pageSize": 20
 }
 ```
+
+## Outfits
+
+### `POST /v1/outfits`
+Request
+```json
+{
+  "title": "Minimal denim look",
+  "previewImage": "data:image/png;base64,...",
+  "data": {
+    "items": [
+      {
+        "assetId": "uuid",
+        "name": "Black jacket",
+        "category": "outerwear",
+        "imageSrc": "https://..."
+      }
+    ],
+    "textItems": [],
+    "canvas": {
+      "background": "#F8F9FA",
+      "size": "square"
+    },
+    "modelPhoto": null
+  }
+}
+```
+Response
+```json
+{
+  "id": "uuid",
+  "shareSlug": "abc123xyz"
+}
+```
+
+Notes
+- 저장 row는 `user_id` 기준으로 소유된다.
+- `previewImage`는 현재 Studio canvas export 결과(`data:image/...`)를 그대로 저장한다.
+
+### `GET /v1/outfits`
+- 현재 사용자(또는 익명 UUID)의 outfit 목록만 반환
+
+### `GET /v1/outfits/:id`
+- 현재 사용자(또는 익명 UUID)가 소유한 outfit row만 반환
+
+### `DELETE /v1/outfits/:id`
+- 현재 사용자(또는 익명 UUID)가 소유한 outfit row만 삭제
+
+### `GET /v1/outfits/share/:slug`
+- public share read endpoint
 
 ## Evaluations
 

@@ -35,8 +35,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const normalizeNextPath = (nextPath?: string) => {
-  if (!nextPath) return "/studio";
-  if (!nextPath.startsWith("/")) return "/studio";
+  if (!nextPath) return "/app";
+  if (!nextPath.startsWith("/")) return "/app";
   return nextPath;
 };
 

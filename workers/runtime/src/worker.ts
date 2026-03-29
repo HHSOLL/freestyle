@@ -1,4 +1,5 @@
 import { logger } from "@freestyle/observability";
+import { assertAdminClientConfig } from "@freestyle/db";
 import { runWorkerRouter } from "@freestyle/queue";
 import { jobTypeList, type JobType } from "@freestyle/shared";
 import { assetProcessorWorkerDefinition } from "../../asset_processor/src/worker.js";
@@ -35,6 +36,7 @@ const parseConfiguredJobTypes = (): JobType[] | undefined => {
 };
 
 const main = async () => {
+  assertAdminClientConfig();
   const jobTypes = parseConfiguredJobTypes();
 
   await runWorkerRouter({

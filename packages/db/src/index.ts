@@ -19,8 +19,14 @@ const required = (key: string) => {
 
 let adminClient: SupabaseClient | null = null;
 
+export const assertAdminClientConfig = () => {
+  required("SUPABASE_URL");
+  required("SUPABASE_SERVICE_ROLE_KEY");
+};
+
 export const getAdminClient = () => {
   if (adminClient) return adminClient;
+  assertAdminClientConfig();
   adminClient = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
@@ -652,10 +658,42 @@ export type OutfitListItem = {
 };
 
 export type OutfitRow = OutfitListItem & {
+  user_id: string;
   description: string | null;
   data: Record<string, unknown> | null;
   is_public: boolean;
   updated_at: string;
+};
+
+export const createOutfit = async (input: {
+  userId: string;
+  shareSlug: string;
+  title: string;
+  description?: string | null;
+  previewImage: string;
+  data: Record<string, unknown>;
+  isPublic?: boolean;
+}) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("outfits")
+    .insert({
+      user_id: input.userId,
+      share_slug: input.shareSlug,
+      title: input.title,
+      description: input.description ?? null,
+      preview_image: input.previewImage,
+      data: input.data,
+      is_public: input.isPublic ?? true,
+    })
+    .select("id, share_slug")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to create outfit.");
+  }
+
+  return data as Pick<OutfitRow, "id" | "share_slug">;
 };
 
 export const listOutfits = async () => {
@@ -669,9 +707,40 @@ export const listOutfits = async () => {
   return parseRows<OutfitListItem>(data);
 };
 
+export const listOutfitsForUser = async (userId: string) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("outfits")
+    .select("id, share_slug, title, preview_image, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [] as OutfitListItem[];
+  return parseRows<OutfitListItem>(data);
+};
+
 export const deleteOutfitById = async (id: string) => {
   const supabase = getAdminClient();
   const { error } = await supabase.from("outfits").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+};
+
+export const getOutfitByIdForUser = async (id: string, userId: string) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("outfits")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !data) return null;
+  return data as OutfitRow;
+};
+
+export const deleteOutfitByIdForUser = async (id: string, userId: string) => {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("outfits").delete().eq("id", id).eq("user_id", userId);
   if (error) throw new Error(error.message);
 };
 

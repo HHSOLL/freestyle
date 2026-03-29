@@ -13,6 +13,8 @@
 - `/v1/jobs/import/products/batch`
 - `/v1/jobs/{job_id}`
 - `/v1/assets`
+- `/v1/outfits`
+- `/v1/outfits/share/{slug}`
 - `/v1/jobs/evaluations`
 - `/v1/jobs/tryons`
 - `/v1/auth/naver/start`
@@ -63,6 +65,7 @@
 1-1. 소셜 로그인/리다이렉트 이슈
 - 증상: OAuth 후 로그인은 되었는데 엉뚱한 도메인/페이지로 이동하거나 바로 실패
 - 점검: Supabase Auth `site_url`, `uri_allow_list`, Vercel 운영 도메인(`/auth/callback`)
+- 점검: 기본 복귀 경로가 `/app`인지, 특정 화면은 `nextPath`로 명시했는지 확인
 - 점검: Kakao는 Supabase provider enabled 상태와 redirect URL 등록 여부
 - 점검: Naver는 Railway `API_PUBLIC_ORIGIN`과 Naver developer console redirect URL 일치 여부
 - 점검: `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`에 현재 Vercel preview/production origin이 포함되는지 확인
@@ -85,6 +88,7 @@
 5. 저장 실패
 - Supabase 설정 유효성 확인
 - Storage bucket 권한/공개 URL 정책 확인
+- `/v1/outfits` 저장/삭제 이상 시 `outfits.user_id` 마이그레이션(`005_outfits_user_ownership.sql`) 적용 여부와 API가 user-scoped helper를 사용하는지 먼저 확인한다.
 
 6. 링크/장바구니 import 실패 코드
 - `NO_IMAGE_FOUND`: 페이지에서 유효 후보 이미지를 찾지 못함

@@ -17,9 +17,28 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-24
+- 2026-03-29
 
 ## 점검 로그
+### 2026-03-29
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)
+  - VoltAgent upstream snapshot docs (`~/.codex/vendor_imports/awesome-codex-subagents/README.md`)
+  - 로컬 설치 상태 확인 (`find ~/.codex/agents -maxdepth 1 -name '*.toml' | wc -l`, `find ~/.codex/vendor_imports/awesome-codex-subagents -name '*.toml' | wc -l`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.1`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.1`로 2026-03-24 점검값과 동일하다.
+  - VoltAgent upstream README는 Codex custom subagent 설치 경로를 `~/.codex/agents/` 또는 `.codex/agents/`로 명시하고, 커스텀 subagent는 자동 실행되지 않으므로 명시적 spawn이 필요하다고 안내한다.
+  - 현재 로컬 설치본과 upstream snapshot의 `.toml` 개수는 모두 136개로 일치해, 추가 설치보다 실행 규칙/문서 강화가 우선이다.
+- 우리 프로젝트 영향:
+  - dependency 최신 안정판 추세는 지난 점검과 동일하므로 즉시 버전 변경보다 운영 규칙 정리 우선순위가 더 높다.
+  - FreeStyle 저장소는 매 작업 시 VoltAgent 기본 풀을 먼저 사용하고, broad task에서는 orchestration agent로 분해 후 specialist를 병렬로 붙이는 규칙을 명문화하는 편이 타당하다.
+  - skills/MCP/app connector/tool을 가능한 한 먼저 활용하도록 workflow를 강화하면, 동일 작업에서도 재현성과 품질을 높일 수 있다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - `AGENTS.md`
+    - `docs/SUBAGENT_TEAM.md`
+    - 본 문서 업데이트
+
 ### 2026-03-24
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)

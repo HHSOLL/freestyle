@@ -11,6 +11,7 @@
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET`
 - `STORAGE_PROVIDER=supabase` (or `s3`)
+- `ALLOW_ANONYMOUS_USER=true|false` (current recommended default: `true`)
 
 ## Optional Environment Variables
 - `CORS_ORIGIN`
@@ -30,3 +31,4 @@
 - Kakao 로그인은 Supabase Auth provider에서 직접 처리하므로 Railway API 비밀키가 필요하지 않습니다.
 - Naver 로그인은 Railway `/v1/auth/naver/start`, `/v1/auth/naver/callback` bridge를 사용합니다.
 - `API_PUBLIC_ORIGIN`을 지정하면 Naver developer console의 callback URL과 Railway runtime이 일치하도록 고정할 수 있습니다.
+- 익명 모드를 유지하는 운영에서는 `x-anonymous-user-id` 기준으로 `/v1/assets`, `/v1/outfits` ownership이 일관되게 동작해야 합니다.

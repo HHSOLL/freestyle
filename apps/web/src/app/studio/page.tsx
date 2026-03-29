@@ -257,6 +257,8 @@ export default function StudioPage() {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState('');
+  const [isSavingOutfit, setIsSavingOutfit] = useState(false);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [canvasBackground, setCanvasBackground] = useState(DEFAULT_CANVAS_BACKGROUND);
   const [canvasSize, setCanvasSize] = useState<CanvasSize>('square');
   const [customRatio, setCustomRatio] = useState(DEFAULT_CUSTOM_RATIO);
@@ -771,7 +773,7 @@ export default function StudioPage() {
     textRefs.current[id] = node;
   }, []);
 
-  const renderCanvasToDataUrl = async () => {
+  const renderCanvasToDataUrl = useCallback(async () => {
     if (!canvasRef.current) return null;
     const bounds = canvasRef.current.getBoundingClientRect();
     const scale = 2;
@@ -825,7 +827,107 @@ export default function StudioPage() {
     }
 
     return canvas.toDataURL('image/png');
-  };
+  }, [assetById, canvasBackground, canvasItems, textItems]);
+
+  const saveOutfit = useCallback(async () => {
+    if (canvasItems.length === 0) {
+      setSaveErrorMessage(t('studio.save.error') || 'Failed to save the outfit.');
+      return;
+    }
+
+    try {
+      setIsSavingOutfit(true);
+      setSaveErrorMessage(null);
+
+      const previewImage = await renderCanvasToDataUrl();
+      if (!previewImage) {
+        throw new Error('Failed to render outfit preview.');
+      }
+
+      const items = canvasItems
+        .map((item) => {
+          const asset = assetById.get(item.assetId);
+          if (!asset) return null;
+          return {
+            id: item.id,
+            assetId: asset.id,
+            name: asset.name,
+            brand: asset.brand ?? null,
+            category: asset.category,
+            imageSrc: asset.imageSrc,
+            sourceUrl: asset.sourceUrl ?? null,
+            x: item.x,
+            y: item.y,
+            scale: item.scale,
+            rotation: item.rotation,
+            zIndex: item.zIndex,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+      const outfitData = {
+        items,
+        textItems: textItems.map((item) => ({
+          id: item.id,
+          text: item.text,
+          x: item.x,
+          y: item.y,
+          fontSize: item.fontSize,
+          color: item.color,
+          scale: item.scale,
+          rotation: item.rotation,
+          zIndex: item.zIndex,
+        })),
+        canvas: {
+          background: canvasBackground,
+          size: canvasSize,
+          customRatio,
+          widthPercent: canvasWidthPercent,
+        },
+        modelPhoto: modelPhotoPreview ?? null,
+      };
+
+      const { response, data } = await apiFetchJson<{ id?: string; shareSlug?: string; error?: string; message?: string }>(
+        '/v1/outfits',
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: saveTitle.trim() || t('studio.save.default_title') || 'Outfit',
+            previewImage,
+            data: outfitData,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, t('studio.save.error') || 'Failed to save the outfit.'));
+      }
+
+      setIsSaveModalOpen(false);
+      setSaveTitle('');
+      router.push('/app/looks');
+    } catch (error) {
+      setSaveErrorMessage(getErrorMessage(error, t('studio.save.error') || 'Failed to save the outfit.'));
+    } finally {
+      setIsSavingOutfit(false);
+    }
+  }, [
+    assetById,
+    canvasBackground,
+    canvasItems,
+    canvasSize,
+    canvasWidthPercent,
+    customRatio,
+    modelPhotoPreview,
+    renderCanvasToDataUrl,
+    router,
+    saveTitle,
+    t,
+    textItems,
+  ]);
 
   const downloadCanvasAsImage = async () => {
     const imageDataUrl = await renderCanvasToDataUrl();
@@ -1197,7 +1299,10 @@ export default function StudioPage() {
       onRemoveFromCanvas={removeFromCanvas}
       onOpenReviewModal={() => setIsReviewModalOpen(true)}
       onOpenTryOnModal={() => setIsTryOnModalOpen(true)}
-      onOpenSaveModal={() => setIsSaveModalOpen(true)}
+      onOpenSaveModal={() => {
+        setSaveErrorMessage(null);
+        setIsSaveModalOpen(true);
+      }}
     />
   );
 
@@ -1264,11 +1369,15 @@ export default function StudioPage() {
         t={t}
         isSaveModalOpen={isSaveModalOpen}
         saveTitle={saveTitle}
+        isSavingOutfit={isSavingOutfit}
+        saveErrorMessage={saveErrorMessage}
         onSaveTitleChange={setSaveTitle}
-        onCloseSaveModal={() => setIsSaveModalOpen(false)}
-        onSaveOutfit={() => {
-          alert('Saved!');
+        onCloseSaveModal={() => {
+          setSaveErrorMessage(null);
           setIsSaveModalOpen(false);
+        }}
+        onSaveOutfit={() => {
+          void saveOutfit();
         }}
         isTextModalOpen={isTextModalOpen}
         newTextContent={newTextContent}

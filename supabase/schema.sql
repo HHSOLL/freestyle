@@ -2,6 +2,7 @@ create extension if not exists "pgcrypto";
 
 create table if not exists outfits (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
   share_slug text unique not null,
   title text not null,
   description text,
@@ -14,6 +15,7 @@ create table if not exists outfits (
 
 create index if not exists outfits_share_slug_idx on outfits (share_slug);
 create index if not exists outfits_public_idx on outfits (is_public);
+create index if not exists outfits_user_idx on outfits (user_id);
 
 create or replace function set_outfits_updated_at()
 returns trigger as $$

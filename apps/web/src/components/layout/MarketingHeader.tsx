@@ -5,12 +5,15 @@ import { usePathname } from 'next/navigation';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Button } from '@/components/ui/button';
 import { marketingCopy } from '@/features/renewal-marketing/content';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/LanguageContext';
 
 export function MarketingHeader() {
   const pathname = usePathname();
   const { language, setLanguage } = useLanguage();
+  const { user } = useAuth();
   const copy = marketingCopy[language];
+  const signInHref = '/app/profile?next=%2Fapp%2Fcloset';
 
   const links = [
     { href: '/app/closet', label: language === 'ko' ? '옷장' : 'Closet' },
@@ -62,9 +65,15 @@ export function MarketingHeader() {
               EN
             </button>
           </div>
-          <Button asChild className="rounded-full bg-black px-5 text-white hover:bg-black/90">
-            <Link href="/app/closet">{copy.nav.cta}</Link>
-          </Button>
+          {user ? (
+            <Button asChild variant="outline" className="rounded-full border-black/12 bg-white/85 px-5">
+              <Link href="/app/closet">{language === 'ko' ? '옷장 열기' : 'Enter closet'}</Link>
+            </Button>
+          ) : (
+            <Button asChild className="rounded-full bg-black px-5 text-white hover:bg-black/90">
+              <Link href={signInHref}>{copy.nav.cta}</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

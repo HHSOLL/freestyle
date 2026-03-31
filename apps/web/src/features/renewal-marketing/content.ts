@@ -37,12 +37,12 @@ export const marketingCopy: Localized<{
   };
 }> = {
   ko: {
-    nav: { product: '옷장', examples: '캔버스', app: '발견', cta: '옷장 시작하기' },
+    nav: { product: '옷장', examples: '캔버스', app: '발견', cta: '로그인' },
     hero: {
       eyebrow: '옷장 운영 시스템',
       title: '옷을 덜 사고 더 잘 입게 만드는 옷장 시스템',
       body: '영감 이미지를 내 옷으로 재현하고, 새 상품이 실제로 내 옷장에 도움이 되는지 판단하고, 실제 착용 기록까지 연결합니다.',
-      primaryCta: '옷장 열기',
+      primaryCta: '로그인',
       secondaryCta: '캔버스 보기',
     },
     support: [
@@ -139,12 +139,12 @@ export const marketingCopy: Localized<{
     },
   },
   en: {
-    nav: { product: 'Closet', examples: 'Canvas', app: 'Discover', cta: 'Start your closet' },
+    nav: { product: 'Closet', examples: 'Canvas', app: 'Discover', cta: 'Sign in' },
     hero: {
       eyebrow: 'Wardrobe Operating System',
       title: 'A wardrobe system that helps you buy less and wear better',
       body: 'Capture inspiration, rebuild it from your closet, decide what actually deserves to be bought, and learn from what you really wear.',
-      primaryCta: 'Open closet',
+      primaryCta: 'Sign in',
       secondaryCta: 'Open canvas',
     },
     support: [

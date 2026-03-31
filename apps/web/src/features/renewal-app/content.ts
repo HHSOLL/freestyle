@@ -4,12 +4,14 @@ type Localized<T> = Record<RenewalLanguage, T>;
 
 export const appNav = {
   ko: [
+    { href: '/', label: '홈' },
     { href: '/app/closet', label: '옷장' },
     { href: '/studio', label: '캔버스' },
     { href: '/app/discover', label: '발견' },
     { href: '/app/profile', label: '마이페이지' },
   ],
   en: [
+    { href: '/', label: 'Home' },
     { href: '/app/closet', label: 'Closet' },
     { href: '/studio', label: 'Canvas' },
     { href: '/app/discover', label: 'Discover' },
@@ -21,15 +23,15 @@ export const appMeta = {
   '/app': {
     title: { ko: 'Closet', en: 'Closet' },
     description: {
-      ko: '기본 진입점은 옷장입니다. 저장한 옷을 정리하고 바로 피팅으로 이어집니다.',
-      en: 'Closet is the default entry point: organize saved pieces and jump straight into fitting.',
+      ko: '기본 진입점은 옷장입니다. 좌측 에셋 레일과 3D 마네킹 스테이지를 바로 엽니다.',
+      en: 'Closet is the default entry point: open the asset rail and 3D mannequin stage immediately.',
     },
   },
   '/app/closet': {
     title: { ko: 'Closet', en: 'Closet' },
     description: {
-      ko: '내 옷을 정리하고, 선택한 아이템을 커스텀 마네킹에 바로 입혀보는 기준 화면입니다.',
-      en: 'The home base for organizing your wardrobe and jumping straight into mannequin fitting for any saved piece.',
+      ko: '옷장 에셋 레일과 커스텀 마네킹 스테이지를 한 화면에서 다루는 기본 워크스페이스입니다.',
+      en: 'The default workspace where the wardrobe asset rail and custom mannequin stage stay side by side.',
     },
   },
   '/studio': {

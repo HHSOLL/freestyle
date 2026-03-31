@@ -74,6 +74,7 @@
 - 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 현재 공개 UI surface는 `홈(/)`, `옷장(/app/closet)`, `캔버스(/studio)`, `발견(/app/discover)`, `마이페이지(/app/profile)`만 유지한다.
+- 공개/앱 셸 네비게이션은 상단 고정바 기준으로 유지하고, 좌측 전용 사이드바를 새 기본 UX로 되살리지 않는다.
 - `looks`, `decide`, `journal`, `examples`, `how-it-works`, `trends`, 레거시 `/profile`은 새로운 핵심 surface로 redirect하는 것을 기본 정책으로 둔다.
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
 - `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
@@ -84,6 +85,7 @@
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
 - Studio는 3가지 핵심 flow를 항상 우선 보장한다: `asset 생성(업로드/URL/장바구니 + 누끼)`, `canvas 배치`, `3D mannequin fitting`.
 - 3D mannequin fitting은 canvas 조합과 옷장 asset 둘 다 같은 surface에서 다뤄야 하며, body profile과 garment measurements를 동시에 조절할 수 있어야 한다.
+- `/app/closet`은 요약 대시보드보다 `좌측 에셋 라이브러리 + 중앙 3D 마네킹 + 우측 body/fit control` 워크스페이스를 기본값으로 유지한다.
 - Discover는 inspiration feed를 직접 노출하되, 사용자가 바로 `closet` 또는 `canvas`로 이동해 번역 작업을 이어갈 수 있어야 한다.
 - Studio 요약 패널/캔버스는 `asset.sourceUrl`이 있는 항목 클릭 시 링크 말풍선을 노출해 원본 상품 페이지로 즉시 이동할 수 있어야 한다.
 

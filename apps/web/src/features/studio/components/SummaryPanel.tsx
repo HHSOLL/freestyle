@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ExternalLink, Save, X } from 'lucide-react';
+import { Cuboid, ExternalLink, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatSourceLink } from '../utils';
@@ -16,6 +16,7 @@ type SummaryPanelProps = {
   onRemoveFromCanvas: (id: string) => void;
   onOpenReviewModal: () => void;
   onOpenTryOnModal: () => void;
+  onOpenFittingModal: () => void;
   onOpenSaveModal: () => void;
 };
 
@@ -28,6 +29,7 @@ export function SummaryPanel({
   onRemoveFromCanvas,
   onOpenReviewModal,
   onOpenTryOnModal,
+  onOpenFittingModal,
   onOpenSaveModal,
 }: SummaryPanelProps) {
   const [openLinkItemId, setOpenLinkItemId] = useState<string | null>(null);
@@ -127,6 +129,14 @@ export function SummaryPanel({
             {t('studio.tryon_btn') || 'AI Try-on'}
           </Button>
         </div>
+        <Button
+          className="mb-2 h-12 w-full rounded-xl bg-[#d9ccb9] text-[10px] font-black uppercase tracking-widest text-black hover:bg-[#d1c1ac]"
+          onClick={onOpenFittingModal}
+          disabled={assetById.size === 0}
+        >
+          <Cuboid className="mr-2 h-4 w-4" />
+          3D Fitting
+        </Button>
         <Button
           className="w-full h-15 rounded-2xl bg-black text-white text-[10px] font-black uppercase tracking-widest shadow-xl"
           onClick={onOpenSaveModal}

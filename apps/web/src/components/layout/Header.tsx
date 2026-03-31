@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Search, ShoppingBag } from "lucide-react";
+import { Compass, PenSquare, Shirt, UserRound } from "lucide-react";
+import { appChromeCopy } from "@/features/renewal-app/content";
 import { useAuth } from "@/lib/AuthContext";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export function Header() {
     const pathname = usePathname();
-    const { language, setLanguage, t } = useLanguage();
+    const { language, setLanguage } = useLanguage();
     const { user, signOut } = useAuth();
+    const chromeCopy = appChromeCopy[language];
+    const signInHref = `/app/profile?next=${encodeURIComponent(pathname)}`;
 
     const navLinks = [
-        { href: "/studio", label: t('nav.studio') },
-        { href: "/trends", label: t('nav.trends') },
-        { href: "/profile", label: t('nav.profile') },
+        { href: "/app/closet", label: language === 'ko' ? '옷장' : 'Closet', icon: Shirt },
+        { href: "/studio", label: language === 'ko' ? '캔버스' : 'Canvas', icon: PenSquare },
+        { href: "/app/discover", label: language === 'ko' ? '발견' : 'Discover', icon: Compass },
+        { href: "/app/profile", label: language === 'ko' ? '마이페이지' : 'My Page', icon: UserRound },
     ];
 
     return (
@@ -31,13 +34,15 @@ export function Header() {
             {/* Desktop Nav: Hidden on Mobile */}
             <nav className="hidden md:flex items-center gap-10 text-[11px] font-bold tracking-[0.2em] uppercase text-muted-foreground/80">
                 {navLinks.map((link) => {
-                    const isActive = pathname === link.href;
+                    const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                    const Icon = link.icon;
                     return (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`${isActive ? "text-foreground border-b-2 border-black pb-1" : "hover:text-foreground"} transition-all`}
+                            className={`inline-flex items-center gap-2 ${isActive ? "text-foreground border-b-2 border-black pb-1" : "hover:text-foreground"} transition-all`}
                         >
+                            <Icon className="h-4 w-4" />
                             {link.label}
                         </Link>
                     );
@@ -61,32 +66,25 @@ export function Header() {
                     </button>
                 </div>
 
-                <Button variant="ghost" size="icon" className="hover:bg-transparent text-foreground/70 hover:text-foreground">
-                    <Search className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="relative hover:bg-transparent text-foreground/70 hover:text-foreground">
-                    <ShoppingBag className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                </Button>
                 {user ? (
                     <button
                         type="button"
                         onClick={() => {
                             signOut().catch((error) => {
-                                const message = error instanceof Error ? error.message : "Failed to sign out.";
+                                const message = error instanceof Error ? error.message : chromeCopy.signOutFailed;
                                 alert(message);
                             });
                         }}
                         className="ml-2 rounded-full border border-black/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-black/65 transition hover:border-black/25 hover:text-black"
                     >
-                        {user.email?.split("@")[0] || "Account"}
+                        {user.email?.split("@")[0] || chromeCopy.accountFallback}
                     </button>
                 ) : (
                     <Link
-                        href="/studio"
+                        href={signInHref}
                         className="ml-2 rounded-full border border-black/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-black/65 transition hover:border-black/25 hover:text-black"
                     >
-                        Sign In
+                        {chromeCopy.signIn}
                     </Link>
                 )}
             </div>

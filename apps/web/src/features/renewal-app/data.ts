@@ -1,3 +1,5 @@
+import type { RenewalLanguage } from '@/features/renewal-app/content';
+
 export type WardrobeLook = {
   id: string;
   shareSlug: string;
@@ -72,17 +74,56 @@ export const toWardrobeAsset = (value: unknown): WardrobeAsset | null => {
 
 export const closetCategories = ['tops', 'bottoms', 'outerwear', 'shoes', 'accessories', 'custom'] as const;
 
-export const closetCategoryLabels: Record<(typeof closetCategories)[number], string> = {
-  tops: 'Tops',
-  bottoms: 'Bottoms',
-  outerwear: 'Outerwear',
-  shoes: 'Shoes',
-  accessories: 'Accessories',
-  custom: 'Custom',
+export const closetCategoryLabels: Record<RenewalLanguage, Record<(typeof closetCategories)[number], string>> = {
+  ko: {
+    tops: '상의',
+    bottoms: '하의',
+    outerwear: '아우터',
+    shoes: '신발',
+    accessories: '액세서리',
+    custom: '커스텀',
+  },
+  en: {
+    tops: 'Tops',
+    bottoms: 'Bottoms',
+    outerwear: 'Outerwear',
+    shoes: 'Shoes',
+    accessories: 'Accessories',
+    custom: 'Custom',
+  },
 };
 
-export const getClosetCategoryLabel = (category: string) =>
-  closetCategoryLabels[category as keyof typeof closetCategoryLabels] ?? category;
+const sourceLabels: Record<RenewalLanguage, Record<string, string>> = {
+  ko: {
+    import: '가져옴',
+    uploaded: '업로드',
+    upload: '업로드',
+    product_url: '링크',
+    cart_url: '장바구니',
+    custom: '커스텀',
+  },
+  en: {
+    import: 'Import',
+    uploaded: 'Upload',
+    upload: 'Upload',
+    product_url: 'Link',
+    cart_url: 'Cart',
+    custom: 'Custom',
+  },
+};
+
+export const getClosetCategoryLabel = (category: string, language: RenewalLanguage = 'en') =>
+  closetCategoryLabels[language][category as keyof (typeof closetCategoryLabels)[typeof language]] ?? category;
+
+export const getWardrobeSourceLabel = (source: string, language: RenewalLanguage = 'en') =>
+  sourceLabels[language][source] ?? source;
+
+export const formatWardrobeDate = (value: string, language: RenewalLanguage = 'en') =>
+  new Intl.DateTimeFormat(language === 'ko' ? 'ko-KR' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
 
 export const summarizeCloset = (assets: WardrobeAsset[]) => {
   const counts = new Map<string, number>();

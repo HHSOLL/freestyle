@@ -6,18 +6,7 @@ import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import { JOB_TYPES, type AssetProcessorJobPayload } from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
-
-const inferCategory = (hint: string | undefined, sourceUrl: string) => {
-  if (hint?.trim()) return hint.trim();
-  const lower = sourceUrl.toLowerCase();
-  if (lower.includes("hoodie")) return "hoodie";
-  if (lower.includes("jacket")) return "jacket";
-  if (lower.includes("pants") || lower.includes("trouser")) return "pants";
-  if (lower.includes("skirt")) return "skirt";
-  if (lower.includes("dress")) return "dress";
-  if (lower.includes("shoe") || lower.includes("sneaker")) return "shoes";
-  return "tops";
-};
+import { buildGarmentProfile, inferAssetCategory } from "./garmentProfile.js";
 
 const computePerceptualHash = async (buffer: Buffer) => {
   const raw = await sharp(buffer)
@@ -37,6 +26,16 @@ const computePerceptualHash = async (buffer: Buffer) => {
     hex += Number.parseInt(bits.slice(i, i + 4), 2).toString(16);
   }
   return hex;
+};
+
+const computeDominantColor = async (buffer: Buffer) => {
+  const [r, g, b] = await sharp(buffer)
+    .ensureAlpha()
+    .resize(1, 1, { fit: "cover" })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
 };
 
 const fetchBuffer = async (url: string) => {
@@ -82,7 +81,9 @@ export const assetProcessorWorkerDefinition: WorkerDefinition = {
     const mediumUpload = await storage.uploadBuffer(`assets/${asset.id}/thumb-md.png`, medium, "image/png");
 
     const pHash = await computePerceptualHash(buffer);
-    const category = inferCategory(payload.category_hint, sourceUrl);
+    const dominantColor = await computeDominantColor(buffer);
+    const category = inferAssetCategory(payload.category_hint, sourceUrl);
+    const garmentProfile = await buildGarmentProfile(buffer, category);
 
     const updated = await updateAsset(asset.id, {
       thumbnail_small_url: smallUpload.url,
@@ -90,6 +91,11 @@ export const assetProcessorWorkerDefinition: WorkerDefinition = {
       category,
       perceptual_hash: pHash,
       embedding_model: process.env.EMBEDDING_MODEL || null,
+      metadata: {
+        ...(asset.metadata ?? {}),
+        dominantColor,
+        garmentProfile: garmentProfile ?? undefined,
+      },
       status: "ready",
     });
 
@@ -99,6 +105,8 @@ export const assetProcessorWorkerDefinition: WorkerDefinition = {
       perceptual_hash: pHash,
       thumbnail_small_url: smallUpload.url,
       thumbnail_medium_url: mediumUpload.url,
+      dominant_color: dominantColor,
+      garment_profile: garmentProfile,
       content_type: contentType,
     };
   },

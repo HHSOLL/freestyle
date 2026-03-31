@@ -3,17 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { appNav } from '@/features/renewal-app/content';
+import { appChromeCopy, appNav } from '@/features/renewal-app/content';
 import { useLanguage } from '@/lib/LanguageContext';
-import { BookOpen, Compass, House, LayoutGrid, Library, Shirt, User } from 'lucide-react';
+import { Compass, PenSquare, Shirt, User } from 'lucide-react';
 
 const iconMap = {
-  '/app': House,
   '/app/closet': Shirt,
-  '/app/looks': LayoutGrid,
+  '/studio': PenSquare,
   '/app/discover': Compass,
-  '/app/decide': Library,
-  '/app/journal': BookOpen,
   '/app/profile': User,
 } as const;
 
@@ -25,6 +22,7 @@ export function AppSidebar({ mobile = false }: AppSidebarProps) {
   const pathname = usePathname();
   const { language } = useLanguage();
   const items = appNav[language];
+  const chromeCopy = appChromeCopy[language];
 
   const containerClass = mobile
     ? 'fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-black/8 bg-[rgba(247,244,238,0.96)] px-2 backdrop-blur-xl md:hidden'
@@ -34,14 +32,14 @@ export function AppSidebar({ mobile = false }: AppSidebarProps) {
     <aside className={containerClass}>
       {!mobile ? (
         <>
-          <Link href="/app" className="inline-flex items-center" aria-label="FreeStyle app home">
+          <Link href="/" className="inline-flex items-center" aria-label="FreeStyle home">
             <BrandLogo variant="mark" />
-            <span className="ml-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-black/52">Wardrobe OS</span>
+            <span className="ml-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-black/52">{chromeCopy.brand}</span>
           </Link>
           <nav className="mt-10 space-y-1">
             {items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const Icon = iconMap[item.href as keyof typeof iconMap] ?? House;
+              const Icon = iconMap[item.href as keyof typeof iconMap] ?? Shirt;
               return (
                 <Link
                   key={item.href}
@@ -57,15 +55,15 @@ export function AppSidebar({ mobile = false }: AppSidebarProps) {
             })}
           </nav>
           <div className="mt-auto border-t border-black/8 pt-5 text-xs leading-6 text-black/44">
-            Wardrobe OS preview is live.
+            {chromeCopy.sidebarFooterTitle}
             <br />
-            Import, compose, decide, and remember from one shell.
+            {chromeCopy.sidebarFooterBody}
           </div>
         </>
       ) : (
         items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const Icon = iconMap[item.href as keyof typeof iconMap] ?? House;
+          const Icon = iconMap[item.href as keyof typeof iconMap] ?? Shirt;
           return (
             <Link
               key={item.href}

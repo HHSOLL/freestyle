@@ -8,10 +8,10 @@ import { MarketingFooter } from '@/components/layout/MarketingFooter';
 import { MarketingHeader } from '@/components/layout/MarketingHeader';
 import { AppShellFrame } from '@/components/layout/AppShellFrame';
 
-const isAppPath = (pathname: string) => pathname === '/app' || pathname.startsWith('/app/');
+const isAppPath = (pathname: string) =>
+  pathname === '/app' || pathname.startsWith('/app/') || pathname === '/studio' || pathname.startsWith('/studio/');
 
-const isMarketingPath = (pathname: string) =>
-  pathname === '/' || pathname === '/how-it-works' || pathname === '/examples';
+const isMarketingPath = (pathname: string) => pathname === '/';
 
 const isSystemPath = (pathname: string) => pathname === '/auth/callback';
 

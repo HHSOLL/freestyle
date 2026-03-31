@@ -51,13 +51,13 @@ export default function Home() {
               className="flex flex-col gap-4 sm:flex-row"
             >
               <Button asChild className="h-12 rounded-full bg-black px-6 text-white hover:bg-black/90">
-                <Link href="/app">
+                <Link href="/app/closet">
                   {copy.hero.primaryCta}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-12 rounded-full border-black/12 bg-white/80 px-6">
-                <Link href="/how-it-works">{copy.hero.secondaryCta}</Link>
+                <Link href="/studio">{copy.hero.secondaryCta}</Link>
               </Button>
             </motion.div>
           </div>
@@ -77,7 +77,7 @@ export default function Home() {
                 <div className="relative aspect-[4/5] overflow-hidden bg-black">
                   <Image
                     src={src}
-                    alt={`FreeStyle hero visual ${index + 1}`}
+                    alt={`${copy.hero.eyebrow} ${index + 1}`}
                     fill
                     priority={index === 0}
                     className="object-cover"
@@ -109,10 +109,8 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.75fr_1.25fr]">
           <SectionReveal>
             <div className="space-y-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Renewal Thesis</p>
-              <h2 className="font-serif text-4xl tracking-[-0.05em]">
-                Editorial brand outside. Calm decision engine inside.
-              </h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.thesis.eyebrow}</p>
+              <h2 className="font-serif text-4xl tracking-[-0.05em]">{copy.thesis.title}</h2>
             </div>
           </SectionReveal>
           <div className="space-y-8">
@@ -132,12 +130,12 @@ export default function Home() {
         <SectionReveal>
           <div className="mx-auto grid max-w-7xl gap-8 border-t border-black/10 pt-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="space-y-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/34">Start Now</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/34">{copy.finalCta.eyebrow}</p>
               <h2 className="font-serif text-4xl tracking-[-0.05em] text-black">{copy.finalCta.title}</h2>
               <p className="max-w-2xl text-sm leading-7 text-black/58">{copy.finalCta.body}</p>
             </div>
             <Button asChild className="h-12 rounded-full bg-black px-6 text-white hover:bg-black/90">
-              <Link href="/app">{copy.finalCta.action}</Link>
+              <Link href="/app/closet">{copy.finalCta.action}</Link>
             </Button>
           </div>
         </SectionReveal>

@@ -106,6 +106,12 @@ export const registerJobRoutes = (app: FastifyInstance) => {
           : typeof fields.category?.value === "string"
             ? fields.category.value
             : undefined,
+      item_name:
+        typeof fields.item_name?.value === "string"
+          ? fields.item_name.value
+          : typeof fields.name?.value === "string"
+            ? fields.name.value
+            : undefined,
       idempotency_key:
         typeof fields.idempotency_key?.value === "string" ? fields.idempotency_key.value : undefined,
     });
@@ -127,6 +133,7 @@ export const registerJobRoutes = (app: FastifyInstance) => {
       userId,
       imageUrl: uploaded.url,
       categoryHint: parsedBody.data.category_hint,
+      itemName: parsedBody.data.item_name,
       idempotencyKey: parsedBody.data.idempotency_key,
     });
 

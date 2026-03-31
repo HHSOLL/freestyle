@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { summarizeCloset, toWardrobeAsset, toWardrobeLook, type WardrobeAsset, type WardrobeLook } from '@/features/renewal-app/data';
+import { useLanguage } from '@/lib/LanguageContext';
 
 type WardrobeSnapshot = {
   looks: WardrobeLook[];
@@ -15,10 +16,24 @@ type WardrobeSnapshot = {
 };
 
 export function useWardrobeSnapshot(): WardrobeSnapshot {
+  const { language } = useLanguage();
   const [looks, setLooks] = useState<WardrobeLook[]>([]);
   const [assets, setAssets] = useState<WardrobeAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const messages =
+    language === 'ko'
+      ? {
+          loadFailed: '옷장 데이터를 불러올 수 없습니다.',
+          deleteLookFailed: '룩을 삭제할 수 없습니다.',
+          deleteAssetFailed: '에셋을 삭제할 수 없습니다.',
+        }
+      : {
+          loadFailed: 'Failed to load wardrobe data.',
+          deleteLookFailed: 'Failed to delete look.',
+          deleteAssetFailed: 'Failed to delete asset.',
+        };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -43,12 +58,12 @@ export function useWardrobeSnapshot(): WardrobeSnapshot {
         setAssets([]);
       }
     } catch (nextError) {
-      const message = nextError instanceof Error ? nextError.message : 'Failed to load wardrobe data.';
+      const message = nextError instanceof Error ? nextError.message : messages.loadFailed;
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [messages.loadFailed]);
 
   useEffect(() => {
     refresh().catch(() => undefined);
@@ -59,20 +74,20 @@ export function useWardrobeSnapshot(): WardrobeSnapshot {
       method: 'DELETE',
     });
     if (!response.ok) {
-      throw new Error(getApiErrorMessage(data, 'Failed to delete look.'));
+      throw new Error(getApiErrorMessage(data, messages.deleteLookFailed));
     }
     setLooks((current) => current.filter((item) => item.id !== id));
-  }, []);
+  }, [messages.deleteLookFailed]);
 
   const deleteAsset = useCallback(async (id: string) => {
     const { response, data } = await apiFetchJson<Record<string, unknown>>(`/v1/assets/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) {
-      throw new Error(getApiErrorMessage(data, 'Failed to delete asset.'));
+      throw new Error(getApiErrorMessage(data, messages.deleteAssetFailed));
     }
     setAssets((current) => current.filter((item) => item.id !== id));
-  }, []);
+  }, [messages.deleteAssetFailed]);
 
   return useMemo(
     () => ({

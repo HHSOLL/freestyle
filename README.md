@@ -3,24 +3,32 @@
 AI 기반 스타일 큐레이션/가상 피팅 실험을 위한 Next.js 애플리케이션입니다.
 
 ## 핵심 기능
+- 현재 사용자에게 노출하는 주요 surface는 5개다: `홈(/)`, `옷장(/app/closet)`, `캔버스(/studio)`, `발견(/app/discover)`, `마이페이지(/app/profile)`.
 - Studio: 에셋 업로드/URL 임포트/장바구니 링크 임포트, 배경 제거, 캔버스 조합
   - 임포트는 `import-jobs` 큐를 통해 비동기 처리(대량/지연 작업 안정화)
+  - 업로드/URL 임포트 asset은 `metadata`에 원본 크기, 측정치(measurements), fit profile, dominant color를 함께 저장해 3D fitting에 재사용한다
+  - 배경 제거는 원격 provider(remove.bg)를 우선 시도하고, 불가/실패 시 기존 알파 채널 또는 로컬 heuristic cutout fallback으로 계속 처리한다
   - 캔버스 아이템 선택/드래그는 이미지 알파 픽셀 기준 hit-test를 사용(투명 영역 클릭/드래그 방지)
   - 캔버스 비율(custom w:h)과 너비(%)를 조절해도 비율을 유지한 채 다운로드 가능
-  - 캔버스 저장은 Railway API `POST /v1/outfits`를 통해 user-owned look으로 저장되며, 결과는 `/app/looks`와 공유 페이지로 바로 연결된다
-  - URL/장바구니 임포트는 다중 후보 수집(JSON-LD/meta/img/구조화 스크립트) + 스코어링 + 누끼 품질 검증 + 알파 기반 트리밍으로 저장
+  - 캔버스 저장은 Railway API `POST /v1/outfits`를 통해 user-owned result로 저장되며, 결과는 `/app/profile`와 공유 페이지에서 다시 확인할 수 있다
+  - URL/장바구니 임포트는 다중 후보 수집(JSON-LD/meta/img/구조화 스크립트) + 스코어링 + 측정치 추출 + 누끼 품질 검증 + 알파 기반 트리밍으로 저장
   - 무신사(`musinsa.com/products/*`) 링크는 상품 상태 스크립트(`goodsImages`, `thumbnailImageUrl`)와 구조화 스크립트 후보를 함께 수집하고, CDN 경로로 정규화해 상품 이미지를 우선 시도
   - 무신사 링크는 단독컷 누락을 줄이기 위해 후보 풀/시도 수를 확대하고 단독컷 패턴 후보를 보강 시도
   - 자동 판별 실패(`ONLY_MODEL_IMAGES_FOUND`) 시 대표 이미지 후보(무신사의 경우 상세 대표 이미지군 전체 우선)를 사용자에게 보여주고, 선택한 URL로 재시도 가능
   - URL/장바구니로 가져온 asset은 원본 상품 링크(`sourceUrl`)를 함께 저장하며, 스튜디오 캔버스/코디 요약에서 말풍선 형태로 링크를 바로 열 수 있음
   - 브라우저 브리지로 추출한 상품 URL 배열은 `POST /v1/jobs/import/products/batch`로 fan-out 가능
   - 브라우저 브리지 userscript는 `scripts/musinsa-bridge.user.js`에 있으며, base64url `musinsa_bridge` payload로 Studio의 무신사 브리지 모달에 연결된다
-- AI Try-on: 큐 기반 가상 피팅 요청/결과 조회
+- 3D Fitting: Studio에서 현재 캔버스 조합 또는 옷장 asset을 실시간 3D 마네킹에 입혀보고, 체형 치수와 의류 측정치를 함께 조절해 fit/ease를 확인
+  - `/app/closet/item/[id]`는 선택한 에셋만 바로 여는 fitting lab entry point로 동작한다
+  - fitting 편집값은 `PATCH /v1/assets/:id`로 `assets.metadata.measurements`/`fitProfile`에 저장된다
+  - 현재 렌더러는 `asset metadata + body profile` 기반의 실시간 preview이며, 실제 패턴/원단 물성 기반 cloth simulation은 아직 구현 범위 밖이다
+- AI Try-on: 큐 기반 포토 가상 피팅 요청/결과 조회
 - AI Review: 코디 이미지 기반 스타일 피드백 생성
 - Outfit Share: 코디 저장 및 슬러그 기반 공유 페이지
-- Renewal App Shell: `/app` 아래에서 closet, looks, discover, decide, journal, profile을 하나의 wardrobe OS 흐름으로 제공
-- Feed(/trends): 트렌드 피드(인기순/최신순 + 성별/계절/스타일 필터), 상세 모달은 제작자/코디명/카테고리/설명 중심으로 제공
-- Profile: 개인 아카이브
+- Renewal App Shell: 현재 노출되는 앱 surface는 `closet`, `discover`, `mypage`이며, `canvas(/studio)`가 별도 작업 화면으로 연결된다
+  - 리뉴얼 공개/앱 라우트는 한국어/영어 UI를 모두 제공하고, 언어 선택은 cookie/localStorage로 유지되어 새로고침과 OAuth 왕복 후에도 같은 언어를 유지한다
+  - 리뉴얼/레거시 로그인 진입점은 현재 화면을 `nextPath`로 넘겨 소셜 로그인 후 원래 보고 있던 화면으로 복귀한다
+- My Page: 계정, 저장 자산, 최근 캔버스 저장본을 확인하는 개인 허브
 
 ## 기술 스택
 - Next.js 16 (App Router), React 19, TypeScript
@@ -97,7 +105,7 @@ npm run check
 - `apps/web/src/components/brand`: FreeStyle 로고 컴포넌트
 - `apps/web/public/branding`: FreeStyle 브랜드 에셋(`freestyle-logo.svg`, `freestyle-mark.svg`)
 
-현재 `studio`, `profile`, `trends(feed)`는 기능 단위 컴포넌트 구조를 사용합니다.
+현재 `studio`, `closet`, `discover`, `mypage`는 기능 단위 컴포넌트 구조를 사용합니다.
 
 ## CI 품질 게이트
 - `.github/workflows/quality.yml`에서 PR/`main` push마다 `lint + typecheck + build:services + build`를 검사합니다.
@@ -174,12 +182,14 @@ npm run check
 - 최신 운영 준비 리포트: `docs/PROJECT_HEALTH_2026-02-13.md`
 
 ## 운영 메모
+- UI 단순화를 위해 현재 `looks`, `decide`, `journal`, `examples`, `how-it-works`, `trends`, 레거시 `/profile`은 직접 노출하지 않고 남는 핵심 surface로 redirect한다.
 - heavy path는 worker 전용이며 API는 job 생성/조회만 담당합니다.
 - Railway 비용 최소화 기본값은 `api + worker_importer(통합 worker 모드)`만 상시 실행하고 나머지 전용 worker 서비스는 `scale 0` 또는 미배포 상태로 두는 것입니다.
 - Vercel 프론트는 `BACKEND_ORIGIN` 설정 시 rewrite로 `/api/*`를 Railway `/v1/*`로 전달합니다.
 - `apps/web`는 Supabase magic-link 로그인 게이트를 사용하며, `studio`/`profile`은 인증 세션 없이는 API를 호출하지 않습니다.
 - 로그인 콜백 기본 경로는 `/auth/callback`이며, magic link / Kakao / Naver 브리지 모두 이 경로로 세션을 회수합니다.
 - Kakao는 Supabase Auth provider 설정이 필요하고, Naver는 Railway API에 `NAVER_*` 환경 변수와 redirect allowlist가 필요합니다.
+- 언어 선택은 `freestyle-language` cookie를 기준으로 서버 렌더에도 반영되며, OAuth 왕복 후에도 같은 언어를 유지합니다.
 - 프론트 실코드와 Next.js 빌드 소유권은 `apps/web`가 기준이며, 프로덕션에서는 Vercel 프로젝트 루트를 `apps/web`로 두는 구성이 가장 단순합니다.
 - `apps/web`는 Vercel 독립 빌드를 위해 `package.json`, `package-lock.json`, `postcss.config.mjs` 등 빌드 설정 파일을 자체 소유합니다.
 - 루트의 기존 `src/*`는 더 이상 프론트 런타임 기준 경로가 아닙니다.
@@ -189,6 +199,7 @@ npm run check
   - `POST /v1/jobs/import/upload`
   - `GET /v1/jobs/:job_id`
   - `GET /v1/assets`
+  - `PATCH /v1/assets/:id`
   - `POST /v1/outfits`
   - `GET /v1/outfits`
   - `GET /v1/outfits/:id`
@@ -200,7 +211,7 @@ npm run check
   - `GET /v1/tryons/:id`
   - `GET /v1/auth/naver/start`
   - `GET /v1/auth/naver/callback`
-- 별도 `nextPath`가 없는 로그인 기본 복귀 경로는 `/app`이며, Studio처럼 특정 화면이 필요한 경우에만 명시적으로 경로를 넘깁니다.
+- 별도 `nextPath`가 없는 로그인 기본 복귀 경로는 `/app/closet`이며, Studio처럼 특정 화면이 필요한 경우에만 명시적으로 경로를 넘깁니다.
 - 운영에서 로컬 파일시스템 저장은 기본 차단되어 있으며(`ALLOW_FILESYSTEM_STORAGE_IN_PRODUCTION=false`), 의도한 경우에만 수동 허용합니다.
 - 프로덕션 빌드는 안정성을 위해 `next build --webpack` 기준으로 실행합니다.
 - 작업 전 문서 확인, 작업 후 문서 갱신은 필수 규칙입니다(`AGENTS.md`).

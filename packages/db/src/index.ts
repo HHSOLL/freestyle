@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type {
+  AssetMetadata,
   AssetRecord,
   JobRecord,
   JobType,
@@ -452,6 +453,10 @@ export const createAsset = async (input: {
   productId?: string;
   originalImageUrl: string;
   category?: string;
+  name?: string;
+  brand?: string;
+  sourceUrl?: string;
+  metadata?: AssetMetadata;
 }) => {
   const supabase = getAdminClient();
   const { data, error } = await supabase
@@ -459,8 +464,12 @@ export const createAsset = async (input: {
     .insert({
       user_id: input.userId,
       product_id: input.productId ?? null,
+      name: input.name ?? input.metadata?.sourceTitle ?? null,
+      brand: input.brand ?? input.metadata?.sourceBrand ?? null,
+      source_url: input.sourceUrl ?? input.metadata?.sourceUrl ?? null,
       original_image_url: input.originalImageUrl,
       category: input.category ?? null,
+      metadata: input.metadata ?? {},
       status: "pending",
     })
     .select("*")

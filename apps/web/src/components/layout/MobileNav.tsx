@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutGrid, Flame, User } from "lucide-react";
+import { Compass, PenSquare, Shirt, User } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function MobileNav() {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
 
   const navItems = [
-    { href: "/", label: t('nav.home'), icon: Home },
-    { href: "/studio", label: t('nav.studio'), icon: LayoutGrid },
-    { href: "/trends", label: t('nav.trends'), icon: Flame },
-    { href: "/profile", label: t('nav.profile'), icon: User },
+    { href: "/app/closet", label: language === 'ko' ? '옷장' : 'Closet', icon: Shirt },
+    { href: "/studio", label: language === 'ko' ? '캔버스' : 'Canvas', icon: PenSquare },
+    { href: "/app/discover", label: language === 'ko' ? '발견' : 'Discover', icon: Compass },
+    { href: "/app/profile", label: language === 'ko' ? '마이페이지' : 'My Page', icon: User },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function MobileNav() {
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
@@ -32,7 +32,7 @@ export default function MobileNav() {
             >
               <Icon className={`w-5 h-5 ${isActive ? "stroke-[2.5px]" : "stroke-[1.5px]"}`} />
               <span className="text-[9px] font-bold uppercase tracking-tight truncate w-full text-center">
-                {item.label.split(' ')[0]}
+                {item.label}
               </span>
             </Link>
           );

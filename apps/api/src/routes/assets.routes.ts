@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { deleteAssetByIdForUser, getAssetByIdForUser } from "@freestyle/db";
+import { deleteAssetByIdForUser, getAssetByIdForUser, updateAsset } from "@freestyle/db";
+import { assetUpdateInputSchema, type AssetMetadata } from "@freestyle/shared";
 import { requireAuth } from "../modules/auth/auth.js";
 import { listUserAssets } from "../modules/assets/assets.service.js";
 
@@ -8,6 +9,46 @@ const toPositiveInt = (value: unknown, fallback: number) => {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const mergeAssetMetadata = (current: unknown, incoming: AssetMetadata | undefined) => {
+  const base = isRecord(current) ? current : {};
+  if (!incoming) return base;
+
+  const next: Record<string, unknown> = {
+    ...base,
+    ...incoming,
+  };
+
+  if (incoming.cutout) {
+    next.cutout = {
+      ...(isRecord(base.cutout) ? base.cutout : {}),
+      ...incoming.cutout,
+    };
+  }
+
+  if (incoming.measurements) {
+    next.measurements = {
+      ...(isRecord(base.measurements) ? base.measurements : {}),
+      ...incoming.measurements,
+    };
+  }
+
+  if (incoming.fitProfile) {
+    next.fitProfile = {
+      ...(isRecord(base.fitProfile) ? base.fitProfile : {}),
+      ...incoming.fitProfile,
+    };
+  }
+
+  if (incoming.garmentProfile) {
+    next.garmentProfile = incoming.garmentProfile;
+  }
+
+  return next;
 };
 
 export const registerAssetRoutes = (app: FastifyInstance) => {
@@ -39,6 +80,36 @@ export const registerAssetRoutes = (app: FastifyInstance) => {
 
     await deleteAssetByIdForUser(id, userId);
     return reply.send({ status: "deleted" });
+  });
+
+  app.patch("/assets/:id", async (request, reply) => {
+    const userId = await requireAuth(request, reply);
+    if (!userId) return;
+
+    const { id } = request.params as { id?: string };
+    if (!id) {
+      return reply.code(400).send({ error: "VALIDATION_ERROR", message: "id is required." });
+    }
+
+    const parsed = assetUpdateInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "VALIDATION_ERROR",
+        message: parsed.error.issues[0]?.message ?? "Invalid payload.",
+      });
+    }
+
+    const asset = await getAssetByIdForUser(id, userId);
+    if (!asset) {
+      return reply.code(404).send({ error: "NOT_FOUND", message: "Asset not found." });
+    }
+
+    const updated = await updateAsset(id, {
+      category: parsed.data.category ?? asset.category,
+      metadata: mergeAssetMetadata(asset.metadata, parsed.data.metadata),
+    });
+
+    return reply.send(updated);
   });
 
   app.get("/assets", async (request, reply) => {

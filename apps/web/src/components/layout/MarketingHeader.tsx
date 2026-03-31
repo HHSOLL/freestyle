@@ -13,9 +13,10 @@ export function MarketingHeader() {
   const copy = marketingCopy[language];
 
   const links = [
-    { href: '/how-it-works', label: copy.nav.product },
-    { href: '/examples', label: copy.nav.examples },
-    { href: '/app', label: copy.nav.app },
+    { href: '/app/closet', label: language === 'ko' ? '옷장' : 'Closet' },
+    { href: '/studio', label: language === 'ko' ? '캔버스' : 'Canvas' },
+    { href: '/app/discover', label: language === 'ko' ? '발견' : 'Discover' },
+    { href: '/app/profile', label: language === 'ko' ? '마이페이지' : 'My Page' },
   ];
 
   return (
@@ -62,7 +63,7 @@ export function MarketingHeader() {
             </button>
           </div>
           <Button asChild className="rounded-full bg-black px-5 text-white hover:bg-black/90">
-            <Link href="/app">{copy.nav.cta}</Link>
+            <Link href="/app/closet">{copy.nav.cta}</Link>
           </Button>
         </div>
       </div>

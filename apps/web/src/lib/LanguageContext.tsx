@@ -2,13 +2,23 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-type Language = 'ko' | 'en';
+export type Language = 'ko' | 'en';
+const LANGUAGE_STORAGE_KEY = 'freestyle:language';
+const LANGUAGE_COOKIE_KEY = 'freestyle-language';
 
 interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
     t: (key: string) => string;
 }
+
+const readInitialLanguage = (initialLanguage?: Language): Language => {
+    if (typeof window === 'undefined') {
+        return initialLanguage ?? 'ko';
+    }
+
+    return initialLanguage ?? (window.navigator.language.toLowerCase().startsWith('ko') ? 'ko' : 'en');
+};
 
 const translations = {
     en: {
@@ -719,11 +729,18 @@ const translations = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-    const [language, setLanguage] = useState<Language>('ko');
+export function LanguageProvider({ children, initialLanguage }: { children: ReactNode; initialLanguage?: Language }) {
+    const [language, setLanguage] = useState<Language>(() => readInitialLanguage(initialLanguage));
 
     useEffect(() => {
         document.documentElement.lang = language;
+        try {
+            window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+        } catch {
+            // Ignore storage failures and keep the in-memory preference.
+        }
+
+        document.cookie = `${LANGUAGE_COOKIE_KEY}=${language}; path=/; max-age=31536000; samesite=lax`;
     }, [language]);
 
     const t = (key: string) => {

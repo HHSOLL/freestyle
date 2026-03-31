@@ -13,12 +13,20 @@
 - `/v1/jobs/import/products/batch`
 - `/v1/jobs/{job_id}`
 - `/v1/assets`
+- `/v1/assets/{id}`
 - `/v1/outfits`
 - `/v1/outfits/share/{slug}`
 - `/v1/jobs/evaluations`
 - `/v1/jobs/tryons`
 - `/v1/auth/naver/start`
 - `/auth/callback`
+7. 주요 UI smoke check
+- `/`
+- `/app/closet`
+- `/studio`
+- `/app/discover`
+- `/app/profile`
+- `/app/looks`, `/app/decide`, `/app/journal`, `/examples`, `/how-it-works`, `/trends`, `/profile`가 기대한 핵심 surface로 redirect되는지 확인
 
 ## 2. 배포 전 체크리스트
 1. 환경 변수 확인
@@ -65,7 +73,8 @@
 1-1. 소셜 로그인/리다이렉트 이슈
 - 증상: OAuth 후 로그인은 되었는데 엉뚱한 도메인/페이지로 이동하거나 바로 실패
 - 점검: Supabase Auth `site_url`, `uri_allow_list`, Vercel 운영 도메인(`/auth/callback`)
-- 점검: 기본 복귀 경로가 `/app`인지, 특정 화면은 `nextPath`로 명시했는지 확인
+- 점검: 기본 복귀 경로가 `/app/closet`인지, 특정 화면은 `nextPath`로 명시했는지 확인
+- 점검: `freestyle-language` cookie가 예상 언어(`ko`/`en`)를 유지하는지, OAuth 왕복 뒤에도 언어가 초기화되지 않는지 확인
 - 점검: Kakao는 Supabase provider enabled 상태와 redirect URL 등록 여부
 - 점검: Naver는 Railway `API_PUBLIC_ORIGIN`과 Naver developer console redirect URL 일치 여부
 - 점검: `CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`에 현재 Vercel preview/production origin이 포함되는지 확인
@@ -81,6 +90,8 @@
 - 증상: `removedBackground=false`, 경고 반환
 - 점검: `BG_REMOVAL_API_KEY`/`REMOVE_BG_API_KEY`, provider endpoint, 요청 제한(rate-limit)
 - 누끼 워커 실패 시 `assets.status='failed'` 및 `jobs.error_*` 기록 확인
+- 성공 케이스라도 `assets.metadata.cutout.quality`, `assets.metadata.cutout.trimRect`가 비어 있으면 trim/post-process 단계가 누락된 것으로 간주하고 background_removal worker 로그를 먼저 확인한다.
+- `assets.metadata.cutout.strategy`, `fallbackUsed`를 함께 확인해 원격 provider 실패 후 로컬 fallback으로 저장된 케이스인지 구분한다.
 
 4. 리뷰 생성 실패
 - 점검: evaluator worker 가동 여부, provider 키/모델명, payload 크기
@@ -93,7 +104,7 @@
 6. 링크/장바구니 import 실패 코드
 - `NO_IMAGE_FOUND`: 페이지에서 유효 후보 이미지를 찾지 못함
 - `ONLY_MODEL_IMAGES_FOUND`: 후보는 있었지만 누끼 품질 검증에서 모델컷/과대 bbox로 판정
-- `CUTOUT_NOT_AVAILABLE`: remove.bg 키 미설정 또는 배경 제거 서비스 사용 불가
+- `CUTOUT_NOT_AVAILABLE`: 원격 provider와 로컬 fallback 모두 사용 불가한 경우
 - `CUTOUT_QUALITY_TOO_LOW`: 누끼 결과가 품질 임계치를 통과하지 못함
 - `FETCH_BLOCKED_OR_LOGIN_REQUIRED`: 대상 페이지 접근 제한/로그인 필요
 - `UNKNOWN_IMPORT_ERROR`: 상기 분류 외 예외
@@ -120,6 +131,8 @@
 - 위 코드가 발생하면 실패 항목으로만 집계하고 에셋 저장은 하지 않는다.
 - 장바구니 import는 부분 성공을 허용하며 실패 항목을 `failed[]`로 반환한다.
 - 임포트는 기본적으로 `/v1/jobs/import/*` 비동기 큐 경로를 사용한다(대량 처리/타임아웃 회피).
+- 3D mannequin fitting 품질 이슈가 있으면 먼저 `assets.metadata.measurements`, `assets.metadata.fitProfile`, `assets.metadata.dominantColor` 저장 여부와 Studio `PATCH /v1/assets/:id` 요청 성공 여부를 확인한다.
+- 현재 fitting surface는 metadata 기반 preview이므로, 실제 cloth simulation 수준의 드레이프 정확도를 바로 기대하지 않는다. 오차가 크면 먼저 측정치 추출값과 사용자가 저장한 보정값을 확인한다.
 - 프론트 실코드 기준 경로는 `apps/web/src/**`이며, 루트 `src/**` 수정은 레거시 유지보수가 아닌 이상 새 작업 기준으로 사용하지 않는다.
 - 임포트/평가/트라이온은 `/v1/jobs/*` 경로를 통해 단일 jobs 상태 계약으로 처리한다.
 - URL/장바구니 import로 저장된 asset은 `sourceUrl`을 유지하고, Studio 요약/캔버스에서 말풍선 링크로 노출한다(운영 중 링크 누락 시 저장 payload 점검).

@@ -12,6 +12,7 @@ import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import {
   JOB_TYPES,
+  type AssetMetadata,
   type ImportCartJobPayload,
   type ImportProductJobPayload,
   type ImportUploadJobPayload,
@@ -194,6 +195,16 @@ const processProductImport = async (userId: string, payload: ImportProductJobPay
     productId: payload.product_id,
     originalImageUrl: uploaded.url,
     category: payload.category_hint,
+    metadata: {
+      sourceTitle: (payload.item_name?.trim() || resolved.title) ?? undefined,
+      sourceBrand: resolved.brand ?? undefined,
+      sourceUrl: resolved.pageUrl,
+      originalSize: {
+        width: selected.width,
+        height: selected.height,
+      },
+      measurements: resolved.measurements ?? undefined,
+    },
   });
 
   const bgJob = await createJob({
@@ -219,11 +230,19 @@ const processProductImport = async (userId: string, payload: ImportProductJobPay
 };
 
 const processUploadImport = async (userId: string, payload: ImportUploadJobPayload) => {
+  const metadata: AssetMetadata = {
+    sourceUrl: payload.image_url,
+    sourceTitle: payload.item_name?.trim() || undefined,
+  };
+
   const asset = await createAsset({
     userId,
     productId: payload.product_id,
     originalImageUrl: payload.image_url,
     category: payload.category_hint,
+    name: payload.item_name?.trim() || undefined,
+    sourceUrl: payload.image_url,
+    metadata,
   });
 
   await updateProductStatus(payload.product_id, "imported");

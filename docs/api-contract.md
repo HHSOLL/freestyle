@@ -27,6 +27,7 @@ Request
 {
   "product_url": "https://example.com/product/123",
   "category_hint": "jacket",
+  "item_name": "Black leather bomber",
   "idempotency_key": "optional-key"
 }
 ```
@@ -90,7 +91,7 @@ Response
 
 ### `POST /v1/jobs/import/upload`
 - multipart form-data
-- file + optional `category_hint`, `idempotency_key`
+- file + optional `category_hint`, `item_name`, `idempotency_key`
 
 Response
 ```json
@@ -129,6 +130,38 @@ Response
   "pageSize": 20
 }
 ```
+
+Notes
+- 각 asset row는 `metadata`에 원본 크기, cutout trim/quality, 측정치(`measurements`), fit profile, dominant color를 포함할 수 있다.
+- `metadata.cutout`에는 `strategy`, `fallbackUsed`, `quality`, `trimRect`가 포함될 수 있다.
+- asset row는 `name`, `brand`, `source_url` top-level 필드도 유지하며, Studio/Closet UI는 이 값과 `metadata.sourceTitle/sourceBrand/sourceUrl`을 함께 fallback으로 사용한다.
+
+### `PATCH /v1/assets/:id`
+Request
+```json
+{
+  "metadata": {
+    "measurements": {
+      "chestCm": 112,
+      "lengthCm": 74
+    },
+    "fitProfile": {
+      "silhouette": "relaxed",
+      "layer": "mid"
+    },
+    "garmentProfile": {
+      "version": 1,
+      "category": "outerwear"
+    }
+  }
+}
+```
+
+Response
+- 현재 사용자(또는 익명 UUID)가 소유한 updated asset row 반환
+
+Notes
+- 이 endpoint는 Studio/Closet fitting lab에서 의류 측정치와 fit profile을 저장하는 주 경로다.
 
 ## Outfits
 
@@ -234,6 +267,11 @@ Response
   "tryon_id": "uuid"
 }
 ```
+
+Notes
+- 이 endpoint는 여전히 포토 AI try-on 용도다.
+- 실시간 3D 마네킹 피팅은 `GET/PATCH /v1/assets`로 읽어온 asset metadata와 Studio 클라이언트 body profile 계산을 사용한다.
+- 현재 계약은 metadata 기반 preview를 위한 것이며, 패턴/원단 물성 기반 cloth simulation API는 아직 없다.
 
 ### `GET /v1/tryons/:id`
 - user-owned tryon row 반환

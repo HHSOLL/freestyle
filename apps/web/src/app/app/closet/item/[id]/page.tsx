@@ -1,17 +1,9 @@
-import { AppPageFrame } from '@/features/renewal-app/components/AppPageFrame';
+'use client';
 
-export default async function ClosetItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+import { useParams } from 'next/navigation';
+import { ClosetItemFittingLab } from '@/features/mannequin/ClosetItemFittingLab';
 
-  return (
-    <AppPageFrame
-      eyebrow="Closet / Item"
-      title={`Item ${id}`}
-      description="Each closet item detail will eventually show source metadata, looks it participates in, and why the system thinks it matters."
-    >
-      <section className="border border-dashed border-black/20 px-5 py-8 text-sm leading-7 text-black/56">
-        Scaffold placeholder for item detail, attribute editing, and related look surfaces.
-      </section>
-    </AppPageFrame>
-  );
+export default function ClosetItemDetailPage() {
+  const params = useParams<{ id: string }>();
+  return <ClosetItemFittingLab assetId={params.id ?? ''} />;
 }

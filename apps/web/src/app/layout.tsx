@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { cookies, headers } from "next/headers";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { AuthProvider } from "@/lib/AuthContext";
-import { LanguageProvider } from "@/lib/LanguageContext";
+import { LanguageProvider, type Language } from "@/lib/LanguageContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,16 +35,32 @@ const a2jFont = localFont({
   display: "swap",
 });
 
-export default function RootLayout({
+const isLanguage = (value: string | undefined): value is Language => value === "ko" || value === "en";
+
+const resolveInitialLanguage = async (): Promise<Language> => {
+  const cookieStore = await cookies();
+  const stored = cookieStore.get("freestyle-language")?.value;
+  if (isLanguage(stored)) {
+    return stored;
+  }
+
+  const headerStore = await headers();
+  const acceptLanguage = headerStore.get("accept-language")?.toLowerCase() ?? "";
+  return acceptLanguage.startsWith("ko") ? "ko" : "en";
+};
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialLanguage = await resolveInitialLanguage();
+
   return (
-    <html lang="ko">
+    <html lang={initialLanguage}>
       <body className={`${a2jFont.variable} font-sans antialiased bg-background text-foreground`}>
         <AuthProvider>
-          <LanguageProvider>
+          <LanguageProvider initialLanguage={initialLanguage}>
             <SiteShell>{children}</SiteShell>
           </LanguageProvider>
         </AuthProvider>

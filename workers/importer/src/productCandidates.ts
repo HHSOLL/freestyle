@@ -1,6 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import sharp from "sharp";
+import type { GarmentMeasurements } from "@freestyle/shared";
 
 const MAX_HTML_BYTES = 512 * 1024;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -51,6 +52,8 @@ export type CandidatePreview = {
 export type ResolvedImageCandidates = {
   pageUrl: string;
   title: string | null;
+  brand: string | null;
+  measurements: GarmentMeasurements | null;
   candidates: ResolvedImageCandidate[];
 };
 
@@ -368,6 +371,100 @@ const extractPageTitle = (html: string) => {
   const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["'][^>]*>/i);
   if (ogTitleMatch?.[1]) return ogTitleMatch[1].trim();
   return null;
+};
+
+const extractBrand = (html: string) => {
+  const brandMetaPatterns = [
+    /<meta[^>]+property=["']product:brand["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+name=["']brand["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+  ];
+
+  for (const pattern of brandMetaPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]?.trim()) return match[1].trim();
+  }
+
+  const jsonLdPattern = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = jsonLdPattern.exec(html)) !== null) {
+    try {
+      const parsed = JSON.parse(decodeHtmlEntities((match[1] || "").trim())) as unknown;
+      const stack = [parsed];
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (!current || typeof current !== "object") continue;
+        if (Array.isArray(current)) {
+          stack.push(...current);
+          continue;
+        }
+
+        const record = current as Record<string, unknown>;
+        const brand = record.brand;
+        if (typeof brand === "string" && brand.trim()) return brand.trim();
+        if (brand && typeof brand === "object" && typeof (brand as Record<string, unknown>).name === "string") {
+          return ((brand as Record<string, unknown>).name as string).trim();
+        }
+
+        stack.push(...Object.values(record));
+      }
+    } catch {
+      // Ignore invalid json-ld blocks.
+    }
+  }
+
+  return null;
+};
+
+const stripHtml = (html: string) =>
+  decodeHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+  );
+
+const extractMeasurementValue = (text: string, labels: string[]) => {
+  for (const label of labels) {
+    const pattern = new RegExp(`${label}\\s*[:：]?\\s*([0-9]{1,3}(?:\\.[0-9])?)`, "i");
+    const match = text.match(pattern);
+    if (!match?.[1]) continue;
+    const parsed = Number(match[1]);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const normalizeFlatWidthToCircumference = (value: number | undefined) =>
+  typeof value === "number" ? Math.round(value * 2 * 10) / 10 : undefined;
+
+const extractMeasurements = (html: string): GarmentMeasurements | null => {
+  const text = stripHtml(html);
+  const chestFlat = extractMeasurementValue(text, ["가슴단면", "가슴 폭", "chest width", "chest"]);
+  const waistFlat = extractMeasurementValue(text, ["허리단면", "waist width", "waist"]);
+  const hipFlat = extractMeasurementValue(text, ["엉덩이단면", "hip width", "hip"]);
+  const shoulder = extractMeasurementValue(text, ["어깨너비", "shoulder width", "shoulder"]);
+  const sleeveLength = extractMeasurementValue(text, ["소매길이", "sleeve length", "sleeve"]);
+  const length = extractMeasurementValue(text, ["총장", "길이", "length"]);
+  const inseam = extractMeasurementValue(text, ["인심", "inseam"]);
+  const rise = extractMeasurementValue(text, ["밑위", "rise"]);
+  const hemFlat = extractMeasurementValue(text, ["밑단단면", "밑단", "hem width", "hem"]);
+
+  const measurements: GarmentMeasurements = {
+    chestCm: normalizeFlatWidthToCircumference(chestFlat),
+    waistCm: normalizeFlatWidthToCircumference(waistFlat),
+    hipCm: normalizeFlatWidthToCircumference(hipFlat),
+    shoulderCm: shoulder,
+    sleeveLengthCm: sleeveLength,
+    lengthCm: length,
+    inseamCm: inseam,
+    riseCm: rise,
+    hemCm: normalizeFlatWidthToCircumference(hemFlat),
+  };
+
+  return Object.values(measurements).some((value) => typeof value === "number") ? measurements : null;
 };
 
 export const isMusinsaProductPageUrl = (input: string) => {
@@ -762,6 +859,8 @@ export const resolveProductImageCandidates = async (
     return {
       pageUrl: finalUrl,
       title: null,
+      brand: null,
+      measurements: null,
       candidates: [
         {
           url: finalUrl,
@@ -787,6 +886,8 @@ export const resolveProductImageCandidates = async (
   const htmlBuffer = await readArrayBufferWithLimit(response, MAX_HTML_BYTES);
   const html = new TextDecoder("utf-8").decode(htmlBuffer);
   const title = extractPageTitle(html);
+  const brand = extractBrand(html);
+  const measurements = extractMeasurements(html);
   const drafts = collectImageCandidatesFromHtml(html, finalUrl)
     .sort((a, b) => b.preliminaryScore - a.preliminaryScore)
     .slice(0, maxCandidatesCollected)
@@ -805,7 +906,7 @@ export const resolveProductImageCandidates = async (
     throw new Error("Could not resolve any valid image candidates.");
   }
 
-  return { pageUrl: finalUrl, title, candidates };
+  return { pageUrl: finalUrl, title, brand, measurements, candidates };
 };
 
 export const isDecorativeAssetUrl = (inputUrl: string) => {

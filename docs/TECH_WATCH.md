@@ -17,9 +17,39 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-03-29
+- 2026-04-01
 
 ## 점검 로그
+### 2026-04-01
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 전일과 동일하게 `next 16.2.1`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.1`이다.
+  - 3D fitting surface 관련 최신 stable도 전일과 동일하게 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`이다.
+- 우리 프로젝트 영향:
+  - 오늘 배치는 dependency 업그레이드보다 UI surface를 `홈 / 옷장 / 캔버스 / 발견 / 마이페이지` 5개 축으로 단순화하는 작업을 우선한다.
+  - 현재 저장소의 `next 16.1.6`, `eslint-config-next 16.1.4`는 여전히 최신 stable보다 뒤처져 있으므로, 코어 기능 안정화 후 별도 유지보수 배치에서 올리는 편이 안전하다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
+### 2026-03-31
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+  - VoltAgent 설치본/업스트림 개수 확인 (`find ~/.codex/agents -maxdepth 1 -name '*.toml' | wc -l`, `find ~/.codex/vendor_imports/awesome-codex-subagents -name '*.toml' | wc -l`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.1`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.1`이다.
+  - 3D fitting surface에 필요한 최신 stable은 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`이다.
+  - 현재 저장소는 `next 16.1.6`, `eslint-config-next 16.1.4`로 최신 stable보다 뒤처져 있고, `react/react-dom 19.2.4`는 최신과 일치한다.
+  - VoltAgent 설치본과 upstream snapshot의 `.toml` 개수는 오늘도 모두 `136`으로 일치한다.
+- 우리 프로젝트 영향:
+  - 당장 런타임 업그레이드보다 현재 사용자가 지정한 코어 기능 3개(자동 asset 생성, 캔버스 배치, 3D 마네킹 피팅)의 완성도를 먼저 끌어올리는 편이 우선순위가 높다.
+  - 3D fitting은 새 엔진을 별도 도입하기보다 `three + @react-three/fiber + drei` 조합으로 Studio 내부 surface를 추가하는 편이 현재 Next 16/App Router 구조와 가장 충돌이 적다.
+  - Next/eslint 패치 업그레이드는 코어 기능 안정화 후 별도 유지보수 배치에서 처리하는 편이 안전하다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
 ### 2026-03-29
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`)

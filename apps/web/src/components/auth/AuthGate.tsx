@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { appChromeCopy } from "@/features/renewal-app/content";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type AuthGateProps = {
   title: string;
@@ -11,6 +13,8 @@ type AuthGateProps = {
 
 export function AuthGate({ title, description, nextPath }: AuthGateProps) {
   const { isConfigured, isLoading, requestMagicLink, signInWithProvider, socialAuth } = useAuth();
+  const { language } = useLanguage();
+  const copy = appChromeCopy[language].authGate;
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -23,16 +27,16 @@ export function AuthGate({ title, description, nextPath }: AuthGateProps) {
     setErrorMessage(null);
 
     if (!email.trim()) {
-      setErrorMessage("이메일을 입력해주세요.");
+      setErrorMessage(copy.emailRequired);
       return;
     }
 
     try {
       setIsSubmitting(true);
       await requestMagicLink(email, nextPath);
-      setMessage("로그인 링크를 보냈습니다. 메일에서 링크를 열어주세요.");
+      setMessage(copy.emailSent);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "로그인 링크를 보낼 수 없습니다.");
+      setErrorMessage(error instanceof Error ? error.message : copy.emailSendFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -46,67 +50,78 @@ export function AuthGate({ title, description, nextPath }: AuthGateProps) {
       setActiveProvider(provider);
       await signInWithProvider(provider, nextPath);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "소셜 로그인을 시작할 수 없습니다.");
+      setErrorMessage(error instanceof Error ? error.message : copy.socialStartFailed);
       setActiveProvider(null);
     }
   };
 
+  const visibleProviders = [
+    socialAuth.kakao ? "kakao" : null,
+    socialAuth.naver ? "naver" : null,
+  ].filter((provider): provider is "kakao" | "naver" => Boolean(provider));
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-[#f7f7f5] px-6 py-24">
       <div className="mx-auto max-w-xl rounded-[32px] border border-black/10 bg-white px-8 py-10 shadow-[0_30px_80px_-45px_rgba(0,0,0,0.45)]">
-        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-black/35">Members Only</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-black/35">{copy.badge}</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-black">{title}</h1>
         <p className="mt-4 text-sm leading-6 text-black/55">{description}</p>
 
         {!isConfigured ? (
           <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-            `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 가 설정되지 않았습니다.
+            {copy.missingConfig}
           </div>
         ) : (
           <div className="mt-8 space-y-6">
-            <div className="space-y-3">
-              <button
-                type="button"
-                disabled={isLoading || activeProvider !== null || !socialAuth.kakao}
-                onClick={() => {
-                  void handleSocialSignIn("kakao");
-                }}
-                className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#f7d35f]/60 bg-[#fee500] px-6 text-sm font-extrabold text-[#191600] transition hover:brightness-[0.98] disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
-              >
-                {activeProvider === "kakao" ? "카카오 로그인 연결 중..." : "카카오로 계속하기"}
-              </button>
-              <button
-                type="button"
-                disabled={isLoading || activeProvider !== null || !socialAuth.naver}
-                onClick={() => {
-                  void handleSocialSignIn("naver");
-                }}
-                className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#00c73c]/20 bg-[#03c75a] px-6 text-sm font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
-              >
-                {activeProvider === "naver" ? "네이버 로그인 연결 중..." : "네이버로 계속하기"}
-              </button>
-              {!socialAuth.kakao || !socialAuth.naver ? (
-                <p className="text-xs leading-5 text-black/40">
-                  일부 소셜 로그인은 아직 배포 환경 설정이 끝나지 않아 비활성화되어 있습니다.
-                </p>
-              ) : null}
-            </div>
+            {visibleProviders.length > 0 ? (
+              <div className="space-y-3">
+                {visibleProviders.includes("kakao") ? (
+                  <button
+                    type="button"
+                    disabled={isLoading || activeProvider !== null}
+                    onClick={() => {
+                      void handleSocialSignIn("kakao");
+                    }}
+                    className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#f7d35f]/60 bg-[#fee500] px-6 text-sm font-extrabold text-[#191600] transition hover:brightness-[0.98] disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
+                  >
+                    {activeProvider === "kakao" ? copy.kakaoLoading : copy.kakao}
+                  </button>
+                ) : null}
+                {visibleProviders.includes("naver") ? (
+                  <button
+                    type="button"
+                    disabled={isLoading || activeProvider !== null}
+                    onClick={() => {
+                      void handleSocialSignIn("naver");
+                    }}
+                    className="inline-flex h-14 w-full items-center justify-center rounded-full border border-[#00c73c]/20 bg-[#03c75a] px-6 text-sm font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-black/5 disabled:text-black/35"
+                  >
+                    {activeProvider === "naver" ? copy.naverLoading : copy.naver}
+                  </button>
+                ) : null}
+                {visibleProviders.length < 2 ? (
+                  <p className="text-xs leading-5 text-black/40">
+                    {copy.partialSocialHint}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-black/30">
               <span className="h-px flex-1 bg-black/10" />
-              Email Link
+              {copy.emailDivider}
               <span className="h-px flex-1 bg-black/10" />
             </div>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <label className="block text-xs font-bold uppercase tracking-[0.2em] text-black/45">
-                Email
+                {copy.emailLabel}
                 <input
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={copy.emailPlaceholder}
                   className="mt-3 w-full rounded-2xl border border-black/10 bg-[#faf9f7] px-4 py-4 text-base text-black outline-none transition focus:border-black/30"
                 />
               </label>
@@ -116,7 +131,7 @@ export function AuthGate({ title, description, nextPath }: AuthGateProps) {
                 disabled={isSubmitting || isLoading || activeProvider !== null}
                 className="inline-flex h-14 w-full items-center justify-center rounded-full bg-black px-6 text-sm font-bold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:bg-black/25"
               >
-                {isSubmitting ? "링크 전송 중..." : "이메일 로그인 링크 받기"}
+                {isSubmitting ? copy.emailSubmitting : copy.emailSubmit}
               </button>
             </form>
 

@@ -22,6 +22,7 @@ export const createProductImportJob = async (userId: string, input: ImportProduc
       product_id: product.id,
       source_url: input.product_url,
       category_hint: input.category_hint,
+      item_name: input.item_name,
       selected_image_url: input.selected_image_url,
     },
     idempotencyKey: input.idempotency_key,
@@ -108,6 +109,7 @@ export const createUploadImportJob = async (input: {
   userId: string;
   imageUrl: string;
   categoryHint?: string;
+  itemName?: string;
   idempotencyKey?: string;
 }) => {
   const product = await createImportedProduct({
@@ -123,6 +125,7 @@ export const createUploadImportJob = async (input: {
       product_id: product.id,
       image_url: input.imageUrl,
       category_hint: input.categoryHint,
+      item_name: input.itemName,
     },
     idempotencyKey: input.idempotencyKey,
   });

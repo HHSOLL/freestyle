@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { apiFetch, apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { isAuthRequired } from '@/lib/supabaseBrowser';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
+import { FittingWorkbench } from '@/features/studio/components/FittingWorkbench';
 import { StudioCanvas } from '@/features/studio/components/StudioCanvas';
 import { StudioDrawers } from '@/features/studio/components/StudioDrawers';
 import { MusinsaBridgeModal } from '@/features/studio/components/MusinsaBridgeModal';
@@ -295,6 +296,7 @@ export default function StudioPage() {
   const [bridgeImportStatus, setBridgeImportStatus] = useState('');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isTryOnModalOpen, setIsTryOnModalOpen] = useState(false);
+  const [isFittingModalOpen, setIsFittingModalOpen] = useState(false);
   const [reviewGender, setReviewGender] = useState('');
   const [reviewOccasion, setReviewOccasion] = useState('');
   const [reviewOccasionDetail, setReviewOccasionDetail] = useState('');
@@ -319,7 +321,7 @@ export default function StudioPage() {
     const loadAssets = async () => {
       try {
         const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
-          '/v1/assets?page=1&page_size=200'
+          '/v1/assets?status=ready&page=1&page_size=200'
         );
         const source = Array.isArray(data?.items) ? data.items : Array.isArray(data?.assets) ? data.assets : null;
         if (response.ok && source) {
@@ -514,6 +516,43 @@ export default function StudioPage() {
     return asset;
   };
 
+  const updateAssetInState = useCallback((nextAsset: Asset) => {
+    setUserAssets((prev) => prev.map((asset) => (asset.id === nextAsset.id ? nextAsset : asset)));
+  }, []);
+
+  const handleSaveAssetMetadata = useCallback(
+    async (
+      assetId: string,
+      patch: {
+        measurements: NonNullable<Asset['metadata']>['measurements'];
+        fitProfile: NonNullable<Asset['metadata']>['fitProfile'];
+      }
+    ) => {
+      const { response, data } = await apiFetchJson<unknown>(`/v1/assets/${assetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: {
+            measurements: patch.measurements,
+            fitProfile: patch.fitProfile,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, 'Failed to save fitting metadata.'));
+      }
+
+      const updatedAsset = toAsset(data);
+      if (!updatedAsset) {
+        throw new Error('Failed to parse updated asset.');
+      }
+
+      updateAssetInState(updatedAsset);
+    },
+    [updateAssetInState]
+  );
+
   const resolveAssetPipeline = async (
     initialJobId: string,
     fallbackMessage: string,
@@ -544,6 +583,7 @@ export default function StudioPage() {
       body: JSON.stringify({
         product_url: productUrl,
         category_hint: categoryHint,
+        item_name: newItemName.trim() || undefined,
         selected_image_url: candidateUrl,
       }),
     });
@@ -625,6 +665,9 @@ export default function StudioPage() {
       const formData = new FormData();
       formData.append('file', uploadFile);
       formData.append('category_hint', newItemCategory);
+      if (newItemName.trim()) {
+        formData.append('item_name', newItemName.trim());
+      }
 
       const queueRes = await apiFetch('/v1/jobs/import/upload', {
         method: 'POST',
@@ -908,7 +951,7 @@ export default function StudioPage() {
 
       setIsSaveModalOpen(false);
       setSaveTitle('');
-      router.push('/app/looks');
+      router.push('/app/profile');
     } catch (error) {
       setSaveErrorMessage(getErrorMessage(error, t('studio.save.error') || 'Failed to save the outfit.'));
     } finally {
@@ -1299,6 +1342,7 @@ export default function StudioPage() {
       onRemoveFromCanvas={removeFromCanvas}
       onOpenReviewModal={() => setIsReviewModalOpen(true)}
       onOpenTryOnModal={() => setIsTryOnModalOpen(true)}
+      onOpenFittingModal={() => setIsFittingModalOpen(true)}
       onOpenSaveModal={() => {
         setSaveErrorMessage(null);
         setIsSaveModalOpen(true);
@@ -1367,6 +1411,7 @@ export default function StudioPage() {
 
       <StudioModals
         t={t}
+        language={language}
         isSaveModalOpen={isSaveModalOpen}
         saveTitle={saveTitle}
         isSavingOutfit={isSavingOutfit}
@@ -1434,6 +1479,9 @@ export default function StudioPage() {
         onGenerateReview={handleReviewGenerate}
         isTryOnModalOpen={isTryOnModalOpen}
         onCloseTryOnModal={() => setIsTryOnModalOpen(false)}
+        canvasItems={canvasItems}
+        assetById={assetById}
+        selectedItemId={selectedItemId}
         modelPhotoPreview={modelPhotoPreview}
         hasModelPhoto={Boolean(modelPhotoPreview)}
         onTryOnModelChange={handleTryOnModelChange}
@@ -1443,6 +1491,16 @@ export default function StudioPage() {
         onTryOnGenerate={handleTryOnGenerate}
         onTryOnDownload={handleTryOnDownload}
       />
+
+      {isFittingModalOpen ? (
+        <FittingWorkbench
+          t={t}
+          assets={assets}
+          initialAssetIds={Array.from(new Set(canvasItems.map((item) => item.assetId)))}
+          onClose={() => setIsFittingModalOpen(false)}
+          onSaveAssetMetadata={handleSaveAssetMetadata}
+        />
+      ) : null}
 
       <MusinsaBridgeModal
         t={t}

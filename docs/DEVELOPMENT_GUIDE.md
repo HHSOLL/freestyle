@@ -25,8 +25,10 @@
 - 인증은 `apps/web/src/lib/AuthContext.tsx`에서 Supabase browser session을 구독하고, `apps/web/src/lib/clientApi.ts`가 access token을 `Authorization: Bearer`로 자동 부착한다.
 - 로그인 기능을 뒤로 미루는 단계에서는 `NEXT_PUBLIC_AUTH_REQUIRED=false`와 `ALLOW_ANONYMOUS_USER=true` 조합을 기본값으로 사용한다. 이때 `apps/web/src/lib/clientApi.ts`가 브라우저별 익명 UUID를 `x-anonymous-user-id` 헤더로 보내고, API는 이를 `user_id`로 사용해 asset/job을 분리한다.
 - 로그인 콜백은 `apps/web/src/app/auth/callback/page.tsx`에서 수신한다. magic link / Kakao / Naver 브리지 모두 이 경로로 수렴시킨다.
-- 별도 `nextPath`가 없을 때 auth 기본 복귀 경로는 `/app`이며, 특정 화면이 필요하면 각 surface가 명시적으로 `nextPath`를 넘긴다.
+- 별도 `nextPath`가 없을 때 auth 기본 복귀 경로는 `/app/closet`이며, 특정 화면이 필요하면 각 surface가 명시적으로 `nextPath`를 넘긴다.
+- 리뉴얼/레거시 로그인 진입점은 현재 화면을 `nextPath`로 전달해 OAuth 이후에도 사용자가 보고 있던 화면으로 복귀해야 한다.
 - Kakao는 Supabase native OAuth provider를 사용하고, Naver는 `apps/api/src/routes/auth.routes.ts`의 OAuth bridge가 Naver 검증 후 Supabase admin magic link를 생성한다.
+- 언어 선택은 `apps/web/src/lib/LanguageContext.tsx`의 cookie(`freestyle-language`) + localStorage 동기화로 유지하고, `apps/web/src/app/layout.tsx`는 cookie/`Accept-Language` 기준 초기 언어를 계산해 서버 렌더와 hydration 언어를 맞춘다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
 
 2. 에셋 처리
@@ -36,20 +38,24 @@
   - `POST /v1/jobs/import/cart`
   - `POST /v1/jobs/import/upload`
   - `GET /v1/jobs/:job_id`
+  - `PATCH /v1/assets/:id`
 - importer worker가 `products`, `product_images`, `assets(original)`를 생성하고 `background_removal.process`를 enqueue한다.
-- background_removal worker가 `assets.cutout_image_url`을 생성하고 `asset_processor.process`를 enqueue한다.
-- asset_processor worker가 썸네일/pHash/카테고리를 생성한 뒤 `assets.status='ready'`로 종료한다.
+- importer worker는 가능하면 상품명/브랜드/측정치(`measurements`)를 함께 추출해 `assets.metadata`에 저장한다.
+- background_removal worker가 `assets.cutout_image_url`을 생성하고 알파 트리밍/품질 메타데이터를 `assets.metadata.cutout`에 남긴 뒤 `asset_processor.process`를 enqueue한다. 원격 remove.bg가 불가/실패하면 기존 알파 채널 또는 로컬 heuristic cutout fallback을 사용한다.
+- asset_processor worker가 썸네일/pHash/카테고리/dominant color/garment profile을 생성한 뒤 `assets.status='ready'`로 종료한다.
 
 3. 코디 저장/공유
 - 저장/조회/삭제는 Railway API 기준 `POST /v1/outfits`, `GET /v1/outfits`, `GET /v1/outfits/:id`, `DELETE /v1/outfits/:id`, `GET /v1/outfits/share/:slug`를 사용한다.
 - `outfits`는 `user_id` 기준 user-owned row로 관리하고, 공유 페이지용 `GET /v1/outfits/share/:slug`만 public read를 허용한다.
-- 프론트 Studio, `/app/looks`, `/app/profile`, 공유 페이지는 모두 `apps/web/src/lib/clientApi.ts`를 통해 동일한 `/v1/*` 계약을 사용한다.
+- 프론트 Studio, `/app/profile`, 공유 페이지는 모두 `apps/web/src/lib/clientApi.ts`를 통해 동일한 `/v1/*` 계약을 사용한다.
 - Studio 저장은 `apps/web/src/app/studio/page.tsx`에서 직접 `/v1/outfits`를 호출하며, 루트 Next route handler는 더 이상 소스 오브 트루스로 간주하지 않는다.
 
 4. AI 기능
 - `POST /v1/jobs/evaluations` / `GET /v1/evaluations/:id`
 - `POST /v1/jobs/tryons` / `GET /v1/tryons/:id`
 - evaluator/tryon worker가 비동기 처리 후 상태/결과를 기록한다.
+- Studio의 실시간 3D fitting은 별도 worker 없이 asset metadata + body profile 계산으로 클라이언트에서 즉시 렌더링한다.
+- 현재 3D fitting은 `measurement-driven parametric preview`이며, 실제 패턴/원단 물성 기반 cloth simulation 정확도까지 보장하는 구조는 아니다.
 
 5. 인증 라우트
 - `GET /v1/auth/naver/start?redirect_to=<absolute-url>`
@@ -67,6 +73,8 @@
 7. 페이지 구성 원칙
 - 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
+- 현재 공개 UI surface는 `홈(/)`, `옷장(/app/closet)`, `캔버스(/studio)`, `발견(/app/discover)`, `마이페이지(/app/profile)`만 유지한다.
+- `looks`, `decide`, `journal`, `examples`, `how-it-works`, `trends`, 레거시 `/profile`은 새로운 핵심 surface로 redirect하는 것을 기본 정책으로 둔다.
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
 - `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
 - Studio는 `NEXT_PUBLIC_AUTH_REQUIRED=true`일 때만 `AuthGate`를 강제하고, 기본 운영값(`false`)에서는 익명 사용자도 전체 파이프라인을 실행할 수 있어야 한다.
@@ -74,8 +82,9 @@
 - 타입/상수/유틸은 같은 feature 폴더로 묶어 변경 영향을 국소화한다.
 - Studio 캔버스는 `aspect-ratio` 기반으로 렌더링해 너비 조절 시에도 비율이 깨지지 않도록 유지한다.
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
-- `/trends` 페이지는 단일 피드 화면으로 운영하며, 정렬(인기순/최신순)과 카테고리 필터(성별/계절/스타일)를 함께 제공한다.
-- `/trends` 상세 모달은 이미지 가시성을 유지하도록 최소 높이를 보장하고, 텍스트는 제작자/코디명/카테고리/간단 설명 중심으로 제한한다.
+- Studio는 3가지 핵심 flow를 항상 우선 보장한다: `asset 생성(업로드/URL/장바구니 + 누끼)`, `canvas 배치`, `3D mannequin fitting`.
+- 3D mannequin fitting은 canvas 조합과 옷장 asset 둘 다 같은 surface에서 다뤄야 하며, body profile과 garment measurements를 동시에 조절할 수 있어야 한다.
+- Discover는 inspiration feed를 직접 노출하되, 사용자가 바로 `closet` 또는 `canvas`로 이동해 번역 작업을 이어갈 수 있어야 한다.
 - Studio 요약 패널/캔버스는 `asset.sourceUrl`이 있는 항목 클릭 시 링크 말풍선을 노출해 원본 상품 페이지로 즉시 이동할 수 있어야 한다.
 
 ## 4. 개발 규칙
@@ -115,6 +124,7 @@
 2. 누끼/트리밍
 - remove.bg 결과를 그대로 저장하지 않고 알파 기반 트리밍(`postProcessCutout`)을 거친 뒤 저장한다.
 - 저장 에셋의 실제 픽셀 크기가 피사체 bbox + padding이 되도록 한다(투명 여백 최소화).
+- trim/quality 결과(`alphaAreaRatio`, `bboxAreaRatio`, `trimRect`)는 `assets.metadata.cutout`에 저장해 이후 3D fitting과 QA에서 재사용한다.
 - 이미지 다운로드/응답은 바이트 상한(`MAX_IMAGE_BYTES`, `MAX_REMOVE_BG_OUTPUT_BYTES`)을 강제한다.
 
 3. 품질 게이트

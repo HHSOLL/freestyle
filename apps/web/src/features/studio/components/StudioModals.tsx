@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Download, RefreshCw, Upload } from 'lucide-react';
+import { RefreshCw, Upload } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import type { AssetCategory, StudioCategoryOption, StudioTranslator } from '../types';
+import type { Asset, AssetCategory, CanvasItem, StudioCategoryOption, StudioTranslator } from '../types';
+import { TryOnWorkbench } from './TryOnWorkbench';
 
 type ReviewResult = {
   overallScore?: number;
@@ -34,6 +35,7 @@ type ImportImageCandidate = {
 
 type StudioModalsProps = {
   t: StudioTranslator;
+  language: string;
   isSaveModalOpen: boolean;
   saveTitle: string;
   isSavingOutfit: boolean;
@@ -96,6 +98,9 @@ type StudioModalsProps = {
   onGenerateReview: () => void;
   isTryOnModalOpen: boolean;
   onCloseTryOnModal: () => void;
+  canvasItems: CanvasItem[];
+  assetById: Map<string, Asset>;
+  selectedItemId: string | null;
   modelPhotoPreview: string | null;
   hasModelPhoto: boolean;
   onTryOnModelChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -108,6 +113,7 @@ type StudioModalsProps = {
 
 export function StudioModals({
   t,
+  language,
   isSaveModalOpen,
   saveTitle,
   isSavingOutfit,
@@ -170,6 +176,9 @@ export function StudioModals({
   onGenerateReview,
   isTryOnModalOpen,
   onCloseTryOnModal,
+  canvasItems,
+  assetById,
+  selectedItemId,
   modelPhotoPreview,
   hasModelPhoto,
   onTryOnModelChange,
@@ -730,7 +739,7 @@ export function StudioModals({
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-[36px] shadow-2xl flex flex-col"
+            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[36px] bg-white shadow-2xl"
           >
             <div className="px-8 py-6 border-b border-black/5 flex items-center justify-between">
               <div>
@@ -741,65 +750,22 @@ export function StudioModals({
                 {t('studio.review.close')}
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-8 grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-widest text-black/40 ml-2">
-                  {t('studio.tryon.upload_label')}
-                </label>
-                <div className="relative aspect-[3/4] rounded-2xl border-2 border-dashed border-black/10 bg-black/[0.02] overflow-hidden flex items-center justify-center">
-                  {modelPhotoPreview ? (
-                    <img src={modelPhotoPreview} alt={t('studio.model.alt')} className="w-full h-full object-contain" />
-                  ) : (
-                    <p className="text-xs text-black/40 font-bold uppercase tracking-widest">
-                      {t('studio.modal.upload')}
-                    </p>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onTryOnModelChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                </div>
-                <Button
-                  className="w-full h-12 rounded-xl bg-black text-white font-black uppercase tracking-widest text-[11px]"
-                  onClick={onTryOnGenerate}
-                  disabled={isTryOnLoading || !hasModelPhoto}
-                >
-                  {isTryOnLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      {t('studio.tryon.loading')}
-                    </>
-                  ) : (
-                    t('studio.vto.cta')
-                  )}
-                </Button>
-                {tryOnError && <p className="text-sm text-red-500">{tryOnError}</p>}
-              </div>
-              <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-black/40 ml-2">
-                  {t('studio.tryon.preview_label')}
-                </p>
-                <div className="aspect-[3/4] rounded-2xl border border-black/5 bg-black/[0.02] overflow-hidden flex items-center justify-center">
-                  {tryOnResultImage ? (
-                    <img src={tryOnResultImage} alt={t('studio.tryon.preview_alt')} className="w-full h-full object-contain" />
-                  ) : (
-                    <p className="text-xs text-black/40 font-bold uppercase tracking-widest">
-                      {t('studio.tryon.preview_empty')}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full h-12 rounded-xl font-bold"
-                  onClick={onTryOnDownload}
-                  disabled={!tryOnResultImage}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t('studio.tryon.download')}
-                </Button>
-              </div>
+            <div className="flex-1 overflow-y-auto p-8">
+              <TryOnWorkbench
+                t={t}
+                language={language}
+                canvasItems={canvasItems}
+                assetById={assetById}
+                selectedItemId={selectedItemId}
+                modelPhotoPreview={modelPhotoPreview}
+                hasModelPhoto={hasModelPhoto}
+                onTryOnModelChange={onTryOnModelChange}
+                isTryOnLoading={isTryOnLoading}
+                tryOnResultImage={tryOnResultImage}
+                tryOnError={tryOnError}
+                onTryOnGenerate={onTryOnGenerate}
+                onTryOnDownload={onTryOnDownload}
+              />
             </div>
           </motion.div>
         </div>

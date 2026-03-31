@@ -1,74 +1,184 @@
 export type RenewalLanguage = 'ko' | 'en';
 
+type Localized<T> = Record<RenewalLanguage, T>;
+
 export const appNav = {
   ko: [
-    { href: '/app', label: 'Home' },
-    { href: '/app/closet', label: 'Closet' },
-    { href: '/app/looks', label: 'Looks' },
-    { href: '/app/discover', label: 'Discover' },
-    { href: '/app/decide', label: 'Decide' },
-    { href: '/app/journal', label: 'Journal' },
-    { href: '/app/profile', label: 'Profile' },
+    { href: '/app/closet', label: '옷장' },
+    { href: '/studio', label: '캔버스' },
+    { href: '/app/discover', label: '발견' },
+    { href: '/app/profile', label: '마이페이지' },
   ],
   en: [
-    { href: '/app', label: 'Home' },
     { href: '/app/closet', label: 'Closet' },
-    { href: '/app/looks', label: 'Looks' },
+    { href: '/studio', label: 'Canvas' },
     { href: '/app/discover', label: 'Discover' },
-    { href: '/app/decide', label: 'Decide' },
-    { href: '/app/journal', label: 'Journal' },
-    { href: '/app/profile', label: 'Profile' },
+    { href: '/app/profile', label: 'My Page' },
   ],
 } as const;
 
 export const appMeta = {
   '/app': {
-    title: { ko: 'Wardrobe Home', en: 'Wardrobe Home' },
+    title: { ko: 'Closet', en: 'Closet' },
     description: {
-      ko: '오늘의 상태, 최근 영감, 구매 판단, 착용 기록을 한 화면에서 요약합니다.',
-      en: 'A command surface for your closet health, recent inspiration, purchase decisions, and wear memory.',
+      ko: '기본 진입점은 옷장입니다. 저장한 옷을 정리하고 바로 피팅으로 이어집니다.',
+      en: 'Closet is the default entry point: organize saved pieces and jump straight into fitting.',
     },
   },
   '/app/closet': {
     title: { ko: 'Closet', en: 'Closet' },
     description: {
-      ko: '내 옷장의 구조와 중복, 부족한 축을 파악하는 운영 화면입니다.',
-      en: 'An operating view for your wardrobe structure, duplicates, and missing anchors.',
+      ko: '내 옷을 정리하고, 선택한 아이템을 커스텀 마네킹에 바로 입혀보는 기준 화면입니다.',
+      en: 'The home base for organizing your wardrobe and jumping straight into mannequin fitting for any saved piece.',
     },
   },
-  '/app/looks': {
-    title: { ko: 'Looks', en: 'Looks' },
+  '/studio': {
+    title: { ko: 'Canvas', en: 'Canvas' },
     description: {
-      ko: '저장된 룩과 작업 중인 룩을 관리하는 작업 공간입니다.',
-      en: 'A workspace for saved looks, drafts, and the next evolution of Studio.',
+      ko: '에셋을 가져오고 2D 캔버스에서 조합을 빠르게 실험하는 작업 화면입니다.',
+      en: 'The working surface for importing assets and experimenting with combinations on the 2D canvas.',
     },
   },
   '/app/discover': {
     title: { ko: 'Discover', en: 'Discover' },
     description: {
-      ko: '영감 이미지를 소비하는 곳이 아니라 내 옷장으로 번역하는 곳입니다.',
-      en: 'A place to translate inspiration into your real closet, not just consume it.',
-    },
-  },
-  '/app/decide': {
-    title: { ko: 'Decide', en: 'Decide' },
-    description: {
-      ko: '구매 후보가 실제로 내 옷장에 도움이 되는지 판단하는 공간입니다.',
-      en: 'A surface for deciding whether a candidate item truly improves your wardrobe.',
-    },
-  },
-  '/app/journal': {
-    title: { ko: 'Journal', en: 'Journal' },
-    description: {
-      ko: '실제 착용과 만족도를 기록해 추천 품질을 높입니다.',
-      en: 'Capture what you actually wore so the system can get smarter over time.',
+      ko: '영감을 소비하는 대신 내 옷장과 캔버스로 번역하는 화면입니다.',
+      en: 'A surface for translating inspiration into your real closet and canvas workflow.',
     },
   },
   '/app/profile': {
-    title: { ko: 'Profile', en: 'Profile' },
+    title: { ko: '마이페이지', en: 'My Page' },
     description: {
-      ko: '내 계정, 히스토리, 공유 상태를 관리합니다.',
-      en: 'Manage account context, saved history, and sharing status.',
+      ko: '계정, 저장 자산, 최근 활동을 묶어보는 개인 허브입니다.',
+      en: 'A personal hub for account state, saved assets, and recent activity.',
     },
   },
 } as const;
+
+export const appChromeCopy: Localized<{
+  brand: string;
+  liveData: string;
+  openWorkspace: string;
+  signIn: string;
+  accountFallback: string;
+  signOutFailed: string;
+  sidebarFooterTitle: string;
+  sidebarFooterBody: string;
+  lookLabel: string;
+  viewShare: string;
+  copy: string;
+  deleteLook: string;
+  deleteAsset: string;
+  itemDetail: string;
+  open: string;
+  authGate: {
+    badge: string;
+    missingConfig: string;
+    kakao: string;
+    kakaoLoading: string;
+    naver: string;
+    naverLoading: string;
+    emailDivider: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    emailSubmit: string;
+    emailSubmitting: string;
+    emailRequired: string;
+    emailSent: string;
+    emailSendFailed: string;
+    socialStartFailed: string;
+    partialSocialHint: string;
+  };
+  authCallback: {
+    badge: string;
+    checkingTitle: string;
+    checkingBody: string;
+    confirmedBody: string;
+    failedTitle: string;
+  };
+}> = {
+  ko: {
+    brand: '옷장 OS',
+    liveData: '실데이터',
+    openWorkspace: '캔버스 열기',
+    signIn: '로그인',
+    accountFallback: '계정',
+    signOutFailed: '로그아웃할 수 없습니다.',
+    sidebarFooterTitle: 'Wardrobe OS 프리뷰가 라이브입니다.',
+    sidebarFooterBody: '한 셸 안에서 가져오고, 입혀보고, 배치하고, 저장합니다.',
+    lookLabel: '저장본',
+    viewShare: '공유 보기',
+    copy: '복사',
+    deleteLook: '저장본 삭제',
+    deleteAsset: '에셋 삭제',
+    itemDetail: '아이템 상세',
+    open: '열기',
+    authGate: {
+      badge: '멤버 전용',
+      missingConfig: '`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 설정되지 않았습니다.',
+      kakao: '카카오로 계속하기',
+      kakaoLoading: '카카오 로그인 연결 중...',
+      naver: '네이버로 계속하기',
+      naverLoading: '네이버 로그인 연결 중...',
+      emailDivider: '이메일 링크',
+      emailLabel: '이메일',
+      emailPlaceholder: 'you@example.com',
+      emailSubmit: '이메일 로그인 링크 받기',
+      emailSubmitting: '링크 전송 중...',
+      emailRequired: '이메일을 입력해주세요.',
+      emailSent: '로그인 링크를 보냈습니다. 메일에서 링크를 열어주세요.',
+      emailSendFailed: '로그인 링크를 보낼 수 없습니다.',
+      socialStartFailed: '소셜 로그인을 시작할 수 없습니다.',
+      partialSocialHint: '일부 소셜 로그인은 아직 배포 환경 설정이 끝나지 않아 비활성화되어 있습니다.',
+    },
+    authCallback: {
+      badge: '인증 콜백',
+      checkingTitle: '로그인 확인 중입니다.',
+      checkingBody: '브라우저 세션을 정리하고 있습니다. 잠시만 기다려주세요.',
+      confirmedBody: '세션을 확인했습니다. 원래 화면으로 이동합니다.',
+      failedTitle: '로그인에 실패했습니다.',
+    },
+  },
+  en: {
+    brand: 'Wardrobe OS',
+    liveData: 'Live Data',
+    openWorkspace: 'Open canvas',
+    signIn: 'Sign in',
+    accountFallback: 'Account',
+    signOutFailed: 'Failed to sign out.',
+    sidebarFooterTitle: 'Wardrobe OS preview is live.',
+    sidebarFooterBody: 'Import, fit, compose, and save from one shell.',
+    lookLabel: 'Saved',
+    viewShare: 'View share',
+    copy: 'Copy',
+    deleteLook: 'Delete saved item',
+    deleteAsset: 'Delete asset',
+    itemDetail: 'Item detail',
+    open: 'Open',
+    authGate: {
+      badge: 'Members Only',
+      missingConfig: '`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` are not configured.',
+      kakao: 'Continue with Kakao',
+      kakaoLoading: 'Connecting Kakao login...',
+      naver: 'Continue with Naver',
+      naverLoading: 'Connecting Naver login...',
+      emailDivider: 'Email Link',
+      emailLabel: 'Email',
+      emailPlaceholder: 'you@example.com',
+      emailSubmit: 'Send email login link',
+      emailSubmitting: 'Sending link...',
+      emailRequired: 'Please enter your email address.',
+      emailSent: 'A login link has been sent. Open it from your email.',
+      emailSendFailed: 'Could not send the login link.',
+      socialStartFailed: 'Could not start social login.',
+      partialSocialHint: 'Some social providers are still disabled because deployment configuration is incomplete.',
+    },
+    authCallback: {
+      badge: 'Auth Callback',
+      checkingTitle: 'Checking your sign-in...',
+      checkingBody: 'We are finalizing the browser session. Please wait a moment.',
+      confirmedBody: 'Your session is confirmed. Redirecting back now.',
+      failedTitle: 'Sign-in failed.',
+    },
+  },
+};

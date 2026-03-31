@@ -37,6 +37,7 @@
     "start:worker:tryon": "WORKER_JOB_TYPES=tryon.generate node dist/workers/runtime/src/worker.js",
     "build": "npm --prefix apps/web run build",
     "check": "npm run lint && npm run typecheck && npm run build:services && npm run build",
+    "test:core": "tsx --test workers/background_removal/src/cutout.test.ts apps/web/src/features/studio/fitting.test.ts",
     "start": "npm --prefix apps/web run start",
     "lint": "eslint",
     "typecheck": "npm --prefix apps/web run typecheck"

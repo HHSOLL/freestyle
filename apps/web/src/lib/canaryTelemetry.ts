@@ -1,7 +1,24 @@
 "use client";
 
 import { buildApiPath } from "@/lib/clientApi";
-import type { WidgetConfig, WidgetEventInput } from "@freestyle/contracts";
+
+type CanaryWidgetConfig = {
+  tenant_id: string;
+  product_id: string;
+  events_endpoint: string;
+  feature_flags: Record<string, boolean>;
+};
+
+type CanaryWidgetEvent = {
+  event_id: string;
+  event_name: string;
+  tenant_id: string;
+  product_id: string;
+  occurred_at: string;
+  page_url?: string;
+  referrer?: string;
+  payload?: Record<string, unknown>;
+};
 
 const CANARY_RELEASE_FLAG = "phase_0_5_canary_enabled";
 const CANARY_KILL_SWITCH = "phase_0_5_kill_switch";
@@ -9,7 +26,7 @@ const CANARY_TENANT_ID = "freestyle-web";
 const CANARY_PRODUCT_ID = "web-runtime";
 
 type CanaryRuntime = {
-  config: WidgetConfig;
+  config: CanaryWidgetConfig;
   enabled: boolean;
 };
 
@@ -35,10 +52,10 @@ const getPageContext = () => ({
   referrer: globalThis.document?.referrer || undefined,
 });
 
-const buildEventsEndpoint = (config: WidgetConfig) =>
+const buildEventsEndpoint = (config: CanaryWidgetConfig) =>
   /^https?:\/\//i.test(config.events_endpoint) ? config.events_endpoint : buildApiPath(config.events_endpoint);
 
-const isCanaryEnabled = (config: WidgetConfig) =>
+const isCanaryEnabled = (config: CanaryWidgetConfig) =>
   config.feature_flags[CANARY_RELEASE_FLAG] === true && config.feature_flags[CANARY_KILL_SWITCH] !== true;
 
 const loadCanaryRuntime = async (): Promise<CanaryRuntime | null> => {
@@ -55,7 +72,7 @@ const loadCanaryRuntime = async (): Promise<CanaryRuntime | null> => {
     return null;
   }
 
-  const config = (await response.json()) as WidgetConfig;
+  const config = (await response.json()) as CanaryWidgetConfig;
   return {
     config,
     enabled: isCanaryEnabled(config),
@@ -70,13 +87,13 @@ const getRuntime = async () => {
 const postTelemetryEvent = async (
   runtime: CanaryRuntime | null,
   eventName: string,
-  payload: WidgetEventInput["payload"],
+  payload: Record<string, unknown>,
 ) => {
   if (!runtime?.enabled) {
     return;
   }
 
-  const event: WidgetEventInput = {
+  const event: CanaryWidgetEvent = {
     event_id: createEventId(),
     event_name: eventName,
     tenant_id: runtime.config.tenant_id,

@@ -9,7 +9,7 @@
 - Evaluate on production traffic at the current canary percentage.
 - Use rolling `15-min` windows for active canary checks.
 - Use the latest approved baseline from `baseline-metrics-template.md` for delta comparisons.
-- The `add_to_cart` conversion gate applies only when the minimum sample is met.
+- The `add_to_cart` conversion gate applies only when the minimum sample is met: at least `1000` qualified sessions and `100` `add_to_cart` events in the stage window.
 
 ## Stop And Rollback Gates
 | Metric | Breach condition | Action |

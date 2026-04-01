@@ -36,11 +36,11 @@
 | `p75 LCP` | `web vitals dashboard` | Same route cohort as canary audience |
 | `p75 INP` | `web vitals dashboard` | Same route cohort as canary audience |
 | `p75 CLS` | `web vitals dashboard` | Same route cohort as canary audience |
-| `add_to_cart` conversion | `product analytics funnel query` | Record minimum sample rule in rollout ticket |
+| `add_to_cart` conversion | `widget events query (event_name=add_to_cart, payload.source=studio_cart_import)` | Minimum sample: `>=1000` qualified sessions and `>=100` add_to_cart events per stage window |
 
 ## Sign-off Checklist
 - Baseline window excludes known incidents and partial outages.
 - Same metric definitions are used for baseline and canary.
-- Minimum sample rule for `add_to_cart` is recorded in the rollout ticket.
+- Minimum sample rule for `add_to_cart` uses `>=1000` qualified sessions and `>=100` add_to_cart events in stage window.
 - Runtime owner and data/analytics owner approved the baseline.
 - All `Baseline value` cells are numeric before canary starts.

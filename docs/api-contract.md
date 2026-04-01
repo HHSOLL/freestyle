@@ -24,7 +24,10 @@
 ### `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
 Notes
 - default self-hosted asset endpoints are `GET /widget/sdk.js` and `GET /widget/sdk.css`.
+- iframe bootstrap endpoint is `GET /widget/frame`.
 - when config uses the default self-hosted asset URLs, `script_integrity` and `stylesheet_integrity` are derived from the exact bytes served by those endpoints.
+- default self-hosted `script_url`/`stylesheet_url` include an integrity-derived `?v=<version>` query to keep immutable caching and SRI aligned across deploys.
+- `phase_0_5_canary_enabled` is sampled deterministically when `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` is set (`1|5|25|100`); `phase_0_5_kill_switch` always overrides to disabled.
 
 Response
 ```json
@@ -34,9 +37,9 @@ Response
   "product_id": "sku-123",
   "api_base_url": "https://api.example.com/v1",
   "events_endpoint": "/v1/widget/events",
-  "script_url": "https://api.example.com/widget/sdk.js",
+  "script_url": "https://api.example.com/widget/sdk.js?v=7c99f10495e5bb4a",
   "script_integrity": "sha384-abc123...",
-  "stylesheet_url": "https://api.example.com/widget/sdk.css",
+  "stylesheet_url": "https://api.example.com/widget/sdk.css?v=7c99f10495e5bb4a",
   "stylesheet_integrity": "sha384-def456...",
   "asset_base_url": "https://api.example.com/assets",
   "widget_version_policy": "immutable",
@@ -125,6 +128,11 @@ Notes
 - widget browser runtime stylesheet served directly from the API origin
 - response type: `text/css`
 - default config `stylesheet_url` points here when `WIDGET_STYLESHEET_URL` is not overridden
+
+### `GET /widget/frame?tenant_id=<tenant>&product_id=<product>`
+- iframe bootstrap HTML served directly from the API origin
+- response type: `text/html`
+- iframe mode SDK uses this endpoint instead of navigating directly to the JavaScript asset
 
 ## Jobs Import
 

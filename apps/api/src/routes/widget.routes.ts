@@ -22,6 +22,9 @@ const WIDGET_RATE_LIMIT_MAX_EVENTS = 60;
 const WIDGET_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const WIDGET_CACHE_CONTROL_MUTABLE = "public, max-age=300";
 const WIDGET_CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
+const PHASE_0_5_CANARY_ENABLED_FLAG = "phase_0_5_canary_enabled";
+const PHASE_0_5_CANARY_KILL_SWITCH_FLAG = "phase_0_5_kill_switch";
+const ALLOWED_PHASE_0_5_CANARY_PERCENTAGES = new Set([0, 1, 5, 25, 100]);
 
 const WIDGET_SDK_CSS_SOURCE = `
 .freestyle-widget-root {
@@ -302,9 +305,56 @@ const WIDGET_SDK_JS_SOURCE = `
 })();
 `.trim();
 
+const buildWidgetFrameHtml = (productId: string) => {
+  const safeProductLabel = productId
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+  const safeProductId = JSON.stringify(productId);
+
+  return `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FreeStyle Widget Frame</title>
+    <style>
+      html, body { margin: 0; font-family: "Helvetica Neue", sans-serif; background: #f4f1ea; color: #111; }
+      main { padding: 24px; }
+      h1 { margin: 0 0 12px; font-size: 28px; letter-spacing: -0.05em; }
+      p { margin: 0; color: rgba(17, 17, 17, 0.68); line-height: 1.7; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>FreeStyle iframe runtime</h1>
+      <p>Origin-validated iframe surface for ${safeProductLabel}.</p>
+    </main>
+    <script>
+      if (window.parent) {
+        window.parent.postMessage({
+          type: "widget.ready",
+          version: "1",
+          eventId: "evt_ready",
+          payload: { productId: ${safeProductId} }
+        }, window.location.origin);
+      }
+    </script>
+  </body>
+</html>
+  `.trim();
+};
+
 const buildWidgetIntegrity = (source: string) => `sha384-${createHash("sha384").update(source).digest("base64")}`;
 const WIDGET_SDK_JS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_JS_SOURCE);
 const WIDGET_SDK_CSS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_CSS_SOURCE);
+const WIDGET_SDK_ASSET_VERSION = createHash("sha256")
+  .update(`${WIDGET_SDK_JS_INTEGRITY}:${WIDGET_SDK_CSS_INTEGRITY}`)
+  .digest("hex")
+  .slice(0, 16);
 
 type RateLimitBucket = {
   count: number;
@@ -410,6 +460,9 @@ const consumeRateLimit = (key: string, eventCount: number, now: number) => {
 const buildDedupeKey = (origin: string, eventId: string, idempotencyKey?: string) =>
   `${origin}::${idempotencyKey ?? eventId}`;
 
+const hasOwnFlag = (flags: Record<string, boolean>, key: string) =>
+  Object.prototype.hasOwnProperty.call(flags, key);
+
 const parseWidgetFeatureFlags = (): Record<string, boolean> => {
   const raw = process.env.WIDGET_FEATURE_FLAGS?.trim();
   if (!raw) {
@@ -433,6 +486,107 @@ const parseWidgetFeatureFlags = (): Record<string, boolean> => {
   } catch {
     return {};
   }
+};
+
+const parsePhase05CanaryPercentage = () => {
+  const raw = process.env.WIDGET_PHASE_0_5_CANARY_PERCENTAGE?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!ALLOWED_PHASE_0_5_CANARY_PERCENTAGES.has(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+};
+
+const buildPhase05CanaryAudienceKey = (parts: {
+  anonymousUserId?: string;
+  forwardedFor?: string;
+  requestIp?: string;
+  origin?: string;
+  userAgent?: string;
+}) => {
+  const normalizedOrigin = parts.origin?.trim();
+  const normalizedUserAgent = parts.userAgent?.trim();
+  const normalizedAnonymousUserId = parts.anonymousUserId?.trim();
+  const normalizedForwardedFor = parts.forwardedFor?.trim();
+  const normalizedRequestIp = parts.requestIp?.trim();
+
+  if (normalizedAnonymousUserId) {
+    return `anonymous:${normalizedAnonymousUserId}`;
+  }
+
+  const networkKey = normalizedForwardedFor || normalizedRequestIp;
+  if (networkKey) {
+    return `network:${networkKey}::origin:${normalizedOrigin || "unknown"}`;
+  }
+
+  if (normalizedOrigin && normalizedUserAgent) {
+    return `origin:${normalizedOrigin}::user-agent:${normalizedUserAgent}`;
+  }
+
+  if (normalizedOrigin) {
+    return `origin:${normalizedOrigin}`;
+  }
+
+  if (normalizedUserAgent) {
+    return `user-agent:${normalizedUserAgent}`;
+  }
+
+  return "anonymous-requester";
+};
+
+const extractPhase05CanaryAudienceKey = (request: FastifyRequest) =>
+  buildPhase05CanaryAudienceKey({
+    anonymousUserId: getHeaderValue(request.headers["x-anonymous-user-id"]),
+    forwardedFor: getHeaderValue(request.headers["x-forwarded-for"])?.split(",")[0]?.trim(),
+    requestIp: request.ip,
+    origin: extractRequestOrigin(request) ?? undefined,
+    userAgent: getHeaderValue(request.headers["user-agent"]),
+  });
+
+const isKeyInCanaryAudience = (audienceKey: string, percentage: number) => {
+  if (percentage <= 0) {
+    return false;
+  }
+
+  if (percentage >= 100) {
+    return true;
+  }
+
+  const bucket = createHash("sha256").update(audienceKey).digest().readUInt32BE(0) % 100;
+  return bucket < percentage;
+};
+
+const resolvePhase05CanaryFlag = (
+  request: FastifyRequest,
+  featureFlags: Record<string, boolean>,
+) => {
+  const configuredPercentage = parsePhase05CanaryPercentage();
+  const hasPhase05Flag = hasOwnFlag(featureFlags, PHASE_0_5_CANARY_ENABLED_FLAG);
+  const hasKillSwitch = hasOwnFlag(featureFlags, PHASE_0_5_CANARY_KILL_SWITCH_FLAG);
+
+  if (configuredPercentage === undefined && !hasPhase05Flag && !hasKillSwitch) {
+    return featureFlags;
+  }
+
+  const nextFeatureFlags = { ...featureFlags };
+
+  if (nextFeatureFlags[PHASE_0_5_CANARY_KILL_SWITCH_FLAG] === true) {
+    nextFeatureFlags[PHASE_0_5_CANARY_ENABLED_FLAG] = false;
+    return nextFeatureFlags;
+  }
+
+  const effectivePercentage = configuredPercentage ?? (nextFeatureFlags[PHASE_0_5_CANARY_ENABLED_FLAG] === true ? 100 : 0);
+  nextFeatureFlags[PHASE_0_5_CANARY_ENABLED_FLAG] = isKeyInCanaryAudience(
+    extractPhase05CanaryAudienceKey(request),
+    effectivePercentage,
+  );
+
+  return nextFeatureFlags;
 };
 
 const resolveWidgetTheme = (): WidgetConfig["theme"] => {
@@ -461,8 +615,8 @@ const getWidgetCacheControl = () =>
   resolveWidgetVersionPolicy() === "immutable" ? WIDGET_CACHE_CONTROL_IMMUTABLE : WIDGET_CACHE_CONTROL_MUTABLE;
 
 const getDefaultWidgetAssetUrls = (publicApiOrigin: string) => ({
-  scriptUrl: `${publicApiOrigin}/widget/sdk.js`,
-  stylesheetUrl: `${publicApiOrigin}/widget/sdk.css`,
+  scriptUrl: `${publicApiOrigin}/widget/sdk.js?v=${WIDGET_SDK_ASSET_VERSION}`,
+  stylesheetUrl: `${publicApiOrigin}/widget/sdk.css?v=${WIDGET_SDK_ASSET_VERSION}`,
 });
 
 const resolveWidgetAssetUrls = (publicApiOrigin: string) => {
@@ -508,6 +662,7 @@ const buildWidgetConfig = (
   const widgetConfigTtlSeconds = Number.parseInt(process.env.WIDGET_CONFIG_TTL_SECONDS || "900", 10);
   const expiresAt = new Date(Date.now() + Math.max(60, widgetConfigTtlSeconds) * 1000).toISOString();
   const assetUrls = resolveWidgetAssetUrls(publicApiOrigin);
+  const featureFlags = resolvePhase05CanaryFlag(request, parseWidgetFeatureFlags());
 
   return {
     widget_id: WIDGET_ID,
@@ -526,7 +681,7 @@ const buildWidgetConfig = (
     asset_base_url: process.env.WIDGET_ASSET_BASE_URL?.trim() || `${publicApiOrigin}/assets`,
     widget_version_policy: resolveWidgetVersionPolicy(),
     allowed_origins: [...widgetOriginPolicy.exactOrigins, ...widgetOriginPolicy.patternStrings],
-    feature_flags: parseWidgetFeatureFlags(),
+    feature_flags: featureFlags,
     theme: resolveWidgetTheme(),
     expires_at: expiresAt,
     dedupe_window_seconds: Math.floor(WIDGET_DEDUPE_WINDOW_MS / 1000),
@@ -553,6 +708,8 @@ export const __widgetRouteTestUtils = {
     dedupeStore.clear();
     rateLimitStore.clear();
   },
+  buildPhase05CanaryAudienceKey,
+  isKeyInCanaryAudience,
 };
 
 export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
@@ -572,6 +729,19 @@ export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
       .header("cache-control", getWidgetCacheControl())
       .header("x-widget-integrity", WIDGET_SDK_CSS_INTEGRITY)
       .send(WIDGET_SDK_CSS_SOURCE);
+  });
+
+  app.get("/widget/frame", async (request, reply) => {
+    const query = (request.query ?? {}) as { product_id?: unknown };
+    const productId = typeof query.product_id === "string" && query.product_id.trim().length > 0
+      ? query.product_id.trim()
+      : "unknown-product";
+
+    return reply
+      .code(200)
+      .type("text/html; charset=utf-8")
+      .header("cache-control", getWidgetCacheControl())
+      .send(buildWidgetFrameHtml(productId));
   });
 };
 

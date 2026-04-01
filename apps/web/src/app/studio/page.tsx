@@ -6,6 +6,7 @@ import { AuthGate } from '@/components/auth/AuthGate';
 import { useLanguage } from '@/lib/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { apiFetch, apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
+import { trackAddToCartConversion } from '@/lib/canaryTelemetry';
 import { isAuthRequired } from '@/lib/supabaseBrowser';
 import { AssetLibrary } from '@/features/studio/components/AssetLibrary';
 import { FittingWorkbench } from '@/features/studio/components/FittingWorkbench';
@@ -1068,6 +1069,14 @@ export default function StudioPage() {
       }
 
       const failedCount = settled.length - parsedAssets.length;
+      if (parsedAssets.length > 0) {
+        trackAddToCartConversion({
+          source: 'studio_cart_import',
+          imported_count: parsedAssets.length,
+          failed_count: failedCount,
+          category: cartImportCategory,
+        });
+      }
       if (failedCount > 0) {
         alert(
           `${parsedAssets.length}${t('studio.cart_import.imported_suffix') || ' imported. '} ${failedCount}${t('studio.cart_import.failed_suffix') || ' failed.'}`

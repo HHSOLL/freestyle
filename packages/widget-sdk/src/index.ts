@@ -12,6 +12,7 @@ export type WidgetInitOptions = {
   mount: string;
   tenantId: string;
   productId: string;
+  apiBaseUrl?: string;
   mode?: WidgetMode;
   locale?: string;
   theme?: "light" | "dark" | "auto";
@@ -69,8 +70,40 @@ const ensureMountTarget = (mount: string) => {
   return target;
 };
 
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const buildRequestUrl = (base: string, path: string) => {
+  if (ABSOLUTE_URL_PATTERN.test(path)) {
+    return path;
+  }
+
+  if (ABSOLUTE_URL_PATTERN.test(base)) {
+    if (path.startsWith("/")) {
+      return new URL(path, base).toString();
+    }
+    return new URL(path, `${trimTrailingSlash(base)}/`).toString();
+  }
+
+  if (path.startsWith("/")) {
+    return path;
+  }
+
+  return `${trimTrailingSlash(base)}/${path.replace(/^\/+/, "")}`;
+};
+
+const resolveConfigBase = (options: WidgetInitOptions) => {
+  const configured = options.apiBaseUrl?.trim();
+  if (configured) {
+    return trimTrailingSlash(configured);
+  }
+  return "/v1";
+};
+
 const fetchConfig = async (options: WidgetInitOptions): Promise<WidgetConfig> => {
-  const endpoint = `/v1/widget/config?tenant_id=${encodeURIComponent(options.tenantId)}&product_id=${encodeURIComponent(options.productId)}`;
+  const query = `tenant_id=${encodeURIComponent(options.tenantId)}&product_id=${encodeURIComponent(options.productId)}`;
+  const endpoint = buildRequestUrl(resolveConfigBase(options), `widget/config?${query}`);
   const response = await fetch(endpoint, { method: "GET" });
   if (!response.ok) {
     throw toError("WIDGET_CONFIG_NOT_FOUND", "Failed to fetch widget config.");
@@ -81,7 +114,7 @@ const fetchConfig = async (options: WidgetInitOptions): Promise<WidgetConfig> =>
 const asArray = (events: WidgetTrackInput) => (Array.isArray(events) ? events : [events]);
 
 const postEvents = async (config: WidgetConfig, events: WidgetTrackInput): Promise<WidgetEventsResponse> => {
-  const response = await fetch(config.events_endpoint, {
+  const response = await fetch(buildRequestUrl(config.api_base_url, config.events_endpoint), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -115,7 +148,10 @@ const setupIframeMode = (
     sandbox?: string;
     style?: { width?: string; minHeight?: string; border?: string };
   };
-  iframe.src = config.script_url;
+  iframe.src = buildRequestUrl(
+    config.api_base_url,
+    `/widget/frame?tenant_id=${encodeURIComponent(config.tenant_id)}&product_id=${encodeURIComponent(config.product_id)}`,
+  );
   iframe.title = "FreeStyle Widget";
   iframe.sandbox = "allow-scripts allow-same-origin";
   iframe.style = {

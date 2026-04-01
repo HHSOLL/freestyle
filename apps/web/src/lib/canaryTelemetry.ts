@@ -24,6 +24,8 @@ type EventTimingEntry = PerformanceEntry & {
   interactionId?: number;
 };
 
+type CanaryPayload = Record<string, unknown>;
+
 let runtimePromise: Promise<CanaryRuntime | null> | null = null;
 
 const createEventId = () => globalThis.crypto?.randomUUID?.() ?? `evt_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -262,4 +264,16 @@ export const startCanaryTelemetry = () => {
     stopped = true;
     cleanups.forEach((cleanup) => cleanup());
   };
+};
+
+export const trackCanaryEvent = (eventName: string, payload: CanaryPayload = {}) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  void getRuntime().then((runtime) => postTelemetryEvent(runtime, eventName, payload));
+};
+
+export const trackAddToCartConversion = (payload: CanaryPayload = {}) => {
+  trackCanaryEvent("add_to_cart", payload);
 };

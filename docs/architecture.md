@@ -6,16 +6,22 @@
 
 ## Service Boundaries
 - Web: UI, 인증 세션, job 생성 요청, 상태 폴링, 결과 렌더
+- Widget SDK (`packages/widget-sdk`): `window.FreeStyleWidget.init(...)` 진입점 제공, script/iframe transport 모드 지원
 - Web auth flow:
   - Email/Kakao -> Supabase session
   - Naver -> Railway OAuth bridge -> Supabase admin magic link -> Supabase session
   - 로그인 유예 단계에서는 `NEXT_PUBLIC_AUTH_REQUIRED=false`로 두고, 브라우저별 익명 UUID를 `x-anonymous-user-id`로 전송해 Studio 데이터를 분리한다.
 - API: 인증/입력 검증/행 생성/잡 enqueue/status 조회
+  - Widget config/events는 `/v1/widget/config`, `/v1/widget/events` 계약으로 분리
 - Workers:
   - 기본 운영: runtime worker 1개가 importer/background_removal/asset_processor/evaluator/tryon을 모두 라우팅
   - 확장 운영: 병목 단계만 전용 worker로 분리
 
 > 참고: 기존 루트 `src/app/api/*` 레거시 핸들러는 저장소 호환성 때문에 남아 있을 수 있으나, 프로덕션 런타임 소유권은 Railway `apps/api`의 `/v1/*` 계약으로 고정한다.
+
+## Contract Packages
+- `packages/contracts`: widget/api 공용 schema + type source of truth
+- `packages/shared`: 기존 domain schema 외에 `packages/contracts`를 재수출해 backend/frontend에서 동일 계약을 사용
 
 ## Queue Model
 - BullMQ/Redis를 크리티컬 패스에서 제거

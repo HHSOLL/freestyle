@@ -1,11 +1,11 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { SectionReveal } from '@/components/layout/SectionReveal';
 import { marketingCopy } from '@/features/renewal-marketing/content';
+import { ImageOrbitBand } from '@/features/renewal-marketing/components/ImageOrbitBand';
 import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/LanguageContext';
 import { ArrowRight } from 'lucide-react';
@@ -16,7 +16,6 @@ export default function Home() {
   const copy = marketingCopy[language];
 
   const images = ['/cody3.jpg', '/cody4.jpg', '/cody5.jpg'];
-  const orbitImages = [...images, ...images, ...images];
   const primaryHref = user ? '/app/closet' : '/app/profile?next=%2Fapp%2Fcloset';
   const primaryLabel = user ? (language === 'ko' ? '옷장 열기' : 'Enter closet') : copy.hero.primaryCta;
 
@@ -70,66 +69,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.18 }}
-            className="relative mx-auto flex aspect-square w-full max-w-[720px] items-center justify-center overflow-hidden"
+            className="relative mx-auto flex w-full max-w-[720px] items-center justify-center overflow-hidden"
           >
-            <div className="absolute inset-[11%] rounded-full border border-black/10" />
-            <div className="absolute inset-[22%] rounded-full border border-black/6" />
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 48, ease: 'linear', repeat: Infinity }}
-              className="absolute inset-0"
-            >
-              {orbitImages.map((src, index) => {
-                const angle = (index / orbitImages.length) * Math.PI * 2;
-                const radiusPercent = 38;
-                const left = 50 + Math.cos(angle) * radiusPercent;
-                const top = 50 + Math.sin(angle) * radiusPercent;
-
-                return (
-                  <div
-                    key={`${src}-${index}`}
-                    className="absolute aspect-[10/14] w-[16%] min-w-[80px] max-w-[118px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-white/60 bg-black shadow-[0_28px_70px_rgba(17,17,17,0.16)] sm:rounded-[34px]"
-                    style={{ left: `${left}%`, top: `${top}%`, transform: `translate(-50%, -50%) rotate(${(angle * 180) / Math.PI + 90}deg)` }}
-                  >
-                    <div className="relative h-full w-full overflow-hidden">
-                      <Image
-                        src={src}
-                        alt={`${copy.hero.eyebrow} ${index + 1}`}
-                        fill
-                        priority={index < 3}
-                        className="object-cover"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </motion.div>
-
-            <motion.div
-              animate={{ rotate: -360 }}
-              transition={{ duration: 62, ease: 'linear', repeat: Infinity }}
-              className="absolute inset-[24%] rounded-full border border-black/8"
-            />
-
-            <div className="relative z-10 flex h-[48%] w-[48%] flex-col items-center justify-center rounded-full border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.96),_rgba(247,242,232,0.92)_58%,_rgba(238,229,216,0.96))] px-8 text-center shadow-[0_34px_90px_rgba(17,17,17,0.12)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-black/36">{copy.thesis.eyebrow}</p>
-              <h2 className="mt-4 font-serif text-2xl leading-[0.95] tracking-[-0.06em] text-black sm:text-[2.8rem]">
-                {language === 'ko' ? (
-                  <>
-                    <span className="block">옷장 중심으로</span>
-                    <span className="block">돌아가는 스타일 루프</span>
-                  </>
-                ) : (
-                  'A style loop orbiting around your closet'
-                )}
-              </h2>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-black/56">
-                {language === 'ko'
-                  ? '레퍼런스와 실물 옷이 한 원 안에서 자연스럽게 이어지고, 그 중심에 내 옷장이 남습니다.'
-                  : 'References and real garments keep circling inside one loop, with your own closet held at the center.'}
-              </p>
-            </div>
-            <div className="pointer-events-none absolute inset-x-[8%] bottom-0 h-32 bg-[radial-gradient(circle_at_center,_rgba(17,17,17,0.08),_transparent_68%)] blur-2xl" />
+            <ImageOrbitBand images={images} />
           </motion.div>
         </div>
       </section>

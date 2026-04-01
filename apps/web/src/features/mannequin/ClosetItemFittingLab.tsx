@@ -170,6 +170,12 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
           avatarSource: '공개 avatar asset',
           demoRack: '데모 랙',
           demoRackHint: '옷장이 비어 있거나 API에 연결되지 않아 기본 dress-up 샘플을 보여주고 있습니다.',
+          creatorTitle: '캐릭터 생성',
+          creatorHint: '좌우 패널에서 에셋과 캐릭터 프리셋을 바꾸고, 중앙 무대에서 바로 피팅을 확인하세요.',
+          detailFitting: '상세 피팅',
+          stageAction: '캔버스 열기',
+          quickMenu: '퀵 메뉴',
+          quickLooks: '현재 입힌 룩',
         }
       : {
           eyebrow: 'Closet / Fitting Lab',
@@ -219,6 +225,12 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
           avatarSource: 'Public avatar asset',
           demoRack: 'Demo rack',
           demoRackHint: 'The closet is empty or the API is unavailable, so the built-in dress-up sample is loaded.',
+          creatorTitle: 'Character creator',
+          creatorHint: 'Swap assets and avatar presets from the side panels, then inspect the fitting live on the central stage.',
+          detailFitting: 'Detailed fit',
+          stageAction: 'Open canvas',
+          quickMenu: 'Quick menu',
+          quickLooks: 'Current look',
         };
 
   const activateDemoRack = useCallback(() => {
@@ -704,7 +716,309 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     </div>
   );
 
-  const workspace = (
+  const compactWorkspace = (
+    <div className="min-h-[calc(100svh-88px)] overflow-y-auto bg-[linear-gradient(180deg,#0b0910_0%,#07060a_100%)] text-white sm:min-h-[calc(100svh-92px)] lg:h-[calc(100svh-92px)] lg:overflow-hidden">
+      <section className="grid min-h-full gap-0 lg:h-full lg:min-h-0 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
+        <aside className="flex min-h-0 flex-col border-r border-white/10 bg-[linear-gradient(180deg,rgba(16,13,21,0.96),rgba(8,7,11,0.96))]">
+          <div className="border-b border-white/8 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#bda67a]">{copy.workspaceEyebrow}</p>
+            <h1 className="mt-3 font-serif text-3xl tracking-[-0.06em] text-white">{copy.creatorTitle}</h1>
+            <p className="mt-3 text-sm leading-6 text-white/62">{copy.creatorHint}</p>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+            {usingDemoRack ? (
+              <div className="rounded-[20px] border border-[#d1b278]/35 bg-[#1a1410] px-4 py-3 text-sm leading-6 text-[#f0dcc0]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#d1b278]">{copy.demoRack}</p>
+                <p className="mt-1 text-white/70">{copy.demoRackHint}</p>
+              </div>
+            ) : null}
+
+            <label className="block">
+              <span className="sr-only">{copy.search}</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={copy.search}
+                className="h-11 w-full rounded-[16px] border border-white/12 bg-black/24 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#d1b278]/58"
+              />
+            </label>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.quickLooks}</p>
+              <div className="grid grid-cols-4 gap-2">
+                {activeAssets.slice(0, 8).map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    onClick={() => setSelectedAssetId(asset.id)}
+                    className={`overflow-hidden rounded-[14px] border transition ${
+                      selectedAssetId === asset.id ? 'border-[#d1b278] bg-white/10' : 'border-white/10 bg-white/[0.03]'
+                    }`}
+                  >
+                    <div className="aspect-square bg-[#16131a]">
+                      <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.categories}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {visibleCategories.map((entry) => {
+                  const active = category === entry;
+                  const label = entry === 'all' ? copy.allCategories : getClosetCategoryLabel(entry, language);
+                  return (
+                    <button
+                      key={entry}
+                      type="button"
+                      onClick={() => setCategory(entry)}
+                      className={`rounded-[16px] border px-3 py-2 text-left text-xs font-semibold transition ${
+                        active
+                          ? 'border-[#d1b278] bg-[#18120d] text-[#f3ddbc]'
+                          : 'border-white/10 bg-white/[0.03] text-white/62'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.library}</p>
+              {assets.length === 0 ? (
+                <div className="rounded-[20px] border border-dashed border-white/16 px-4 py-6 text-sm leading-6 text-white/50">
+                  {copy.emptyCloset}
+                </div>
+              ) : filteredAssets.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {filteredAssets.map((asset) => {
+                    const active = activeAssetIds.includes(asset.id);
+                    return (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => handleToggleAsset(asset)}
+                        className={`overflow-hidden rounded-[18px] border text-left transition ${
+                          selectedAssetId === asset.id
+                            ? 'border-[#d1b278] bg-[#18120d]'
+                            : active
+                              ? 'border-white/20 bg-white/[0.05]'
+                              : 'border-white/10 bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="aspect-[1.02] bg-[#15121a]">
+                          <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-2" />
+                        </div>
+                        <div className="px-3 py-3">
+                          <p className="truncate text-sm font-semibold text-white">{asset.name}</p>
+                          <p className="mt-1 truncate text-[10px] uppercase tracking-[0.18em] text-white/42">
+                            {getClosetCategoryLabel(asset.category, language)}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[20px] border border-dashed border-white/16 px-4 py-6 text-sm leading-6 text-white/50">
+                  {copy.empty}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <section className="relative min-h-[560px] overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(88,67,130,0.22),_rgba(11,9,16,0.98)_58%)] lg:min-h-0">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-6 pt-5">
+            <div className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">
+              {copy.stageHint}
+            </div>
+            <div className="rounded-full border border-[#d1b278]/30 bg-[#18120d]/85 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f3ddbc]">
+              {copy.layerCount(layers.length)}
+            </div>
+          </div>
+
+          <div className="absolute left-5 top-24 z-10 hidden flex-col gap-2 lg:flex">
+            {[
+              { label: copy.quickMenu, value: copy.avatars },
+              { label: copy.mannequin, value: copy.body },
+              { label: copy.garmentSet, value: `${activeAssets.length}` },
+            ].map((entry) => (
+              <div key={entry.label} className="rounded-[16px] border border-white/10 bg-black/30 px-3 py-2 text-white/74 backdrop-blur-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">{entry.label}</p>
+                <p className="mt-1 text-xs font-medium">{entry.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {equippedSlots.length > 0 ? (
+            <div className="absolute right-5 top-24 z-10 hidden flex-col gap-2 xl:flex">
+              {equippedSlots.map((asset) => (
+                <button
+                  key={asset.id}
+                  type="button"
+                  onClick={() => setSelectedAssetId(asset.id)}
+                  className={`flex items-center gap-2 rounded-[16px] border px-2 py-2 text-left shadow-sm backdrop-blur-sm transition ${
+                    selectedAssetId === asset.id
+                      ? 'border-[#d1b278] bg-[#18120d]/92 text-white'
+                      : 'border-white/14 bg-black/32 text-white/82'
+                  }`}
+                >
+                  <div className="h-11 w-11 overflow-hidden rounded-[12px] bg-white/90">
+                    <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
+                  </div>
+                  <div className="hidden min-w-0 sm:block">
+                    <p className="truncate text-xs font-semibold">{asset.name}</p>
+                    <p className="truncate text-[10px] uppercase tracking-[0.18em] text-white/46">
+                      {getClosetCategoryLabel(asset.category, language)}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="h-[560px] lg:h-full">
+            <MannequinScene3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-[18%] bottom-10 h-24 bg-[radial-gradient(circle_at_center,_rgba(106,82,160,0.24),_transparent_72%)] blur-2xl" />
+          <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
+            <Button asChild className="h-12 rounded-none border border-white/12 bg-[#303745]/88 px-10 text-white hover:bg-[#394154]">
+              <Link href="/studio">{copy.stageAction}</Link>
+            </Button>
+          </div>
+        </section>
+
+        <aside className="flex min-h-0 flex-col border-l border-white/10 bg-[linear-gradient(180deg,rgba(8,10,16,0.96),rgba(5,7,11,0.96))]">
+          <div className="border-b border-white/8 px-5 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d1b278]">{copy.creatorTitle}</p>
+            <p className="mt-2 text-sm leading-5 text-white/60">{copy.mannequinHint}</p>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-3">
+            <section className="space-y-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.avatars}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {avatarPresets.map((preset) => {
+                  const active = preset.id === avatarId;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setAvatarId(preset.id)}
+                      className={`rounded-[16px] border px-2 py-3 text-center transition ${
+                        active ? 'border-[#d1b278] bg-[#18120d] text-[#f3ddbc]' : 'border-white/10 bg-white/[0.03] text-white/68'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">{preset.label[language]}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/38">{preset.license}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.selectedGarment}</p>
+              {selectedAsset ? (
+                <div className="mt-2.5 flex items-start gap-3">
+                  <div className="h-14 w-14 overflow-hidden rounded-[16px] bg-white/90">
+                    <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-2" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-base font-semibold text-white">{selectedAsset.name}</h3>
+                    <p className="mt-0.5 text-sm text-white/58">{getClosetCategoryLabel(selectedAsset.category, language)}</p>
+                    {selectedMeasurementSummary.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {selectedMeasurementSummary.slice(0, 3).map((line) => (
+                          <span key={line} className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-semibold text-white/66">
+                            {line}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-white/50">{copy.emptySelection}</p>
+              )}
+            </section>
+
+            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
+              <div className="mb-2.5 flex items-center gap-2">
+                <Ruler className="h-4 w-4 text-[#d1b278]" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.summaries}</p>
+              </div>
+              <div className="grid gap-2">
+                {selectedLayer?.fitSummary.length ? (
+                  selectedLayer.fitSummary.map((summary) => (
+                    <div key={summary.label} className="rounded-[16px] border border-white/10 bg-black/18 px-3 py-2">
+                      <p className="text-[13px] font-semibold text-white">{summary.label}</p>
+                      <p className="text-[11px] text-white/44">{summary.easeCm} cm ease</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm leading-6 text-white/50">{copy.noFitAsset}</p>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.body}</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+                {bodyFields.map((field) => (
+                  <label key={field.key} className="block">
+                    <div className="mb-0.5 flex items-center justify-between text-[10px] font-semibold text-white/52">
+                      <span>{field.label}</span>
+                      <span>{bodyProfile[field.key]} cm</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={field.min}
+                      max={field.max}
+                      value={bodyProfile[field.key]}
+                      onChange={(event) =>
+                        setBodyProfile((prev) => ({
+                          ...prev,
+                          [field.key]: Number(event.target.value),
+                        }))
+                      }
+                      className="w-full accent-[#d1b278]"
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-2 border-t border-white/8 px-5 py-3">
+            {selectedAsset ? (
+              <Button asChild variant="outline" className="h-10 rounded-none border-white/12 bg-white/[0.04] text-white hover:bg-white/[0.08]">
+                <Link href={`/app/closet/item/${selectedAsset.id}`}>{copy.detailFitting}</Link>
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-none border-white/12 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+              onClick={() => setBodyProfile(defaultBodyProfile)}
+            >
+              {copy.resetBody}
+            </Button>
+          </div>
+        </aside>
+      </section>
+    </div>
+  );
+
+  const standardWorkspace = (
     <div className="space-y-4">
       {compact ? (
         <section className="grid gap-3 border-b border-black/8 pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
@@ -924,8 +1238,10 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     </div>
   );
 
+  const workspace = compact ? compactWorkspace : standardWorkspace;
+
   const renderFrame = (content: ReactNode) => {
-    if (compact) return <div className="space-y-4">{content}</div>;
+    if (compact) return content;
 
     const title = focusAsset ? (language === 'ko' ? `${focusAsset.name} 피팅 랩` : `${focusAsset.name} Fitting Lab`) : copy.title;
     return (

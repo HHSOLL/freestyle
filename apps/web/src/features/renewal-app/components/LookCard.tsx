@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Link as LinkIcon, Trash2 } from 'lucide-react';
+import { GlassPanel } from '@/components/layout/ShellPrimitives';
 import { appChromeCopy } from '@/features/renewal-app/content';
 import { formatWardrobeDate, type WardrobeLook } from '@/features/renewal-app/data';
 import { useLanguage } from '@/lib/LanguageContext';
@@ -18,7 +19,7 @@ export function LookCard({ look, onCopyShare, onDelete }: LookCardProps) {
   const copy = appChromeCopy[language];
 
   return (
-    <article className="overflow-hidden border border-black/8 bg-white">
+    <GlassPanel as="article" className="overflow-hidden">
       <div className="relative aspect-[3/4] bg-black/5">
         <Image
           src={look.previewImage}
@@ -48,7 +49,7 @@ export function LookCard({ look, onCopyShare, onDelete }: LookCardProps) {
         <div className="flex gap-2">
           <Link
             href={`/share/${look.shareSlug}`}
-            className="inline-flex items-center justify-center border border-black/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/58 transition hover:border-black/20 hover:text-black"
+            className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white/68 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/58 transition hover:border-black/20 hover:bg-white hover:text-black"
           >
             {copy.viewShare}
           </Link>
@@ -56,7 +57,7 @@ export function LookCard({ look, onCopyShare, onDelete }: LookCardProps) {
             <button
               type="button"
               onClick={() => onCopyShare(look.shareSlug)}
-              className="inline-flex items-center justify-center gap-2 border border-black/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/58 transition hover:border-black/20 hover:text-black"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white/68 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/58 transition hover:border-black/20 hover:bg-white hover:text-black"
             >
               <LinkIcon className="h-3.5 w-3.5" />
               {copy.copy}
@@ -64,6 +65,6 @@ export function LookCard({ look, onCopyShare, onDelete }: LookCardProps) {
           ) : null}
         </div>
       </div>
-    </article>
+    </GlassPanel>
   );
 }

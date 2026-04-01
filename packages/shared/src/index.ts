@@ -1,4 +1,5 @@
 import { z } from "zod";
+export * from "../../contracts/src/index.js";
 
 export const JOB_TYPES = {
   IMPORT_PRODUCT_URL: "import.product_url",

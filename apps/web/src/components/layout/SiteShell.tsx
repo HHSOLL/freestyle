@@ -2,16 +2,17 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { Header as LegacyHeader } from '@/components/layout/Header';
-import MobileNav from '@/components/layout/MobileNav';
 import { MarketingFooter } from '@/components/layout/MarketingFooter';
 import { MarketingHeader } from '@/components/layout/MarketingHeader';
 import { AppShellFrame } from '@/components/layout/AppShellFrame';
+import { UnifiedTopbar } from '@/components/layout/UnifiedTopbar';
 
 const isAppPath = (pathname: string) =>
   pathname === '/app' || pathname.startsWith('/app/') || pathname === '/studio' || pathname.startsWith('/studio/');
 
-const isMarketingPath = (pathname: string) => pathname === '/';
+const marketingPaths = new Set(['/', '/examples', '/how-it-works']);
+
+const isMarketingPath = (pathname: string) => marketingPaths.has(pathname);
 
 const isSystemPath = (pathname: string) => pathname === '/auth/callback';
 
@@ -28,7 +29,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (isMarketingPath(pathname)) {
     return (
-      <div className="min-h-screen bg-[linear-gradient(180deg,#f7f2e8_0%,#f5efe3_18%,#ffffff_46%,#f5f1e8_100%)] text-foreground">
+      <div className="shell-marketing-backdrop min-h-screen pt-[88px] text-foreground sm:pt-[92px]">
         <MarketingHeader />
         <main>{children}</main>
         <MarketingFooter />
@@ -37,10 +38,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
-      <LegacyHeader />
-      <main className="min-h-screen pt-16 pb-16 md:pb-0">{children}</main>
-      <MobileNav />
-    </>
+    <div className="shell-neutral-backdrop min-h-screen pt-[88px] sm:pt-[92px]">
+      <UnifiedTopbar />
+      <main className="min-h-[calc(100svh-88px)] pb-10 sm:min-h-[calc(100svh-92px)] sm:pb-12">{children}</main>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
@@ -10,14 +11,13 @@ import { registerEvaluationRoutes } from "./routes/evaluations.routes.js";
 import { registerOutfitRoutes } from "./routes/outfits.routes.js";
 import { registerTryonRoutes } from "./routes/tryons.routes.js";
 import { registerAuthRoutes } from "./routes/auth.routes.js";
+import { registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
 
 const port = Number.parseInt(process.env.PORT || "8080", 10);
 const host = process.env.HOST || "0.0.0.0";
 
-assertAdminClientConfig();
-
-const buildServer = () => {
+export const buildServer = () => {
   const app = Fastify({ logger: true, bodyLimit: 20 * 1024 * 1024 });
   const originPolicy = buildOriginPolicy();
 
@@ -48,6 +48,7 @@ const buildServer = () => {
     registerEvaluationRoutes(v1);
     registerOutfitRoutes(v1);
     registerTryonRoutes(v1);
+    registerWidgetRoutes(v1);
   }, { prefix: "/v1" });
 
   app.setErrorHandler((error, request, reply) => {
@@ -62,13 +63,28 @@ const buildServer = () => {
   return app;
 };
 
-const app = buildServer();
-app
-  .listen({ host, port })
-  .then(() => {
+const shouldStartServer = () => {
+  const entrypoint = process.argv[1];
+  if (!entrypoint) {
+    return false;
+  }
+
+  return import.meta.url === pathToFileURL(entrypoint).href;
+};
+
+const startServer = async () => {
+  assertAdminClientConfig();
+
+  const app = buildServer();
+  try {
+    await app.listen({ host, port });
     app.log.info({ port, host }, "API server started");
-  })
-  .catch((error) => {
+  } catch (error) {
     app.log.error({ err: error }, "Failed to start API server");
     process.exit(1);
-  });
+  }
+};
+
+if (shouldStartServer()) {
+  void startServer();
+}

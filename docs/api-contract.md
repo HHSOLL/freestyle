@@ -19,6 +19,94 @@
 - 성공 시 Supabase admin magic link(`action_link`)로 `302 redirect`
 - 실패 시 가능한 경우 `redirect_to`에 `error_description`을 붙여 다시 redirect
 
+## Widget
+
+### `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
+Response
+```json
+{
+  "widget_id": "freestyle-widget",
+  "tenant_id": "tenant-a",
+  "product_id": "sku-123",
+  "api_base_url": "https://api.example.com/v1",
+  "events_endpoint": "/v1/widget/events",
+  "script_url": "https://api.example.com/widget/sdk.js",
+  "stylesheet_url": "https://api.example.com/widget/sdk.css",
+  "asset_base_url": "https://api.example.com/assets",
+  "allowed_origins": ["https://shop.example.com"],
+  "feature_flags": {
+    "phase_0_5_canary_enabled": false
+  },
+  "theme": {
+    "mode": "auto",
+    "accent": "#D1B278"
+  },
+  "expires_at": "2026-04-01T10:00:00.000Z",
+  "dedupe_window_seconds": 86400,
+  "partial_accept": true,
+  "rate_limit": {
+    "max_events": 60,
+    "window_seconds": 60
+  },
+  "error_codes": [
+    "WIDGET_CONFIG_NOT_FOUND",
+    "WIDGET_ORIGIN_DENIED",
+    "WIDGET_EVENT_INVALID",
+    "WIDGET_EVENT_RATE_LIMITED",
+    "WIDGET_MOUNT_FAILED",
+    "WIDGET_ASSET_LOAD_FAILED"
+  ]
+}
+```
+
+### `POST /v1/widget/events`
+Request
+```json
+{
+  "tenant_id": "tenant-a",
+  "product_id": "sku-123",
+  "events": [
+    {
+      "event_id": "evt_001",
+      "event_name": "widget_loaded",
+      "tenant_id": "tenant-a",
+      "product_id": "sku-123",
+      "idempotency_key": "optional-key",
+      "page_url": "https://shop.example.com/products/sku-123",
+      "payload": {
+        "mode": "iframe"
+      }
+    }
+  ]
+}
+```
+
+Response (`202 Accepted` partial-accept)
+```json
+{
+  "request_id": "req-1",
+  "received_count": 1,
+  "accepted_count": 1,
+  "duplicate_count": 0,
+  "rejected_count": 0,
+  "accepted": [
+    {
+      "event_id": "evt_001",
+      "status": "accepted"
+    }
+  ],
+  "rejected": []
+}
+```
+
+Notes
+- origin allowlist를 통과하지 못하면 `403 WIDGET_ORIGIN_DENIED`.
+- `event_id`는 필수, `idempotency_key`는 optional.
+- dedupe window는 24시간.
+- 동일 요청 안에서도 invalid event는 reject하고 valid event는 수용하는 partial-accept 정책이다.
+- `tenant_id`/`product_id` 불일치 event는 `WIDGET_EVENT_INVALID`.
+- iframe 모드 postMessage 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
+
 ## Jobs Import
 
 ### `POST /v1/jobs/import/product`
@@ -135,6 +223,13 @@ Notes
 - 각 asset row는 `metadata`에 원본 크기, cutout trim/quality, 측정치(`measurements`), fit profile, dominant color를 포함할 수 있다.
 - `metadata.cutout`에는 `strategy`, `fallbackUsed`, `quality`, `trimRect`가 포함될 수 있다.
 - asset row는 `name`, `brand`, `source_url` top-level 필드도 유지하며, Studio/Closet UI는 이 값과 `metadata.sourceTitle/sourceBrand/sourceUrl`을 함께 fallback으로 사용한다.
+
+### `GET /v1/assets/:id`
+Response
+- 현재 사용자(또는 익명 UUID)가 소유한 asset row를 반환
+
+Failure
+- 소유하지 않았거나 존재하지 않는 asset은 `404`
 
 ### `PATCH /v1/assets/:id`
 Request

@@ -8,6 +8,8 @@
 - `apps/api`: Railway 배포 대상 Fastify API (`/v1/*`)
 - `workers/*`: 배경 처리 워커 정의 + 통합 런타임(`workers/runtime`)
 - `packages/shared`: 공통 types/zod schemas/constants
+- `packages/contracts`: widget/api 공용 계약(zod schemas + types)
+- `packages/widget-sdk`: 임베드 위젯 init/track SDK
 - `packages/db`: Supabase DB query layer + job RPC 호출
 - `packages/queue`: Postgres jobs polling loop
 - `packages/storage`: Supabase/S3 어댑터
@@ -38,6 +40,7 @@
   - `POST /v1/jobs/import/cart`
   - `POST /v1/jobs/import/upload`
   - `GET /v1/jobs/:job_id`
+  - `GET /v1/assets/:id`
   - `PATCH /v1/assets/:id`
 - importer worker가 `products`, `product_images`, `assets(original)`를 생성하고 `background_removal.process`를 enqueue한다.
 - importer worker는 가능하면 상품명/브랜드/측정치(`measurements`)를 함께 추출해 `assets.metadata`에 저장한다.
@@ -63,18 +66,34 @@
 - `redirect_to`는 절대 URL이어야 하며, API origin policy(`CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`)를 통과해야 한다.
 - Naver callback은 state(HMAC) 검증 후 profile email을 Supabase admin `generateLink(type=magiclink)`에 연결한다.
 
-6. 큐/워커
+6. Widget 계약(Phase 0.5/3)
+- `GET /v1/widget/config?tenant_id=<id>&product_id=<id>`
+  - 응답은 `theme`, `feature_flags`, `asset_base_url`, `allowed_origins`, `expires_at`, `rate_limit`, `dedupe_window_seconds`를 포함한다.
+- `POST /v1/widget/events`
+  - batch 수집(`events[]`)을 지원하며 `event_id`는 필수, `idempotency_key`는 optional이다.
+  - dedupe window는 기본 24시간이며, API는 partial-accept 응답(`accepted`, `duplicate`, `rejected`)을 반환한다.
+  - 이벤트 envelope의 `tenant_id`/`product_id`와 event payload 값이 불일치하면 `WIDGET_EVENT_INVALID`로 reject한다.
+- 위젯 관련 실패 코드는 다음 taxonomy를 고정한다.
+  - `WIDGET_CONFIG_NOT_FOUND`
+  - `WIDGET_ORIGIN_DENIED`
+  - `WIDGET_EVENT_INVALID`
+  - `WIDGET_EVENT_RATE_LIMITED`
+  - `WIDGET_MOUNT_FAILED`
+  - `WIDGET_ASSET_LOAD_FAILED`
+- iframe 모드 메시지 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
+
+7. 큐/워커
 - 큐 백엔드는 Postgres `jobs` 테이블이다.
 - claim은 RPC `claim_jobs` + `FOR UPDATE SKIP LOCKED`를 사용한다.
 - heartbeat/reaper는 `heartbeat_jobs`, `requeue_stale_jobs` RPC로 수행한다.
 - 원격 프로젝트에 jobs RPC가 아직 없는 경우, `packages/db`는 단일 인스턴스 배포 기준 optimistic claim/update fallback으로 계속 동작한다. 운영에서는 RPC 마이그레이션 적용을 우선하고, fallback은 호환성 안전장치로만 간주한다.
 - `packages/queue`의 공통 런타임이 retry/backoff/poison 처리 규칙을 제공한다.
 
-7. 페이지 구성 원칙
+8. 페이지 구성 원칙
 - 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 현재 공개 UI surface는 `홈(/)`, `옷장(/app/closet)`, `캔버스(/studio)`, `발견(/app/discover)`, `마이페이지(/app/profile)`만 유지한다.
-- 공개/앱 셸 네비게이션은 상단 고정바 기준으로 유지하고, 좌측 전용 사이드바를 새 기본 UX로 되살리지 않는다.
+- 공개/앱 셸 네비게이션은 홈과 동일한 상단 고정바를 기준으로 유지하고, 좌측 전용 사이드바를 새 기본 UX로 되살리지 않는다.
 - `looks`, `decide`, `journal`, `examples`, `how-it-works`, `trends`, 레거시 `/profile`은 새로운 핵심 surface로 redirect하는 것을 기본 정책으로 둔다.
 - 인증이 필요한 화면은 `AuthGate`로 보호하고, 인증 체크는 hook 호출 이후 return 하도록 유지해 React hook 순서를 깨지 않는다.
 - `AuthGate`는 이메일 magic link와 소셜 로그인 버튼(Kakao/Naver)을 함께 렌더링한다. 소셜 버튼 활성 여부는 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED`로 제어한다.
@@ -85,11 +104,12 @@
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
 - Studio는 3가지 핵심 flow를 항상 우선 보장한다: `asset 생성(업로드/URL/장바구니 + 누끼)`, `canvas 배치`, `3D mannequin fitting`.
 - 3D mannequin fitting은 canvas 조합과 옷장 asset 둘 다 같은 surface에서 다뤄야 하며, body profile과 garment measurements를 동시에 조절할 수 있어야 한다.
-- `/app/closet`은 요약 대시보드보다 `좌측 에셋 라이브러리 + 중앙 3D 마네킹 + 우측 body/fit control` 워크스페이스를 기본값으로 유지한다.
+- `/app/closet`은 요약 대시보드보다 `좌측 에셋 라이브러리 + 중앙 3D 마네킹 + 우측 body/fit control` 워크스페이스를 기본값으로 유지하고, 페이지 자체는 한 화면 height budget 안에서 닫아 문서 스크롤이 생기지 않게 설계한다.
 - 공개 3D avatar/mannequin asset을 번들링할 때는 `apps/web/public/assets/**`에 두고, 출처/저자/라이선스를 `docs/OPEN_ASSET_CREDITS.md`와 preset metadata에 같이 기록한다.
-- 게임형 dress-up preview는 `/app/closet` 하단 `Character Studio`에서 분리 제공하고, Quaternius modular pack 같은 공개 슬롯 교체형 3D asset만 사용한다. 사용자 업로드 상품 preview와 같은 렌더링 원리로 섞지 않는다.
+- 게임형 dress-up UI 언어는 `/app/closet` 기본 workspace 안으로 흡수하되, 사용자 업로드 상품 preview와 공개 슬롯 교체형 3D asset의 렌더링 원리는 분리 유지한다.
 - Discover는 inspiration feed를 직접 노출하되, 사용자가 바로 `closet` 또는 `canvas`로 이동해 번역 작업을 이어갈 수 있어야 한다.
 - Studio 요약 패널/캔버스는 `asset.sourceUrl`이 있는 항목 클릭 시 링크 말풍선을 노출해 원본 상품 페이지로 즉시 이동할 수 있어야 한다.
+- 홈 hero orbit는 사진 카드를 띄우는 구성이 아니라, 이어붙인 이미지 band를 원형으로 잘라 지속 회전시키는 visual contract를 유지한다.
 
 ## 4. 개발 규칙
 - 타입 안정성 우선: `any` 사용 금지, `unknown + narrowing` 권장
@@ -164,6 +184,7 @@
 ## 7. 변경 시 문서 동기화
 아래 항목 변경 시 문서를 반드시 같이 수정합니다.
 - 새 API 추가/스키마 변경: 본 문서 + `docs/MAINTENANCE_PLAYBOOK.md`
+- 계약 변경(Widget/UI token/error taxonomy): `docs/replatform-v2/contracts-freeze.md` + `docs/replatform-v2/ownership-map.md`
 - 환경 변수 추가: `README.md`
 - 작업 규칙 변경: `AGENTS.md`
 - 최신 최적화 채택: `docs/TECH_WATCH.md` + 관련 가이드

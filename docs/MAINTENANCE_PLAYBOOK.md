@@ -19,6 +19,8 @@
 - `/v1/jobs/evaluations`
 - `/v1/jobs/tryons`
 - `/v1/auth/naver/start`
+- `/v1/widget/config?tenant_id={tenant}&product_id={product}`
+- `/v1/widget/events`
 - `/auth/callback`
 7. 주요 UI smoke check
 - `/`
@@ -26,7 +28,8 @@
 - `/studio`
 - `/app/discover`
 - `/app/profile`
-- `/app/looks`, `/app/decide`, `/app/journal`, `/examples`, `/how-it-works`, `/trends`, `/profile`가 기대한 핵심 surface로 redirect되는지 확인
+- `/app/looks`, `/app/decide`, `/app/journal`, `/examples`, `/how-it-works`가 informational shell로 정상 렌더링되고 CTA handoff가 동작하는지 확인
+- `/trends`, `/profile` 레거시 경로가 기대한 핵심 surface로 redirect되는지 확인
 
 ## 2. 배포 전 체크리스트
 1. 환경 변수 확인
@@ -63,6 +66,12 @@
 - 자동 배포가 계속 멈추면 Vercel Dashboard의 Deployments 화면에서 Git reference(branch 또는 commit SHA) 기준 수동 deployment를 생성해 우회할 수 있다.
 6. 품질 파이프라인 확인
 - `.github/workflows/quality.yml` 성공 여부 확인
+7. 롤아웃 거버넌스 확인
+- `docs/rollout-governance/ownership-manifest.md`에서 배포/런타임/데이터 owner와 rollback authority를 확인
+- `docs/rollout-governance/baseline-metrics-template.md`에 최신 승인 baseline이 기록되어 있는지 확인
+- `docs/rollout-governance/baseline-snapshots.md` 기준으로 desktop/mobile baseline 캡처가 준비되어 있는지 확인
+- `docs/rollout-governance/canary-gates.md`의 progression(`1% -> 5% -> 25% -> 100%`)과 stop/rollback gate를 배포 티켓에 반영
+- `docs/rollout-governance/feature-flag-matrix.md` 기준으로 release flag와 kill switch가 준비되어 있는지 확인
 
 ## 3. 장애 대응 가이드
 1. 프론트/백엔드 라우팅 이슈
@@ -144,6 +153,8 @@
 - 운영에서 `STRICT_NO_MODEL_IMPORT=true`를 유지해 모델컷 전용 후보 저장을 차단한다.
 - 운영에서 `HUMAN_FACE_MODEL_SOURCE=local`을 권장하고, 모델 파일 경로를 배포 아티팩트에 포함한다.
 - Railway 비용을 줄이려면 기본적으로 `api + worker_importer(통합 worker)`만 유지하고, 나머지 worker 서비스는 `scale 0` 또는 제거 상태로 관리한다.
+- Phase `0.5/4/5` canary는 `docs/rollout-governance/canary-gates.md`의 gate breach가 발생하면 즉시 progression을 멈추고 현재 stage를 rollback한다.
+- incident 종료 후에는 `infra/runbooks/postmortem-template.md`로 postmortem을 남긴다.
 
 ## 4. 유지보수 원칙
 - 작은 수정도 lint/typecheck/build를 통과시킨다.

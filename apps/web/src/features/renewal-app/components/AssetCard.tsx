@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
+import { GlassPanel } from '@/components/layout/ShellPrimitives';
 import { appChromeCopy } from '@/features/renewal-app/content';
 import { getWardrobeSourceLabel, type WardrobeAsset } from '@/features/renewal-app/data';
 import { useLanguage } from '@/lib/LanguageContext';
@@ -18,7 +19,7 @@ export function AssetCard({ asset, categoryLabel, onDelete }: AssetCardProps) {
   const copy = appChromeCopy[language];
 
   return (
-    <article className="overflow-hidden border border-black/8 bg-white">
+    <GlassPanel as="article" className="overflow-hidden">
       <div className="relative aspect-[3/4] bg-black/5">
         <Image
           src={asset.imageSrc}
@@ -47,11 +48,11 @@ export function AssetCard({ asset, categoryLabel, onDelete }: AssetCardProps) {
         </div>
         <Link
           href={`/app/closet/item/${asset.id}`}
-          className="inline-flex text-[11px] font-semibold uppercase tracking-[0.16em] text-black/56 transition hover:text-black"
+          className="inline-flex rounded-full border border-black/10 bg-white/68 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/56 transition hover:border-black/20 hover:bg-white hover:text-black"
         >
           {copy.itemDetail}
         </Link>
       </div>
-    </article>
+    </GlassPanel>
   );
 }

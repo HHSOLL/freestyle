@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   widgetConfigQuerySchema,
@@ -19,6 +20,291 @@ const WIDGET_EVENT_REPLAY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const WIDGET_EVENT_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const WIDGET_RATE_LIMIT_MAX_EVENTS = 60;
 const WIDGET_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const WIDGET_CACHE_CONTROL_MUTABLE = "public, max-age=300";
+const WIDGET_CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
+
+const WIDGET_SDK_CSS_SOURCE = `
+.freestyle-widget-root {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  border-radius: 24px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background:
+    radial-gradient(circle at top, rgba(209, 178, 120, 0.18), transparent 48%),
+    rgba(255, 255, 255, 0.92);
+  color: #111111;
+  font-family: "A2J", "Helvetica Neue", sans-serif;
+  box-shadow: 0 28px 80px rgba(17, 17, 17, 0.12);
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+}
+
+.freestyle-widget-root,
+.freestyle-widget-root * {
+  box-sizing: border-box;
+}
+
+.freestyle-widget-shell {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.freestyle-widget-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.56);
+}
+
+.freestyle-widget-title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.freestyle-widget-body {
+  margin: 0;
+  max-width: 56ch;
+  color: rgba(17, 17, 17, 0.64);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.freestyle-widget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.freestyle-widget-button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.freestyle-widget-button-primary {
+  background: #111111;
+  color: #ffffff;
+}
+
+.freestyle-widget-button-secondary {
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  color: #111111;
+}
+
+.freestyle-widget-status {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(17, 17, 17, 0.48);
+}
+
+.freestyle-widget-frame {
+  width: 100%;
+  min-height: 560px;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+}
+`.trim();
+
+const WIDGET_SDK_JS_SOURCE = `
+(() => {
+  const globalWindow = window;
+  const scriptElement = document.currentScript;
+  const assetOrigin = (() => {
+    try {
+      return scriptElement && scriptElement.src ? new URL(scriptElement.src).origin : window.location.origin;
+    } catch {
+      return window.location.origin;
+    }
+  })();
+  const apiBaseUrl = assetOrigin + "/v1";
+
+  const toError = (code, message, cause) => ({
+    code,
+    message,
+    recoverable: true,
+    cause,
+  });
+
+  const ensureMountTarget = (mount) => {
+    const target = typeof mount === "string" ? document.querySelector(mount) : mount;
+    if (!target) {
+      throw toError("WIDGET_MOUNT_FAILED", "Mount target not found.");
+    }
+    return target;
+  };
+
+  const injectStylesheet = (href, integrity) => {
+    const existing = document.querySelector('link[data-freestyle-widget-style="true"]');
+    if (existing) {
+      return;
+    }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.freestyleWidgetStyle = "true";
+    if (integrity) {
+      link.integrity = integrity;
+      link.crossOrigin = "anonymous";
+    }
+    document.head.appendChild(link);
+  };
+
+  const renderScriptSurface = (mountTarget, config, options) => {
+    const root = document.createElement("section");
+    root.className = "freestyle-widget-root";
+    root.innerHTML = [
+      '<div class="freestyle-widget-shell">',
+      '  <span class="freestyle-widget-pill">FreeStyle Widget</span>',
+      '  <h2 class="freestyle-widget-title">Embed-ready outfit entry point</h2>',
+      '  <p class="freestyle-widget-body">This runtime is served directly from the API and aligned with the widget config contract. Use your host actions to collect config, telemetry, and mount state safely.</p>',
+      '  <div class="freestyle-widget-actions">',
+      '    <button type="button" class="freestyle-widget-button freestyle-widget-button-primary" data-widget-action="loaded">Track loaded</button>',
+      '    <button type="button" class="freestyle-widget-button freestyle-widget-button-secondary" data-widget-action="open">Open product</button>',
+      '  </div>',
+      '  <p class="freestyle-widget-status">Tenant: ' + config.tenant_id + ' · Product: ' + config.product_id + '</p>',
+      '</div>',
+    ].join("");
+
+    root.querySelector('[data-widget-action="loaded"]')?.addEventListener("click", async () => {
+      await handle.track({
+        event_id: (crypto.randomUUID && crypto.randomUUID()) || ("evt_" + Date.now()),
+        event_name: "widget_loaded",
+        tenant_id: config.tenant_id,
+        product_id: config.product_id,
+        page_url: window.location.href,
+        occurred_at: new Date().toISOString(),
+        payload: { mode: "script" },
+      });
+    });
+
+    root.querySelector('[data-widget-action="open"]')?.addEventListener("click", () => {
+      options.onError && options.onError(toError("WIDGET_MOUNT_FAILED", "No host navigation action is wired for this widget button."));
+    });
+
+    mountTarget.replaceChildren(root);
+
+    const handle = {
+      config,
+      destroy() {
+        root.remove();
+      },
+      async track(events) {
+        const payloadEvents = Array.isArray(events) ? events : [events];
+        payloadEvents.forEach((event) => options.onEvent && options.onEvent(event));
+        const response = await fetch(new URL(config.events_endpoint, assetOrigin).toString(), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tenant_id: config.tenant_id,
+            product_id: config.product_id,
+            events: payloadEvents,
+          }),
+        });
+        if (!response.ok && response.status !== 202) {
+          throw toError("WIDGET_EVENT_INVALID", "Failed to deliver widget events.");
+        }
+        return await response.json();
+      },
+    };
+
+    return handle;
+  };
+
+  const renderIframeSurface = (mountTarget, config) => {
+    const iframe = document.createElement("iframe");
+    iframe.className = "freestyle-widget-frame";
+    iframe.title = "FreeStyle Widget";
+    iframe.sandbox = "allow-scripts allow-same-origin";
+    iframe.srcdoc = [
+      "<!doctype html>",
+      "<html><head><meta charset=\\"utf-8\\" />",
+      "<meta name=\\"viewport\\" content=\\"width=device-width,initial-scale=1\\" />",
+      "<style>body{margin:0;font-family:Helvetica Neue,sans-serif;background:#f4f1ea;color:#111}main{padding:24px}h1{margin:0 0 12px;font-size:28px;letter-spacing:-0.05em}p{margin:0;color:rgba(17,17,17,.68);line-height:1.7}</style>",
+      "</head><body><main>",
+      "<h1>FreeStyle iframe runtime</h1>",
+      "<p>Origin-validated iframe surface for " + config.product_id + ".</p>",
+      "<script>window.parent && window.parent.postMessage({type:'widget.ready',version:'1',eventId:'evt_ready',payload:{productId:'" + config.product_id + "'}}, '" + assetOrigin + "');</script>",
+      "</main></body></html>",
+    ].join("");
+    mountTarget.replaceChildren(iframe);
+
+    return {
+      config,
+      destroy() {
+        iframe.remove();
+      },
+      async track(events) {
+        const payloadEvents = Array.isArray(events) ? events : [events];
+        const response = await fetch(new URL(config.events_endpoint, assetOrigin).toString(), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tenant_id: config.tenant_id,
+            product_id: config.product_id,
+            events: payloadEvents,
+          }),
+        });
+        if (!response.ok && response.status !== 202) {
+          throw toError("WIDGET_EVENT_INVALID", "Failed to deliver widget events.");
+        }
+        return await response.json();
+      },
+    };
+  };
+
+  const createClient = () => ({
+    async init(options) {
+      const mountTarget = ensureMountTarget(options.mount);
+      const params = new URLSearchParams({
+        tenant_id: options.tenantId,
+        product_id: options.productId,
+      });
+      const response = await fetch(apiBaseUrl + "/widget/config?" + params.toString(), { method: "GET" });
+      if (!response.ok) {
+        throw toError("WIDGET_CONFIG_NOT_FOUND", "Failed to fetch widget config.");
+      }
+      const config = await response.json();
+      injectStylesheet(config.stylesheet_url, config.stylesheet_integrity);
+      return (options.mode || "script") === "iframe"
+        ? renderIframeSurface(mountTarget, config)
+        : renderScriptSurface(mountTarget, config, options);
+    },
+  });
+
+  const client = createClient();
+  globalWindow.FreeStyleWidget = {
+    init(options) {
+      return client.init(options);
+    },
+  };
+})();
+`.trim();
+
+const buildWidgetIntegrity = (source: string) => `sha384-${createHash("sha384").update(source).digest("base64")}`;
+const WIDGET_SDK_JS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_JS_SOURCE);
+const WIDGET_SDK_CSS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_CSS_SOURCE);
 
 type RateLimitBucket = {
   count: number;
@@ -171,6 +457,27 @@ const resolveWidgetIntegrity = (value: string | undefined) => {
   return /^sha(256|384|512)-[A-Za-z0-9+/=]+$/.test(trimmed) ? trimmed : undefined;
 };
 
+const getWidgetCacheControl = () =>
+  resolveWidgetVersionPolicy() === "immutable" ? WIDGET_CACHE_CONTROL_IMMUTABLE : WIDGET_CACHE_CONTROL_MUTABLE;
+
+const getDefaultWidgetAssetUrls = (publicApiOrigin: string) => ({
+  scriptUrl: `${publicApiOrigin}/widget/sdk.js`,
+  stylesheetUrl: `${publicApiOrigin}/widget/sdk.css`,
+});
+
+const resolveWidgetAssetUrls = (publicApiOrigin: string) => {
+  const defaults = getDefaultWidgetAssetUrls(publicApiOrigin);
+  const configuredScriptUrl = process.env.WIDGET_SCRIPT_URL?.trim();
+  const configuredStylesheetUrl = process.env.WIDGET_STYLESHEET_URL?.trim();
+
+  return {
+    scriptUrl: configuredScriptUrl || defaults.scriptUrl,
+    stylesheetUrl: configuredStylesheetUrl || defaults.stylesheetUrl,
+    isDefaultScriptUrl: !configuredScriptUrl,
+    isDefaultStylesheetUrl: !configuredStylesheetUrl,
+  };
+};
+
 const getOccurredAtValidationError = (occurredAt: string | undefined, now: number) => {
   if (!occurredAt) {
     return null;
@@ -200,6 +507,7 @@ const buildWidgetConfig = (
   const publicApiOrigin = getPublicApiOrigin(request);
   const widgetConfigTtlSeconds = Number.parseInt(process.env.WIDGET_CONFIG_TTL_SECONDS || "900", 10);
   const expiresAt = new Date(Date.now() + Math.max(60, widgetConfigTtlSeconds) * 1000).toISOString();
+  const assetUrls = resolveWidgetAssetUrls(publicApiOrigin);
 
   return {
     widget_id: WIDGET_ID,
@@ -207,10 +515,14 @@ const buildWidgetConfig = (
     product_id: query.product_id,
     api_base_url: `${publicApiOrigin}/v1`,
     events_endpoint: "/v1/widget/events",
-    script_url: process.env.WIDGET_SCRIPT_URL?.trim() || `${publicApiOrigin}/widget/sdk.js`,
-    script_integrity: resolveWidgetIntegrity(process.env.WIDGET_SCRIPT_INTEGRITY),
-    stylesheet_url: process.env.WIDGET_STYLESHEET_URL?.trim() || `${publicApiOrigin}/widget/sdk.css`,
-    stylesheet_integrity: resolveWidgetIntegrity(process.env.WIDGET_STYLESHEET_INTEGRITY),
+    script_url: assetUrls.scriptUrl,
+    script_integrity: assetUrls.isDefaultScriptUrl
+      ? WIDGET_SDK_JS_INTEGRITY
+      : resolveWidgetIntegrity(process.env.WIDGET_SCRIPT_INTEGRITY),
+    stylesheet_url: assetUrls.stylesheetUrl,
+    stylesheet_integrity: assetUrls.isDefaultStylesheetUrl
+      ? WIDGET_SDK_CSS_INTEGRITY
+      : resolveWidgetIntegrity(process.env.WIDGET_STYLESHEET_INTEGRITY),
     asset_base_url: process.env.WIDGET_ASSET_BASE_URL?.trim() || `${publicApiOrigin}/assets`,
     widget_version_policy: resolveWidgetVersionPolicy(),
     allowed_origins: [...widgetOriginPolicy.exactOrigins, ...widgetOriginPolicy.patternStrings],
@@ -241,6 +553,26 @@ export const __widgetRouteTestUtils = {
     dedupeStore.clear();
     rateLimitStore.clear();
   },
+};
+
+export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
+  app.get("/widget/sdk.js", async (_request, reply) => {
+    return reply
+      .code(200)
+      .type("application/javascript; charset=utf-8")
+      .header("cache-control", getWidgetCacheControl())
+      .header("x-widget-integrity", WIDGET_SDK_JS_INTEGRITY)
+      .send(WIDGET_SDK_JS_SOURCE);
+  });
+
+  app.get("/widget/sdk.css", async (_request, reply) => {
+    return reply
+      .code(200)
+      .type("text/css; charset=utf-8")
+      .header("cache-control", getWidgetCacheControl())
+      .header("x-widget-integrity", WIDGET_SDK_CSS_INTEGRITY)
+      .send(WIDGET_SDK_CSS_SOURCE);
+  });
 };
 
 export const registerWidgetRoutes = (app: FastifyInstance) => {

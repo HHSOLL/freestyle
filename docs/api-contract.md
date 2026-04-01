@@ -22,6 +22,10 @@
 ## Widget
 
 ### `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
+Notes
+- default self-hosted asset endpoints are `GET /widget/sdk.js` and `GET /widget/sdk.css`.
+- when config uses the default self-hosted asset URLs, `script_integrity` and `stylesheet_integrity` are derived from the exact bytes served by those endpoints.
+
 Response
 ```json
 {
@@ -111,6 +115,16 @@ Notes
 - `tenant_id`/`product_id` 불일치 event는 `WIDGET_EVENT_INVALID`.
 - iframe 모드 postMessage 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
 - iframe 모드 메시지 계약은 `{ type, version, eventId, payload }` shape를 사용하며, SDK는 `event.source === iframe.contentWindow`와 shape validation을 모두 통과한 메시지만 처리한다.
+
+### `GET /widget/sdk.js`
+- widget browser runtime JavaScript asset served directly from the API origin
+- response type: `application/javascript`
+- default config `script_url` points here when `WIDGET_SCRIPT_URL` is not overridden
+
+### `GET /widget/sdk.css`
+- widget browser runtime stylesheet served directly from the API origin
+- response type: `text/css`
+- default config `stylesheet_url` points here when `WIDGET_STYLESHEET_URL` is not overridden
 
 ## Jobs Import
 

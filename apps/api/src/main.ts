@@ -11,7 +11,7 @@ import { registerEvaluationRoutes } from "./routes/evaluations.routes.js";
 import { registerOutfitRoutes } from "./routes/outfits.routes.js";
 import { registerTryonRoutes } from "./routes/tryons.routes.js";
 import { registerAuthRoutes } from "./routes/auth.routes.js";
-import { registerWidgetRoutes } from "./routes/widget.routes.js";
+import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
 
 const port = Number.parseInt(process.env.PORT || "8080", 10);
@@ -40,6 +40,7 @@ export const buildServer = () => {
   });
 
   registerHealthRoutes(app);
+  registerWidgetAssetRoutes(app);
 
   app.register(async (v1) => {
     registerAuthRoutes(v1);

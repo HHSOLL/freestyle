@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildServer } from "../main.js";
 import { __widgetRouteTestUtils } from "./widget.routes.js";
+
+const buildSri = (source: string) => `sha384-${createHash("sha384").update(source).digest("base64")}`;
 
 test.beforeEach(() => {
   __widgetRouteTestUtils.reset();
@@ -17,8 +20,6 @@ test.beforeEach(() => {
 });
 
 test("GET /v1/widget/config returns widget bootstrap config", async () => {
-  process.env.WIDGET_SCRIPT_INTEGRITY = "sha384-script";
-  process.env.WIDGET_STYLESHEET_INTEGRITY = "sha384-style";
   process.env.WIDGET_VERSION_POLICY = "immutable";
   const app = buildServer();
 
@@ -38,9 +39,48 @@ test("GET /v1/widget/config returns widget bootstrap config", async () => {
   assert.equal(typeof payload.asset_base_url, "string");
   assert.equal(Array.isArray(payload.allowed_origins), true);
   assert.equal(typeof payload.expires_at, "string");
-  assert.equal(payload.script_integrity, "sha384-script");
-  assert.equal(payload.stylesheet_integrity, "sha384-style");
+  assert.equal(new URL(payload.script_url).pathname, "/widget/sdk.js");
+  assert.equal(new URL(payload.stylesheet_url).pathname, "/widget/sdk.css");
+  assert.match(payload.script_integrity, /^sha384-/);
+  assert.match(payload.stylesheet_integrity, /^sha384-/);
   assert.equal(payload.widget_version_policy, "immutable");
+
+  await app.close();
+});
+
+test("GET /widget/sdk.js and /widget/sdk.css are served by the API and align with config SRI", async () => {
+  const app = buildServer();
+
+  const [configResponse, scriptResponse, stylesheetResponse] = await Promise.all([
+    app.inject({
+      method: "GET",
+      url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    }),
+    app.inject({
+      method: "GET",
+      url: "/widget/sdk.js",
+    }),
+    app.inject({
+      method: "GET",
+      url: "/widget/sdk.css",
+    }),
+  ]);
+
+  assert.equal(configResponse.statusCode, 200);
+  assert.equal(scriptResponse.statusCode, 200);
+  assert.equal(stylesheetResponse.statusCode, 200);
+  assert.match(String(scriptResponse.headers["content-type"] ?? ""), /application\/javascript/);
+  assert.match(String(stylesheetResponse.headers["content-type"] ?? ""), /text\/css/);
+  assert.match(scriptResponse.body, /FreeStyleWidget/);
+  assert.match(stylesheetResponse.body, /freestyle-widget-root/);
+
+  const config = configResponse.json();
+  assert.equal(new URL(config.script_url).pathname, "/widget/sdk.js");
+  assert.equal(new URL(config.stylesheet_url).pathname, "/widget/sdk.css");
+  assert.equal(config.script_integrity, buildSri(scriptResponse.body));
+  assert.equal(config.stylesheet_integrity, buildSri(stylesheetResponse.body));
+  assert.equal(String(scriptResponse.headers["x-widget-integrity"]), config.script_integrity);
+  assert.equal(String(stylesheetResponse.headers["x-widget-integrity"]), config.stylesheet_integrity);
 
   await app.close();
 });

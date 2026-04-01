@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 384" fill="none">
+  <defs>
+    <linearGradient id="bootBody" x1="256" y1="80" x2="256" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A3838"/>
+      <stop offset="1" stop-color="#151515"/>
+    </linearGradient>
+  </defs>
+  <path d="M78 122h116l18 82 62 36c15 9 24 25 24 43v15H70v-44l34-28 20-104Z" fill="url(#bootBody)"/>
+  <path d="M318 122h116l18 82 62 36c15 9 24 25 24 43v15H310v-44l34-28 20-104Z" fill="url(#bootBody)"/>
+  <path d="M108 122h66v84h-66zM348 122h66v84h-66z" fill="#5B5858"/>
+  <path d="M132 146h18v8h-18zM132 166h18v8h-18zM132 186h18v8h-18zM372 146h18v8h-18zM372 166h18v8h-18zM372 186h18v8h-18z" fill="#B8B0A4"/>
+  <path d="M70 298h228v24H70zM310 298h228v24H310z" fill="#5A5246"/>
+</svg>

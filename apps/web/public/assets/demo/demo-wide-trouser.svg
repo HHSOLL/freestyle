@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" fill="none">
+  <defs>
+    <linearGradient id="pantBody" x1="256" y1="76" x2="256" y2="708" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B7283"/>
+      <stop offset="1" stop-color="#2E3441"/>
+    </linearGradient>
+  </defs>
+  <path d="M172 78h168l20 128-34 484H222L190 356 160 690H78l34-484 60-128Z" fill="url(#pantBody)"/>
+  <path d="M172 78h168v48H172z" fill="#9BA4B5"/>
+  <path d="M248 126h16v566h-16z" fill="#9CA3AF" opacity=".45"/>
+  <path d="M136 250h56l-24 440H110l26-440Z" fill="#3C4452"/>
+  <path d="M320 250h56l26 440h-58l-24-440Z" fill="#3C4452"/>
+  <path d="M110 684h62v30h-62zM340 684h62v30h-62z" fill="#1F2430"/>
+</svg>

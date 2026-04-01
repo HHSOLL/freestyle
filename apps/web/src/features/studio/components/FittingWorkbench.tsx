@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
 import { Cuboid, RotateCcw, Ruler, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { avatarPresets, avatarStorageKey, parseAvatarPresetId, type AvatarPresetId } from '@/features/shared-3d/avatarPresets';
 import { buildFittingLayers, defaultBodyProfile, type BodyProfile } from '../fitting';
 import type { Asset, GarmentFitProfile, GarmentMeasurements, StudioTranslator } from '../types';
 
@@ -52,6 +53,7 @@ const fitProfileDefaults: GarmentFitProfile = {
 };
 
 const parseSavedBodyProfile = () => {
+  if (typeof window === 'undefined') return defaultBodyProfile;
   try {
     const raw = window.localStorage.getItem(bodyStorageKey);
     if (!raw) return defaultBodyProfile;
@@ -62,6 +64,15 @@ const parseSavedBodyProfile = () => {
     };
   } catch {
     return defaultBodyProfile;
+  }
+};
+
+const parseSavedAvatarPreset = () => {
+  if (typeof window === 'undefined') return parseAvatarPresetId(undefined);
+  try {
+    return parseAvatarPresetId(window.localStorage.getItem(avatarStorageKey));
+  } catch {
+    return parseAvatarPresetId(undefined);
   }
 };
 
@@ -78,6 +89,7 @@ export function FittingWorkbench({
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
     () => initialAssetIds[0] ?? assets[0]?.id ?? null
   );
+  const [avatarId, setAvatarId] = useState<AvatarPresetId>(parseSavedAvatarPreset);
   const [bodyProfile, setBodyProfile] = useState<BodyProfile>(() => parseSavedBodyProfile());
   const [assetDrafts, setAssetDrafts] = useState<
     Record<string, { measurements: GarmentMeasurements; fitProfile: GarmentFitProfile }>
@@ -93,6 +105,14 @@ export function FittingWorkbench({
       // Ignore storage failures.
     }
   }, [bodyProfile]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(avatarStorageKey, avatarId);
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [avatarId]);
 
   const activeAssets = useMemo(() => {
     const byId = new Map(assets.map((asset) => [asset.id, asset]));
@@ -207,6 +227,28 @@ export function FittingWorkbench({
               </section>
 
               <section>
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-black/42">Avatar</p>
+                <div className="grid gap-2">
+                  {avatarPresets.map((preset) => {
+                    const active = avatarId === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setAvatarId(preset.id)}
+                        className={`rounded-2xl border px-3 py-3 text-left transition ${
+                          active ? 'border-black bg-white text-black' : 'border-black/8 bg-white/55 text-black/60'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold">{preset.label.en}</p>
+                        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-black/42">{preset.description.en}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section>
                 <div className="mb-3 flex items-center gap-2">
                   <Ruler className="h-4 w-4 text-black/48" />
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-black/42">Mannequin body</p>
@@ -247,8 +289,25 @@ export function FittingWorkbench({
                 {layers.length} layer{layers.length === 1 ? '' : 's'}
               </div>
             </div>
+            <div className="absolute left-5 top-24 z-10 flex flex-col gap-2">
+              {avatarPresets.map((preset) => {
+                const active = avatarId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setAvatarId(preset.id)}
+                    className={`rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm transition ${
+                      active ? 'bg-white text-black' : 'bg-black/45 text-white/72 backdrop-blur-sm'
+                    }`}
+                  >
+                    {preset.label.en}
+                  </button>
+                );
+              })}
+            </div>
             <div className="flex-1">
-              <MannequinScene3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} />
+              <MannequinScene3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
             </div>
           </section>
 

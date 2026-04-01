@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" fill="none">
+  <defs>
+    <linearGradient id="jacketBody" x1="256" y1="104" x2="256" y2="692" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8A7D6B"/>
+      <stop offset="1" stop-color="#4C4338"/>
+    </linearGradient>
+  </defs>
+  <path d="M174 104c22-18 56-32 82-32s60 14 82 32l62 80-50 39-30-38v372H192V185l-30 38-50-39 62-80Z" fill="url(#jacketBody)"/>
+  <path d="M222 84h68l38 66H184l38-66Z" fill="#CFC3B2"/>
+  <path d="M244 150h24v407h-24z" fill="#D8CEC1"/>
+  <path d="M196 258h60v80h-60zM256 258h60v80h-60z" fill="#6A5F52"/>
+  <path d="M146 214c16 34 27 70 31 107 5 37 1 73-10 107-7 22-17 42-30 60l-42-23c10-15 18-31 24-49 10-28 13-57 9-88-4-30-13-61-26-91l44-23Z" fill="#5A5044"/>
+  <path d="M366 214c-16 34-27 70-31 107-5 37-1 73 10 107 7 22 17 42 30 60l42-23c-10-15-18-31-24-49-10-28-13-57-9-88 4-30 13-61 26-91l-44-23Z" fill="#5A5044"/>
+  <path d="M196 557h120v76H196z" fill="#443B31"/>
+  <path d="M188 648h136v44H188z" fill="#2F2923"/>
+</svg>

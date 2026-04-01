@@ -96,6 +96,7 @@ export const closetCategoryLabels: Record<RenewalLanguage, Record<(typeof closet
 const sourceLabels: Record<RenewalLanguage, Record<string, string>> = {
   ko: {
     import: '가져옴',
+    inventory: '샘플',
     uploaded: '업로드',
     upload: '업로드',
     product_url: '링크',
@@ -104,6 +105,7 @@ const sourceLabels: Record<RenewalLanguage, Record<string, string>> = {
   },
   en: {
     import: 'Import',
+    inventory: 'Demo',
     uploaded: 'Upload',
     upload: 'Upload',
     product_url: 'Link',

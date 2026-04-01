@@ -110,6 +110,7 @@ Notes
 - 동일 요청 안에서도 invalid event는 reject하고 valid event는 수용하는 partial-accept 정책이다.
 - `tenant_id`/`product_id` 불일치 event는 `WIDGET_EVENT_INVALID`.
 - iframe 모드 postMessage 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
+- iframe 모드 메시지 계약은 `{ type, version, eventId, payload }` shape를 사용하며, SDK는 `event.source === iframe.contentWindow`와 shape validation을 모두 통과한 메시지만 처리한다.
 
 ## Jobs Import
 

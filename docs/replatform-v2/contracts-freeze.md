@@ -50,6 +50,9 @@
 ## Security Contract
 - iframe message trust is determined by runtime `event.origin` only.
 - Payload-provided origin fields are never trusted as authorization signals.
+- iframe message runtime handling is additionally constrained by:
+  - `event.source === iframe.contentWindow`
+  - message shape `{ type, version, eventId, payload }`
 
 ## Rollout Gate Source of Truth
 - `docs/rollout-governance/canary-gates.md`

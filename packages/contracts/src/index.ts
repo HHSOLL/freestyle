@@ -67,6 +67,15 @@ export const widgetConfigSchema = z
 
 const widgetRecordSchema = z.record(z.string(), z.unknown());
 
+export const widgetIframeMessageSchema = z
+  .object({
+    type: z.string().trim().min(1).max(120),
+    version: z.string().trim().min(1).max(32),
+    eventId: z.string().trim().min(1).max(128),
+    payload: widgetRecordSchema,
+  })
+  .strict();
+
 export const widgetEventInputSchema = z
   .object({
     event_id: z.string().trim().min(1).max(128),
@@ -131,6 +140,7 @@ export type WidgetConfigQuery = z.infer<typeof widgetConfigQuerySchema>;
 export type WidgetRateLimit = z.infer<typeof widgetRateLimitSchema>;
 export type WidgetVersionPolicy = z.infer<typeof widgetVersionPolicySchema>;
 export type WidgetConfig = z.infer<typeof widgetConfigSchema>;
+export type WidgetIframeMessage = z.infer<typeof widgetIframeMessageSchema>;
 export type WidgetEventInput = z.infer<typeof widgetEventInputSchema>;
 export type WidgetEventsEnvelope = z.infer<typeof widgetEventsEnvelopeSchema>;
 export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;

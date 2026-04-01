@@ -10,7 +10,7 @@
 | `Phase 1A` UI System Foundation | `done` | glass token + 공통 셸/프리미티브 완료 |
 | `Phase 1B` 전 라우트 리스킨 | `mostly_done` | 공통 셸 적용/빈 화면 제거 완료, 시각 baseline 캡처는 진행 중 |
 | `Phase 2` B2C 기능 실체화 | `in_progress` | `looks`, `decide`, `journal` 실체화 완료. 다음 우선순위는 widget hardening |
-| `Phase 3` B2B Widget MVP | `in_progress` | config/events API+contract + SRI/replay-hardening 1차 완료. host isolation/browser 검증 남음 |
+| `Phase 3` B2B Widget MVP | `in_progress` | config/events API+contract + SRI/replay-hardening + SDK iframe isolation 1차 완료. host isolation/browser 검증 남음 |
 | `Phase 4` 카나리 롤아웃 | `blocked` | baseline 수치, telemetry wiring, flag 실행선 연결 필요 |
 | `Phase 5` 정리/종료 | `pending` | legacy cleanup는 canary 안정화 이후 진행 |
 

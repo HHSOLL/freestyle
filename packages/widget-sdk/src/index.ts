@@ -4,6 +4,7 @@ import type {
   WidgetEventInput,
   WidgetEventsResponse,
 } from "../../contracts/src/index.js";
+import { widgetIframeMessageSchema } from "../../contracts/src/index.js";
 
 export type WidgetMode = "script" | "iframe";
 
@@ -47,6 +48,15 @@ const toError = (code: WidgetErrorCode, message: string, cause?: unknown): Widge
   cause,
 });
 
+const reportRecoverableError = (
+  onError: WidgetInitOptions["onError"] | undefined,
+  code: WidgetErrorCode,
+  message: string,
+  cause?: unknown,
+) => {
+  onError?.(toError(code, message, cause));
+};
+
 const ensureMountTarget = (mount: string) => {
   const doc = (globalThis as { document?: { querySelector: (selector: string) => unknown } }).document;
   if (!doc?.querySelector) {
@@ -88,13 +98,18 @@ const postEvents = async (config: WidgetConfig, events: WidgetTrackInput): Promi
   return (await response.json()) as WidgetEventsResponse;
 };
 
-const setupIframeMode = (config: WidgetConfig, mountTarget: unknown) => {
+const setupIframeMode = (
+  config: WidgetConfig,
+  mountTarget: unknown,
+  onError: WidgetInitOptions["onError"],
+) => {
   const doc = (globalThis as { document?: { createElement: (tagName: string) => unknown } }).document;
   if (!doc?.createElement) {
     throw toError("WIDGET_MOUNT_FAILED", "Document is not available for iframe mode.");
   }
 
   const iframe = doc.createElement("iframe") as {
+    contentWindow?: object | null;
     src: string;
     title: string;
     sandbox?: string;
@@ -114,8 +129,31 @@ const setupIframeMode = (config: WidgetConfig, mountTarget: unknown) => {
 
   const expectedOrigin = new URL(config.api_base_url).origin;
   const listener = (event: MessageEvent) => {
+    const iframeWindow = iframe.contentWindow;
+    if (iframeWindow && event.source && event.source !== iframeWindow) {
+      return;
+    }
+
     // Origin trust must use runtime event.origin, never payload fields.
-    if (event.origin !== expectedOrigin) return;
+    if (event.origin !== expectedOrigin) {
+      reportRecoverableError(
+        onError,
+        "WIDGET_ORIGIN_DENIED",
+        `Rejected iframe message from unexpected origin: ${event.origin || "unknown"}`,
+      );
+      return;
+    }
+
+    const parsedMessage = widgetIframeMessageSchema.safeParse(event.data);
+    if (!parsedMessage.success) {
+      reportRecoverableError(
+        onError,
+        "WIDGET_EVENT_INVALID",
+        "Rejected malformed iframe message.",
+        parsedMessage.error.issues,
+      );
+      return;
+    }
   };
   globalThis.addEventListener?.("message", listener);
 
@@ -132,7 +170,7 @@ export const createWidgetClient = () => ({
     let cleanup = () => {};
 
     if (mode === "iframe") {
-      cleanup = setupIframeMode(config, mountTarget);
+      cleanup = setupIframeMode(config, mountTarget, options.onError);
     }
 
     return {

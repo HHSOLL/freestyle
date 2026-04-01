@@ -22,6 +22,22 @@
 - Viewport keys:
   - `desktop-1440x900`
   - `mobile-390x844`
+- `output/` is gitignored. Upload snapshot bundles to release artifact storage and attach the artifact link in rollout ticket.
+
+## Capture Run (2026-04-02)
+| Item | Status | Owner | Note |
+| --- | --- | --- | --- |
+| Route list freeze | `done` | `sol (frontend-owner)` | Routes are fixed by this document |
+| Capture command/script | `done` | `sol (deployment-owner)` | Use Playwright/agent-browser capture in staging parity env |
+| Desktop captures | `pending` | `sol (frontend-owner)` | Must be captured before canary `1%` |
+| Mobile captures | `pending` | `sol (frontend-owner)` | Must be captured before canary `1%` |
+| Coordinator approval | `pending` | `sol (incident-commander)` | Approve after diff sanity check |
+
+## Capture Command (reference)
+```bash
+# Example reference command in local/staging parity env
+# Save outputs to output/baseline-snapshots/2026-04-02/<route>/<viewport>.png
+```
 
 ## Checklist
 - Same language (`ko` or `en`) and same auth state for baseline and comparison.

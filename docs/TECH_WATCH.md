@@ -17,9 +17,23 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-01
+- 2026-04-02
 
 ## 점검 로그
+### 2026-04-02
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.2`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.2`다.
+  - 3D fitting surface 관련 최신 stable은 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`로 전일과 동일하다.
+  - 전일 대비 핵심 변화는 `next`/`eslint-config-next`가 `16.2.1 -> 16.2.2`로 패치 상승한 점이다.
+- 우리 프로젝트 영향:
+  - 현재 저장소 기준 `next 16.1.6`, `eslint-config-next 16.1.4`는 최신 stable보다 더 뒤처져 있어, canary 전환 본격화 전에 별도 dependency maintenance 배치가 필요하다.
+  - 이번 배치의 우선순위는 replatform phase 실행과 rollout gate 운영 준비이므로, 런타임 업그레이드는 별도 phase(maintenance batch)로 분리하는 편이 안전하다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
 ### 2026-04-01
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)

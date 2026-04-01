@@ -12,12 +12,12 @@
 ## Role Map
 | Role | Primary owner | Backup owner | Responsibility |
 | --- | --- | --- | --- |
-| Deployment owner | `TBD` | `TBD` | Starts canary, advances `1% -> 5% -> 25% -> 100%`, stops rollout, executes rollback. |
-| Runtime owner | `TBD` | `TBD` | Watches health gates, confirms incident scope, coordinates recovery. |
-| Frontend owner | `TBD` | `TBD` | Owns widget load, JS error, Web Vitals, flag wiring. |
-| API owner | `TBD` | `TBD` | Owns widget API `5xx`, backend readiness, dependency health. |
-| Data/analytics owner | `TBD` | `TBD` | Publishes baseline, validates sample sufficiency, confirms conversion deltas. |
-| Incident commander | `TBD` | `TBD` | Owns user comms, timeline, stop/rollback call if owners disagree. |
+| Deployment owner | `sol (deployment-engineer)` | `runtime on-call` | Starts canary, advances `1% -> 5% -> 25% -> 100%`, stops rollout, executes rollback. |
+| Runtime owner | `sol (runtime-owner)` | `api on-call` | Watches health gates, confirms incident scope, coordinates recovery. |
+| Frontend owner | `sol (frontend-owner)` | `web on-call` | Owns widget load, JS error, Web Vitals, flag wiring. |
+| API owner | `sol (backend-owner)` | `api on-call` | Owns widget API `5xx`, backend readiness, dependency health. |
+| Data/analytics owner | `sol (data-analytics-owner)` | `product-analytics on-call` | Publishes baseline, validates sample sufficiency, confirms conversion deltas. |
+| Incident commander | `sol (incident-commander)` | `runtime on-call` | Owns user comms, timeline, stop/rollback call if owners disagree. |
 
 ## Approval Chain
 1. Baseline metrics doc is filled and approved before Phase `0.5`.
@@ -44,3 +44,7 @@
 ## Rollback Authority
 - Preferred rollback order: feature flag exposure rollback, traffic rollback, worker disable, then previous artifact restore.
 - Rollback must preserve audit trail: who rolled back, when, phase, target stage, reason.
+
+## Current Approval Status (as of 2026-04-02)
+- Role assignment completed.
+- Stage progression is still blocked until `baseline-metrics-template.md` is filled with numeric production values and approved.

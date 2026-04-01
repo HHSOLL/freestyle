@@ -175,6 +175,7 @@ npm run check
 - 유지보수 플레이북: `docs/MAINTENANCE_PLAYBOOK.md`
 - 리플랫폼 계약 고정: `docs/replatform-v2/contracts-freeze.md`
 - 리플랫폼 소유권 맵: `docs/replatform-v2/ownership-map.md`
+- 리플랫폼 실행 현황: `docs/replatform-v2/execution-status.md`
 - 롤아웃 소유권 매니페스트: `docs/rollout-governance/ownership-manifest.md`
 - 롤아웃 베이스라인 템플릿: `docs/rollout-governance/baseline-metrics-template.md`
 - 롤아웃 스냅샷 베이스라인: `docs/rollout-governance/baseline-snapshots.md`

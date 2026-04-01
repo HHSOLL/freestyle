@@ -31,8 +31,11 @@ Response
   "api_base_url": "https://api.example.com/v1",
   "events_endpoint": "/v1/widget/events",
   "script_url": "https://api.example.com/widget/sdk.js",
+  "script_integrity": "sha384-abc123...",
   "stylesheet_url": "https://api.example.com/widget/sdk.css",
+  "stylesheet_integrity": "sha384-def456...",
   "asset_base_url": "https://api.example.com/assets",
+  "widget_version_policy": "immutable",
   "allowed_origins": ["https://shop.example.com"],
   "feature_flags": {
     "phase_0_5_canary_enabled": false
@@ -103,6 +106,7 @@ Notes
 - origin allowlist를 통과하지 못하면 `403 WIDGET_ORIGIN_DENIED`.
 - `event_id`는 필수, `idempotency_key`는 optional.
 - dedupe window는 24시간.
+- `occurred_at`가 있으면 replay 방어를 위해 과거 24시간/미래 5분 허용 창을 벗어난 이벤트는 `WIDGET_EVENT_INVALID`로 reject한다.
 - 동일 요청 안에서도 invalid event는 reject하고 valid event는 수용하는 partial-accept 정책이다.
 - `tenant_id`/`product_id` 불일치 event는 `WIDGET_EVENT_INVALID`.
 - iframe 모드 postMessage 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.

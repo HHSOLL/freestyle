@@ -15,6 +15,8 @@ import { buildOriginPolicy } from "../lib/originPolicy.js";
 
 const WIDGET_ID = process.env.WIDGET_ID?.trim() || "freestyle-widget";
 const WIDGET_DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const WIDGET_EVENT_REPLAY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const WIDGET_EVENT_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const WIDGET_RATE_LIMIT_MAX_EVENTS = 60;
 const WIDGET_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
@@ -157,6 +159,39 @@ const resolveWidgetTheme = (): WidgetConfig["theme"] => {
   };
 };
 
+const resolveWidgetVersionPolicy = (): WidgetConfig["widget_version_policy"] =>
+  process.env.WIDGET_VERSION_POLICY?.trim().toLowerCase() === "mutable" ? "mutable" : "immutable";
+
+const resolveWidgetIntegrity = (value: string | undefined) => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return /^sha(256|384|512)-[A-Za-z0-9+/=]+$/.test(trimmed) ? trimmed : undefined;
+};
+
+const getOccurredAtValidationError = (occurredAt: string | undefined, now: number) => {
+  if (!occurredAt) {
+    return null;
+  }
+
+  const occurredAtMs = Date.parse(occurredAt);
+  if (Number.isNaN(occurredAtMs)) {
+    return "occurred_at must be a valid ISO datetime.";
+  }
+
+  if (occurredAtMs < now - WIDGET_EVENT_REPLAY_WINDOW_MS) {
+    return "occurred_at is outside the accepted replay window.";
+  }
+
+  if (occurredAtMs > now + WIDGET_EVENT_FUTURE_SKEW_MS) {
+    return "occurred_at is too far ahead of server time.";
+  }
+
+  return null;
+};
+
 const buildWidgetConfig = (
   request: FastifyRequest,
   query: WidgetConfigQuery,
@@ -173,8 +208,11 @@ const buildWidgetConfig = (
     api_base_url: `${publicApiOrigin}/v1`,
     events_endpoint: "/v1/widget/events",
     script_url: process.env.WIDGET_SCRIPT_URL?.trim() || `${publicApiOrigin}/widget/sdk.js`,
+    script_integrity: resolveWidgetIntegrity(process.env.WIDGET_SCRIPT_INTEGRITY),
     stylesheet_url: process.env.WIDGET_STYLESHEET_URL?.trim() || `${publicApiOrigin}/widget/sdk.css`,
+    stylesheet_integrity: resolveWidgetIntegrity(process.env.WIDGET_STYLESHEET_INTEGRITY),
     asset_base_url: process.env.WIDGET_ASSET_BASE_URL?.trim() || `${publicApiOrigin}/assets`,
+    widget_version_policy: resolveWidgetVersionPolicy(),
     allowed_origins: [...widgetOriginPolicy.exactOrigins, ...widgetOriginPolicy.patternStrings],
     feature_flags: parseWidgetFeatureFlags(),
     theme: resolveWidgetTheme(),
@@ -303,6 +341,16 @@ export const registerWidgetRoutes = (app: FastifyInstance) => {
         continue;
       }
 
+      const occurredAtValidationError = getOccurredAtValidationError(parsedEvent.data.occurred_at, now);
+      if (occurredAtValidationError) {
+        rejected.push({
+          event_id: parsedEvent.data.event_id,
+          code: "WIDGET_EVENT_INVALID",
+          message: occurredAtValidationError,
+        });
+        continue;
+      }
+
       const dedupeKey = buildDedupeKey(
         requestOrigin,
         parsedEvent.data.event_id,
@@ -349,6 +397,21 @@ export const registerWidgetRoutes = (app: FastifyInstance) => {
     });
 
     const statusCode = response.accepted_count > 0 || response.duplicate_count > 0 ? 202 : 400;
+    request.log.info(
+      {
+        widgetEventsRequest: {
+          requestId: request.id,
+          origin: requestOrigin,
+          ip: request.ip,
+          receivedCount: response.received_count,
+          acceptedCount: response.accepted_count,
+          duplicateCount: response.duplicate_count,
+          rejectedCount: response.rejected_count,
+        },
+      },
+      "Processed widget events request",
+    );
+
     if (statusCode === 400) {
       request.log.warn({ rejectedCount: response.rejected_count }, "Rejected all widget events in request");
     }

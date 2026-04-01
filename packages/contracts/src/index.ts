@@ -39,6 +39,8 @@ export const widgetRateLimitSchema = z
   })
   .strict();
 
+export const widgetVersionPolicySchema = z.enum(["immutable", "mutable"]);
+
 export const widgetConfigSchema = z
   .object({
     widget_id: z.string().trim().min(1).max(120),
@@ -47,8 +49,11 @@ export const widgetConfigSchema = z
     api_base_url: z.url(),
     events_endpoint: z.string().trim().min(1),
     script_url: z.url(),
+    script_integrity: z.string().trim().min(1).optional(),
     stylesheet_url: z.url(),
+    stylesheet_integrity: z.string().trim().min(1).optional(),
     asset_base_url: z.url(),
+    widget_version_policy: widgetVersionPolicySchema,
     allowed_origins: z.array(z.string().trim().min(1)).default([]),
     feature_flags: z.record(z.string(), z.boolean()).default({}),
     theme: widgetThemeSchema,
@@ -124,6 +129,7 @@ export const widgetErrorResponseSchema = z
 
 export type WidgetConfigQuery = z.infer<typeof widgetConfigQuerySchema>;
 export type WidgetRateLimit = z.infer<typeof widgetRateLimitSchema>;
+export type WidgetVersionPolicy = z.infer<typeof widgetVersionPolicySchema>;
 export type WidgetConfig = z.infer<typeof widgetConfigSchema>;
 export type WidgetEventInput = z.infer<typeof widgetEventInputSchema>;
 export type WidgetEventsEnvelope = z.infer<typeof widgetEventsEnvelopeSchema>;

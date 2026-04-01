@@ -27,11 +27,15 @@
 - `expires_at`
 - `rate_limit`
 - `dedupe_window_seconds`
+- `widget_version_policy`
+- `script_integrity` (optional)
+- `stylesheet_integrity` (optional)
 
 ### Fixed Event Rules (`/v1/widget/events`)
 - `event_id` required
 - `idempotency_key` optional
 - dedupe window: `24h`
+- replay guard: when `occurred_at` is present, accept only within `-24h` to `+5m` window
 - partial-accept semantics (`accepted`, `duplicate`, `rejected`)
 - envelope and event `tenant_id/product_id` mismatch -> reject as `WIDGET_EVENT_INVALID`
 

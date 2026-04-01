@@ -11,9 +11,15 @@ test.beforeEach(() => {
   delete process.env.WIDGET_ALLOWED_ORIGIN_PATTERNS;
   delete process.env.WIDGET_CONFIG_DISABLED;
   delete process.env.API_PUBLIC_ORIGIN;
+  delete process.env.WIDGET_SCRIPT_INTEGRITY;
+  delete process.env.WIDGET_STYLESHEET_INTEGRITY;
+  delete process.env.WIDGET_VERSION_POLICY;
 });
 
 test("GET /v1/widget/config returns widget bootstrap config", async () => {
+  process.env.WIDGET_SCRIPT_INTEGRITY = "sha384-script";
+  process.env.WIDGET_STYLESHEET_INTEGRITY = "sha384-style";
+  process.env.WIDGET_VERSION_POLICY = "immutable";
   const app = buildServer();
 
   const response = await app.inject({
@@ -32,6 +38,9 @@ test("GET /v1/widget/config returns widget bootstrap config", async () => {
   assert.equal(typeof payload.asset_base_url, "string");
   assert.equal(Array.isArray(payload.allowed_origins), true);
   assert.equal(typeof payload.expires_at, "string");
+  assert.equal(payload.script_integrity, "sha384-script");
+  assert.equal(payload.stylesheet_integrity, "sha384-style");
+  assert.equal(payload.widget_version_policy, "immutable");
 
   await app.close();
 });
@@ -168,6 +177,42 @@ test("POST /v1/widget/events rejects tenant mismatch events", async () => {
   assert.equal(payload.rejected_count, 1);
   assert.equal(payload.rejected[0]?.code, "WIDGET_EVENT_INVALID");
   assert.match(payload.rejected[0]?.message ?? "", /tenant_id|product_id/);
+
+  await app.close();
+});
+
+test("POST /v1/widget/events rejects stale occurred_at values outside the replay window", async () => {
+  process.env.CORS_ORIGIN = "https://widget.example";
+  const app = buildServer();
+
+  const staleOccurredAt = new Date(Date.now() - (25 * 60 * 60 * 1000)).toISOString();
+  const response = await app.inject({
+    method: "POST",
+    url: "/v1/widget/events",
+    headers: {
+      origin: "https://widget.example",
+    },
+    payload: {
+      tenant_id: "tenant-a",
+      product_id: "sku-123",
+      events: [
+        {
+          event_id: "evt_stale",
+          event_name: "widget_loaded",
+          tenant_id: "tenant-a",
+          product_id: "sku-123",
+          occurred_at: staleOccurredAt,
+        },
+      ],
+    },
+  });
+
+  assert.equal(response.statusCode, 400);
+  const payload = response.json();
+  assert.equal(payload.accepted_count, 0);
+  assert.equal(payload.rejected_count, 1);
+  assert.equal(payload.rejected[0]?.code, "WIDGET_EVENT_INVALID");
+  assert.match(payload.rejected[0]?.message ?? "", /replay window/i);
 
   await app.close();
 });

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
+import { TelemetryBootstrap } from "@/app/TelemetryBootstrap";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { AuthProvider } from "@/lib/AuthContext";
 import { LanguageProvider, type Language } from "@/lib/LanguageContext";
@@ -61,6 +62,7 @@ export default async function RootLayout({
       <body className={`${a2jFont.variable} font-sans antialiased bg-background text-foreground`}>
         <AuthProvider>
           <LanguageProvider initialLanguage={initialLanguage}>
+            <TelemetryBootstrap />
             <SiteShell>{children}</SiteShell>
           </LanguageProvider>
         </AuthProvider>

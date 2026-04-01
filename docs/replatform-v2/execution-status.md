@@ -11,7 +11,7 @@
 | `Phase 1B` 전 라우트 리스킨 | `mostly_done` | 공통 셸 적용/빈 화면 제거 완료, 시각 baseline 캡처는 진행 중 |
 | `Phase 2` B2C 기능 실체화 | `in_progress` | `looks`, `decide`, `journal` 실체화 완료. 다음 우선순위는 widget hardening |
 | `Phase 3` B2B Widget MVP | `in_progress` | config/events API+contract + SRI/replay-hardening + SDK iframe isolation 1차 완료. host isolation/browser 검증 남음 |
-| `Phase 4` 카나리 롤아웃 | `blocked` | baseline 수치, telemetry wiring, flag 실행선 연결 필요 |
+| `Phase 4` 카나리 롤아웃 | `blocked` | Web Vitals/JS error/widget flag foundation 구현 완료. baseline 수치와 실제 canary audience wiring 필요 |
 | `Phase 5` 정리/종료 | `pending` | legacy cleanup는 canary 안정화 이후 진행 |
 
 ## Current Execution Order
@@ -22,7 +22,8 @@
 
 ## In-Flight Work
 - `Phase 0`: rollout owner 지정, baseline template 운영값 정리, snapshot capture run 준비
-- `Phase 3`: widget asset delivery, host isolation/browser 검증, canary telemetry wiring
+- `Phase 3`: widget asset delivery와 host isolation/browser 검증 잔여
+- `Phase 4`: baseline 수치 확정, canary audience wiring, add_to_cart 전환 측정선 연결
 
 ## Definition of Move-to-Next-Phase
 - 다음 phase로 넘어가기 전, 현재 phase의 `문서 + 코드 + 검증` 3개가 모두 닫혀야 한다.

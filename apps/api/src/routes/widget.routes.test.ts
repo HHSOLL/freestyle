@@ -186,6 +186,9 @@ test("GET /widget/sdk.js and /widget/sdk.css are served by the API and align wit
   assert.match(String(scriptResponse.headers["content-type"] ?? ""), /application\/javascript/);
   assert.match(String(stylesheetResponse.headers["content-type"] ?? ""), /text\/css/);
   assert.match(scriptResponse.body, /FreeStyleWidget/);
+  assert.match(scriptResponse.body, /\/widget\/frame\?tenant_id=/);
+  assert.match(scriptResponse.body, /Widget events endpoint must remain on the widget API origin\./);
+  assert.doesNotMatch(scriptResponse.body, /srcdoc/);
   assert.match(stylesheetResponse.body, /freestyle-widget-root/);
 
   const config = configResponse.json();
@@ -211,6 +214,31 @@ test("GET /widget/frame serves iframe bootstrap HTML", async () => {
   assert.match(String(response.headers["content-type"] ?? ""), /text\/html/);
   assert.match(response.body, /widget\.ready/);
   assert.match(response.body, /sku-123/);
+  assert.match(response.body, /}, "\*"\);/);
+
+  await app.close();
+});
+
+test("GET /widget/frame emits CSP with request-scoped frame ancestors for allowed host patterns", async () => {
+  process.env.WIDGET_ALLOWED_ORIGIN_PATTERNS = "https://*.shop.example";
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/widget/frame?tenant_id=tenant-a&product_id=sku-123",
+    headers: {
+      referer: "https://embed.shop.example/products/sku-123",
+    },
+  });
+
+  assert.equal(response.statusCode, 200);
+  const csp = String(response.headers["content-security-policy"] ?? "");
+  assert.match(csp, /default-src 'none'/);
+  assert.match(csp, /sandbox allow-scripts allow-same-origin/);
+  assert.match(csp, /frame-ancestors 'self' https:\/\/embed\.shop\.example/);
+  assert.equal(csp.includes("https://*.shop.example"), false);
+  assert.equal(String(response.headers["referrer-policy"] ?? ""), "no-referrer");
+  assert.equal(String(response.headers["x-content-type-options"] ?? ""), "nosniff");
 
   await app.close();
 });

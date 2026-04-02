@@ -150,6 +150,44 @@ const WIDGET_SDK_JS_SOURCE = `
     cause,
   });
 
+  const resolveWidgetOrigin = (config) => {
+    try {
+      const parsed = new URL(config.api_base_url || apiBaseUrl, assetOrigin);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        throw new Error("Widget api_base_url must use http or https.");
+      }
+      return parsed.origin;
+    } catch (error) {
+      throw toError("WIDGET_MOUNT_FAILED", "Widget config returned an invalid api_base_url.", error);
+    }
+  };
+
+  const resolveSameOriginUrl = (value, origin, code, message) => {
+    let nextUrl;
+    try {
+      nextUrl = new URL(value, origin);
+    } catch (error) {
+      throw toError(code, message, error);
+    }
+
+    if (nextUrl.origin !== origin) {
+      throw toError(code, message);
+    }
+
+    return nextUrl.toString();
+  };
+
+  const isWidgetMessage = (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+
+    return typeof value.type === "string"
+      && typeof value.version === "string"
+      && typeof value.eventId === "string"
+      && Object.prototype.hasOwnProperty.call(value, "payload");
+  };
+
   const ensureMountTarget = (mount) => {
     const target = typeof mount === "string" ? document.querySelector(mount) : mount;
     if (!target) {
@@ -216,7 +254,14 @@ const WIDGET_SDK_JS_SOURCE = `
       async track(events) {
         const payloadEvents = Array.isArray(events) ? events : [events];
         payloadEvents.forEach((event) => options.onEvent && options.onEvent(event));
-        const response = await fetch(new URL(config.events_endpoint, assetOrigin).toString(), {
+        const widgetOrigin = resolveWidgetOrigin(config);
+        const eventsUrl = resolveSameOriginUrl(
+          config.events_endpoint,
+          widgetOrigin,
+          "WIDGET_ORIGIN_DENIED",
+          "Widget events endpoint must remain on the widget API origin.",
+        );
+        const response = await fetch(eventsUrl, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -235,32 +280,57 @@ const WIDGET_SDK_JS_SOURCE = `
     return handle;
   };
 
-  const renderIframeSurface = (mountTarget, config) => {
+  const renderIframeSurface = (mountTarget, config, options) => {
+    const widgetOrigin = resolveWidgetOrigin(config);
     const iframe = document.createElement("iframe");
     iframe.className = "freestyle-widget-frame";
     iframe.title = "FreeStyle Widget";
     iframe.sandbox = "allow-scripts allow-same-origin";
-    iframe.srcdoc = [
-      "<!doctype html>",
-      "<html><head><meta charset=\\"utf-8\\" />",
-      "<meta name=\\"viewport\\" content=\\"width=device-width,initial-scale=1\\" />",
-      "<style>body{margin:0;font-family:Helvetica Neue,sans-serif;background:#f4f1ea;color:#111}main{padding:24px}h1{margin:0 0 12px;font-size:28px;letter-spacing:-0.05em}p{margin:0;color:rgba(17,17,17,.68);line-height:1.7}</style>",
-      "</head><body><main>",
-      "<h1>FreeStyle iframe runtime</h1>",
-      "<p>Origin-validated iframe surface for " + config.product_id + ".</p>",
-      "<script>window.parent && window.parent.postMessage({type:'widget.ready',version:'1',eventId:'evt_ready',payload:{productId:'" + config.product_id + "'}}, '" + assetOrigin + "');</script>",
-      "</main></body></html>",
-    ].join("");
+    iframe.referrerPolicy = "no-referrer";
+    iframe.src = resolveSameOriginUrl(
+      "/widget/frame?tenant_id=" + encodeURIComponent(config.tenant_id) + "&product_id=" + encodeURIComponent(config.product_id),
+      widgetOrigin,
+      "WIDGET_MOUNT_FAILED",
+      "Widget frame endpoint must remain on the widget API origin.",
+    );
     mountTarget.replaceChildren(iframe);
+
+    const handleMessage = (event) => {
+      const iframeWindow = iframe.contentWindow;
+      if (iframeWindow && event.source && event.source !== iframeWindow) {
+        return;
+      }
+
+      if (event.origin !== widgetOrigin) {
+        options.onError && options.onError(
+          toError("WIDGET_ORIGIN_DENIED", "Rejected iframe message from unexpected origin: " + (event.origin || "unknown")),
+        );
+        return;
+      }
+
+      if (!isWidgetMessage(event.data)) {
+        options.onError && options.onError(
+          toError("WIDGET_EVENT_INVALID", "Rejected malformed iframe message."),
+        );
+      }
+    };
+    globalWindow.addEventListener("message", handleMessage);
 
     return {
       config,
       destroy() {
+        globalWindow.removeEventListener("message", handleMessage);
         iframe.remove();
       },
       async track(events) {
         const payloadEvents = Array.isArray(events) ? events : [events];
-        const response = await fetch(new URL(config.events_endpoint, assetOrigin).toString(), {
+        const eventsUrl = resolveSameOriginUrl(
+          config.events_endpoint,
+          widgetOrigin,
+          "WIDGET_ORIGIN_DENIED",
+          "Widget events endpoint must remain on the widget API origin.",
+        );
+        const response = await fetch(eventsUrl, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -291,7 +361,7 @@ const WIDGET_SDK_JS_SOURCE = `
       const config = await response.json();
       injectStylesheet(config.stylesheet_url, config.stylesheet_integrity);
       return (options.mode || "script") === "iframe"
-        ? renderIframeSurface(mountTarget, config)
+        ? renderIframeSurface(mountTarget, config, options)
         : renderScriptSurface(mountTarget, config, options);
     },
   });
@@ -340,7 +410,7 @@ const buildWidgetFrameHtml = (productId: string) => {
           version: "1",
           eventId: "evt_ready",
           payload: { productId: ${safeProductId} }
-        }, window.location.origin);
+        }, "*");
       }
     </script>
   </body>
@@ -420,6 +490,61 @@ const buildWidgetOriginPolicy = () =>
     process.env.WIDGET_ALLOWED_ORIGINS ?? process.env.CORS_ORIGIN,
     process.env.WIDGET_ALLOWED_ORIGIN_PATTERNS ?? process.env.CORS_ORIGIN_PATTERNS
   );
+
+const buildWidgetFrameAncestors = (
+  request: FastifyRequest,
+  widgetOriginPolicy: ReturnType<typeof buildWidgetOriginPolicy>,
+) => {
+  const hasConfiguredPolicy =
+    widgetOriginPolicy.exactOrigins.length > 0 || widgetOriginPolicy.patternStrings.length > 0;
+  if (!hasConfiguredPolicy) {
+    return [];
+  }
+
+  const sources = new Set<string>();
+  for (const origin of widgetOriginPolicy.exactOrigins) {
+    const normalized = parseOriginFromValue(origin);
+    if (normalized) {
+      sources.add(normalized);
+    }
+  }
+
+  const requestOrigin = extractRequestOrigin(request);
+  if (requestOrigin && widgetOriginPolicy.isAllowedOrigin(requestOrigin)) {
+    const normalized = parseOriginFromValue(requestOrigin);
+    if (normalized) {
+      sources.add(normalized);
+    }
+  }
+
+  if (sources.size === 0) {
+    return [];
+  }
+
+  return ["'self'", ...sources];
+};
+
+const buildWidgetFrameCsp = (
+  request: FastifyRequest,
+  widgetOriginPolicy: ReturnType<typeof buildWidgetOriginPolicy>,
+) => {
+  const directives = [
+    "default-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "object-src 'none'",
+    "img-src data:",
+    "style-src 'unsafe-inline'",
+    "script-src 'unsafe-inline'",
+    "connect-src 'self'",
+    "sandbox allow-scripts allow-same-origin",
+  ];
+  const frameAncestors = buildWidgetFrameAncestors(request, widgetOriginPolicy);
+  if (frameAncestors.length > 0) {
+    directives.push(`frame-ancestors ${frameAncestors.join(" ")}`);
+  }
+  return directives.join("; ");
+};
 
 const isWidgetEnabled = () => process.env.WIDGET_CONFIG_DISABLED?.trim().toLowerCase() !== "true";
 
@@ -732,6 +857,7 @@ export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/widget/frame", async (request, reply) => {
+    const widgetOriginPolicy = buildWidgetOriginPolicy();
     const query = (request.query ?? {}) as { product_id?: unknown };
     const productId = typeof query.product_id === "string" && query.product_id.trim().length > 0
       ? query.product_id.trim()
@@ -741,6 +867,9 @@ export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
       .code(200)
       .type("text/html; charset=utf-8")
       .header("cache-control", getWidgetCacheControl())
+      .header("content-security-policy", buildWidgetFrameCsp(request, widgetOriginPolicy))
+      .header("referrer-policy", "no-referrer")
+      .header("x-content-type-options", "nosniff")
       .send(buildWidgetFrameHtml(productId));
   });
 };

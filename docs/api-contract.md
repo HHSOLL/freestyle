@@ -27,6 +27,7 @@ Notes
 - iframe bootstrap endpoint is `GET /widget/frame`.
 - when config uses the default self-hosted asset URLs, `script_integrity` and `stylesheet_integrity` are derived from the exact bytes served by those endpoints.
 - default self-hosted `script_url`/`stylesheet_url` include an integrity-derived `?v=<version>` query to keep immutable caching and SRI aligned across deploys.
+- self-hosted iframe mode resolves its frame bootstrap and telemetry endpoint on the widget API origin only; cross-origin absolute URLs are rejected at runtime.
 - `phase_0_5_canary_enabled` is sampled deterministically when `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` is set (`1|5|25|100`); `phase_0_5_kill_switch` always overrides to disabled.
 
 Response
@@ -118,6 +119,7 @@ Notes
 - `tenant_id`/`product_id` 불일치 event는 `WIDGET_EVENT_INVALID`.
 - iframe 모드 postMessage 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
 - iframe 모드 메시지 계약은 `{ type, version, eventId, payload }` shape를 사용하며, SDK는 `event.source === iframe.contentWindow`와 shape validation을 모두 통과한 메시지만 처리한다.
+- self-hosted/browser SDK는 `events_endpoint`가 `api_base_url`과 다른 origin으로 해석되면 전송하지 않고 `WIDGET_ORIGIN_DENIED`로 실패시킨다.
 
 ### `GET /widget/sdk.js`
 - widget browser runtime JavaScript asset served directly from the API origin
@@ -133,6 +135,10 @@ Notes
 - iframe bootstrap HTML served directly from the API origin
 - response type: `text/html`
 - iframe mode SDK uses this endpoint instead of navigating directly to the JavaScript asset
+- response headers include a conservative `Content-Security-Policy` (`default-src 'none'`, inline `style`/`script` allowlist for the bootstrap shell, CSP `sandbox allow-scripts allow-same-origin`)
+- when widget origin allowlists are configured, `frame-ancestors` is narrowed to exact configured origins plus the current request origin if it matches an allow-pattern; wildcard patterns are not emitted directly into CSP
+- response also sets `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`
+- the bootstrap frame posts its `widget.ready` message with `targetOrigin="*"`; host trust still depends on the parent SDK validating runtime `event.origin` and `event.source`
 
 ## Jobs Import
 

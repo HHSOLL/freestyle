@@ -93,6 +93,38 @@ const buildRequestUrl = (base: string, path: string) => {
   return `${trimTrailingSlash(base)}/${path.replace(/^\/+/, "")}`;
 };
 
+const resolveWidgetOrigin = (config: Pick<WidgetConfig, "api_base_url">) => {
+  try {
+    const parsed = new URL(config.api_base_url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("Widget api_base_url must use http or https.");
+    }
+    return parsed.origin;
+  } catch (cause) {
+    throw toError("WIDGET_MOUNT_FAILED", "Widget config returned an invalid api_base_url.", cause);
+  }
+};
+
+const resolveSameOriginUrl = (
+  value: string,
+  expectedOrigin: string,
+  code: WidgetErrorCode,
+  message: string,
+) => {
+  let url: URL;
+  try {
+    url = new URL(value, expectedOrigin);
+  } catch (cause) {
+    throw toError(code, message, cause);
+  }
+
+  if (url.origin !== expectedOrigin) {
+    throw toError(code, message);
+  }
+
+  return url.toString();
+};
+
 const resolveConfigBase = (options: WidgetInitOptions) => {
   const configured = options.apiBaseUrl?.trim();
   if (configured) {
@@ -114,7 +146,14 @@ const fetchConfig = async (options: WidgetInitOptions): Promise<WidgetConfig> =>
 const asArray = (events: WidgetTrackInput) => (Array.isArray(events) ? events : [events]);
 
 const postEvents = async (config: WidgetConfig, events: WidgetTrackInput): Promise<WidgetEventsResponse> => {
-  const response = await fetch(buildRequestUrl(config.api_base_url, config.events_endpoint), {
+  const widgetOrigin = resolveWidgetOrigin(config);
+  const eventsUrl = resolveSameOriginUrl(
+    config.events_endpoint,
+    widgetOrigin,
+    "WIDGET_ORIGIN_DENIED",
+    "Widget events endpoint must remain on the widget API origin.",
+  );
+  const response = await fetch(eventsUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -141,19 +180,25 @@ const setupIframeMode = (
     throw toError("WIDGET_MOUNT_FAILED", "Document is not available for iframe mode.");
   }
 
+  const widgetOrigin = resolveWidgetOrigin(config);
   const iframe = doc.createElement("iframe") as {
     contentWindow?: object | null;
     src: string;
     title: string;
     sandbox?: string;
+    referrerPolicy?: string;
     style?: { width?: string; minHeight?: string; border?: string };
+    remove?: () => void;
   };
-  iframe.src = buildRequestUrl(
-    config.api_base_url,
+  iframe.src = resolveSameOriginUrl(
     `/widget/frame?tenant_id=${encodeURIComponent(config.tenant_id)}&product_id=${encodeURIComponent(config.product_id)}`,
+    widgetOrigin,
+    "WIDGET_MOUNT_FAILED",
+    "Widget frame endpoint must remain on the widget API origin.",
   );
   iframe.title = "FreeStyle Widget";
   iframe.sandbox = "allow-scripts allow-same-origin";
+  iframe.referrerPolicy = "no-referrer";
   iframe.style = {
     width: "100%",
     minHeight: "560px",
@@ -163,7 +208,6 @@ const setupIframeMode = (
   const target = mountTarget as { appendChild?: (child: unknown) => void };
   target.appendChild?.(iframe);
 
-  const expectedOrigin = new URL(config.api_base_url).origin;
   const listener = (event: MessageEvent) => {
     const iframeWindow = iframe.contentWindow;
     if (iframeWindow && event.source && event.source !== iframeWindow) {
@@ -171,7 +215,7 @@ const setupIframeMode = (
     }
 
     // Origin trust must use runtime event.origin, never payload fields.
-    if (event.origin !== expectedOrigin) {
+    if (event.origin !== widgetOrigin) {
       reportRecoverableError(
         onError,
         "WIDGET_ORIGIN_DENIED",
@@ -195,6 +239,7 @@ const setupIframeMode = (
 
   return () => {
     globalThis.removeEventListener?.("message", listener);
+    iframe.remove?.();
   };
 };
 

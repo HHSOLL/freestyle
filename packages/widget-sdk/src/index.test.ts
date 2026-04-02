@@ -6,12 +6,14 @@ type TestEnvironment = {
   listener: ((event: MessageEvent) => void) | null;
   iframeWindow: object;
   iframeSrc: string;
+  iframeReferrerPolicy: string;
+  iframeRemoved: boolean;
   fetchCalls: string[];
   onErrorCalls: WidgetSdkError[];
   restore: () => void;
 };
 
-const createTestEnvironment = (): TestEnvironment => {
+const createTestEnvironment = (configOverrides: Partial<Record<string, unknown>> = {}): TestEnvironment => {
   const originalDocument = globalThis.document;
   const originalFetch = globalThis.fetch;
   const originalAddEventListener = globalThis.addEventListener;
@@ -20,6 +22,8 @@ const createTestEnvironment = (): TestEnvironment => {
   const iframeWindow = {};
   const fetchCalls: string[] = [];
   let iframeSrc = "";
+  let iframeReferrerPolicy = "";
+  let iframeRemoved = false;
   const mountTarget = {
     appendChild() {
       return undefined;
@@ -47,7 +51,16 @@ const createTestEnvironment = (): TestEnvironment => {
         },
         title: "",
         sandbox: "",
+        get referrerPolicy() {
+          return iframeReferrerPolicy;
+        },
+        set referrerPolicy(nextValue: string) {
+          iframeReferrerPolicy = nextValue;
+        },
         style: {},
+        remove() {
+          iframeRemoved = true;
+        },
       };
     },
   } as unknown as Document;
@@ -90,6 +103,7 @@ const createTestEnvironment = (): TestEnvironment => {
             "WIDGET_MOUNT_FAILED",
             "WIDGET_ASSET_LOAD_FAILED",
           ],
+          ...configOverrides,
         }),
       } as Response;
     }
@@ -128,6 +142,12 @@ const createTestEnvironment = (): TestEnvironment => {
     iframeWindow,
     get iframeSrc() {
       return iframeSrc;
+    },
+    get iframeReferrerPolicy() {
+      return iframeReferrerPolicy;
+    },
+    get iframeRemoved() {
+      return iframeRemoved;
     },
     fetchCalls,
     onErrorCalls,
@@ -189,6 +209,7 @@ test("iframe mode reports denied origin only for messages coming from the mounte
       env.iframeSrc,
       "https://widget.example/widget/frame?tenant_id=tenant-a&product_id=sku-123",
     );
+    assert.equal(env.iframeReferrerPolicy, "no-referrer");
 
     env.listener?.({
       origin: "https://attacker.example",
@@ -204,6 +225,40 @@ test("iframe mode reports denied origin only for messages coming from the mounte
     assert.equal(env.onErrorCalls.length, 1);
     assert.equal(env.onErrorCalls[0]?.code, "WIDGET_ORIGIN_DENIED");
     handle.destroy();
+  } finally {
+    env.restore();
+  }
+});
+
+test("script mode rejects cross-origin events endpoints from config before sending telemetry", async () => {
+  const env = createTestEnvironment({
+    events_endpoint: "https://attacker.example/v1/widget/events",
+  });
+  try {
+    const client = createWidgetClient();
+    const handle = await client.init({
+      mount: "#mount",
+      tenantId: "tenant-a",
+      productId: "sku-123",
+      mode: "script",
+    });
+
+    await assert.rejects(
+      () =>
+        handle.track({
+          event_id: "evt_cross_origin",
+          event_name: "widget_loaded",
+          tenant_id: "tenant-a",
+          product_id: "sku-123",
+        }),
+      (error: unknown) => {
+        assert.equal((error as WidgetSdkError).code, "WIDGET_ORIGIN_DENIED");
+        assert.match((error as WidgetSdkError).message, /events endpoint must remain on the widget API origin/i);
+        return true;
+      },
+    );
+
+    assert.equal(env.fetchCalls.length, 1);
   } finally {
     env.restore();
   }
@@ -282,6 +337,8 @@ test("iframe mode ignores valid messages and unrelated sources safely", async ()
 
     assert.equal(env.onErrorCalls.length, 0);
     handle.destroy();
+    assert.equal(env.listener, null);
+    assert.equal(env.iframeRemoved, true);
   } finally {
     env.restore();
   }

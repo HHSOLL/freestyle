@@ -9,6 +9,8 @@ import { UnifiedTopbar } from '@/components/layout/UnifiedTopbar';
 
 const isAppPath = (pathname: string) =>
   pathname === '/app' || pathname.startsWith('/app/') || pathname === '/studio' || pathname.startsWith('/studio/');
+const isImmersiveClosetPath = (pathname: string) =>
+  pathname === '/app/closet' || pathname.startsWith('/app/closet/item/');
 
 const marketingPaths = new Set(['/', '/examples', '/how-it-works']);
 
@@ -21,6 +23,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (isSystemPath(pathname)) {
     return <>{children}</>;
+  }
+
+  if (isImmersiveClosetPath(pathname)) {
+    return (
+      <div className="min-h-screen bg-[#c8ccd4]">
+        <main className="min-h-screen">{children}</main>
+      </div>
+    );
   }
 
   if (isAppPath(pathname)) {

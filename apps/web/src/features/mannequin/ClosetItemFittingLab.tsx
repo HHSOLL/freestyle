@@ -4,7 +4,19 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
-import { ArrowRight, ExternalLink, Loader2, RefreshCcw, Ruler, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  ExternalLink,
+  Layers3,
+  Loader2,
+  RefreshCcw,
+  Ruler,
+  Search,
+  Shirt,
+  SlidersHorizontal,
+  Sparkles,
+  UserRound,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppPageFrame } from '@/features/renewal-app/components/AppPageFrame';
 import {
@@ -19,11 +31,12 @@ import type { Asset, GarmentFitProfile, GarmentMeasurements } from '@/features/s
 import { toAsset } from '@/features/studio/utils';
 import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { useLanguage } from '@/lib/LanguageContext';
+import { cn } from '@/lib/utils';
 import { defaultDemoClosetAssetId, demoClosetActiveAssetIds, demoClosetAssets } from './demoClosetAssets';
 import { buildFittingLayers, defaultBodyProfile, type BodyProfile } from './fitting';
 
-const MannequinScene3D = dynamic(
-  () => import('./MannequinScene3D').then((module) => module.MannequinScene3D),
+const FittingCanvas3D = dynamic(
+  () => import('./FittingCanvas3D').then((module) => module.FittingCanvas3D),
   { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-black/5" /> }
 );
 
@@ -100,6 +113,8 @@ type ClosetItemFittingLabProps = {
   compact?: boolean;
 };
 
+type WorkbenchMode = 'profile' | 'traits' | 'fit';
+
 export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFittingLabProps) {
   const { language } = useLanguage();
   const focusAssetId = assetId?.trim() ? assetId.trim() : null;
@@ -116,6 +131,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
   const [draftFitProfile, setDraftFitProfile] = useState<GarmentFitProfile>(fitProfileDefaults);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [usingDemoRack, setUsingDemoRack] = useState(false);
+  const [mode, setMode] = useState<WorkbenchMode>('profile');
   const [isSaving, startSaving] = useTransition();
   const deferredQuery = useDeferredValue(query);
   const deferredBodyProfile = useDeferredValue(bodyProfile);
@@ -231,6 +247,49 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
           stageAction: 'Open canvas',
           quickMenu: 'Quick menu',
           quickLooks: 'Current look',
+        };
+
+  const uiCopy =
+    language === 'ko'
+      ? {
+          utilityTitle: focusAssetId ? '선택 아이템 피팅 스테이지' : '마네킹 스타일 워크스테이션',
+          utilityDescription: focusAssetId
+            ? '선택한 의류를 중심으로 프리셋, 체형, 레이어를 한 화면에서 바로 조정합니다.'
+            : '좌우 패널과 중앙 스테이지를 오가며 코디와 체형을 동시에 조율합니다.',
+          selected: '선택 에셋',
+          currentAvatar: '현재 아바타',
+          lookLayers: '착장 레이어',
+          browserTitle: '아웃핏 브라우저',
+          browserHint: '검색과 카테고리 필터로 입힐 아이템을 고르고 바로 무대에 반영합니다.',
+          activeLook: '현재 착장',
+          noActiveLook: '아직 무대에 올린 아이템이 없습니다.',
+          modeProfile: '프로필',
+          modeTraits: '체형',
+          modeFit: '피팅',
+          inspectorTitle: '프로필 / 특성',
+          inspectorHint: '아바타와 선택 의류 정보를 확인하고, 하단 탭으로 체형과 피팅 편집을 전환합니다.',
+          browserEmpty: '필터에 맞는 아이템이 없습니다.',
+          detailLink: '상세 피팅 열기',
+        }
+      : {
+          utilityTitle: focusAssetId ? 'Selected Item Fitting Stage' : 'Mannequin Style Workstation',
+          utilityDescription: focusAssetId
+            ? 'Tune presets, body traits, and garment layers around the selected piece in one surface.'
+            : 'Move between the side panels and central stage to refine outfit layers and body traits together.',
+          selected: 'Selected asset',
+          currentAvatar: 'Current avatar',
+          lookLayers: 'Look layers',
+          browserTitle: 'Outfit browser',
+          browserHint: 'Search, filter by category, and send garments straight onto the stage.',
+          activeLook: 'Current look',
+          noActiveLook: 'No garments are on the stage yet.',
+          modeProfile: 'Profile',
+          modeTraits: 'Traits',
+          modeFit: 'Fit lab',
+          inspectorTitle: 'Profile / traits',
+          inspectorHint: 'Review avatar and garment details here, then switch tabs to body traits or fit editing.',
+          browserEmpty: 'No items match the current filter.',
+          detailLink: 'Open detailed fit',
         };
 
   const activateDemoRack = useCallback(() => {
@@ -455,22 +514,163 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     });
   };
 
-  const bodyPanel = (
-    <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
+  const profilePanel = (
+    <>
+      <section className="rounded-[24px] border border-white/10 bg-white/[0.06] p-4">
+        <div className="flex items-start gap-3">
+          <div className="h-16 w-16 overflow-hidden rounded-[20px] bg-[#ede1cf]">
+            {selectedAsset ? (
+              <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-2" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[#7a6b57]">
+                <Shirt className="h-6 w-6" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.selectedGarment}</p>
+            {selectedAsset ? (
+              <>
+                <h2 className="mt-2 truncate text-xl font-semibold tracking-[-0.04em] text-white">{selectedAsset.name}</h2>
+                <p className="mt-1 text-sm text-white/58">
+                  {getClosetCategoryLabel(selectedAsset.category, language)}
+                  {selectedAsset.brand ? ` · ${selectedAsset.brand}` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-white/56">{copy.emptySelection}</p>
+            )}
+          </div>
+        </div>
+
+        {selectedAsset ? (
+          <>
+            <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/54">
+              <span className="rounded-full bg-white/8 px-3 py-2">{copy.live}</span>
+              <span className="rounded-full bg-white/8 px-3 py-2">
+                {selectedAsset.metadata?.cutout?.removedBackground ? copy.cutoutReady : copy.cutoutFallback}
+              </span>
+              <span className="rounded-full bg-white/8 px-3 py-2">
+                {getWardrobeSourceLabel(selectedAsset.source, language)}
+              </span>
+            </div>
+
+            {selectedMeasurementSummary.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedMeasurementSummary.map((line) => (
+                  <span key={line} className="rounded-full bg-black/20 px-3 py-2 text-[11px] font-semibold text-white/72">
+                    {line}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {!focusAssetId ? (
+                <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]">
+                  <Link href={`/app/closet/item/${selectedAsset.id}`}>{uiCopy.detailLink}</Link>
+                </Button>
+              ) : null}
+              {selectedAsset.sourceUrl ? (
+                <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]">
+                  <a href={selectedAsset.sourceUrl} target="_blank" rel="noreferrer">
+                    {copy.sourceLink}
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </section>
+
+      <section className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-[#d2a264] p-2 text-[#1a1511]">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.avatars}</p>
+            <h3 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{selectedAvatarPreset.label[language]}</h3>
+            <p className="mt-2 text-sm leading-6 text-white/58">{selectedAvatarPreset.description[language]}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          {avatarPresets.map((preset) => {
+            const active = preset.id === avatarId;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setAvatarId(preset.id)}
+                className={cn(
+                  'rounded-[18px] border px-4 py-3 text-left transition',
+                  active
+                    ? 'border-[#d2a264] bg-[#231d17] text-white'
+                    : 'border-white/10 bg-white/[0.03] text-white/66 hover:border-white/18 hover:text-white'
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{preset.label[language]}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/42">{preset.license}</p>
+                  </div>
+                  <span className="rounded-full bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
+                    {preset.description[language]}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-xs leading-5 text-white/54">
+          {copy.avatarSource}:{' '}
+          <a href={selectedAvatarPreset.sourceUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+            {selectedAvatarPreset.author}
+          </a>
+        </p>
+      </section>
+
+      <section className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Ruler className="h-4 w-4 text-[#d2a264]" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.summaries}</p>
+        </div>
+        {selectedLayer?.fitSummary.length ? (
+          <div className="grid gap-2">
+            {selectedLayer.fitSummary.map((summary) => (
+              <div key={summary.label} className="rounded-[18px] border border-white/10 bg-black/18 px-3 py-2">
+                <p className="text-sm font-semibold text-white">{summary.label}</p>
+                <p className="text-[11px] text-white/44">{summary.easeCm} cm ease</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-white/56">{copy.noFitAsset}</p>
+        )}
+      </section>
+    </>
+  );
+
+  const traitsPanel = (
+    <section className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
       <div className="flex items-start gap-3">
-        <div className="rounded-full bg-black p-2 text-white">
-          <Sparkles className="h-4 w-4" />
+        <div className="rounded-full bg-white/10 p-2 text-white">
+          <SlidersHorizontal className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-black/40">{copy.mannequin}</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-black">{copy.body}</h3>
-          <p className="mt-2 text-sm leading-6 text-black/56">{copy.mannequinHint}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.mannequin}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">{copy.body}</h3>
+          <p className="mt-2 text-sm leading-6 text-white/58">{copy.mannequinHint}</p>
         </div>
       </div>
+
       <div className="mt-5 space-y-3">
         {bodyFields.map((field) => (
           <label key={field.key} className="block">
-            <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-black/56">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/56">
               <span>{field.label}</span>
               <span>{bodyProfile[field.key]} cm</span>
             </div>
@@ -485,15 +685,16 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
                   [field.key]: Number(event.target.value),
                 }))
               }
-              className="w-full accent-black"
+              className="w-full accent-[#d2a264]"
             />
           </label>
         ))}
       </div>
+
       <Button
         type="button"
         variant="outline"
-        className="mt-4 rounded-full"
+        className="mt-4 rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]"
         onClick={() => setBodyProfile(defaultBodyProfile)}
       >
         <RefreshCcw className="h-4 w-4" />
@@ -502,136 +703,18 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     </section>
   );
 
-  const selectedAssetPanel = selectedAsset ? (
+  const fitPanel = selectedAsset ? (
     <>
-      <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
-        <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-black/42">{copy.avatars}</p>
-        <div className="grid gap-2">
-          {avatarPresets.map((preset) => {
-            const active = preset.id === avatarId;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => setAvatarId(preset.id)}
-                className={`rounded-[20px] border px-4 py-3 text-left transition ${
-                  active ? 'border-black bg-[#f7f1e8] text-black' : 'border-black/10 bg-white text-black/62'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{preset.label[language]}</p>
-                    <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-black/42">{preset.description[language]}</p>
-                  </div>
-                  <span className="rounded-full bg-black/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/52">
-                    {preset.license}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-3 text-xs leading-5 text-black/52">
-          {copy.avatarSource}:{' '}
-          <a href={selectedAvatarPreset.sourceUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-            {selectedAvatarPreset.author}
-          </a>
-        </p>
-      </section>
-
-      <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="h-16 w-16 overflow-hidden rounded-[22px] bg-[#f7f1e8]">
-            <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-2" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.selectedGarment}</p>
-            <h3 className="mt-2 truncate text-xl font-semibold text-black">{selectedAsset.name}</h3>
-            <p className="mt-1 text-sm text-black/54">
-              {getClosetCategoryLabel(selectedAsset.category, language)}
-              {selectedAsset.brand ? ` · ${selectedAsset.brand}` : ''}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-black/44">
-          <span className="rounded-full bg-black/[0.04] px-3 py-2">{copy.live}</span>
-          <span className="rounded-full bg-black/[0.04] px-3 py-2">
-            {selectedAsset.metadata?.cutout?.removedBackground ? copy.cutoutReady : copy.cutoutFallback}
-          </span>
-          <span className="rounded-full bg-black/[0.04] px-3 py-2">
-            {getWardrobeSourceLabel(selectedAsset.source, language)}
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-3 text-sm text-black/58">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.source}</p>
-            <p className="mt-1 break-all leading-6">
-              {selectedAsset.sourceUrl ?? selectedAsset.metadata?.sourceTitle ?? 'N/A'}
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.cutout}</p>
-            <p className="mt-1">
-              {selectedAsset.metadata?.cutout?.removedBackground ? copy.cutoutReady : copy.cutoutFallback}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button asChild className="rounded-full bg-black text-white hover:bg-black/90">
-            <Link href="/studio">
-              {copy.openStudio}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          {selectedAsset.sourceUrl ? (
-            <Button asChild variant="outline" className="rounded-full">
-              <a href={selectedAsset.sourceUrl} target="_blank" rel="noreferrer">
-                {copy.sourceLink}
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
+      <section className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
         <div className="mb-3 flex items-center gap-2">
-          <Ruler className="h-4 w-4 text-black/48" />
-          <p className="text-[11px] uppercase tracking-[0.18em] text-black/42">{copy.summaries}</p>
+          <Ruler className="h-4 w-4 text-[#d2a264]" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.measurements}</p>
         </div>
-        <div className="grid gap-2">
-          {selectedLayer?.fitSummary.length ? (
-            selectedLayer.fitSummary.map((summary) => (
-              <div key={summary.label} className="rounded-[18px] bg-[#f7f1e8] px-3 py-2">
-                <p className="text-sm font-semibold text-black">{summary.label}</p>
-                <p className="text-[11px] text-black/48">{summary.easeCm} cm ease</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm leading-6 text-black/56">{copy.noFitAsset}</p>
-          )}
-        </div>
-        {selectedMeasurementSummary.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {selectedMeasurementSummary.map((line) => (
-              <span key={line} className="rounded-full bg-black/[0.04] px-3 py-2 text-[11px] font-semibold text-black/60">
-                {line}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
-        <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-black/42">{copy.measurements}</p>
-        <p className="mb-4 text-sm leading-6 text-black/56">{copy.missingMeasurements}</p>
+        <p className="mb-4 text-sm leading-6 text-white/56">{copy.missingMeasurements}</p>
         <div className="grid grid-cols-2 gap-3">
           {measurementFields.map((field) => (
             <label key={field.key} className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-black/56">{field.label}</span>
+              <span className="mb-1 block text-[11px] font-semibold text-white/56">{field.label}</span>
               <input
                 type="number"
                 min={0}
@@ -644,7 +727,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
                     [field.key]: nextValue.length === 0 ? undefined : Number(nextValue),
                   }));
                 }}
-                className="h-11 w-full rounded-2xl border border-black/10 bg-[#f7f1e8] px-3 text-sm text-black outline-none transition focus:border-black/30"
+                className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#d2a264]/55"
                 placeholder="cm"
               />
             </label>
@@ -652,11 +735,11 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
         </div>
       </section>
 
-      <section className="rounded-[28px] bg-white/82 p-4 shadow-sm">
-        <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-black/42">{copy.fitProfile}</p>
+      <section className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.fitProfile}</p>
         <div className="grid gap-3">
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-black/56">Silhouette</span>
+            <span className="mb-1 block text-[11px] font-semibold text-white/56">Silhouette</span>
             <select
               value={draftFitProfile.silhouette ?? 'regular'}
               onChange={(event) =>
@@ -665,7 +748,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
                   silhouette: event.target.value as NonNullable<GarmentFitProfile['silhouette']>,
                 }))
               }
-              className="h-11 w-full rounded-2xl border border-black/10 bg-[#f7f1e8] px-3 text-sm text-black outline-none transition focus:border-black/30"
+              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[#d2a264]/55"
             >
               <option value="tailored">Tailored</option>
               <option value="regular">Regular</option>
@@ -674,7 +757,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-black/56">Layer</span>
+            <span className="mb-1 block text-[11px] font-semibold text-white/56">Layer</span>
             <select
               value={draftFitProfile.layer ?? 'mid'}
               onChange={(event) =>
@@ -683,7 +766,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
                   layer: event.target.value as NonNullable<GarmentFitProfile['layer']>,
                 }))
               }
-              className="h-11 w-full rounded-2xl border border-black/10 bg-[#f7f1e8] px-3 text-sm text-black outline-none transition focus:border-black/30"
+              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[#d2a264]/55"
             >
               <option value="base">Base</option>
               <option value="mid">Mid</option>
@@ -693,552 +776,265 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
         </div>
       </section>
 
-      <Button
-        type="button"
-        className="h-12 w-full rounded-2xl bg-black text-white hover:bg-black/90"
-        disabled={isSaving}
-        onClick={handleSaveAssetMetadata}
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {copy.saving}
-          </>
-        ) : (
-          copy.save
-        )}
-      </Button>
-      {saveError ? <p className="text-sm text-[#8b2f2f]">{saveError}</p> : null}
+      <div className="space-y-3">
+        <Button
+          type="button"
+          className="h-12 w-full rounded-full bg-[#d2a264] text-[#1a1511] hover:bg-[#ddb17a]"
+          disabled={isSaving}
+          onClick={handleSaveAssetMetadata}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {copy.saving}
+            </>
+          ) : (
+            copy.save
+          )}
+        </Button>
+        {saveError ? <p className="text-sm text-[#f1b7b7]">{saveError}</p> : null}
+      </div>
     </>
   ) : (
-    <div className="rounded-[28px] border border-dashed border-black/15 px-5 py-10 text-sm leading-7 text-black/56">
+    <div className="rounded-[24px] border border-dashed border-white/15 px-5 py-10 text-sm leading-7 text-white/56">
       {assets.length === 0 ? copy.emptyCloset : copy.emptySelection}
     </div>
   );
 
-  const compactWorkspace = (
-    <div className="min-h-[calc(100svh-88px)] overflow-y-auto bg-[linear-gradient(180deg,#0b0910_0%,#07060a_100%)] text-white sm:min-h-[calc(100svh-92px)] lg:h-[calc(100svh-92px)] lg:overflow-hidden">
-      <section className="grid min-h-full gap-0 lg:h-full lg:min-h-0 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="flex min-h-0 flex-col border-r border-white/10 bg-[linear-gradient(180deg,rgba(16,13,21,0.96),rgba(8,7,11,0.96))]">
-          <div className="border-b border-white/8 px-4 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#bda67a]">{copy.workspaceEyebrow}</p>
-            <h1 className="mt-3 font-serif text-3xl tracking-[-0.06em] text-white">{copy.creatorTitle}</h1>
-            <p className="mt-3 text-sm leading-6 text-white/62">{copy.creatorHint}</p>
+  const categoryRailIcons: Record<string, typeof Shirt> = {
+    all: Layers3,
+    outerwear: Sparkles,
+    tops: Shirt,
+    bottoms: Ruler,
+    shoes: UserRound,
+    accessories: SlidersHorizontal,
+    custom: Sparkles,
+  };
+
+  const stageTabs = [
+    { id: 'presets', label: language === 'ko' ? 'Zoi 프리셋' : 'Zoi Presets' },
+    { id: 'face', label: language === 'ko' ? '얼굴' : 'Face' },
+    { id: 'body', label: language === 'ko' ? '바디' : 'Body' },
+    { id: 'outfit', label: language === 'ko' ? '아웃핏' : 'Outfit' },
+    { id: 'accessories', label: language === 'ko' ? '액세서리' : 'Accessories' },
+    { id: 'craft', label: language === 'ko' ? '제작' : 'Craft' },
+  ] as const;
+  type StageTabId = (typeof stageTabs)[number]['id'];
+  const [stageTab, setStageTab] = useState<StageTabId>('outfit');
+
+  const ageIcons = ['👶', '🧒', '🧑', '🧔', '👩', '🧓'];
+  const genderOptions = ['♂', '♀', '⚧'];
+  const traitKeywords = selectedAvatarPreset.description[language]
+    .split(/[.,]/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .slice(0, 4);
+  const outfitSubcategories =
+    language === 'ko'
+      ? ['Sneakers', 'Loafers', 'Boots', 'Slippers', 'Sandals']
+      : ['Sneakers', 'Loafers', 'Boots', 'Slippers', 'Sandals'];
+  const thumbnailPool = useMemo(() => {
+    if (filteredAssets.length === 0) return [];
+    const targetCount = 30;
+    return Array.from({ length: Math.max(targetCount, filteredAssets.length) }, (_, index) => filteredAssets[index % filteredAssets.length]);
+  }, [filteredAssets]);
+
+  const workspace = (
+    <div
+      className={cn(
+        'relative mx-auto min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,#8f949e_0%,#a8aeb9_35%,#c2c8d2_100%)] text-[#11141a]',
+        !compact && 'rounded-[24px]'
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_16%,rgba(255,255,255,0.34),rgba(255,255,255,0.08)_42%,transparent_76%)]" />
+      <header className="absolute inset-x-0 top-0 z-20 px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3 text-sm font-medium text-white/95">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="inline-flex h-8 items-center gap-2 rounded-full border border-white/26 bg-white/14 px-3 backdrop-blur-sm"
+            >
+              <span className="text-base leading-none">‹</span>
+              <span>{language === 'ko' ? 'Go Back' : 'Go Back'}</span>
+            </button>
+            <span className="text-white/42">|</span>
+            <span>{language === 'ko' ? 'Create a Zoi' : 'Create a Zoi'}</span>
           </div>
+          <Button
+            asChild
+            variant="outline"
+            className="h-8 rounded-full border-white/26 bg-white/88 px-3 text-xs text-[#3a414f] hover:bg-white"
+          >
+            <Link href="/studio">
+              {language === 'ko' ? 'Upload to Canvas' : 'Upload to Canvas'}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-            {usingDemoRack ? (
-              <div className="rounded-[20px] border border-[#d1b278]/35 bg-[#1a1410] px-4 py-3 text-sm leading-6 text-[#f0dcc0]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#d1b278]">{copy.demoRack}</p>
-                <p className="mt-1 text-white/70">{copy.demoRackHint}</p>
-              </div>
-            ) : null}
+      <div className="relative z-10 grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] px-4 pb-4 pt-16 sm:px-6 sm:pb-5 sm:pt-20">
+        <section className="grid min-h-0 gap-3 lg:grid-cols-[300px_minmax(0,1fr)_350px]">
+          <aside className="min-h-0 rounded-[24px] border border-white/24 bg-white/17 p-3 shadow-[0_18px_42px_rgba(39,45,56,0.18)] backdrop-blur-md">
+            <div className="space-y-4">
+              <section className="border-b border-white/28 pb-3">
+                <p className="text-sm font-semibold text-white/95">Profile ⚠</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input className="h-8 rounded-lg border border-white/28 bg-white/54 px-2 text-xs text-[#2e3440]" placeholder="First Name" />
+                  <input className="h-8 rounded-lg border border-white/28 bg-white/54 px-2 text-xs text-[#2e3440]" placeholder="Last Name" />
+                </div>
+              </section>
 
-            <label className="block">
-              <span className="sr-only">{copy.search}</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={copy.search}
-                className="h-11 w-full rounded-[16px] border border-white/12 bg-black/24 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#d1b278]/58"
-              />
-            </label>
+              <section className="border-b border-white/28 pb-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/72">Age Group</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {ageIcons.map((icon) => (
+                    <button key={icon} type="button" className="h-8 w-8 rounded-full border border-white/34 bg-white/54 text-sm shadow-sm">
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.quickLooks}</p>
-              <div className="grid grid-cols-4 gap-2">
-                {activeAssets.slice(0, 8).map((asset) => (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    onClick={() => setSelectedAssetId(asset.id)}
-                    className={`overflow-hidden rounded-[14px] border transition ${
-                      selectedAssetId === asset.id ? 'border-[#d1b278] bg-white/10' : 'border-white/10 bg-white/[0.03]'
-                    }`}
-                  >
-                    <div className="aspect-square bg-[#16131a]">
-                      <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
+              <section className="border-b border-white/28 pb-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/72">Gender</p>
+                <div className="mt-2 flex gap-2">
+                  {genderOptions.map((entry) => (
+                    <button key={entry} type="button" className="h-8 w-8 rounded-full border border-white/34 bg-white/54 text-sm text-[#38404f] shadow-sm">
+                      {entry}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-[16px] border border-white/28 bg-white/22 p-2.5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/72">Trait ⚠</p>
+                <div className="mt-2 flex gap-2">
+                  <div className="h-20 w-16 overflow-hidden rounded-lg bg-white/64">
+                    {selectedAsset ? (
+                      <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-1" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-semibold leading-tight text-white">Adventurer</p>
+                    <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-white/75">
+                      {traitKeywords.map((entry) => (
+                        <span key={entry}>{entry}</span>
+                      ))}
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                  </div>
+                </div>
+              </section>
 
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.categories}</p>
-              <div className="grid grid-cols-2 gap-2">
+              <section>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/72">Desired Life (Optional)</p>
+                <input
+                  className="mt-2 h-8 w-full rounded-lg border border-white/28 bg-white/54 px-2 text-xs text-[#2e3440]"
+                  defaultValue={language === 'ko' ? 'Excitement' : 'Life of Excitement'}
+                />
+              </section>
+
+              <section className="pt-2">
+                <Button asChild variant="outline" className="h-8 rounded-full border-white/26 bg-white/24 px-3 text-xs text-white/90 hover:bg-white/32">
+                  <Link href="/studio">Studio</Link>
+                </Button>
+              </section>
+            </div>
+          </aside>
+
+          <section className="relative min-h-0 rounded-[24px] border border-white/24 bg-[radial-gradient(circle_at_50%_14%,rgba(240,244,250,0.95),rgba(214,221,232,0.48)_52%,rgba(192,199,210,0.2)_100%)] shadow-[0_22px_52px_rgba(40,46,57,0.22)]">
+            <div className="h-full min-h-[560px]">
+              <FittingCanvas3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
+            </div>
+          </section>
+
+          <aside className="min-h-0 rounded-[24px] border border-white/24 bg-white/18 p-2.5 shadow-[0_18px_42px_rgba(39,45,56,0.18)] backdrop-blur-md">
+            <div className="mb-2 px-1">
+              <p className="text-sm font-semibold text-white/95">Outfit</p>
+            </div>
+            <div className="grid h-[calc(100%-28px)] min-h-[520px] grid-cols-[110px_minmax(0,1fr)] gap-2">
+              <div className="overflow-y-auto border-r border-white/28 pr-2">
                 {visibleCategories.map((entry) => {
-                  const active = category === entry;
+                  const Icon = categoryRailIcons[entry] ?? Layers3;
                   const label = entry === 'all' ? copy.allCategories : getClosetCategoryLabel(entry, language);
                   return (
                     <button
                       key={entry}
                       type="button"
                       onClick={() => setCategory(entry)}
-                      className={`rounded-[16px] border px-3 py-2 text-left text-xs font-semibold transition ${
-                        active
-                          ? 'border-[#d1b278] bg-[#18120d] text-[#f3ddbc]'
-                          : 'border-white/10 bg-white/[0.03] text-white/62'
-                      }`}
+                      className={cn(
+                        'mb-1.5 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs',
+                        category === entry ? 'bg-white/26 font-semibold text-white' : 'text-white/74 hover:bg-white/14'
+                      )}
                     >
+                      <Icon className="h-3.5 w-3.5" />
                       {label}
                     </button>
                   );
                 })}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.library}</p>
-              {assets.length === 0 ? (
-                <div className="rounded-[20px] border border-dashed border-white/16 px-4 py-6 text-sm leading-6 text-white/50">
-                  {copy.emptyCloset}
-                </div>
-              ) : filteredAssets.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {filteredAssets.map((asset) => {
-                    const active = activeAssetIds.includes(asset.id);
-                    return (
+              <div className="overflow-y-auto">
+                {thumbnailPool.length > 0 ? (
+                  <>
+                    <div className="mb-2 space-y-1 px-1 text-[11px] text-white/68">
+                      {outfitSubcategories.map((entry) => (
+                        <p key={entry}>{entry}</p>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {thumbnailPool.map((asset, index) => (
                       <button
-                        key={asset.id}
+                        key={`${asset.id}-${index}`}
                         type="button"
-                        aria-pressed={active}
                         onClick={() => handleToggleAsset(asset)}
-                        className={`overflow-hidden rounded-[18px] border text-left transition ${
-                          selectedAssetId === asset.id
-                            ? 'border-[#d1b278] bg-[#18120d]'
-                            : active
-                              ? 'border-white/20 bg-white/[0.05]'
-                              : 'border-white/10 bg-white/[0.03]'
-                        }`}
+                        className={cn(
+                          'rounded-full border p-1 shadow-sm',
+                          activeAssetIds.includes(asset.id)
+                            ? 'border-[#89a7cb] bg-white/44'
+                            : 'border-white/28 bg-white/28 hover:bg-white/36'
+                        )}
                       >
-                        <div className="aspect-[1.02] bg-[#15121a]">
-                          <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-2" />
-                        </div>
-                        <div className="px-3 py-3">
-                          <p className="truncate text-sm font-semibold text-white">{asset.name}</p>
-                          <p className="mt-1 truncate text-[10px] uppercase tracking-[0.18em] text-white/42">
-                            {getClosetCategoryLabel(asset.category, language)}
-                          </p>
+                        <div className="aspect-square overflow-hidden rounded-full bg-white/72">
+                          <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
                         </div>
                       </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-[20px] border border-dashed border-white/16 px-4 py-6 text-sm leading-6 text-white/50">
-                  {copy.empty}
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-
-        <section className="relative min-h-[560px] overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(88,67,130,0.22),_rgba(11,9,16,0.98)_58%)] lg:min-h-0">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-6 pt-5">
-            <div className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">
-              {copy.stageHint}
-            </div>
-            <div className="rounded-full border border-[#d1b278]/30 bg-[#18120d]/85 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f3ddbc]">
-              {copy.layerCount(layers.length)}
-            </div>
-          </div>
-
-          <div className="absolute left-5 top-24 z-10 hidden flex-col gap-2 lg:flex">
-            {[
-              { label: copy.quickMenu, value: copy.avatars },
-              { label: copy.mannequin, value: copy.body },
-              { label: copy.garmentSet, value: `${activeAssets.length}` },
-            ].map((entry) => (
-              <div key={entry.label} className="rounded-[16px] border border-white/10 bg-black/30 px-3 py-2 text-white/74 backdrop-blur-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">{entry.label}</p>
-                <p className="mt-1 text-xs font-medium">{entry.value}</p>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded border border-dashed border-white/28 px-3 py-5 text-xs text-white/72">{uiCopy.browserEmpty}</div>
+                )}
               </div>
+            </div>
+          </aside>
+        </section>
+
+        <footer className="flex items-end justify-center pb-1 pt-3">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/28 bg-white/24 px-3 py-2 backdrop-blur-md">
+            {stageTabs.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => {
+                  setStageTab(entry.id);
+                  if (entry.id === 'body') setMode('traits');
+                  if (entry.id === 'outfit') setMode('fit');
+                  if (entry.id === 'face' || entry.id === 'presets' || entry.id === 'craft') setMode('profile');
+                }}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-medium',
+                  stageTab === entry.id ? 'bg-white text-[#2b3240]' : 'text-white/78 hover:bg-white/16'
+                )}
+              >
+                {entry.label}
+              </button>
             ))}
           </div>
-
-          {equippedSlots.length > 0 ? (
-            <div className="absolute right-5 top-24 z-10 hidden flex-col gap-2 xl:flex">
-              {equippedSlots.map((asset) => (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => setSelectedAssetId(asset.id)}
-                  className={`flex items-center gap-2 rounded-[16px] border px-2 py-2 text-left shadow-sm backdrop-blur-sm transition ${
-                    selectedAssetId === asset.id
-                      ? 'border-[#d1b278] bg-[#18120d]/92 text-white'
-                      : 'border-white/14 bg-black/32 text-white/82'
-                  }`}
-                >
-                  <div className="h-11 w-11 overflow-hidden rounded-[12px] bg-white/90">
-                    <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
-                  </div>
-                  <div className="hidden min-w-0 sm:block">
-                    <p className="truncate text-xs font-semibold">{asset.name}</p>
-                    <p className="truncate text-[10px] uppercase tracking-[0.18em] text-white/46">
-                      {getClosetCategoryLabel(asset.category, language)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="h-[560px] lg:h-full">
-            <MannequinScene3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
-          </div>
-
-          <div className="pointer-events-none absolute inset-x-[18%] bottom-10 h-24 bg-[radial-gradient(circle_at_center,_rgba(106,82,160,0.24),_transparent_72%)] blur-2xl" />
-          <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
-            <Button asChild className="h-12 rounded-none border border-white/12 bg-[#303745]/88 px-10 text-white hover:bg-[#394154]">
-              <Link href="/studio">{copy.stageAction}</Link>
-            </Button>
-          </div>
-        </section>
-
-        <aside className="flex min-h-0 flex-col border-l border-white/10 bg-[linear-gradient(180deg,rgba(8,10,16,0.96),rgba(5,7,11,0.96))]">
-          <div className="border-b border-white/8 px-5 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d1b278]">{copy.creatorTitle}</p>
-            <p className="mt-2 text-sm leading-5 text-white/60">{copy.mannequinHint}</p>
-          </div>
-
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-3">
-            <section className="space-y-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.avatars}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {avatarPresets.map((preset) => {
-                  const active = preset.id === avatarId;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setAvatarId(preset.id)}
-                      className={`rounded-[16px] border px-2 py-3 text-center transition ${
-                        active ? 'border-[#d1b278] bg-[#18120d] text-[#f3ddbc]' : 'border-white/10 bg-white/[0.03] text-white/68'
-                      }`}
-                    >
-                      <p className="text-xs font-semibold">{preset.label[language]}</p>
-                      <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/38">{preset.license}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.selectedGarment}</p>
-              {selectedAsset ? (
-                <div className="mt-2.5 flex items-start gap-3">
-                  <div className="h-14 w-14 overflow-hidden rounded-[16px] bg-white/90">
-                    <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-2" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-semibold text-white">{selectedAsset.name}</h3>
-                    <p className="mt-0.5 text-sm text-white/58">{getClosetCategoryLabel(selectedAsset.category, language)}</p>
-                    {selectedMeasurementSummary.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {selectedMeasurementSummary.slice(0, 3).map((line) => (
-                          <span key={line} className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-semibold text-white/66">
-                            {line}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-white/50">{copy.emptySelection}</p>
-              )}
-            </section>
-
-            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
-              <div className="mb-2.5 flex items-center gap-2">
-                <Ruler className="h-4 w-4 text-[#d1b278]" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.summaries}</p>
-              </div>
-              <div className="grid gap-2">
-                {selectedLayer?.fitSummary.length ? (
-                  selectedLayer.fitSummary.map((summary) => (
-                    <div key={summary.label} className="rounded-[16px] border border-white/10 bg-black/18 px-3 py-2">
-                      <p className="text-[13px] font-semibold text-white">{summary.label}</p>
-                      <p className="text-[11px] text-white/44">{summary.easeCm} cm ease</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm leading-6 text-white/50">{copy.noFitAsset}</p>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-[20px] border border-white/10 bg-white/[0.03] p-3.5">
-              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">{copy.body}</p>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-                {bodyFields.map((field) => (
-                  <label key={field.key} className="block">
-                    <div className="mb-0.5 flex items-center justify-between text-[10px] font-semibold text-white/52">
-                      <span>{field.label}</span>
-                      <span>{bodyProfile[field.key]} cm</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={field.min}
-                      max={field.max}
-                      value={bodyProfile[field.key]}
-                      onChange={(event) =>
-                        setBodyProfile((prev) => ({
-                          ...prev,
-                          [field.key]: Number(event.target.value),
-                        }))
-                      }
-                      className="w-full accent-[#d1b278]"
-                    />
-                  </label>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <div className="grid gap-2 border-t border-white/8 px-5 py-3">
-            {selectedAsset ? (
-              <Button asChild variant="outline" className="h-10 rounded-none border-white/12 bg-white/[0.04] text-white hover:bg-white/[0.08]">
-                <Link href={`/app/closet/item/${selectedAsset.id}`}>{copy.detailFitting}</Link>
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-none border-white/12 bg-white/[0.04] text-white hover:bg-white/[0.08]"
-              onClick={() => setBodyProfile(defaultBodyProfile)}
-            >
-              {copy.resetBody}
-            </Button>
-          </div>
-        </aside>
-      </section>
+        </footer>
+      </div>
     </div>
   );
-
-  const standardWorkspace = (
-    <div className="space-y-4">
-      {compact ? (
-        <section className="grid gap-3 border-b border-black/8 pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/36">{copy.workspaceEyebrow}</p>
-            <h1 className="font-serif text-3xl tracking-[-0.05em] text-black sm:text-4xl">{copy.workspaceTitle}</h1>
-            <p className="max-w-3xl text-sm leading-7 text-black/58">{copy.workspaceDescription}</p>
-          </div>
-          <Button asChild variant="outline" className="rounded-full border-black/12 bg-white/80">
-            <Link href="/studio">
-              {copy.openStudio}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </section>
-      ) : null}
-
-      <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-        <aside className="space-y-4 border border-black/8 bg-white p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.library}</p>
-              <p className="mt-2 text-sm leading-6 text-black/56">{copy.libraryHint}</p>
-            </div>
-            {!compact ? (
-              <Button asChild variant="outline" className="rounded-full">
-                <Link href="/studio">
-                  {copy.openStudio}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-          {usingDemoRack ? (
-            <div className="rounded-[22px] border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em]">{copy.demoRack}</p>
-              <p className="mt-1">{copy.demoRackHint}</p>
-            </div>
-          ) : null}
-
-          <div>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={copy.search}
-              className="w-full rounded-full border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-black/25"
-            />
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[110px_minmax(0,1fr)]">
-            <div className="space-y-2">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.categories}</p>
-              {visibleCategories.map((entry) => {
-                const active = category === entry;
-                const label = entry === 'all' ? copy.allCategories : getClosetCategoryLabel(entry, language);
-                return (
-                  <button
-                    key={entry}
-                    type="button"
-                    onClick={() => setCategory(entry)}
-                    className={`flex w-full items-center justify-between rounded-[18px] px-3 py-2 text-left text-sm transition ${
-                      active ? 'bg-black text-white' : 'bg-[#f7f1e8] text-black/64'
-                    }`}
-                  >
-                    <span>{label}</span>
-                    {entry !== 'all' ? (
-                      <span className={`text-[10px] uppercase tracking-[0.18em] ${active ? 'text-white/70' : 'text-black/34'}`}>
-                        {assets.filter((asset) => asset.category === entry).length}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-black/36">{copy.garmentSet}</p>
-                {activeAssets.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {activeAssets.map((asset) => (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={() => setSelectedAssetId(asset.id)}
-                        className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
-                          selectedAssetId === asset.id ? 'bg-black text-white' : 'bg-black/[0.05] text-black/64 hover:text-black'
-                        }`}
-                      >
-                        {asset.name}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm leading-6 text-black/50">{copy.noFitAsset}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-            {assets.length === 0 ? (
-              <div className="rounded-[22px] border border-dashed border-black/15 px-4 py-6 text-sm leading-7 text-black/50">
-                {copy.emptyCloset}
-              </div>
-            ) : filteredAssets.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {filteredAssets.map((asset) => {
-                const active = activeAssetIds.includes(asset.id);
-                return (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handleToggleAsset(asset)}
-                    className={`flex items-center gap-3 rounded-[22px] border px-3 py-3 text-left transition ${
-                      selectedAssetId === asset.id
-                        ? 'border-black bg-[#f3ece3] text-black'
-                        : active
-                          ? 'border-black/15 bg-black/[0.03] text-black'
-                          : 'border-black/8 bg-white text-black/60'
-                    }`}
-                  >
-                    <div className="h-14 w-14 overflow-hidden rounded-[18px] bg-[#f3ece3]">
-                      <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{asset.name}</p>
-                      <p className="truncate text-[11px] uppercase tracking-[0.18em] text-black/40">
-                        {getClosetCategoryLabel(asset.category, language)}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-              </div>
-            ) : (
-              <div className="rounded-[22px] border border-dashed border-black/15 px-4 py-6 text-sm text-black/50">
-                {copy.empty}
-              </div>
-            )}
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <section className="relative min-h-[620px] overflow-hidden border border-black/8 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92),_rgba(244,235,223,0.72)_45%,_rgba(239,228,214,0.92))]">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
-            <div className="rounded-full bg-white/75 px-3 py-2 text-[11px] font-semibold text-black/60 shadow-sm backdrop-blur-sm">
-              {copy.stageHint}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedAsset ? (
-                <div className="rounded-full bg-white/78 px-3 py-2 text-[11px] font-semibold text-black/66 shadow-sm backdrop-blur-sm">
-                  {selectedAsset.name}
-                </div>
-              ) : null}
-              <div className="rounded-full bg-black px-3 py-2 text-[11px] font-semibold text-white shadow-sm">
-                {copy.layerCount(layers.length)}
-              </div>
-            </div>
-          </div>
-          <div className="absolute left-5 top-24 z-10 flex flex-col gap-2">
-            {avatarPresets.map((preset) => {
-              const active = preset.id === avatarId;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => setAvatarId(preset.id)}
-                  className={`rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm transition ${
-                    active ? 'bg-white text-black' : 'bg-black/45 text-white/72 backdrop-blur-sm'
-                  }`}
-                >
-                  {preset.label[language]}
-                </button>
-              );
-            })}
-          </div>
-          {equippedSlots.length > 0 ? (
-            <div className="absolute right-5 top-24 z-10 flex flex-col gap-2">
-              <p className="px-2 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-white/52">
-                {copy.equipped}
-              </p>
-              {equippedSlots.map((asset) => (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => setSelectedAssetId(asset.id)}
-                  className={`flex items-center gap-2 rounded-[18px] border px-2 py-2 text-left shadow-sm backdrop-blur-sm transition ${
-                    selectedAssetId === asset.id
-                      ? 'border-white/80 bg-white text-black'
-                      : 'border-white/18 bg-black/35 text-white'
-                  }`}
-                >
-                  <div className="h-11 w-11 overflow-hidden rounded-[14px] bg-white/92">
-                    <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain p-1.5" />
-                  </div>
-                  <div className="hidden min-w-0 sm:block">
-                    <p className="truncate text-xs font-semibold">{asset.name}</p>
-                    <p className={`truncate text-[10px] uppercase tracking-[0.18em] ${selectedAssetId === asset.id ? 'text-black/48' : 'text-white/52'}`}>
-                      {getClosetCategoryLabel(asset.category, language)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <div className="h-[660px] sm:h-[720px]">
-            <MannequinScene3D body={deferredBodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
-          </div>
-        </section>
-
-        <aside className="space-y-4 border border-black/8 bg-[#f4ede3] p-5">
-          {bodyPanel}
-          {selectedAssetPanel}
-        </aside>
-      </section>
-    </div>
-  );
-
-  const workspace = compact ? compactWorkspace : standardWorkspace;
 
   const renderFrame = (content: ReactNode) => {
     if (compact) return content;

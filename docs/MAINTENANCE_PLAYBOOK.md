@@ -141,7 +141,8 @@
 - 장바구니 import는 부분 성공을 허용하며 실패 항목을 `failed[]`로 반환한다.
 - 임포트는 기본적으로 `/v1/jobs/import/*` 비동기 큐 경로를 사용한다(대량 처리/타임아웃 회피).
 - 3D mannequin fitting 품질 이슈가 있으면 먼저 `assets.metadata.measurements`, `assets.metadata.fitProfile`, `assets.metadata.dominantColor` 저장 여부와 Studio `PATCH /v1/assets/:id` 요청 성공 여부를 확인한다.
-- 현재 fitting surface는 metadata 기반 preview이므로, 실제 cloth simulation 수준의 드레이프 정확도를 바로 기대하지 않는다. 오차가 크면 먼저 측정치 추출값과 사용자가 저장한 보정값을 확인한다.
+- WebGL/GLB 로딩 이슈가 있으면 `NEXT_PUBLIC_SKINNED_FITTING_ENABLED` 값과 브라우저 콘솔의 GLTF loader 오류를 먼저 확인한다. 필요 시 플래그를 `false`로 내려 legacy preview 경로를 강제한다.
+- 현재 fitting surface는 `measurement-driven + skeleton-share` 하이브리드 preview이므로, 실제 cloth simulation 수준의 드레이프 정확도를 바로 기대하지 않는다. 오차가 크면 먼저 측정치 추출값과 사용자가 저장한 보정값을 확인한다.
 - 프론트 실코드 기준 경로는 `apps/web/src/**`이며, 루트 `src/**` 수정은 레거시 유지보수가 아닌 이상 새 작업 기준으로 사용하지 않는다.
 - 임포트/평가/트라이온은 `/v1/jobs/*` 경로를 통해 단일 jobs 상태 계약으로 처리한다.
 - URL/장바구니 import로 저장된 asset은 `sourceUrl`을 유지하고, Studio 요약/캔버스에서 말풍선 링크로 노출한다(운영 중 링크 누락 시 저장 payload 점검).

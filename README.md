@@ -138,6 +138,7 @@ npm run check
 - `WORKER_JOB_TYPES=all|job_type,...` (Railway 통합 worker가 처리할 작업 타입 필터)
 
 선택 키:
+- `NEXT_PUBLIC_SKINNED_FITTING_ENABLED` (`false`면 스켈레톤 공유 기반 R3F fitting 경로를 끄고 legacy preview로 강제 fallback)
 - `ALLOWED_IMAGE_HOSTS`, `ASSET_STORAGE_PATH`, `ASSET_INDEX_PATH`
 - `OUTFITS_STORAGE_PATH`, `BG_REMOVAL_CONCURRENCY`, `VTO_CONCURRENCY`
 - `IMPORT_CONCURRENCY`, `IMPORT_CART_ITEM_CONCURRENCY`

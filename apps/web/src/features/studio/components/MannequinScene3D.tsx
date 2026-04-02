@@ -1,6 +1,6 @@
 'use client';
 
-import { AvatarDressUpScene } from '@/features/shared-3d/AvatarDressUpScene';
+import { FittingCanvas3D } from '@/features/mannequin/FittingCanvas3D';
 import type { AvatarPresetId } from '@/features/shared-3d/avatarPresets';
 import type { BodyProfile, GarmentLayerConfig } from '../fitting';
 
@@ -12,5 +12,5 @@ type MannequinScene3DProps = {
 };
 
 export function MannequinScene3D({ body, layers, selectedAssetId, avatarId }: MannequinScene3DProps) {
-  return <AvatarDressUpScene body={body} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />;
+  return <FittingCanvas3D body={body} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />;
 }

@@ -57,8 +57,9 @@
 - `POST /v1/jobs/evaluations` / `GET /v1/evaluations/:id`
 - `POST /v1/jobs/tryons` / `GET /v1/tryons/:id`
 - evaluator/tryon worker가 비동기 처리 후 상태/결과를 기록한다.
-- Studio의 실시간 3D fitting은 별도 worker 없이 asset metadata + body profile 계산으로 클라이언트에서 즉시 렌더링한다.
-- 현재 3D fitting은 `measurement-driven parametric preview`이며, 실제 패턴/원단 물성 기반 cloth simulation 정확도까지 보장하는 구조는 아니다.
+- Studio/Closet의 실시간 3D fitting은 별도 worker 없이 클라이언트에서 즉시 렌더링한다.
+- 현재 기본 경로는 `measurement-driven preview + (가능 시) skeleton-share skinned overlay` 하이브리드이며, WebGL/asset 문제 시 legacy preview로 fallback한다.
+- 여전히 실제 패턴/원단 물성 기반 cloth simulation 정확도까지 보장하는 구조는 아니다.
 
 5. 인증 라우트
 - `GET /v1/auth/naver/start?redirect_to=<absolute-url>`

@@ -30,4 +30,5 @@
 ## Integration Notes
 - wardrobe avatar preset metadata는 `apps/web/src/features/shared-3d/avatarPresets.ts`에서 관리한다.
 - 새 공개 asset을 추가할 때는 source URL, author, license를 preset/문서에 같이 기록한다.
-- 현재 렌더링은 실제 cloth simulation이 아니라 `measurement-driven preview`이므로 asset은 avatar silhouette reference와 dressing-room staging 용도로 사용한다.
+- `apps/web/src/features/mannequin/FittingCanvas3D.tsx`는 오픈소스 GLB(avatar + jacket)를 이용해 skinned fitting 경로를 우선 시도하고, 스켈레톤 공유가 불가능하거나 WebGL이 꺼져 있으면 legacy preview로 자동 fallback한다.
+- 현재 렌더링은 물리 기반 cloth simulation까지는 포함하지 않으며, `measurement-driven + skeleton-share` 하이브리드 preview로 운영한다.

@@ -994,8 +994,8 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
 
         setUsingDemoRack(false);
         setAssets(nextAssets);
-        setSelectedAssetId((prev) => (nextAssets.some((asset) => asset.id === prev) ? prev : currentAsset.id));
-        setActiveAssetIds((prev) => {
+        setSelectedAssetId((prev: string) => (nextAssets.some((asset) => asset.id === prev) ? prev : currentAsset.id));
+        setActiveAssetIds((prev: string[]) => {
           const preserved = prev.filter((id) => id !== currentAsset.id && nextAssets.some((asset) => asset.id === id));
           return uniqueIds([currentAsset.id, ...preserved]);
         });
@@ -1024,8 +1024,8 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
 
       setUsingDemoRack(false);
       setAssets(nextAssets);
-      setSelectedAssetId((prev) => (nextAssets.some((asset) => asset.id === prev) ? prev : fallbackAsset?.id ?? ''));
-      setActiveAssetIds((prev) => {
+      setSelectedAssetId((prev: string) => (nextAssets.some((asset) => asset.id === prev) ? prev : fallbackAsset?.id ?? ''));
+      setActiveAssetIds((prev: string[]) => {
         const preserved = prev.filter((id) => nextAssets.some((asset) => asset.id === id));
         if (preserved.length > 0) return preserved;
         return fallbackAsset ? [fallbackAsset.id] : [];
@@ -1141,7 +1141,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
       setSelectedAssetId(nextAsset.id);
       if (focusAssetId && nextAsset.id === focusAssetId) return;
 
-      setActiveAssetIds((prev) =>
+      setActiveAssetIds((prev: string[]) =>
         prev.includes(nextAsset.id) ? prev.filter((id) => id !== nextAsset.id) : [...prev, nextAsset.id]
       );
     },
@@ -1164,7 +1164,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
   }, []);
 
   const handleFitProfileChange = useCallback((updates: Partial<GarmentFitProfile>) => {
-    setDraftFitProfile((prev) => ({
+    setDraftFitProfile((prev: GarmentFitProfile) => ({
       ...prev,
       ...updates,
     }));
@@ -1197,7 +1197,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
         return;
       }
 
-      setAssets((prev) => prev.map((asset) => (asset.id === updatedAsset.id ? updatedAsset : asset)));
+      setAssets((prev: Asset[]) => prev.map((asset) => (asset.id === updatedAsset.id ? updatedAsset : asset)));
     });
   }, [copy.saveError, draftFitProfile, draftMeasurements, selectedAsset]);
 

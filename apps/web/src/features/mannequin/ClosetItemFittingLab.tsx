@@ -44,16 +44,19 @@ const FittingCanvas3D = dynamic(
 const bodyStorageKey = 'freestyle:mannequin-body-profile';
 const categoryRailOrder: Array<Asset['category'] | 'all'> = ['all', 'outerwear', 'tops', 'bottoms', 'shoes', 'accessories', 'custom'];
 
-const bodyFields: Array<{ key: keyof BodyProfile; label: string; min: number; max: number }> = [
+type BodyFieldKey = 'heightCm' | 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'inseamCm';
+type MeasurementFieldKey = 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'sleeveLengthCm' | 'lengthCm' | 'inseamCm' | 'hemCm';
+
+const bodyFields = [
   { key: 'heightCm', label: 'Height', min: 145, max: 205 },
   { key: 'shoulderCm', label: 'Shoulder', min: 34, max: 60 },
   { key: 'chestCm', label: 'Chest', min: 72, max: 140 },
   { key: 'waistCm', label: 'Waist', min: 54, max: 132 },
   { key: 'hipCm', label: 'Hip', min: 74, max: 150 },
   { key: 'inseamCm', label: 'Inseam', min: 62, max: 98 },
-];
+] as const satisfies ReadonlyArray<{ key: BodyFieldKey; label: string; min: number; max: number }>;
 
-const measurementFields: Array<{ key: keyof GarmentMeasurements; label: string }> = [
+const measurementFields = [
   { key: 'shoulderCm', label: 'Shoulder' },
   { key: 'chestCm', label: 'Chest' },
   { key: 'waistCm', label: 'Waist' },
@@ -62,7 +65,7 @@ const measurementFields: Array<{ key: keyof GarmentMeasurements; label: string }
   { key: 'lengthCm', label: 'Length' },
   { key: 'inseamCm', label: 'Inseam' },
   { key: 'hemCm', label: 'Hem' },
-];
+] as const satisfies ReadonlyArray<{ key: MeasurementFieldKey; label: string }>;
 
 const fitProfileDefaults: GarmentFitProfile = {
   silhouette: 'regular',
@@ -258,7 +261,7 @@ type FitEditPanelProps = {
   draftMeasurements: GarmentMeasurements;
   isSaving: boolean;
   onFitProfileChange: (updates: Partial<GarmentFitProfile>) => void;
-  onMeasurementChange: (key: keyof GarmentMeasurements, value: string) => void;
+  onMeasurementChange: (key: MeasurementFieldKey, value: string) => void;
   onSave: () => void;
   saveError: string | null;
   selectedAsset: Asset | null;
@@ -407,7 +410,7 @@ type LeftPanelProps = {
   focusAssetId: string | null;
   language: RenewalLanguage;
   onAvatarChange: (avatarId: AvatarPresetId) => void;
-  onBodyFieldChange: (key: keyof BodyProfile, value: number) => void;
+  onBodyFieldChange: (key: BodyFieldKey, value: number) => void;
   onBodyReset: () => void;
   selectedAsset: Asset | null;
   selectedAvatarPreset: (typeof avatarPresets)[number];
@@ -1145,16 +1148,16 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     [focusAssetId]
   );
 
-  const handleBodyFieldChange = useCallback((key: keyof BodyProfile, value: number) => {
-    setBodyProfile((prev) => ({
+  const handleBodyFieldChange = useCallback((key: BodyFieldKey, value: number) => {
+    setBodyProfile((prev: BodyProfile) => ({
       ...prev,
       [key]: value,
     }));
   }, []);
 
-  const handleMeasurementChange = useCallback((key: keyof GarmentMeasurements, value: string) => {
+  const handleMeasurementChange = useCallback((key: MeasurementFieldKey, value: string) => {
     const nextValue = value.trim();
-    setDraftMeasurements((prev) => ({
+    setDraftMeasurements((prev: GarmentMeasurements) => ({
       ...prev,
       [key]: nextValue.length === 0 ? undefined : Number(nextValue),
     }));

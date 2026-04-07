@@ -1,66 +1,18 @@
+import type {
+  BodyProfile as CanonicalBodyProfile,
+  GarmentFitProfile,
+  GarmentMeasurements,
+  GarmentProfile,
+} from '@freestyle/contracts';
+
+export type { GarmentFitProfile, GarmentMeasurements, GarmentProfile };
+
 export type AssetCategory = 'all' | 'tops' | 'bottoms' | 'outerwear' | 'shoes' | 'accessories' | 'custom';
 export type EditableAssetCategory = Exclude<AssetCategory, 'all'>;
 export type AssetSource = 'inventory' | 'upload' | 'url' | 'import';
 export type CanvasSize = 'auto' | 'square' | 'portrait' | 'custom';
 
-export type GarmentMeasurements = Partial<{
-  chestCm: number;
-  waistCm: number;
-  hipCm: number;
-  shoulderCm: number;
-  sleeveLengthCm: number;
-  lengthCm: number;
-  inseamCm: number;
-  riseCm: number;
-  hemCm: number;
-}>;
-
-export type GarmentFitProfile = Partial<{
-  silhouette: 'tailored' | 'regular' | 'relaxed' | 'oversized';
-  layer: 'base' | 'mid' | 'outer';
-  structure: 'soft' | 'balanced' | 'structured';
-  stretch: number;
-  drape: number;
-}>;
-
-export type GarmentProfile = {
-  version: 1;
-  category: string;
-  image: {
-    width: number;
-    height: number;
-  };
-  bbox: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
-  normalizedBounds: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    centerX: number;
-  };
-  silhouetteSamples: Array<{
-    yRatio: number;
-    widthRatio: number;
-    centerRatio: number;
-  }>;
-  coverage: {
-    topRatio: number;
-    bottomRatio: number;
-    lengthRatio: number;
-  };
-  widthProfile: {
-    shoulderRatio: number;
-    chestRatio: number;
-    waistRatio: number;
-    hipRatio: number;
-    hemRatio: number;
-  };
-};
+export type BodyProfile = CanonicalBodyProfile;
 
 export type AssetMetadata = Partial<{
   sourceTitle: string;

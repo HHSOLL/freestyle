@@ -1,6 +1,6 @@
 # Replatform v2 Execution Status
 
-## As of 2026-04-02
+## As of 2026-04-07
 
 ## Phase Matrix
 | Phase | Status | Exit criteria status |
@@ -26,6 +26,9 @@
 - `Phase 4`: baseline 수치 승인 후 `1% -> 5% -> 25% -> 100%` 단계별 stage 로그 실기록 시작
 
 ## Latest Update
+- `2026-04-07`: FreeStyle 안정형 1차 배치(contracts canonical, 3D garment intake contract/validator, Closet 재배치, Studio paste/snapshot import)가 main 통합 기준까지 완료되었다.
+- `2026-04-07`: cloth 4A spike는 `docs/qa/cloth-4a-2026-04-07.md` evidence 기준 `PASS`로 판정되었고, 여전히 feature flag(`NEXT_PUBLIC_CLOTH_MVP_ENABLED`, `NEXT_PUBLIC_CLOTH_SPIKE_PASSED`)로 가드된 상태를 유지한다.
+- `2026-04-07`: `apps/web` 단독 빌드 경로 호환을 위해 `@freestyle/contracts`를 workspace file dependency로 고정하고 web lockfile을 동기화했다.
 - `2026-04-02`: `/app/closet` 마네킹 워크스페이스 UI를 레퍼런스 기준으로 재배치(쿨그레이 글래스 톤, 좌/중앙/우 패널, 상단 유틸리티 바, 하단 모드 탭).
 - `2026-04-02`: 품질 게이트(`lint`, `typecheck`, `build:services`, `build`)와 widget API/SDK 테스트를 다시 통과했다.
 - `2026-04-02`: `/v1/widget/config`가 `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` 기준으로 `phase_0_5_canary_enabled`를 deterministic sampling 하도록 연결되었다.

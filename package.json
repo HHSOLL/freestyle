@@ -37,7 +37,9 @@
     "start:worker:tryon": "WORKER_JOB_TYPES=tryon.generate node dist/workers/runtime/src/worker.js",
     "build": "npm --prefix apps/web run build",
     "check": "npm run lint && npm run typecheck && npm run build:services && npm run build",
-    "test:core": "tsx --test workers/background_removal/src/cutout.test.ts apps/web/src/features/studio/fitting.test.ts",
+    "test:core": "tsx --test workers/background_removal/src/cutout.test.ts apps/web/src/features/studio/fitting.test.ts apps/web/src/features/mannequin/fitting.test.ts packages/contracts/src/domain-contracts.test.ts",
+    "validate:garment3d": "node --import tsx scripts/validate-garment-3d.mjs",
+    "bench:cloth4a": "node scripts/bench-cloth-spike.mjs",
     "start": "npm --prefix apps/web run start",
     "lint": "eslint",
     "typecheck": "npm --prefix apps/web run typecheck"

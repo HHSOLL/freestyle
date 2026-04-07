@@ -19,6 +19,19 @@
 - 성공 시 Supabase admin magic link(`action_link`)로 `302 redirect`
 - 실패 시 가능한 경우 `redirect_to`에 `error_description`을 붙여 다시 redirect
 
+## Canonical Domain Contracts
+
+### `/v1` compatibility notes
+- `/v1` 런타임 endpoint 동작은 유지한다. 현재 저장/조회 중인 garment-side contract는 계속 `assets.metadata.measurements`, `assets.metadata.fitProfile`, `assets.metadata.garmentProfile`이다.
+- canonical schema source는 `@freestyle/contracts`다. `@freestyle/shared`는 동일 contract를 소비/re-export하지만 shape를 별도로 정의하지 않는다.
+- 기존 shape assumption은 유지한다. `measurements`는 기존 cm 필드(`chestCm`, `waistCm`, `hipCm`, `shoulderCm`, `sleeveLengthCm`, `lengthCm`, `inseamCm`, `riseCm`, `hemCm`)를 그대로 사용한다.
+
+### Reserved body profile persistence extension point
+- canonical `BodyProfile` shape는 다음 simple 필드를 필수로 유지한다: `heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`.
+- detailed extension fields(`neckCm`, `torsoLengthCm`, `armLengthCm`, `sleeveLengthCm`, `bicepCm`, `forearmCm`, `wristCm`, `riseCm`, `outseamCm`, `thighCm`, `kneeCm`, `calfCm`, `ankleCm`)는 모두 optional numeric cm 필드다.
+- planned reservation: `GET /v1/body-profiles/me`, `PUT /v1/body-profiles/me`
+- 상태: reserved only, not implemented. 현재 body profile은 Studio/Closet 클라이언트 로컬 상태에서만 사용되며 `/v1` persistence endpoint는 아직 없다.
+
 ## Widget
 
 ### `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
@@ -256,6 +269,7 @@ Notes
 - 각 asset row는 `metadata`에 원본 크기, cutout trim/quality, 측정치(`measurements`), fit profile, dominant color를 포함할 수 있다.
 - `metadata.cutout`에는 `strategy`, `fallbackUsed`, `quality`, `trimRect`가 포함될 수 있다.
 - asset row는 `name`, `brand`, `source_url` top-level 필드도 유지하며, Studio/Closet UI는 이 값과 `metadata.sourceTitle/sourceBrand/sourceUrl`을 함께 fallback으로 사용한다.
+- `/v1` 호환성 기준으로 garment domain payload의 canonical 정의는 `@freestyle/contracts`를 따르며, live API shape 자체는 변경하지 않는다.
 
 ### `GET /v1/assets/:id`
 Response
@@ -290,6 +304,7 @@ Response
 
 Notes
 - 이 endpoint는 Studio/Closet fitting lab에서 의류 측정치와 fit profile을 저장하는 주 경로다.
+- `BodyProfile`은 이 endpoint에서 저장하지 않는다. body profile persistence는 reserved `GET/PUT /v1/body-profiles/me` 확장 포인트로만 남겨두고, 현재는 미구현 상태다.
 
 ## Outfits
 
@@ -400,6 +415,7 @@ Notes
 - 이 endpoint는 여전히 포토 AI try-on 용도다.
 - 실시간 3D 마네킹 피팅은 `GET/PATCH /v1/assets`로 읽어온 asset metadata와 Studio 클라이언트 body profile 계산을 사용한다.
 - 현재 계약은 metadata 기반 preview를 위한 것이며, 패턴/원단 물성 기반 cloth simulation API는 아직 없다.
+- body profile persistence endpoint(`GET/PUT /v1/body-profiles/me`)는 계획만 예약되어 있고 현재 try-on/runtime 경로에는 연결되어 있지 않다.
 
 ### `GET /v1/tryons/:id`
 - user-owned tryon row 반환

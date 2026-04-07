@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  garmentFitProfileSchema,
+  garmentMeasurementsSchema,
+  garmentProfileSchema,
+} from "../../contracts/src/index.js";
+
 export * from "../../contracts/src/index.js";
 
 export const JOB_TYPES = {
@@ -50,87 +56,6 @@ export const importUploadJobInputSchema = z.object({
   item_name: z.string().trim().min(1).max(120).optional(),
   idempotency_key: z.string().trim().min(1).max(128).optional(),
 });
-
-const measurementValueSchema = z.number().min(0).max(400);
-
-export const garmentMeasurementsSchema = z
-  .object({
-    chestCm: measurementValueSchema.optional(),
-    waistCm: measurementValueSchema.optional(),
-    hipCm: measurementValueSchema.optional(),
-    shoulderCm: measurementValueSchema.optional(),
-    sleeveLengthCm: measurementValueSchema.optional(),
-    lengthCm: measurementValueSchema.optional(),
-    inseamCm: measurementValueSchema.optional(),
-    riseCm: measurementValueSchema.optional(),
-    hemCm: measurementValueSchema.optional(),
-  })
-  .strict();
-
-export const garmentFitProfileSchema = z
-  .object({
-    silhouette: z.enum(["tailored", "regular", "relaxed", "oversized"]).optional(),
-    layer: z.enum(["base", "mid", "outer"]).optional(),
-    structure: z.enum(["soft", "balanced", "structured"]).optional(),
-    stretch: z.number().min(0).max(1).optional(),
-    drape: z.number().min(0).max(1).optional(),
-  })
-  .strict();
-
-export const garmentProfileSchema = z
-  .object({
-    version: z.literal(1),
-    category: z.string().trim().min(1).max(64),
-    image: z
-      .object({
-        width: z.number().int().positive(),
-        height: z.number().int().positive(),
-      })
-      .strict(),
-    bbox: z
-      .object({
-        left: z.number().int().nonnegative(),
-        top: z.number().int().nonnegative(),
-        width: z.number().int().positive(),
-        height: z.number().int().positive(),
-      })
-      .strict(),
-    normalizedBounds: z
-      .object({
-        left: z.number().min(0).max(1),
-        top: z.number().min(0).max(1),
-        width: z.number().min(0).max(1),
-        height: z.number().min(0).max(1),
-        centerX: z.number().min(0).max(1),
-      })
-      .strict(),
-    silhouetteSamples: z.array(
-      z
-        .object({
-          yRatio: z.number().min(0).max(1),
-          widthRatio: z.number().min(0).max(1),
-          centerRatio: z.number().min(0).max(1),
-        })
-        .strict()
-    ),
-    coverage: z
-      .object({
-        topRatio: z.number().min(0).max(1),
-        bottomRatio: z.number().min(0).max(1),
-        lengthRatio: z.number().min(0).max(1),
-      })
-      .strict(),
-    widthProfile: z
-      .object({
-        shoulderRatio: z.number().min(0).max(1),
-        chestRatio: z.number().min(0).max(1),
-        waistRatio: z.number().min(0).max(1),
-        hipRatio: z.number().min(0).max(1),
-        hemRatio: z.number().min(0).max(1),
-      })
-      .strict(),
-  })
-  .strict();
 
 export const assetMetadataSchema = z
   .object({
@@ -192,9 +117,6 @@ export type ImportProductJobInput = z.infer<typeof importProductJobInputSchema>;
 export type ImportProductBatchJobInput = z.infer<typeof importProductBatchJobInputSchema>;
 export type ImportCartJobInput = z.infer<typeof importCartJobInputSchema>;
 export type ImportUploadJobInput = z.infer<typeof importUploadJobInputSchema>;
-export type GarmentMeasurements = z.infer<typeof garmentMeasurementsSchema>;
-export type GarmentFitProfile = z.infer<typeof garmentFitProfileSchema>;
-export type GarmentProfile = z.infer<typeof garmentProfileSchema>;
 export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type EvaluateOutfitInput = z.infer<typeof evaluateOutfitInputSchema>;

@@ -6,7 +6,9 @@
 3. `npm run typecheck`
 4. `npm run build:services`
 5. `npm run build`
-6. 주요 API smoke check
+6. `npm run validate:garment3d`
+7. (cloth 변경 배치일 때) `npm run bench:cloth4a`
+8. 주요 API smoke check
 - `/healthz`
 - `/readyz`
 - `/v1/jobs/import/product`
@@ -22,7 +24,7 @@
 - `/v1/widget/config?tenant_id={tenant}&product_id={product}`
 - `/v1/widget/events`
 - `/auth/callback`
-7. 주요 UI smoke check
+9. 주요 UI smoke check
 - `/`
 - `/app/closet`
 - `/studio`
@@ -37,6 +39,7 @@
 - Vercel 프론트의 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 여부
 - Vercel 프론트의 `NEXT_PUBLIC_AUTH_KAKAO_ENABLED`, `NEXT_PUBLIC_AUTH_NAVER_ENABLED` 설정 여부
 - Vercel 프론트의 `NEXT_PUBLIC_AUTH_REQUIRED` 값이 현재 운영 모드와 일치하는지 확인(현재 권장: `false`)
+- Vercel 프론트의 `NEXT_PUBLIC_CLOTH_MVP_ENABLED`, `NEXT_PUBLIC_CLOTH_SPIKE_PASSED` 값이 현재 rollout 단계와 일치하는지 확인
 - Vercel 프로젝트 루트가 `apps/web`인지, 또는 루트 배포 시 `npm run build`가 `@freestyle/web`를 호출하는지 확인
 - `apps/web` 내부에 `postcss.config.mjs`와 Tailwind/PostCSS 의존성이 존재하는지 확인(독립 workspace 빌드 기준)
 - Supabase 관련 키 (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`)

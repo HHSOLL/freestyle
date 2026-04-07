@@ -1,11 +1,12 @@
 'use client';
 
-import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { avatarPresetMap, type AvatarPresetId } from '@/features/shared-3d/avatarPresets';
+import { guardGarment3dUsage } from '@/features/shared-3d/garment3dRuntimeGuard';
 import { MannequinScene3D } from './MannequinScene3D';
 import type { BodyProfile, GarmentLayerConfig } from './fitting';
 
@@ -19,6 +20,9 @@ type FittingCanvas3DProps = {
 const stageFloorY = -2.44;
 const avatarHeightUnits = 4.62;
 const isSkinnedFittingEnabled = process.env.NEXT_PUBLIC_SKINNED_FITTING_ENABLED !== 'false';
+const isClothMvpEnabled = process.env.NEXT_PUBLIC_CLOTH_MVP_ENABLED === 'true';
+const isClothSpikePassed = process.env.NEXT_PUBLIC_CLOTH_SPIKE_PASSED === 'true';
+const isClothIntegrationEnabled = isClothMvpEnabled && isClothSpikePassed;
 const bodyReferenceProfile: BodyProfile = {
   heightCm: 172,
   shoulderCm: 44,
@@ -29,9 +33,12 @@ const bodyReferenceProfile: BodyProfile = {
 };
 
 const openSourceGarmentMap: Partial<Record<GarmentLayerConfig['category'], string>> = {
-  outerwear: '/assets/props/polygonalmind-jacket.glb',
-  tops: '/assets/props/polygonalmind-jacket.glb',
+  outerwear: 'opensource-jacket-outer-v1',
+  tops: 'opensource-jacket-top-v1',
 };
+
+const isClothEligibleCategory = (category: GarmentLayerConfig['category']) =>
+  category === 'tops' || category === 'outerwear';
 
 const canUseWebGL = () => {
   if (typeof window === 'undefined') return false;
@@ -351,7 +358,200 @@ function GarmentLayer({
   );
 }
 
-function FittingStageScene({ body, layers, selectedAssetId, avatarId }: Required<FittingCanvas3DProps>) {
+function resolveTorsoCollider(body: BodyProfile) {
+  const chestRadius = THREE.MathUtils.clamp(body.chestCm / 240, 0.33, 0.62);
+  const waistRadius = THREE.MathUtils.clamp(body.waistCm / 255, 0.28, 0.55);
+  return {
+    top: new THREE.Vector3(0, 1.14, 0.01),
+    bottom: new THREE.Vector3(0, -0.72, -0.04),
+    radius: Math.max(chestRadius, waistRadius),
+  };
+}
+
+function closestPointOnSegment(
+  point: THREE.Vector3,
+  a: THREE.Vector3,
+  b: THREE.Vector3
+) {
+  const segment = new THREE.Vector3().subVectors(b, a);
+  const lengthSq = segment.lengthSq();
+  if (lengthSq <= 1e-6) return a.clone();
+  const pointToStart = new THREE.Vector3().subVectors(point, a);
+  const t = THREE.MathUtils.clamp(pointToStart.dot(segment) / lengthSq, 0, 1);
+  return new THREE.Vector3().copy(a).add(segment.multiplyScalar(t));
+}
+
+function ClothPreviewLayer({
+  body,
+  layer,
+  isSelected,
+  onSolverFailure,
+}: {
+  body: BodyProfile;
+  layer: GarmentLayerConfig;
+  isSelected: boolean;
+  onSolverFailure: () => void;
+}) {
+  const preparedTexture = usePreparedTexture(layer.textureUrl);
+  const color = useMemo(
+    () => new THREE.Color(isSelected ? '#f6efe4' : layer.color),
+    [isSelected, layer.color]
+  );
+  const frontOffset = 0.12 + layer.layerOrder * 0.028;
+  const opacity = isSelected ? 0.58 : 0.34;
+
+  const geometry = useMemo(() => {
+    const width = layer.shellWidth * 1.1;
+    const height = layer.shellHeight * 1.08;
+    const gridX = 20;
+    const gridY = 28;
+    const mesh = new THREE.PlaneGeometry(width, height, gridX, gridY);
+    return mesh;
+  }, [layer.shellHeight, layer.shellWidth]);
+
+  const restPositions = useMemo(() => {
+    const attr = geometry.getAttribute('position');
+    return new Float32Array((attr.array as Float32Array).slice());
+  }, [geometry]);
+
+  const velocitiesRef = useRef(new Float32Array(restPositions.length));
+  const point = useMemo(() => new THREE.Vector3(), []);
+  const closest = useMemo(() => new THREE.Vector3(), []);
+  const needsResetRef = useRef(true);
+  const lowFpsFrames = useRef(0);
+  const failureRaisedRef = useRef(false);
+
+  useEffect(() => {
+    velocitiesRef.current = new Float32Array(restPositions.length);
+  }, [restPositions.length]);
+
+  useEffect(() => {
+    needsResetRef.current = true;
+  }, [
+    body.heightCm,
+    body.chestCm,
+    body.waistCm,
+    body.hipCm,
+    body.shoulderCm,
+    layer.assetId,
+    layer.shellHeight,
+    layer.shellWidth,
+  ]);
+
+  useFrame((_, delta) => {
+    const dt = THREE.MathUtils.clamp(delta, 1 / 240, 1 / 20);
+    const attr = geometry.getAttribute('position');
+    const positions = attr.array as Float32Array;
+    const velocities = velocitiesRef.current;
+    const pointCount = positions.length / 3;
+    const stride = 3;
+    const topRowCount = 21;
+
+    if (!Number.isFinite(delta) || delta > 0.25) {
+      if (!failureRaisedRef.current) {
+        failureRaisedRef.current = true;
+        onSolverFailure();
+      }
+      return;
+    }
+
+    if (dt > 1 / 28) {
+      lowFpsFrames.current += 1;
+    } else if (lowFpsFrames.current > 0) {
+      lowFpsFrames.current -= 1;
+    }
+    if (lowFpsFrames.current > 12 && !failureRaisedRef.current) {
+      failureRaisedRef.current = true;
+      onSolverFailure();
+      return;
+    }
+
+    if (needsResetRef.current) {
+      positions.set(restPositions);
+      velocities.fill(0);
+      needsResetRef.current = false;
+    }
+
+    const collider = resolveTorsoCollider(body);
+    const gravity = -4.2;
+    const spring = 13.0;
+    const damping = 0.92;
+
+    for (let index = 0; index < pointCount; index += 1) {
+      const i3 = index * stride;
+      const anchored = index < topRowCount;
+
+      if (anchored) {
+        positions[i3] = restPositions[i3];
+        positions[i3 + 1] = restPositions[i3 + 1];
+        positions[i3 + 2] = restPositions[i3 + 2];
+        velocities[i3] = 0;
+        velocities[i3 + 1] = 0;
+        velocities[i3 + 2] = 0;
+        continue;
+      }
+
+      const dx = restPositions[i3] - positions[i3];
+      const dy = restPositions[i3 + 1] - positions[i3 + 1];
+      const dz = restPositions[i3 + 2] - positions[i3 + 2];
+
+      velocities[i3] = (velocities[i3] + dx * spring * dt) * damping;
+      velocities[i3 + 1] = (velocities[i3 + 1] + (dy * spring + gravity) * dt) * damping;
+      velocities[i3 + 2] = (velocities[i3 + 2] + dz * spring * dt) * damping;
+
+      positions[i3] += velocities[i3] * dt;
+      positions[i3 + 1] += velocities[i3 + 1] * dt;
+      positions[i3 + 2] += velocities[i3 + 2] * dt;
+
+      point.set(positions[i3], positions[i3 + 1] + layer.shellYOffset, positions[i3 + 2] + frontOffset);
+      closest.copy(closestPointOnSegment(point, collider.top, collider.bottom));
+      const normal = point.sub(closest);
+      const distance = normal.length();
+
+      if (distance < collider.radius) {
+        const safeDistance = Math.max(distance, 1e-4);
+        normal.multiplyScalar(1 / safeDistance);
+        const push = collider.radius - safeDistance;
+        positions[i3] += normal.x * push;
+        positions[i3 + 1] += normal.y * push;
+        positions[i3 + 2] += normal.z * push;
+
+        const velocityDot = velocities[i3] * normal.x + velocities[i3 + 1] * normal.y + velocities[i3 + 2] * normal.z;
+        if (velocityDot < 0) {
+          velocities[i3] -= normal.x * velocityDot * 0.75;
+          velocities[i3 + 1] -= normal.y * velocityDot * 0.75;
+          velocities[i3 + 2] -= normal.z * velocityDot * 0.75;
+        }
+      }
+    }
+
+    attr.needsUpdate = true;
+    geometry.computeVertexNormals();
+  });
+
+  return (
+    <mesh position={[0, layer.shellYOffset, frontOffset]} geometry={geometry}>
+      <meshStandardMaterial
+        map={preparedTexture}
+        color={color}
+        transparent
+        opacity={opacity}
+        roughness={0.82}
+        metalness={0.04}
+        side={THREE.DoubleSide}
+        alphaTest={0.08}
+      />
+    </mesh>
+  );
+}
+
+function FittingStageScene({
+  body,
+  layers,
+  selectedAssetId,
+  avatarId,
+  onSolverFailure,
+}: Required<FittingCanvas3DProps> & { onSolverFailure: () => void }) {
   const preset = avatarPresetMap[avatarId];
   const [avatarSkeleton, setAvatarSkeleton] = useState<THREE.Skeleton | null>(null);
   const shapeParams = useMemo(() => buildShapeParamsFromBody(body), [body]);
@@ -363,7 +563,34 @@ function FittingStageScene({ body, layers, selectedAssetId, avatarId }: Required
     () => sortedLayers.find((layer) => layer.assetId === selectedAssetId) ?? sortedLayers[sortedLayers.length - 1] ?? null,
     [selectedAssetId, sortedLayers]
   );
-  const selectedLayerModelUrl = selectedLayer ? openSourceGarmentMap[selectedLayer.category] ?? null : null;
+  const clothLayer =
+    selectedLayer && isClothIntegrationEnabled && isClothEligibleCategory(selectedLayer.category)
+      ? selectedLayer
+      : null;
+  const selectedLayerModelId =
+    selectedLayer && !clothLayer ? openSourceGarmentMap[selectedLayer.category] ?? null : null;
+  const selectedLayerModelGuard = useMemo(() => {
+    if (!selectedLayer || !selectedLayerModelId) return null;
+    return guardGarment3dUsage(selectedLayerModelId, {
+      expectedCategory: selectedLayer.category,
+      requiredSkeletonProfileId: 'freestyle-humanoid-v1',
+      requiredColliderProfileId: selectedLayer.category === 'tops' || selectedLayer.category === 'outerwear'
+        ? 'torso-fitted-v1'
+        : undefined,
+    });
+  }, [selectedLayer, selectedLayerModelId]);
+  const selectedLayerModelUrl = selectedLayerModelGuard?.ok ? selectedLayerModelGuard.asset.modelPath : null;
+
+  useEffect(() => {
+    if (!selectedLayerModelGuard || selectedLayerModelGuard.ok) return;
+    console.warn(selectedLayerModelGuard.reason);
+  }, [selectedLayerModelGuard]);
+  const hiddenLayerIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (clothLayer) ids.add(clothLayer.assetId);
+    if (selectedLayerModelUrl && selectedLayer) ids.add(selectedLayer.assetId);
+    return ids;
+  }, [clothLayer, selectedLayer, selectedLayerModelUrl]);
 
   return (
     <>
@@ -401,8 +628,17 @@ function FittingStageScene({ body, layers, selectedAssetId, avatarId }: Required
           <SkinnedGarmentModel modelUrl={selectedLayerModelUrl} avatarSkeleton={avatarSkeleton} />
         ) : null}
 
+        {clothLayer ? (
+          <ClothPreviewLayer
+            body={body}
+            layer={clothLayer}
+            isSelected={selectedAssetId === clothLayer.assetId}
+            onSolverFailure={onSolverFailure}
+          />
+        ) : null}
+
         {sortedLayers
-          .filter((layer) => layer.assetId !== selectedLayer?.assetId || !selectedLayerModelUrl)
+          .filter((layer) => !hiddenLayerIds.has(layer.assetId))
           .map((layer) => (
           <GarmentLayer key={layer.assetId} layer={layer} isSelected={selectedAssetId === layer.assetId} />
           ))}
@@ -426,7 +662,9 @@ export function FittingCanvas3D({
   selectedAssetId,
   avatarId = 'muse',
 }: FittingCanvas3DProps) {
-  const [useLegacyFallback, setUseLegacyFallback] = useState(() => !canUseWebGL() || !isSkinnedFittingEnabled);
+  const [useLegacyFallback, setUseLegacyFallback] = useState(
+    () => !canUseWebGL() || (!isSkinnedFittingEnabled && !isClothIntegrationEnabled)
+  );
 
   const legacyScene = (
     <MannequinScene3D body={body} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
@@ -447,7 +685,13 @@ export function FittingCanvas3D({
           dpr={[1, 1.75]}
           gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
         >
-          <FittingStageScene body={body} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
+          <FittingStageScene
+            body={body}
+            layers={layers}
+            selectedAssetId={selectedAssetId}
+            avatarId={avatarId}
+            onSolverFailure={() => setUseLegacyFallback(true)}
+          />
         </Canvas>
       </StageErrorBoundary>
     </div>

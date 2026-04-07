@@ -17,9 +17,22 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-02
+- 2026-04-07
 
 ## 점검 로그
+### 2026-04-07
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.2`, `react/react-dom 19.2.4`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.2`다.
+  - 3D fitting 관련 핵심 라이브러리 최신 stable은 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`로 직전 점검과 동일하다.
+- 우리 프로젝트 영향:
+  - 현재 배치는 아키텍처 변경보다 안정형 구현 배치(contracts canonical, 3D garment intake contract/validator, closet/studio UX, cloth preview-grade MVP)에 집중하는 것이 우선순위다.
+  - 이번 배치의 cloth 범위는 `preview-grade`로 제한하고, 패턴/원단 물성 기반의 정확 물리 시뮬레이션 완성은 범위에서 제외한다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
 ### 2026-04-02
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)

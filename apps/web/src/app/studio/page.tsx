@@ -99,6 +99,7 @@ type TryonResponse = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const BRIDGE_IMPORT_RESOLVE_CONCURRENCY = 4;
+const DEFAULT_IMMEDIATE_UPLOAD_CATEGORY: EditableAssetCategory = 'custom';
 
 const toBatchImportItems = (items: BatchImportResponse["items"]): BatchImportItem[] => {
   if (!Array.isArray(items)) return [];
@@ -241,6 +242,28 @@ const normalizeReviewResult = (value: unknown): ReviewResult | null => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+const extractClipboardImageFile = (event: ClipboardEvent) => {
+  const items = Array.from(event.clipboardData?.items ?? []);
+  for (const item of items) {
+    if (item.kind !== 'file' || !item.type.startsWith('image/')) continue;
+    const file = item.getAsFile();
+    if (file) return file;
+  }
+  return null;
+};
+
+const createFileFromDataUrl = async (dataUrl: string, fileName: string) => {
+  const response = await fetch(dataUrl);
+  if (!response.ok) {
+    throw new Error('Failed to prepare image upload.');
+  }
+
+  const blob = await response.blob();
+  return new File([blob], fileName, {
+    type: blob.type || 'image/png',
+  });
+};
+
 export default function StudioPage() {
   const { t, language } = useLanguage();
   const { isLoading: isAuthLoading, user } = useAuth();
@@ -316,6 +339,7 @@ export default function StudioPage() {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nextZIndex = useRef(1);
   const handledBridgePayloadRef = useRef<string | null>(null);
+  const uploadImportInFlightRef = useRef(false);
 
   useEffect(() => {
     if (isAuthLoading || !canAccessStudio) return;
@@ -416,6 +440,12 @@ export default function StudioPage() {
     setUserAssets((prev) => [savedAsset, ...prev]);
   }, []);
 
+  const clearUploadDraft = useCallback(() => {
+    setUploadFile(null);
+    setUploadPreview(null);
+    setNewItemName('');
+  }, []);
+
   const addAssetToCanvas = (asset: Asset) => {
     const id = `${asset.id}-${Date.now()}`;
     const newItem: CanvasItem = {
@@ -457,7 +487,7 @@ export default function StudioPage() {
     selectTextItem(id);
   };
 
-  const pollJobUntilTerminal = async (
+  const pollJobUntilTerminal = useCallback(async (
     jobId: string,
     fallbackMessage: string,
     onStatus?: (status: string) => void
@@ -502,9 +532,9 @@ export default function StudioPage() {
     }
 
     throw new Error(t('studio.vto.timeout') || 'Import timed out.');
-  };
+  }, [t]);
 
-  const fetchAssetById = async (assetId: string) => {
+  const fetchAssetById = useCallback(async (assetId: string) => {
     const { response, data } = await apiFetchJson<unknown>(`/v1/assets/${assetId}`);
     if (!response.ok) {
       throw new Error(getApiErrorMessage(data, t('studio.import.error_generic')));
@@ -515,7 +545,7 @@ export default function StudioPage() {
       throw new Error(t('studio.import.error_generic'));
     }
     return asset;
-  };
+  }, [t]);
 
   const updateAssetInState = useCallback((nextAsset: Asset) => {
     setUserAssets((prev) => prev.map((asset) => (asset.id === nextAsset.id ? nextAsset : asset)));
@@ -554,7 +584,7 @@ export default function StudioPage() {
     [updateAssetInState]
   );
 
-  const resolveAssetPipeline = async (
+  const resolveAssetPipeline = useCallback(async (
     initialJobId: string,
     fallbackMessage: string,
     onStatus?: (status: string) => void
@@ -575,9 +605,13 @@ export default function StudioPage() {
     }
 
     return fetchAssetById(assetId);
-  };
+  }, [fetchAssetById, pollJobUntilTerminal]);
 
-  const runUrlImport = async (productUrl: string, categoryHint: EditableAssetCategory, candidateUrl?: string) => {
+  const runUrlImport = useCallback(async (
+    productUrl: string,
+    categoryHint: EditableAssetCategory,
+    candidateUrl?: string
+  ) => {
     const { response, data } = await apiFetchJson<{ job_id?: string }>('/v1/jobs/import/product', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -596,7 +630,7 @@ export default function StudioPage() {
     return resolveAssetPipeline(data.job_id, t('studio.import.error_generic'), () => {
       setProcessingStatus(t('studio.import.loading'));
     });
-  };
+  }, [newItemName, resolveAssetPipeline, t]);
 
   const finalizeImportedUrlAsset = (savedAsset: Asset) => {
     registerImportedAsset(savedAsset);
@@ -658,40 +692,72 @@ export default function StudioPage() {
     setSelectedImportCandidateUrl('');
   };
 
+  const uploadFileThroughImportPipeline = useCallback(
+    async (
+      file: File,
+      options?: {
+        categoryHint?: EditableAssetCategory;
+        itemName?: string;
+        closeUploadModalOnSuccess?: boolean;
+        clearUploadDraftOnSuccess?: boolean;
+      }
+    ) => {
+      if (isProcessing || uploadImportInFlightRef.current) {
+        throw new Error(t('studio.upload.loading') || 'Upload already in progress.');
+      }
+
+      uploadImportInFlightRef.current = true;
+      setIsProcessing(true);
+      try {
+        setProcessingStatus(t('studio.upload.loading'));
+        const formData = new FormData();
+        formData.append('file', file, file.name);
+        formData.append('category_hint', options?.categoryHint ?? newItemCategory);
+        const itemName = options?.itemName?.trim() || newItemName.trim();
+        if (itemName) {
+          formData.append('item_name', itemName);
+        }
+
+        const queueRes = await apiFetch('/v1/jobs/import/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const queueData = (await queueRes.json()) as { job_id?: string; error?: string; message?: string };
+        if (!queueRes.ok || typeof queueData?.job_id !== 'string') {
+          throw new Error(getApiErrorMessage(queueData, t('studio.upload.error_generic')));
+        }
+
+        const savedAsset = await resolveAssetPipeline(queueData.job_id, t('studio.upload.error_generic'), () => {
+          setProcessingStatus(t('studio.upload.loading'));
+        });
+        registerImportedAsset(savedAsset);
+
+        if (options?.closeUploadModalOnSuccess) {
+          setIsUploadModalOpen(false);
+        }
+        if (options?.clearUploadDraftOnSuccess) {
+          clearUploadDraft();
+        }
+
+        return savedAsset;
+      } finally {
+        uploadImportInFlightRef.current = false;
+        setIsProcessing(false);
+        setProcessingStatus('');
+      }
+    },
+    [clearUploadDraft, isProcessing, newItemCategory, newItemName, registerImportedAsset, resolveAssetPipeline, t]
+  );
+
   const handleUploadSubmit = async () => {
     if (!uploadFile) return;
-    setIsProcessing(true);
     try {
-      setProcessingStatus(t('studio.upload.loading'));
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      formData.append('category_hint', newItemCategory);
-      if (newItemName.trim()) {
-        formData.append('item_name', newItemName.trim());
-      }
-
-      const queueRes = await apiFetch('/v1/jobs/import/upload', {
-        method: 'POST',
-        body: formData,
+      await uploadFileThroughImportPipeline(uploadFile, {
+        closeUploadModalOnSuccess: true,
+        clearUploadDraftOnSuccess: true,
       });
-      const queueData = (await queueRes.json()) as { job_id?: string; error?: string; message?: string };
-      if (!queueRes.ok || typeof queueData?.job_id !== 'string') {
-        throw new Error(getApiErrorMessage(queueData, t('studio.upload.error_generic')));
-      }
-
-      const savedAsset = await resolveAssetPipeline(queueData.job_id, t('studio.upload.error_generic'), () => {
-        setProcessingStatus(t('studio.upload.loading'));
-      });
-      setUserAssets((prev) => [savedAsset, ...prev]);
-      setIsUploadModalOpen(false);
-      setUploadFile(null);
-      setUploadPreview(null);
-      setNewItemName('');
     } catch (error: unknown) {
       alert(getErrorMessage(error, t('studio.upload.error_generic')));
-    } finally {
-      setIsProcessing(false);
-      setProcessingStatus('');
     }
   };
 
@@ -982,6 +1048,31 @@ export default function StudioPage() {
     link.click();
   };
 
+  const handleSnapshotToAsset = useCallback(async () => {
+    if (canvasItems.length === 0 && textItems.length === 0) {
+      alert(t('studio.tryon.error_no_items') || 'Add something to the canvas first.');
+      return;
+    }
+
+    try {
+      const imageDataUrl = await renderCanvasToDataUrl();
+      if (!imageDataUrl) {
+        throw new Error(t('studio.upload.error_generic'));
+      }
+
+      const snapshotFile = await createFileFromDataUrl(
+        imageDataUrl,
+        `freestyle-canvas-snapshot-${Date.now()}.png`
+      );
+      await uploadFileThroughImportPipeline(snapshotFile, {
+        categoryHint: DEFAULT_IMMEDIATE_UPLOAD_CATEGORY,
+        itemName: t('studio.snapshot.asset_name') || 'Canvas Snapshot',
+      });
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, t('studio.upload.error_generic')));
+    }
+  }, [canvasItems.length, renderCanvasToDataUrl, t, textItems.length, uploadFileThroughImportPipeline]);
+
   const onNewItemCategoryChange = (value: string) => {
     if (isEditableAssetCategory(value)) {
       setNewItemCategory(value);
@@ -993,6 +1084,28 @@ export default function StudioPage() {
       setCartImportCategory(value);
     }
   };
+
+  useEffect(() => {
+    if (isAuthLoading || !canAccessStudio) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const imageFile = extractClipboardImageFile(event);
+      if (!imageFile) return;
+
+      event.preventDefault();
+      void uploadFileThroughImportPipeline(imageFile, {
+        categoryHint: DEFAULT_IMMEDIATE_UPLOAD_CATEGORY,
+        itemName: t('studio.paste.asset_name') || 'Clipboard Image',
+      }).catch((error: unknown) => {
+        alert(getErrorMessage(error, t('studio.upload.error_generic')));
+      });
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [canAccessStudio, isAuthLoading, t, uploadFileThroughImportPipeline]);
 
   if (isAuthLoading) {
     return <div className="min-h-[calc(100vh-4rem)] bg-[#f7f7f5]" />;
@@ -1321,24 +1434,43 @@ export default function StudioPage() {
   };
 
   const assetLibraryNode = (
-    <AssetLibrary
-      t={t}
-      searchQuery={searchQuery}
-      onSearchQueryChange={setSearchQuery}
-      onOpenUploadModal={() => setIsUploadModalOpen(true)}
-      onOpenImportModal={() => setIsImportModalOpen(true)}
-      onOpenCartImportModal={() => setIsCartImportModalOpen(true)}
-      isCategoryMenuOpen={isCategoryMenuOpen}
-      onToggleCategoryMenu={() => setIsCategoryMenuOpen((prev) => !prev)}
-      onCloseCategoryMenu={() => setIsCategoryMenuOpen(false)}
-      activeCategoryLabel={activeCategoryLabel}
-      categories={categories}
-      selectedCategory={selectedCategory}
-      onSelectCategory={setSelectedCategory}
-      filteredAssets={filteredAssets}
-      onAddAssetToCanvas={addAssetToCanvas}
-      onDeleteAsset={deleteAsset}
-    />
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="border-b border-black/5 bg-[#f4ecdf] px-5 py-4">
+        <button
+          type="button"
+          onClick={() => {
+            void handleSnapshotToAsset();
+          }}
+          disabled={isProcessing}
+          className="flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:bg-black/40"
+        >
+          {t('studio.snapshot.button') || 'Snapshot -> Asset'}
+        </button>
+        <p className="mt-2 text-[11px] font-medium leading-5 text-black/60">
+          {t('studio.paste.hint') || 'Paste an image anywhere in Studio to import it instantly.'}
+        </p>
+      </div>
+      <div className="min-h-0 flex-1">
+        <AssetLibrary
+          t={t}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          onOpenUploadModal={() => setIsUploadModalOpen(true)}
+          onOpenImportModal={() => setIsImportModalOpen(true)}
+          onOpenCartImportModal={() => setIsCartImportModalOpen(true)}
+          isCategoryMenuOpen={isCategoryMenuOpen}
+          onToggleCategoryMenu={() => setIsCategoryMenuOpen((prev) => !prev)}
+          onCloseCategoryMenu={() => setIsCategoryMenuOpen(false)}
+          activeCategoryLabel={activeCategoryLabel}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          filteredAssets={filteredAssets}
+          onAddAssetToCanvas={addAssetToCanvas}
+          onDeleteAsset={deleteAsset}
+        />
+      </div>
+    </div>
   );
 
   const summaryPanelNode = (

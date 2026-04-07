@@ -136,6 +136,127 @@ export const widgetErrorResponseSchema = z
   })
   .strict();
 
+export const measurementCmSchema = z.number().min(0).max(400);
+
+export const bodyProfileSchema = z
+  .object({
+    heightCm: measurementCmSchema,
+    shoulderCm: measurementCmSchema,
+    chestCm: measurementCmSchema,
+    waistCm: measurementCmSchema,
+    hipCm: measurementCmSchema,
+    inseamCm: measurementCmSchema,
+    neckCm: measurementCmSchema.optional(),
+    torsoLengthCm: measurementCmSchema.optional(),
+    armLengthCm: measurementCmSchema.optional(),
+    sleeveLengthCm: measurementCmSchema.optional(),
+    bicepCm: measurementCmSchema.optional(),
+    forearmCm: measurementCmSchema.optional(),
+    wristCm: measurementCmSchema.optional(),
+    riseCm: measurementCmSchema.optional(),
+    outseamCm: measurementCmSchema.optional(),
+    thighCm: measurementCmSchema.optional(),
+    kneeCm: measurementCmSchema.optional(),
+    calfCm: measurementCmSchema.optional(),
+    ankleCm: measurementCmSchema.optional(),
+  })
+  .strict();
+
+export const garmentMeasurementsSchema = z
+  .object({
+    chestCm: measurementCmSchema.optional(),
+    waistCm: measurementCmSchema.optional(),
+    hipCm: measurementCmSchema.optional(),
+    shoulderCm: measurementCmSchema.optional(),
+    sleeveLengthCm: measurementCmSchema.optional(),
+    lengthCm: measurementCmSchema.optional(),
+    inseamCm: measurementCmSchema.optional(),
+    riseCm: measurementCmSchema.optional(),
+    hemCm: measurementCmSchema.optional(),
+  })
+  .strict();
+
+export const garmentFitProfileSchema = z
+  .object({
+    silhouette: z.enum(["tailored", "regular", "relaxed", "oversized"]).optional(),
+    layer: z.enum(["base", "mid", "outer"]).optional(),
+    structure: z.enum(["soft", "balanced", "structured"]).optional(),
+    stretch: z.number().min(0).max(1).optional(),
+    drape: z.number().min(0).max(1).optional(),
+  })
+  .strict();
+
+export const garmentProfileSchema = z
+  .object({
+    version: z.literal(1),
+    category: z.string().trim().min(1).max(64),
+    image: z
+      .object({
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+      .strict(),
+    bbox: z
+      .object({
+        left: z.number().int().nonnegative(),
+        top: z.number().int().nonnegative(),
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+      .strict(),
+    normalizedBounds: z
+      .object({
+        left: z.number().min(0).max(1),
+        top: z.number().min(0).max(1),
+        width: z.number().min(0).max(1),
+        height: z.number().min(0).max(1),
+        centerX: z.number().min(0).max(1),
+      })
+      .strict(),
+    silhouetteSamples: z.array(
+      z
+        .object({
+          yRatio: z.number().min(0).max(1),
+          widthRatio: z.number().min(0).max(1),
+          centerRatio: z.number().min(0).max(1),
+        })
+        .strict()
+    ),
+    coverage: z
+      .object({
+        topRatio: z.number().min(0).max(1),
+        bottomRatio: z.number().min(0).max(1),
+        lengthRatio: z.number().min(0).max(1),
+      })
+      .strict(),
+    widthProfile: z
+      .object({
+        shoulderRatio: z.number().min(0).max(1),
+        chestRatio: z.number().min(0).max(1),
+        waistRatio: z.number().min(0).max(1),
+        hipRatio: z.number().min(0).max(1),
+        hemRatio: z.number().min(0).max(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+// Reserved for future `/v1/body-profiles/me` persistence endpoint (not implemented yet).
+export const bodyProfileRecordSchema = z
+  .object({
+    profile: bodyProfileSchema,
+    version: z.literal(1).default(1),
+    updatedAt: z.iso.datetime().optional(),
+  })
+  .strict();
+
+// Reserved future request payload for body profile persistence.
+export const bodyProfileUpsertInputSchema = z
+  .object({
+    profile: bodyProfileSchema,
+  })
+  .strict();
+
 export type WidgetConfigQuery = z.infer<typeof widgetConfigQuerySchema>;
 export type WidgetRateLimit = z.infer<typeof widgetRateLimitSchema>;
 export type WidgetVersionPolicy = z.infer<typeof widgetVersionPolicySchema>;
@@ -147,3 +268,9 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
+export type BodyProfile = z.infer<typeof bodyProfileSchema>;
+export type BodyProfileRecord = z.infer<typeof bodyProfileRecordSchema>;
+export type BodyProfileUpsertInput = z.infer<typeof bodyProfileUpsertInputSchema>;
+export type GarmentMeasurements = z.infer<typeof garmentMeasurementsSchema>;
+export type GarmentFitProfile = z.infer<typeof garmentFitProfileSchema>;
+export type GarmentProfile = z.infer<typeof garmentProfileSchema>;

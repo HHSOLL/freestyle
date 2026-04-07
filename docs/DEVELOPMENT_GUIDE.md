@@ -60,14 +60,26 @@
 - Studio/Closet의 실시간 3D fitting은 별도 worker 없이 클라이언트에서 즉시 렌더링한다.
 - 현재 기본 경로는 `measurement-driven preview + (가능 시) skeleton-share skinned overlay` 하이브리드이며, WebGL/asset 문제 시 legacy preview로 fallback한다.
 - 여전히 실제 패턴/원단 물성 기반 cloth simulation 정확도까지 보장하는 구조는 아니다.
+- cloth spike 변경 시에는 `npm run bench:cloth4a`로 solver-step 성능/가드 회귀를 먼저 확인하고, 결과를 `docs/qa/cloth-4a-YYYY-MM-DD.md` evidence 문서에 남긴다.
 
-5. 인증 라우트
+5. Garment 3D intake contract (Phase 1.5)
+- 이 phase는 GLB binary 검사나 mesh/skeleton parsing이 아니라 metadata/schema intake gate만 다룬다.
+- intake 기본 계약은 `GLB only`, `unit=meter`, `up-axis=Y-up`, `reference pose=A-pose`다. 개별 entry가 이 필드를 생략하면 기본값을 적용하고, 명시하면 이 값과 일치해야 한다.
+- 모든 garment catalog entry는 최소 metadata 필드 `category`, `sizeTag`, `boundsCm`, `skeletonProfile`, `colliderProfile`, `unitScale`를 가져야 한다.
+- `boundsCm`는 cm 단위의 `width/height/depth` 양수 실측값이어야 한다.
+- `skeletonProfile`은 단순 문자열이 아니라 `profile id + required bones list`를 함께 가져야 하며, 등록된 skeleton profile 정의와 정확히 맞아야 한다.
+- `colliderProfile`은 등록된 collider profile id여야 하고, garment category와 호환되어야 한다.
+- `unitScale`은 authored asset을 meter contract로 정규화하기 위한 양수 scale이다. meter authoring이면 `1`을 기본값으로 사용한다.
+- 런타임 사용 전에는 `garment3dRuntimeGuard`로 catalog registration + metadata 유효성 + category/profile 요구사항을 확인한다.
+- catalog metadata 변경 시에는 `npm run validate:garment3d`를 필수로 실행하고, 실패하면 intake를 차단한다.
+
+6. 인증 라우트
 - `GET /v1/auth/naver/start?redirect_to=<absolute-url>`
 - `GET /v1/auth/naver/callback`
 - `redirect_to`는 절대 URL이어야 하며, API origin policy(`CORS_ORIGIN`, `CORS_ORIGIN_PATTERNS`)를 통과해야 한다.
 - Naver callback은 state(HMAC) 검증 후 profile email을 Supabase admin `generateLink(type=magiclink)`에 연결한다.
 
-6. Widget 계약(Phase 0.5/3)
+7. Widget 계약(Phase 0.5/3)
 - `GET /v1/widget/config?tenant_id=<id>&product_id=<id>`
   - 응답은 `theme`, `feature_flags`, `asset_base_url`, `allowed_origins`, `expires_at`, `rate_limit`, `dedupe_window_seconds`를 포함한다.
 - `POST /v1/widget/events`
@@ -83,14 +95,14 @@
   - `WIDGET_ASSET_LOAD_FAILED`
 - iframe 모드 메시지 신뢰 판단은 payload 필드가 아니라 runtime `event.origin`으로만 수행한다.
 
-7. 큐/워커
+8. 큐/워커
 - 큐 백엔드는 Postgres `jobs` 테이블이다.
 - claim은 RPC `claim_jobs` + `FOR UPDATE SKIP LOCKED`를 사용한다.
 - heartbeat/reaper는 `heartbeat_jobs`, `requeue_stale_jobs` RPC로 수행한다.
 - 원격 프로젝트에 jobs RPC가 아직 없는 경우, `packages/db`는 단일 인스턴스 배포 기준 optimistic claim/update fallback으로 계속 동작한다. 운영에서는 RPC 마이그레이션 적용을 우선하고, fallback은 호환성 안전장치로만 간주한다.
 - `packages/queue`의 공통 런타임이 retry/backoff/poison 처리 규칙을 제공한다.
 
-8. 페이지 구성 원칙
+9. 페이지 구성 원칙
 - 페이지(`apps/web/src/app/**/page.tsx`)에는 상태/데이터 흐름만 남긴다.
 - UI는 `apps/web/src/features/<domain>/components`로 분리한다.
 - 현재 공개 UI surface는 `홈(/)`, `옷장(/app/closet)`, `캔버스(/studio)`, `발견(/app/discover)`, `마이페이지(/app/profile)`만 유지한다.
@@ -121,6 +133,7 @@
 - OAuth redirect, magic link redirect 같은 브라우저 왕복 경로는 반드시 절대 URL + allowlist 검증을 같이 둔다. 상대 경로 임의 결합은 금지한다.
 - 대형 페이지는 기능 단위 컴포넌트 분리를 기본값으로 적용
 - 운영 안전 가드: 운영 환경에서 로컬 파일시스템 저장은 기본 차단(명시적 opt-in 필요)
+- Garment 3D metadata는 binary parse 없이도 사전 차단 가능해야 하므로, catalog 등록 전에 `npm run validate:garment3d`를 통과시키고 런타임에서는 `garment3dRuntimeGuard`를 우선 호출한다.
 - 전역 타이포그래피는 `apps/web/src/app/layout.tsx`의 `next/font/local` 등록(A2J)과 `apps/web/src/app/globals.css`의 `--font-sans`, `--font-serif` 변수 매핑으로 일관되게 관리한다.
 - Studio 캔버스 이미지 export 텍스트도 `document.body`의 계산된 폰트 패밀리를 사용해 화면 렌더와 결과물이 동일하도록 유지한다.
 
@@ -181,6 +194,7 @@
 - `npm run build:services`
 - `npm run build`
 - `npm run check` (lint + typecheck + build:services + build)
+- `npm run bench:cloth4a` (cloth 4A 회귀 확인 시)
 
 ## 7. 변경 시 문서 동기화
 아래 항목 변경 시 문서를 반드시 같이 수정합니다.

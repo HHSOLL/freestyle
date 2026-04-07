@@ -307,7 +307,7 @@ function FitEditPanel({
         <p className="mb-4 text-sm leading-6 text-white/56">{copy.missingMeasurements}</p>
         <div className="grid grid-cols-2 gap-3">
           {measurementFields.map((field) => (
-            <label key={field.key} className="block">
+            <label key={String(field.key)} className="block">
               <span className="mb-1 block text-[11px] font-semibold text-white/56">{field.label}</span>
               <input
                 type="number"
@@ -575,7 +575,7 @@ function LeftPanel({
 
             <div className="mt-5 space-y-3">
               {bodyFields.map((field) => (
-                <label key={field.key} className="block">
+                <label key={String(field.key)} className="block">
                   <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/56">
                     <span>{field.label}</span>
                     <span>{bodyProfile[field.key]} cm</span>

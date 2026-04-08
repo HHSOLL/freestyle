@@ -24,16 +24,19 @@ type FittingWorkbenchProps = {
 
 const bodyStorageKey = 'freestyle:mannequin-body-profile';
 
-const bodyFields: Array<{ key: keyof BodyProfile; label: string; min: number; max: number }> = [
+type BodyFieldKey = 'heightCm' | 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'inseamCm';
+type MeasurementFieldKey = 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'sleeveLengthCm' | 'lengthCm' | 'inseamCm' | 'hemCm';
+
+const bodyFields = [
   { key: 'heightCm', label: 'Height', min: 145, max: 205 },
   { key: 'shoulderCm', label: 'Shoulder', min: 34, max: 60 },
   { key: 'chestCm', label: 'Chest', min: 72, max: 140 },
   { key: 'waistCm', label: 'Waist', min: 54, max: 132 },
   { key: 'hipCm', label: 'Hip', min: 74, max: 150 },
   { key: 'inseamCm', label: 'Inseam', min: 62, max: 98 },
-];
+] as const satisfies ReadonlyArray<{ key: BodyFieldKey; label: string; min: number; max: number }>;
 
-const measurementFields: Array<{ key: keyof GarmentMeasurements; label: string }> = [
+const measurementFields = [
   { key: 'shoulderCm', label: 'Shoulder' },
   { key: 'chestCm', label: 'Chest' },
   { key: 'waistCm', label: 'Waist' },
@@ -42,7 +45,7 @@ const measurementFields: Array<{ key: keyof GarmentMeasurements; label: string }
   { key: 'lengthCm', label: 'Length' },
   { key: 'inseamCm', label: 'Inseam' },
   { key: 'hemCm', label: 'Hem' },
-];
+] as const satisfies ReadonlyArray<{ key: MeasurementFieldKey; label: string }>;
 
 const fitProfileDefaults: GarmentFitProfile = {
   silhouette: 'regular',
@@ -204,7 +207,7 @@ export function FittingWorkbench({
                         key={asset.id}
                         type="button"
                         onClick={() => {
-                          setActiveAssetIds((prev) =>
+                          setActiveAssetIds((prev: string[]) =>
                             prev.includes(asset.id) ? prev.filter((id) => id !== asset.id) : [...prev, asset.id]
                           );
                           setSelectedAssetId(asset.id);
@@ -255,7 +258,7 @@ export function FittingWorkbench({
                 </div>
                 <div className="space-y-3">
                   {bodyFields.map((field) => (
-                    <label key={field.key} className="block">
+                    <label key={String(field.key)} className="block">
                       <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-black/60">
                         <span>{field.label}</span>
                         <span>{bodyProfile[field.key]} cm</span>
@@ -266,7 +269,7 @@ export function FittingWorkbench({
                         max={field.max}
                         value={bodyProfile[field.key]}
                         onChange={(event) =>
-                          setBodyProfile((prev) => ({
+                          setBodyProfile((prev: BodyProfile) => ({
                             ...prev,
                             [field.key]: Number(event.target.value),
                           }))
@@ -347,7 +350,7 @@ export function FittingWorkbench({
                     <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-black/42">Garment measurements</p>
                     <div className="grid grid-cols-2 gap-3">
                       {measurementFields.map((field) => (
-                        <label key={field.key} className="block">
+                        <label key={String(field.key)} className="block">
                           <span className="mb-1 block text-[11px] font-semibold text-black/56">{field.label}</span>
                           <input
                             type="number"
@@ -357,7 +360,7 @@ export function FittingWorkbench({
                             onChange={(event) => {
                               const nextValue = event.target.value.trim();
                               if (!selectedAsset) return;
-                              setAssetDrafts((prev) => ({
+                              setAssetDrafts((prev: Record<string, { measurements: GarmentMeasurements; fitProfile: GarmentFitProfile }>) => ({
                                 ...prev,
                                 [selectedAsset.id]: {
                                   measurements: {
@@ -389,7 +392,7 @@ export function FittingWorkbench({
                           value={selectedDraft?.fitProfile.silhouette ?? 'regular'}
                           onChange={(event) =>
                             selectedAsset
-                              ? setAssetDrafts((prev) => ({
+                              ? setAssetDrafts((prev: Record<string, { measurements: GarmentMeasurements; fitProfile: GarmentFitProfile }>) => ({
                                   ...prev,
                                   [selectedAsset.id]: {
                                     measurements: prev[selectedAsset.id]?.measurements ?? selectedAsset.metadata?.measurements ?? {},
@@ -417,7 +420,7 @@ export function FittingWorkbench({
                           value={selectedDraft?.fitProfile.layer ?? 'mid'}
                           onChange={(event) =>
                             selectedAsset
-                              ? setAssetDrafts((prev) => ({
+                              ? setAssetDrafts((prev: Record<string, { measurements: GarmentMeasurements; fitProfile: GarmentFitProfile }>) => ({
                                   ...prev,
                                   [selectedAsset.id]: {
                                     measurements: prev[selectedAsset.id]?.measurements ?? selectedAsset.metadata?.measurements ?? {},

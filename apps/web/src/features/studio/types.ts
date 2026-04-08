@@ -3,7 +3,7 @@ import type {
   GarmentFitProfile,
   GarmentMeasurements,
   GarmentProfile,
-} from '@freestyle/contracts';
+} from '@freestyle/contracts/domain-types';
 
 export type { GarmentFitProfile, GarmentMeasurements, GarmentProfile };
 

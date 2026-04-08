@@ -1,4 +1,4 @@
-import type { BodyProfile } from '@freestyle/contracts';
+import type { BodyProfile } from '@freestyle/contracts/domain-types';
 import type {
   Asset,
   EditableAssetCategory,
@@ -7,7 +7,7 @@ import type {
   GarmentProfile,
 } from '@/features/studio/types';
 
-export type { BodyProfile } from '@freestyle/contracts';
+export type { BodyProfile } from '@freestyle/contracts/domain-types';
 
 export type FitSeverity = 'tight' | 'trim' | 'regular' | 'relaxed' | 'oversized';
 

@@ -1,4 +1,12 @@
 import { z } from "zod";
+export type {
+  BodyProfile,
+  BodyProfileRecord,
+  BodyProfileUpsertInput,
+  GarmentFitProfile,
+  GarmentMeasurements,
+  GarmentProfile,
+} from "./domain-types.js";
 
 export const widgetErrorCodeSchema = z.enum([
   "WIDGET_CONFIG_NOT_FOUND",
@@ -268,9 +276,3 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
-export type BodyProfile = z.infer<typeof bodyProfileSchema>;
-export type BodyProfileRecord = z.infer<typeof bodyProfileRecordSchema>;
-export type BodyProfileUpsertInput = z.infer<typeof bodyProfileUpsertInputSchema>;
-export type GarmentMeasurements = z.infer<typeof garmentMeasurementsSchema>;
-export type GarmentFitProfile = z.infer<typeof garmentFitProfileSchema>;
-export type GarmentProfile = z.infer<typeof garmentProfileSchema>;

@@ -32,6 +32,7 @@
 - Kakao는 Supabase native OAuth provider를 사용하고, Naver는 `apps/api/src/routes/auth.routes.ts`의 OAuth bridge가 Naver 검증 후 Supabase admin magic link를 생성한다.
 - 언어 선택은 `apps/web/src/lib/LanguageContext.tsx`의 cookie(`freestyle-language`) + localStorage 동기화로 유지하고, `apps/web/src/app/layout.tsx`는 cookie/`Accept-Language` 기준 초기 언어를 계산해 서버 렌더와 hydration 언어를 맞춘다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
+- `apps/web`가 `packages/contracts`를 타입 전용으로 참조할 때는 `@freestyle/contracts/domain-types` subpath를 우선 사용한다. `@freestyle/contracts` root entry는 zod schema/runtime를 포함하므로, Vercel의 `apps/web` 단독 install/build 경로에서는 타입-only 소비와 분리하는 편이 안전하다.
 
 2. 에셋 처리
 - API에서 다음 job 생성 endpoint 제공:

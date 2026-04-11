@@ -1,15 +1,19 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { useMemo, useState } from 'react';
 import { AvatarDressUpScene } from '@/features/shared-3d/AvatarDressUpScene';
 import { avatarPresetMap, type AvatarPresetId } from '@/features/shared-3d/avatarPresets';
 import type { BodyProfile, GarmentLayerConfig } from './fitting';
+import type { FittingPoseId, StageGarment } from './closetSceneConfig';
 
 type MannequinScene3DProps = {
   body: BodyProfile;
   layers: GarmentLayerConfig[];
+  stageGarments?: StageGarment[];
   selectedAssetId: string | null;
   avatarId?: AvatarPresetId;
+  poseId?: FittingPoseId;
 };
 
 const canUseWebGL = () => {
@@ -22,7 +26,7 @@ const canUseWebGL = () => {
   }
 };
 
-export function MannequinScene3D({ body, layers, selectedAssetId, avatarId }: MannequinScene3DProps) {
+export function MannequinScene3D({ body, layers, stageGarments, selectedAssetId, avatarId, poseId }: MannequinScene3DProps) {
   const [hasWebGL] = useState(() => canUseWebGL());
   const previewLayer = useMemo(
     () => layers.find((layer) => layer.assetId === selectedAssetId) ?? layers[layers.length - 1] ?? null,
@@ -73,5 +77,14 @@ export function MannequinScene3D({ body, layers, selectedAssetId, avatarId }: Ma
     );
   }
 
-  return <AvatarDressUpScene body={body} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />;
+  return (
+    <AvatarDressUpScene
+      body={body}
+      layers={layers}
+      stageGarments={stageGarments}
+      selectedAssetId={selectedAssetId}
+      avatarId={avatarId}
+      poseId={poseId}
+    />
+  );
 }

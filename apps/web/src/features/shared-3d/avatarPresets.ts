@@ -44,7 +44,7 @@ export const avatarPresets: AvatarPreset[] = [
     license: 'CC0',
     tint: '#d0cbc4',
     accent: '#9b876c',
-    scaleMultiplier: 1,
+    scaleMultiplier: 0.94,
     yOffset: 0,
     zOffset: 0,
     stageVariant: 'human',

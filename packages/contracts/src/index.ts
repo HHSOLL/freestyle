@@ -365,6 +365,52 @@ export const assetUpdateInputSchema = z
   })
   .strict();
 
+export const closetItemSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    name: z.string().trim().min(1),
+    brand: z.string().trim().min(1).nullable(),
+    category: assetCategorySchema.or(z.string().trim().min(1)).nullable(),
+    status: z.enum(["pending", "ready", "failed"]),
+    heroImageUrl: z.string().trim().min(1),
+    originalImageUrl: z.string().trim().min(1),
+    cutoutImageUrl: z.string().trim().min(1).nullable(),
+    sourceUrl: z.string().trim().min(1).nullable(),
+    metadata: assetMetadataSchema.nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export const canvasLookInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(280).optional().nullable(),
+    previewImage: z.string().trim().min(1),
+    data: z.record(z.string(), z.unknown()),
+    isPublic: z.boolean().optional(),
+  })
+  .strict();
+
+export const canvasLookSummarySchema = z
+  .object({
+    id: z.string().trim().min(1),
+    shareSlug: z.string().trim().min(1),
+    title: z.string().trim().min(1),
+    previewImage: z.string().trim().min(1),
+    createdAt: z.iso.datetime(),
+  })
+  .strict();
+
+export const canvasLookRecordSchema = canvasLookSummarySchema
+  .extend({
+    description: z.string().trim().max(280).nullable(),
+    data: z.record(z.string(), z.unknown()).nullable(),
+    isPublic: z.boolean(),
+    updatedAt: z.iso.datetime(),
+  })
+  .strict();
+
 // Reserved for future `/v1/body-profiles/me` persistence endpoint (not implemented yet).
 export const bodyProfileRecordSchema = z
   .object({
@@ -400,3 +446,7 @@ export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type Asset = z.infer<typeof assetSchema>;
+export type ClosetItem = z.infer<typeof closetItemSchema>;
+export type CanvasLookInput = z.infer<typeof canvasLookInputSchema>;
+export type CanvasLookSummary = z.infer<typeof canvasLookSummarySchema>;
+export type CanvasLookRecord = z.infer<typeof canvasLookRecordSchema>;

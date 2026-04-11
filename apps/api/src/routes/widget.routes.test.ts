@@ -5,6 +5,8 @@ import { buildServer } from "../main.js";
 import { __widgetRouteTestUtils } from "./widget.routes.js";
 
 const buildSri = (source: string) => `sha384-${createHash("sha384").update(source).digest("base64")}`;
+const widgetApiBase = "/v1/legacy/widget";
+const widgetAssetBase = "/legacy/widget";
 
 test.beforeEach(() => {
   __widgetRouteTestUtils.reset();
@@ -38,13 +40,13 @@ const findPhase05CanaryAudienceId = (percentage: number, expected: boolean) => {
   throw new Error(`Unable to find phase 0.5 canary audience match for expected=${expected} percentage=${percentage}`);
 };
 
-test("GET /v1/widget/config returns widget bootstrap config", async () => {
+test("GET /v1/legacy/widget/config returns widget bootstrap config", async () => {
   process.env.WIDGET_VERSION_POLICY = "immutable";
   const app = buildServer();
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
   });
 
   assert.equal(response.statusCode, 200);
@@ -52,7 +54,7 @@ test("GET /v1/widget/config returns widget bootstrap config", async () => {
   assert.equal(payload.widget_id, "freestyle-widget");
   assert.equal(payload.tenant_id, "tenant-a");
   assert.equal(payload.product_id, "sku-123");
-  assert.equal(payload.events_endpoint, "/v1/widget/events");
+  assert.equal(payload.events_endpoint, `${widgetApiBase}/events`);
   assert.equal(payload.partial_accept, true);
   assert.equal(payload.dedupe_window_seconds, 86400);
   assert.equal(typeof payload.asset_base_url, "string");
@@ -60,8 +62,8 @@ test("GET /v1/widget/config returns widget bootstrap config", async () => {
   assert.equal(typeof payload.expires_at, "string");
   const scriptUrl = new URL(payload.script_url);
   const stylesheetUrl = new URL(payload.stylesheet_url);
-  assert.equal(scriptUrl.pathname, "/widget/sdk.js");
-  assert.equal(stylesheetUrl.pathname, "/widget/sdk.css");
+  assert.equal(scriptUrl.pathname, `${widgetAssetBase}/sdk.js`);
+  assert.equal(stylesheetUrl.pathname, `${widgetAssetBase}/sdk.css`);
   assert.equal(scriptUrl.searchParams.has("v"), true);
   assert.equal(stylesheetUrl.searchParams.has("v"), true);
   assert.match(payload.script_integrity, /^sha384-/);
@@ -71,7 +73,7 @@ test("GET /v1/widget/config returns widget bootstrap config", async () => {
   await app.close();
 });
 
-test("GET /v1/widget/config keeps legacy phase_0_5_canary_enabled global on/off behavior when percentage override is unset", async () => {
+test("GET /v1/legacy/widget/config keeps legacy phase_0_5_canary_enabled global on/off behavior when percentage override is unset", async () => {
   process.env.WIDGET_FEATURE_FLAGS = JSON.stringify({
     phase_0_5_canary_enabled: true,
   });
@@ -79,7 +81,7 @@ test("GET /v1/widget/config keeps legacy phase_0_5_canary_enabled global on/off 
   const app = buildServer();
   const response = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       "x-anonymous-user-id": "legacy-user",
     },
@@ -91,7 +93,7 @@ test("GET /v1/widget/config keeps legacy phase_0_5_canary_enabled global on/off 
   await app.close();
 });
 
-test("GET /v1/widget/config deterministically samples phase_0_5_canary_enabled by requester", async () => {
+test("GET /v1/legacy/widget/config deterministically samples phase_0_5_canary_enabled by requester", async () => {
   process.env.WIDGET_PHASE_0_5_CANARY_PERCENTAGE = "5";
   const enabledAudienceId = findPhase05CanaryAudienceId(5, true);
   const disabledAudienceId = findPhase05CanaryAudienceId(5, false);
@@ -99,7 +101,7 @@ test("GET /v1/widget/config deterministically samples phase_0_5_canary_enabled b
 
   const enabledResponse = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       origin: "https://shop.example",
       "user-agent": "widget-test/1.0",
@@ -109,7 +111,7 @@ test("GET /v1/widget/config deterministically samples phase_0_5_canary_enabled b
 
   const repeatedEnabledResponse = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       origin: "https://shop.example",
       "user-agent": "widget-test/1.0",
@@ -119,7 +121,7 @@ test("GET /v1/widget/config deterministically samples phase_0_5_canary_enabled b
 
   const disabledResponse = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       origin: "https://shop.example",
       "user-agent": "widget-test/1.0",
@@ -137,7 +139,7 @@ test("GET /v1/widget/config deterministically samples phase_0_5_canary_enabled b
   await app.close();
 });
 
-test("GET /v1/widget/config kill switch forces phase_0_5_canary_enabled off even at 100 percent", async () => {
+test("GET /v1/legacy/widget/config kill switch forces phase_0_5_canary_enabled off even at 100 percent", async () => {
   process.env.WIDGET_FEATURE_FLAGS = JSON.stringify({
     phase_0_5_canary_enabled: true,
     phase_0_5_kill_switch: true,
@@ -147,7 +149,7 @@ test("GET /v1/widget/config kill switch forces phase_0_5_canary_enabled off even
   const app = buildServer();
   const response = await app.inject({
     method: "GET",
-    url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       origin: "https://shop.example",
       "x-anonymous-user-id": "kill-switch-user",
@@ -162,21 +164,21 @@ test("GET /v1/widget/config kill switch forces phase_0_5_canary_enabled off even
   await app.close();
 });
 
-test("GET /widget/sdk.js and /widget/sdk.css are served by the API and align with config SRI", async () => {
+test("GET /legacy/widget/sdk.js and /legacy/widget/sdk.css are served by the API and align with config SRI", async () => {
   const app = buildServer();
 
   const [configResponse, scriptResponse, stylesheetResponse] = await Promise.all([
     app.inject({
       method: "GET",
-      url: "/v1/widget/config?tenant_id=tenant-a&product_id=sku-123",
+      url: `${widgetApiBase}/config?tenant_id=tenant-a&product_id=sku-123`,
     }),
     app.inject({
       method: "GET",
-      url: "/widget/sdk.js",
+      url: `${widgetAssetBase}/sdk.js`,
     }),
     app.inject({
       method: "GET",
-      url: "/widget/sdk.css",
+      url: `${widgetAssetBase}/sdk.css`,
     }),
   ]);
 
@@ -186,14 +188,14 @@ test("GET /widget/sdk.js and /widget/sdk.css are served by the API and align wit
   assert.match(String(scriptResponse.headers["content-type"] ?? ""), /application\/javascript/);
   assert.match(String(stylesheetResponse.headers["content-type"] ?? ""), /text\/css/);
   assert.match(scriptResponse.body, /FreeStyleWidget/);
-  assert.match(scriptResponse.body, /\/widget\/frame\?tenant_id=/);
+  assert.match(scriptResponse.body, /\/legacy\/widget\/frame\?tenant_id=/);
   assert.match(scriptResponse.body, /Widget events endpoint must remain on the widget API origin\./);
   assert.doesNotMatch(scriptResponse.body, /srcdoc/);
   assert.match(stylesheetResponse.body, /freestyle-widget-root/);
 
   const config = configResponse.json();
-  assert.equal(new URL(config.script_url).pathname, "/widget/sdk.js");
-  assert.equal(new URL(config.stylesheet_url).pathname, "/widget/sdk.css");
+  assert.equal(new URL(config.script_url).pathname, `${widgetAssetBase}/sdk.js`);
+  assert.equal(new URL(config.stylesheet_url).pathname, `${widgetAssetBase}/sdk.css`);
   assert.equal(config.script_integrity, buildSri(scriptResponse.body));
   assert.equal(config.stylesheet_integrity, buildSri(stylesheetResponse.body));
   assert.equal(String(scriptResponse.headers["x-widget-integrity"]), config.script_integrity);
@@ -202,12 +204,12 @@ test("GET /widget/sdk.js and /widget/sdk.css are served by the API and align wit
   await app.close();
 });
 
-test("GET /widget/frame serves iframe bootstrap HTML", async () => {
+test("GET /legacy/widget/frame serves iframe bootstrap HTML", async () => {
   const app = buildServer();
 
   const response = await app.inject({
     method: "GET",
-    url: "/widget/frame?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetAssetBase}/frame?tenant_id=tenant-a&product_id=sku-123`,
   });
 
   assert.equal(response.statusCode, 200);
@@ -219,13 +221,13 @@ test("GET /widget/frame serves iframe bootstrap HTML", async () => {
   await app.close();
 });
 
-test("GET /widget/frame emits CSP with request-scoped frame ancestors for allowed host patterns", async () => {
+test("GET /legacy/widget/frame emits CSP with request-scoped frame ancestors for allowed host patterns", async () => {
   process.env.WIDGET_ALLOWED_ORIGIN_PATTERNS = "https://*.shop.example";
   const app = buildServer();
 
   const response = await app.inject({
     method: "GET",
-    url: "/widget/frame?tenant_id=tenant-a&product_id=sku-123",
+    url: `${widgetAssetBase}/frame?tenant_id=tenant-a&product_id=sku-123`,
     headers: {
       referer: "https://embed.shop.example/products/sku-123",
     },
@@ -243,13 +245,13 @@ test("GET /widget/frame emits CSP with request-scoped frame ancestors for allowe
   await app.close();
 });
 
-test("POST /v1/widget/events partially accepts valid events and dedupes by idempotency key", async () => {
+test("POST /v1/legacy/widget/events partially accepts valid events and dedupes by idempotency key", async () => {
   process.env.CORS_ORIGIN = "https://widget.example";
   const app = buildServer();
 
   const response = await app.inject({
     method: "POST",
-    url: "/v1/widget/events",
+    url: `${widgetApiBase}/events`,
     headers: {
       origin: "https://widget.example",
     },
@@ -284,7 +286,7 @@ test("POST /v1/widget/events partially accepts valid events and dedupes by idemp
 
   const duplicateResponse = await app.inject({
     method: "POST",
-    url: "/v1/widget/events",
+    url: `${widgetApiBase}/events`,
     headers: {
       origin: "https://widget.example",
     },
@@ -312,13 +314,13 @@ test("POST /v1/widget/events partially accepts valid events and dedupes by idemp
   await app.close();
 });
 
-test("POST /v1/widget/events denies disallowed origins", async () => {
+test("POST /v1/legacy/widget/events denies disallowed origins", async () => {
   process.env.CORS_ORIGIN = "https://allowed.example";
   const app = buildServer();
 
   const response = await app.inject({
     method: "POST",
-    url: "/v1/widget/events",
+    url: `${widgetApiBase}/events`,
     headers: {
       origin: "https://denied.example",
     },
@@ -345,13 +347,13 @@ test("POST /v1/widget/events denies disallowed origins", async () => {
   await app.close();
 });
 
-test("POST /v1/widget/events rejects tenant mismatch events", async () => {
+test("POST /v1/legacy/widget/events rejects tenant mismatch events", async () => {
   process.env.CORS_ORIGIN = "https://widget.example";
   const app = buildServer();
 
   const response = await app.inject({
     method: "POST",
-    url: "/v1/widget/events",
+    url: `${widgetApiBase}/events`,
     headers: {
       origin: "https://widget.example",
     },
@@ -379,14 +381,14 @@ test("POST /v1/widget/events rejects tenant mismatch events", async () => {
   await app.close();
 });
 
-test("POST /v1/widget/events rejects stale occurred_at values outside the replay window", async () => {
+test("POST /v1/legacy/widget/events rejects stale occurred_at values outside the replay window", async () => {
   process.env.CORS_ORIGIN = "https://widget.example";
   const app = buildServer();
 
   const staleOccurredAt = new Date(Date.now() - (25 * 60 * 60 * 1000)).toISOString();
   const response = await app.inject({
     method: "POST",
-    url: "/v1/widget/events",
+    url: `${widgetApiBase}/events`,
     headers: {
       origin: "https://widget.example",
     },

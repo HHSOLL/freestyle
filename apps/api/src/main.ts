@@ -11,8 +11,13 @@ import { registerEvaluationRoutes } from "./routes/evaluations.routes.js";
 import { registerOutfitRoutes } from "./routes/outfits.routes.js";
 import { registerTryonRoutes } from "./routes/tryons.routes.js";
 import { registerAuthRoutes } from "./routes/auth.routes.js";
+import { registerProfileRoutes } from "./routes/profile.routes.js";
+import { registerClosetRoutes } from "./routes/closet.routes.js";
+import { registerCanvasRoutes } from "./routes/canvas.routes.js";
+import { registerDiscoverRoutes } from "./routes/discover.routes.js";
 import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
+import { LAB_API_PREFIX, LEGACY_API_PREFIX, LEGACY_WIDGET_ASSET_PREFIX, PRODUCT_API_PREFIX } from "./lib/route-namespaces.js";
 
 const port = Number.parseInt(process.env.PORT || "8080", 10);
 const host = process.env.HOST || "0.0.0.0";
@@ -40,17 +45,49 @@ export const buildServer = () => {
   });
 
   registerHealthRoutes(app);
-  registerWidgetAssetRoutes(app);
+  registerWidgetAssetRoutes(app, {
+    apiBasePath: LEGACY_API_PREFIX,
+    assetBasePath: LEGACY_WIDGET_ASSET_PREFIX,
+  });
 
-  app.register(async (v1) => {
-    registerAuthRoutes(v1);
-    registerJobRoutes(v1);
-    registerAssetRoutes(v1);
-    registerEvaluationRoutes(v1);
-    registerOutfitRoutes(v1);
-    registerTryonRoutes(v1);
-    registerWidgetRoutes(v1);
-  }, { prefix: "/v1" });
+  app.register(async (product) => {
+    product.addHook("onSend", async (_request, reply, payload) => {
+      reply.header("x-freestyle-surface", "product");
+      return payload;
+    });
+
+    registerAuthRoutes(product);
+    registerProfileRoutes(product);
+    registerClosetRoutes(product);
+    registerCanvasRoutes(product);
+    registerDiscoverRoutes(product);
+  }, { prefix: PRODUCT_API_PREFIX });
+
+  app.register(async (legacy) => {
+    legacy.addHook("onSend", async (_request, reply, payload) => {
+      reply.header("x-freestyle-surface", "legacy");
+      reply.header("deprecation", "true");
+      return payload;
+    });
+
+    registerJobRoutes(legacy);
+    registerAssetRoutes(legacy);
+    registerOutfitRoutes(legacy);
+    registerWidgetRoutes(legacy, {
+      apiBasePath: LEGACY_API_PREFIX,
+      assetBasePath: LEGACY_WIDGET_ASSET_PREFIX,
+    });
+  }, { prefix: LEGACY_API_PREFIX });
+
+  app.register(async (lab) => {
+    lab.addHook("onSend", async (_request, reply, payload) => {
+      reply.header("x-freestyle-surface", "lab");
+      return payload;
+    });
+
+    registerEvaluationRoutes(lab);
+    registerTryonRoutes(lab);
+  }, { prefix: LAB_API_PREFIX });
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, "Unhandled API error");

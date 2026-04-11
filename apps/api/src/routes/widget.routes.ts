@@ -13,6 +13,7 @@ import {
   type WidgetRejectedEvent,
 } from "../../../../packages/contracts/src/index.js";
 import { buildOriginPolicy } from "../lib/originPolicy.js";
+import { LEGACY_API_PREFIX, LEGACY_WIDGET_ASSET_PREFIX } from "../lib/route-namespaces.js";
 
 const WIDGET_ID = process.env.WIDGET_ID?.trim() || "freestyle-widget";
 const WIDGET_DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -130,7 +131,7 @@ const WIDGET_SDK_CSS_SOURCE = `
 }
 `.trim();
 
-const WIDGET_SDK_JS_SOURCE = `
+const buildWidgetSdkJsSource = (options: { apiBasePath: string; assetBasePath: string }) => `
 (() => {
   const globalWindow = window;
   const scriptElement = document.currentScript;
@@ -141,7 +142,7 @@ const WIDGET_SDK_JS_SOURCE = `
       return window.location.origin;
     }
   })();
-  const apiBaseUrl = assetOrigin + "/v1";
+  const apiBaseUrl = assetOrigin + "${options.apiBasePath}";
 
   const toError = (code, message, cause) => ({
     code,
@@ -288,7 +289,7 @@ const WIDGET_SDK_JS_SOURCE = `
     iframe.sandbox = "allow-scripts allow-same-origin";
     iframe.referrerPolicy = "no-referrer";
     iframe.src = resolveSameOriginUrl(
-      "/widget/frame?tenant_id=" + encodeURIComponent(config.tenant_id) + "&product_id=" + encodeURIComponent(config.product_id),
+      "${options.assetBasePath}/frame?tenant_id=" + encodeURIComponent(config.tenant_id) + "&product_id=" + encodeURIComponent(config.product_id),
       widgetOrigin,
       "WIDGET_MOUNT_FAILED",
       "Widget frame endpoint must remain on the widget API origin.",
@@ -419,10 +420,13 @@ const buildWidgetFrameHtml = (productId: string) => {
 };
 
 const buildWidgetIntegrity = (source: string) => `sha384-${createHash("sha384").update(source).digest("base64")}`;
-const WIDGET_SDK_JS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_JS_SOURCE);
+const buildWidgetSdkJsIntegrity = (options: { apiBasePath: string; assetBasePath: string }) =>
+  buildWidgetIntegrity(buildWidgetSdkJsSource(options));
 const WIDGET_SDK_CSS_INTEGRITY = buildWidgetIntegrity(WIDGET_SDK_CSS_SOURCE);
 const WIDGET_SDK_ASSET_VERSION = createHash("sha256")
-  .update(`${WIDGET_SDK_JS_INTEGRITY}:${WIDGET_SDK_CSS_INTEGRITY}`)
+  .update(
+    `${buildWidgetSdkJsIntegrity({ apiBasePath: LEGACY_API_PREFIX, assetBasePath: LEGACY_WIDGET_ASSET_PREFIX })}:${WIDGET_SDK_CSS_INTEGRITY}`,
+  )
   .digest("hex")
   .slice(0, 16);
 
@@ -739,13 +743,13 @@ const resolveWidgetIntegrity = (value: string | undefined) => {
 const getWidgetCacheControl = () =>
   resolveWidgetVersionPolicy() === "immutable" ? WIDGET_CACHE_CONTROL_IMMUTABLE : WIDGET_CACHE_CONTROL_MUTABLE;
 
-const getDefaultWidgetAssetUrls = (publicApiOrigin: string) => ({
-  scriptUrl: `${publicApiOrigin}/widget/sdk.js?v=${WIDGET_SDK_ASSET_VERSION}`,
-  stylesheetUrl: `${publicApiOrigin}/widget/sdk.css?v=${WIDGET_SDK_ASSET_VERSION}`,
+const getDefaultWidgetAssetUrls = (publicApiOrigin: string, assetBasePath: string) => ({
+  scriptUrl: `${publicApiOrigin}${assetBasePath}/sdk.js?v=${WIDGET_SDK_ASSET_VERSION}`,
+  stylesheetUrl: `${publicApiOrigin}${assetBasePath}/sdk.css?v=${WIDGET_SDK_ASSET_VERSION}`,
 });
 
-const resolveWidgetAssetUrls = (publicApiOrigin: string) => {
-  const defaults = getDefaultWidgetAssetUrls(publicApiOrigin);
+const resolveWidgetAssetUrls = (publicApiOrigin: string, assetBasePath: string) => {
+  const defaults = getDefaultWidgetAssetUrls(publicApiOrigin, assetBasePath);
   const configuredScriptUrl = process.env.WIDGET_SCRIPT_URL?.trim();
   const configuredStylesheetUrl = process.env.WIDGET_STYLESHEET_URL?.trim();
 
@@ -782,22 +786,23 @@ const buildWidgetConfig = (
   request: FastifyRequest,
   query: WidgetConfigQuery,
   widgetOriginPolicy: ReturnType<typeof buildWidgetOriginPolicy>,
+  options: { apiBasePath: string; assetBasePath: string },
 ): WidgetConfig => {
   const publicApiOrigin = getPublicApiOrigin(request);
   const widgetConfigTtlSeconds = Number.parseInt(process.env.WIDGET_CONFIG_TTL_SECONDS || "900", 10);
   const expiresAt = new Date(Date.now() + Math.max(60, widgetConfigTtlSeconds) * 1000).toISOString();
-  const assetUrls = resolveWidgetAssetUrls(publicApiOrigin);
+  const assetUrls = resolveWidgetAssetUrls(publicApiOrigin, options.assetBasePath);
   const featureFlags = resolvePhase05CanaryFlag(request, parseWidgetFeatureFlags());
 
   return {
     widget_id: WIDGET_ID,
     tenant_id: query.tenant_id,
     product_id: query.product_id,
-    api_base_url: `${publicApiOrigin}/v1`,
-    events_endpoint: "/v1/widget/events",
+    api_base_url: `${publicApiOrigin}${options.apiBasePath}`,
+    events_endpoint: `${options.apiBasePath}/widget/events`,
     script_url: assetUrls.scriptUrl,
     script_integrity: assetUrls.isDefaultScriptUrl
-      ? WIDGET_SDK_JS_INTEGRITY
+      ? buildWidgetSdkJsIntegrity(options)
       : resolveWidgetIntegrity(process.env.WIDGET_SCRIPT_INTEGRITY),
     stylesheet_url: assetUrls.stylesheetUrl,
     stylesheet_integrity: assetUrls.isDefaultStylesheetUrl
@@ -837,26 +842,37 @@ export const __widgetRouteTestUtils = {
   isKeyInCanaryAudience,
 };
 
-export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
-  app.get("/widget/sdk.js", async (_request, reply) => {
+export const registerWidgetAssetRoutes = (
+  app: FastifyInstance,
+  options: { assetBasePath?: string; apiBasePath?: string } = {},
+) => {
+  const assetBasePath = options.assetBasePath ?? LEGACY_WIDGET_ASSET_PREFIX;
+  const apiBasePath = options.apiBasePath ?? LEGACY_API_PREFIX;
+
+  app.get(`${assetBasePath}/sdk.js`, async (_request, reply) => {
+    const widgetSdkJs = buildWidgetSdkJsSource({ apiBasePath, assetBasePath });
     return reply
       .code(200)
       .type("application/javascript; charset=utf-8")
       .header("cache-control", getWidgetCacheControl())
-      .header("x-widget-integrity", WIDGET_SDK_JS_INTEGRITY)
-      .send(WIDGET_SDK_JS_SOURCE);
+      .header("x-freestyle-surface", "legacy")
+      .header("deprecation", "true")
+      .header("x-widget-integrity", buildWidgetSdkJsIntegrity({ apiBasePath, assetBasePath }))
+      .send(widgetSdkJs);
   });
 
-  app.get("/widget/sdk.css", async (_request, reply) => {
+  app.get(`${assetBasePath}/sdk.css`, async (_request, reply) => {
     return reply
       .code(200)
       .type("text/css; charset=utf-8")
       .header("cache-control", getWidgetCacheControl())
+      .header("x-freestyle-surface", "legacy")
+      .header("deprecation", "true")
       .header("x-widget-integrity", WIDGET_SDK_CSS_INTEGRITY)
       .send(WIDGET_SDK_CSS_SOURCE);
   });
 
-  app.get("/widget/frame", async (request, reply) => {
+  app.get(`${assetBasePath}/frame`, async (request, reply) => {
     const widgetOriginPolicy = buildWidgetOriginPolicy();
     const query = (request.query ?? {}) as { product_id?: unknown };
     const productId = typeof query.product_id === "string" && query.product_id.trim().length > 0
@@ -867,6 +883,8 @@ export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
       .code(200)
       .type("text/html; charset=utf-8")
       .header("cache-control", getWidgetCacheControl())
+      .header("x-freestyle-surface", "legacy")
+      .header("deprecation", "true")
       .header("content-security-policy", buildWidgetFrameCsp(request, widgetOriginPolicy))
       .header("referrer-policy", "no-referrer")
       .header("x-content-type-options", "nosniff")
@@ -874,7 +892,13 @@ export const registerWidgetAssetRoutes = (app: FastifyInstance) => {
   });
 };
 
-export const registerWidgetRoutes = (app: FastifyInstance) => {
+export const registerWidgetRoutes = (
+  app: FastifyInstance,
+  options: { apiBasePath?: string; assetBasePath?: string } = {},
+) => {
+  const apiBasePath = options.apiBasePath ?? LEGACY_API_PREFIX;
+  const assetBasePath = options.assetBasePath ?? LEGACY_WIDGET_ASSET_PREFIX;
+
   app.get("/widget/config", async (request, reply) => {
     const widgetOriginPolicy = buildWidgetOriginPolicy();
     const parsedQuery = widgetConfigQuerySchema.safeParse(request.query ?? {});
@@ -900,7 +924,9 @@ export const registerWidgetRoutes = (app: FastifyInstance) => {
       });
     }
 
-    const config = widgetConfigSchema.parse(buildWidgetConfig(request, parsedQuery.data, widgetOriginPolicy));
+    const config = widgetConfigSchema.parse(
+      buildWidgetConfig(request, parsedQuery.data, widgetOriginPolicy, { apiBasePath, assetBasePath }),
+    );
     return reply.send(config);
   });
 

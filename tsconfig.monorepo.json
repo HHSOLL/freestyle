@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
     "types": ["node"],
     "rootDir": ".",
     "outDir": "dist",
@@ -16,6 +17,7 @@
   "include": [
     "apps/api/src/**/*.ts",
     "workers/*/src/**/*.ts",
-    "packages/*/src/**/*.ts"
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx"
   ]
 }

@@ -12,6 +12,14 @@
   },
   "dependencies": {
     "@freestyle/contracts": "file:../../packages/contracts",
+    "@freestyle/design-tokens": "file:../../packages/design-tokens",
+    "@freestyle/domain-avatar": "file:../../packages/domain-avatar",
+    "@freestyle/domain-canvas": "file:../../packages/domain-canvas",
+    "@freestyle/domain-garment": "file:../../packages/domain-garment",
+    "@freestyle/runtime-3d": "file:../../packages/runtime-3d",
+    "@freestyle/shared-types": "file:../../packages/shared-types",
+    "@freestyle/shared-utils": "file:../../packages/shared-utils",
+    "@freestyle/ui": "file:../../packages/ui",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
@@ -23,6 +31,7 @@
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.4.0",
     "three": "^0.183.2"
   },

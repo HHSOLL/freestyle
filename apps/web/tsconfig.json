@@ -3,7 +3,15 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@freestyle/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@freestyle/shared-utils": ["../../packages/shared-utils/src/index.ts"],
+      "@freestyle/design-tokens": ["../../packages/design-tokens/src/index.ts"],
+      "@freestyle/domain-avatar": ["../../packages/domain-avatar/src/index.ts"],
+      "@freestyle/domain-garment": ["../../packages/domain-garment/src/index.ts"],
+      "@freestyle/domain-canvas": ["../../packages/domain-canvas/src/index.ts"],
+      "@freestyle/runtime-3d": ["../../packages/runtime-3d/src/index.tsx"],
+      "@freestyle/ui": ["../../packages/ui/src/index.tsx"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],

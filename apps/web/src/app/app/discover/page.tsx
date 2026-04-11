@@ -1,91 +1,113 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { AppPageFrame } from '@/features/renewal-app/components/AppPageFrame';
-import { InfoStrip } from '@/features/renewal-app/components/InfoStrip';
-import { INITIAL_TRENDS } from '@/features/trends/constants';
-import { useLanguage } from '@/lib/LanguageContext';
-import { summarizeCloset } from '@/features/renewal-app/data';
-import { useWardrobeSnapshot } from '@/features/renewal-app/hooks/useWardrobeSnapshot';
+import Image from "next/image";
+import { useDeferredValue } from "react";
+import { Eyebrow, SurfacePanel, WorkspaceFrame } from "@freestyle/ui";
+import { AvatarStageViewport } from "@/components/product/AvatarStageViewport";
+import { useBodyProfile } from "@/hooks/useBodyProfile";
+import { useClosetScene } from "@/hooks/useClosetScene";
+import { useWardrobeAssets } from "@/hooks/useWardrobeAssets";
+import { discoverLibrary } from "@/lib/discover-data";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DiscoverPage() {
-  const { language, t } = useLanguage();
-  const { looks, assets } = useWardrobeSnapshot();
-  const closetSummary = summarizeCloset(assets);
-  const readyToRebuild = assets.length === 0 ? 0 : Math.min(INITIAL_TRENDS.length, Math.max(1, looks.length));
-  const copy =
-    language === 'ko'
-      ? {
-          eyebrow: '발견',
-          title: '발견은 곧 옷장 번역이 됩니다.',
-          description: '영감은 이미 가진 옷으로 다시 만들 수 있거나, 정당화 가능한 공백으로 바뀔 때만 가치가 있습니다.',
-          info: ['저장된 레퍼런스', '재구성 준비', '비어 있는 축', '저장된 캔버스'],
-          ready: '재구성 가능',
-          needsCloset: '먼저 옷장 데이터 필요',
-          rebuild: '캔버스',
-          decide: '옷장',
-        }
-      : {
-          eyebrow: 'Discover',
-          title: 'Discovery becomes closet translation',
-          description: 'Inspiration only matters when it can be rebuilt from the wardrobe you already own, or turned into a specific gap you can justify.',
-          info: ['Saved references', 'Closet ready', 'Missing anchors', 'Saved canvases'],
-          ready: 'Ready to rebuild',
-          needsCloset: 'Need closet data first',
-          rebuild: 'Canvas',
-          decide: 'Closet',
-        };
+  const { language } = useLanguage();
+  const { profile, avatarVariantId } = useBodyProfile();
+  const { scene, equippedGarments } = useClosetScene();
+  const { remoteAssets } = useWardrobeAssets();
+  const deferredProfile = useDeferredValue(profile);
 
   return (
-    <AppPageFrame
-      eyebrow={copy.eyebrow}
-      title={copy.title}
-      description={copy.description}
-    >
-      <InfoStrip
-        items={[
-          { label: copy.info[0], value: String(INITIAL_TRENDS.length) },
-          { label: copy.info[1], value: String(readyToRebuild) },
-          { label: copy.info[2], value: String(closetSummary.missing.length) },
-          { label: copy.info[3], value: String(looks.length) },
-        ]}
-      />
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {INITIAL_TRENDS.map((trend) => (
-          <article key={trend.id} className="overflow-hidden border border-black/8 bg-white">
-            <div className="relative aspect-[4/5] bg-black/5">
-              <Image
-                src={trend.image}
-                alt={t(trend.nameKey)}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                className="object-cover"
-                unoptimized
-              />
+    <WorkspaceFrame
+      toolbar={
+        <SurfacePanel className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <Eyebrow>Discover</Eyebrow>
+            <h1 className="mt-2 text-[22px] font-semibold text-[#151b24]">
+              {language === "ko" ? "조용한 레퍼런스 보드" : "Quiet reference boards"}
+            </h1>
+            <p className="mt-1 text-[12px] leading-5 text-black/45">
+              {language === "ko"
+                ? "상품 링크 주도 피드가 아니라, 실루엣과 레이어 기준의 스타일 보드만 남깁니다."
+                : "This surface keeps silhouette and layering boards, not the old shopping-link driven discovery flow."}
+            </p>
+          </div>
+          <div className="rounded-full bg-white/76 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-black/38">
+            {discoverLibrary.length} curated boards
+          </div>
+        </SurfacePanel>
+      }
+      left={
+        <div className="space-y-4">
+          <SurfacePanel className="space-y-3 px-4 py-4">
+            <Eyebrow>Style cues</Eyebrow>
+            <div className="space-y-3 text-[13px] leading-6 text-black/56">
+              <p>{language === "ko" ? "중앙 stage의 look을 기준으로 layering reference를 읽습니다." : "Read each reference board against the live stage in the center."}</p>
+              <p>{language === "ko" ? "컬러는 낮추고 구조와 길이 대비만 남기는 것이 기본 원칙입니다." : "Keep the palette quiet and compare proportion, structure, and length first."}</p>
             </div>
-            <div className="space-y-3 p-5">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-black/34">{trend.creator}</p>
-                <h2 className="mt-2 font-serif text-2xl tracking-[-0.04em] text-black">{t(trend.nameKey)}</h2>
-                <p className="mt-2 text-sm leading-7 text-black/58">{t(trend.descKey)}</p>
-              </div>
-              <div className="flex items-center justify-between border-t border-black/8 pt-3 text-[11px] uppercase tracking-[0.16em] text-black/44">
-                <span>{assets.length > 0 ? copy.ready : copy.needsCloset}</span>
-                <div className="flex gap-3">
-                  <Link href="/studio" className="transition hover:text-black">
-                    {copy.rebuild}
-                  </Link>
-                  <Link href="/app/closet" className="transition hover:text-black">
-                    {copy.decide}
-                  </Link>
+          </SurfacePanel>
+          <SurfacePanel className="space-y-3 px-4 py-4">
+            <Eyebrow>Imported wardrobe</Eyebrow>
+            {remoteAssets.slice(0, 3).map((asset) => (
+              <div key={asset.id} className="flex items-center gap-3 rounded-[18px] border border-black/8 bg-white/46 p-3">
+                <Image
+                  src={asset.imageSrc}
+                  alt={asset.name}
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 rounded-[14px] object-cover"
+                  unoptimized
+                />
+                <div className="min-w-0">
+                  <div className="truncate text-[14px] font-semibold text-[#151b24]">{asset.name}</div>
+                  <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-black/38">{asset.category}</div>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </section>
-    </AppPageFrame>
+            ))}
+            {remoteAssets.length === 0 ? (
+              <div className="rounded-[18px] border border-black/8 bg-white/46 px-4 py-4 text-[13px] text-black/45">
+                {language === "ko" ? "아직 가져온 개인 wardrobe reference가 없습니다." : "No imported personal wardrobe reference is available yet."}
+              </div>
+            ) : null}
+          </SurfacePanel>
+        </div>
+      }
+      stage={
+        <SurfacePanel tone="stage" className="h-full min-h-[720px] overflow-hidden px-4 py-4">
+          <div className="h-full rounded-[28px] border border-white/8 bg-[#0f1012]">
+            <AvatarStageViewport
+              bodyProfile={deferredProfile}
+              avatarVariantId={avatarVariantId}
+              poseId={scene.poseId}
+              equippedGarments={equippedGarments}
+              selectedItemId={scene.selectedItemId}
+              qualityTier={scene.qualityTier}
+            />
+          </div>
+        </SurfacePanel>
+      }
+      right={
+        <div className="space-y-4">
+          {discoverLibrary.map((entry) => (
+            <SurfacePanel key={entry.id} className="space-y-3 px-4 py-4">
+              <Image
+                src={entry.image}
+                alt={entry.title.en}
+                width={480}
+                height={176}
+                className="h-44 w-full rounded-[22px] object-cover"
+                unoptimized
+              />
+              <div>
+                <Eyebrow>{entry.tags.join(" / ")}</Eyebrow>
+                <h2 className="mt-2 text-[18px] font-semibold text-[#151b24]">{entry.title[language]}</h2>
+                <p className="mt-2 text-[13px] leading-6 text-black/52">{entry.body[language]}</p>
+              </div>
+            </SurfacePanel>
+          ))}
+        </div>
+      }
+      footer={null}
+    />
   );
 }

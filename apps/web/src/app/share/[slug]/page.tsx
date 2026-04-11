@@ -21,7 +21,7 @@ const toSharedOutfitItem = (value: unknown): SharedOutfitItem | null => {
 
 export default async function SharePage({ params }: PageProps) {
   const resolvedParams = await params;
-  const response = await fetch(buildApiPath(`/v1/outfits/share/${resolvedParams.slug}`), {
+  const response = await fetch(buildApiPath(`/v1/discover/looks/${resolvedParams.slug}`), {
     cache: "no-store",
   });
   if (!response.ok) {

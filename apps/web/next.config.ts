@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { legacyRedirects } from "./route-map.mjs";
 
 const backendOrigin = process.env.BACKEND_ORIGIN?.trim();
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -10,6 +11,17 @@ const nextConfig: NextConfig = {
     root: workspaceRoot,
   },
   outputFileTracingRoot: workspaceRoot,
+  transpilePackages: [
+    "@freestyle/contracts",
+    "@freestyle/design-tokens",
+    "@freestyle/domain-avatar",
+    "@freestyle/domain-canvas",
+    "@freestyle/domain-garment",
+    "@freestyle/runtime-3d",
+    "@freestyle/shared-types",
+    "@freestyle/shared-utils",
+    "@freestyle/ui",
+  ],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
@@ -29,6 +41,18 @@ const nextConfig: NextConfig = {
         destination: `${normalized}/v1/:path*`,
       },
     ];
+  },
+  async redirects() {
+    return legacyRedirects;
+  },
+  webpack(config) {
+    config.resolve.extensionAlias = {
+      ...(config.resolve.extensionAlias ?? {}),
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+      ".cjs": [".cts", ".cjs"],
+    };
+    return config;
   },
 };
 

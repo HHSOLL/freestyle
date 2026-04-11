@@ -8,15 +8,15 @@ import { LanguageProvider, type Language } from "@/lib/LanguageContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FreeStyle | 비주얼 인텔리전스 아카이브",
-  description: "현대적 큐레이션을 위한 고해상도 디지털 아틀리에.",
+  title: "FreeStyle | Human Mannequin Fitting Workspace",
+  description: "Body-driven mannequin fitting, wardrobe styling, and composition studio built around a rigged human avatar.",
   icons: {
     icon: [
-      { url: "/favicon.ico?v=2" },
-      { url: "/icon.svg?v=2", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=3" },
+      { url: "/icon.svg?v=3", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.ico?v=2",
-    apple: "/apple-icon.png?v=2",
+    shortcut: "/favicon.ico?v=3",
+    apple: "/apple-icon.png?v=3",
   },
 };
 
@@ -46,8 +46,7 @@ const resolveInitialLanguage = async (): Promise<Language> => {
   }
 
   const headerStore = await headers();
-  const acceptLanguage = headerStore.get("accept-language")?.toLowerCase() ?? "";
-  return acceptLanguage.startsWith("ko") ? "ko" : "en";
+  return headerStore.get("accept-language")?.toLowerCase().startsWith("ko") ? "ko" : "en";
 };
 
 export default async function RootLayout({
@@ -59,7 +58,7 @@ export default async function RootLayout({
 
   return (
     <html lang={initialLanguage}>
-      <body className={`${a2jFont.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${a2jFont.variable} bg-background font-sans text-foreground antialiased`}>
         <AuthProvider>
           <LanguageProvider initialLanguage={initialLanguage}>
             <TelemetryBootstrap />

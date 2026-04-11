@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
-export default function AppEntryPage() {
-  redirect('/app/closet');
+export default function AppIndexPage() {
+  redirect("/app/closet");
 }

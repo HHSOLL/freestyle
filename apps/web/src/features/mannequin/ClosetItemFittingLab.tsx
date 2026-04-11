@@ -1,107 +1,422 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowRight,
-  ExternalLink,
-  Layers3,
-  Loader2,
-  RefreshCcw,
-  Ruler,
-  Search,
-  Shirt,
-  SlidersHorizontal,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { AppPageFrame } from '@/features/renewal-app/components/AppPageFrame';
-import type { RenewalLanguage } from '@/features/renewal-app/content';
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from 'react';
+import { Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { getClosetCategoryLabel } from '@/features/renewal-app/data';
 import {
-  avatarPresetMap,
-  avatarPresets,
   avatarStorageKey,
   parseAvatarPresetId,
   type AvatarPresetId,
 } from '@/features/shared-3d/avatarPresets';
-import { normalizeBodyProfile, setSimpleBodyMeasurement, type Asset, type GarmentFitProfile, type GarmentMeasurements } from '@freestyle/contracts/domain-types';
-import { getClosetCategoryLabel, getWardrobeSourceLabel } from '@/features/renewal-app/data';
-import { toAsset } from '@/features/studio/utils';
+import {
+  normalizeBodyProfile,
+  type Asset,
+  type BodyProfile,
+} from '@freestyle/contracts/domain-types';
 import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { useLanguage } from '@/lib/LanguageContext';
 import { cn } from '@/lib/utils';
-import { defaultDemoClosetAssetId, demoClosetActiveAssetIds, demoClosetAssets } from './demoClosetAssets';
-import { buildFittingLayers, defaultBodyProfile, type BodyProfile, type GarmentLayerConfig } from './fitting';
+import { toAsset } from '@/features/studio/utils';
+import styles from './ClosetItemFittingLab.module.css';
+import {
+  avatarGenderMap,
+  defaultDemoClosetAssetId,
+  defaultDemoEquippedBySlot,
+  demoClosetAssets,
+  genderAvatarMap,
+  genderBaseMeasurements,
+  isWearableCategory,
+  posePresets,
+  resolveGarmentTemplate,
+  type BodyGender,
+  type FittingPoseId,
+  type WearableCategory,
+  wearableCategories,
+} from './closetSceneConfig';
 
 const FittingCanvas3D = dynamic(
   () => import('./FittingCanvas3D').then((module) => module.FittingCanvas3D),
-  { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-black/5" /> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full animate-pulse bg-black/10" />
+    ),
+  }
 );
 
 const bodyStorageKey = 'freestyle:mannequin-body-profile';
-const categoryRailOrder: Array<Asset['category'] | 'all'> = ['all', 'outerwear', 'tops', 'bottoms', 'shoes', 'accessories', 'custom'];
+const sceneStorageKey = 'freestyle:closet-scene-state';
+const DEFAULT_BG = '#d8dbdf';
+const CM_PER_INCH = 2.54;
 
-type BodyFieldKey = 'heightCm' | 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'inseamCm';
-type MeasurementFieldKey = 'shoulderCm' | 'chestCm' | 'waistCm' | 'hipCm' | 'sleeveLengthCm' | 'lengthCm' | 'inseamCm' | 'hemCm';
+const bodyFieldOrder = [
+  { key: 'heightCm', label: { ko: '키', en: 'Height' }, min: 150, max: 198, unit: 'cm', unitInch: 'in' },
+  { key: 'shoulderCm', label: { ko: '어깨', en: 'Shoulder' }, min: 36, max: 56, unit: 'cm', unitInch: 'in' },
+  { key: 'chestCm', label: { ko: '가슴', en: 'Chest' }, min: 74, max: 128, unit: 'cm', unitInch: 'in' },
+  { key: 'waistCm', label: { ko: '허리', en: 'Waist' }, min: 56, max: 120, unit: 'cm', unitInch: 'in' },
+  { key: 'hipCm', label: { ko: '힙', en: 'Hip' }, min: 78, max: 132, unit: 'cm', unitInch: 'in' },
+  { key: 'inseamCm', label: { ko: '다리 길이', en: 'Leg length' }, min: 68, max: 94, unit: 'cm', unitInch: 'in' },
+] as const;
 
-const bodyFields = [
-  { key: 'heightCm', label: 'Height', min: 145, max: 205 },
-  { key: 'shoulderCm', label: 'Shoulder', min: 34, max: 60 },
-  { key: 'chestCm', label: 'Chest', min: 72, max: 140 },
-  { key: 'waistCm', label: 'Waist', min: 54, max: 132 },
-  { key: 'hipCm', label: 'Hip', min: 74, max: 150 },
-  { key: 'inseamCm', label: 'Inseam', min: 62, max: 98 },
-] as const satisfies ReadonlyArray<{ key: BodyFieldKey; label: string; min: number; max: number }>;
+type BodyFieldKey = (typeof bodyFieldOrder)[number]['key'];
+type BodySimple = BodyProfile['simple'];
+type UnitSystem = 'cm' | 'inch';
+type BrowserTab = 'mannequin' | 'pose' | WearableCategory;
 
-const measurementFields = [
-  { key: 'shoulderCm', label: 'Shoulder' },
-  { key: 'chestCm', label: 'Chest' },
-  { key: 'waistCm', label: 'Waist' },
-  { key: 'hipCm', label: 'Hip' },
-  { key: 'sleeveLengthCm', label: 'Sleeve' },
-  { key: 'lengthCm', label: 'Length' },
-  { key: 'inseamCm', label: 'Inseam' },
-  { key: 'hemCm', label: 'Hem' },
-] as const satisfies ReadonlyArray<{ key: MeasurementFieldKey; label: string }>;
-
-const fitProfileDefaults: GarmentFitProfile = {
-  silhouette: 'regular',
-  layer: 'mid',
-  structure: 'balanced',
-  stretch: 0.2,
-  drape: 0.5,
+type StoredSceneState = {
+  activeCategory?: WearableCategory;
+  avatarId?: AvatarPresetId;
+  equippedBySlot?: Partial<Record<WearableCategory, string>>;
+  poseId?: FittingPoseId;
+  selectedAssetId?: string;
 };
 
-const categoryRailIcons: Record<string, typeof Shirt> = {
-  all: Layers3,
-  outerwear: Sparkles,
-  tops: Shirt,
-  bottoms: Ruler,
-  shoes: UserRound,
-  accessories: SlidersHorizontal,
-  custom: Sparkles,
+type BrowserCopy = {
+  activeLabel: string;
+  all: string;
+  allClothing: string;
+  apply: string;
+  autoContrast: string;
+  backgroundTheme: string;
+  basicPose: string;
+  browseTitle: string;
+  casualPose: string;
+  close: string;
+  coat: string;
+  createAZoi: string;
+  customize: string;
+  demoRack: string;
+  demoRackHint: string;
+  directPick: string;
+  empty: string;
+  exit: string;
+  female: string;
+  femaleOnly: string;
+  fittingPose: string;
+  hex: string;
+  loading: string;
+  loadError: string;
+  male: string;
+  maleOnly: string;
+  mannequin: string;
+  mannequinModalTitle: string;
+  noItems: string;
+  outerwear: string;
+  pants: string;
+  pose: string;
+  preset: string;
+  recommended: string;
+  reset: string;
+  retry: string;
+  save: string;
+  saved: string;
+  shirts: string;
+  shoes: string;
+  shorts: string;
+  slotSummary: string;
+  stageTitle: string;
+  status: string;
+  styleEdit: string;
+  tops: string;
+  unitCm: string;
+  unitInch: string;
+};
+
+type MannequinCard = {
+  id: string;
+  avatarId: AvatarPresetId;
+  gender: BodyGender;
+  title: string;
+  subtitle: string;
+  bodySimple: BodySimple;
+};
+
+type BrowserCard =
+  | {
+      id: string;
+      kind: 'mannequin';
+      title: string;
+      subtitle: string;
+      thumbClass: string;
+      mannequin: MannequinCard;
+    }
+  | {
+      id: string;
+      kind: 'pose';
+      title: string;
+      subtitle: string;
+      thumbClass: string;
+      poseId: FittingPoseId;
+    }
+  | {
+      id: string;
+      kind: 'asset';
+      title: string;
+      subtitle: string;
+      thumbClass: string;
+      thumbStyle?: CSSProperties;
+      category: WearableCategory;
+      asset: Asset;
+    };
+
+type SubcategoryOption = {
+  id: string;
+  label: string;
+};
+
+const railOrder: BrowserTab[] = ['mannequin', 'pose', 'tops', 'outerwear', 'bottoms', 'shoes'];
+
+const railShortLabel: Record<BrowserTab, string> = {
+  mannequin: 'M',
+  pose: 'P',
+  tops: 'T',
+  outerwear: 'O',
+  bottoms: 'B',
+  shoes: 'S',
+};
+
+const defaultMannequinCardByGender: Record<BodyGender, string> = {
+  female: 'female_standard',
+  male: 'male_standard',
+};
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const toDisplay = (cm: number, unit: UnitSystem) =>
+  unit === 'inch' ? cm / CM_PER_INCH : cm;
+
+const fromDisplay = (value: number, unit: UnitSystem) =>
+  unit === 'inch' ? value * CM_PER_INCH : value;
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return { r: 216, g: 219, b: 223 };
+  }
+
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+};
+
+const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
+  const toHex = (value: number) =>
+    clamp(Math.round(value), 0, 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const rgba = (
+  { r, g, b }: { r: number; g: number; b: number },
+  alpha: number
+) => `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${alpha})`;
+
+const mixRgb = (
+  a: { r: number; g: number; b: number },
+  b: { r: number; g: number; b: number },
+  ratio: number
+) => ({
+  r: a.r + (b.r - a.r) * ratio,
+  g: a.g + (b.g - a.g) * ratio,
+  b: a.b + (b.b - a.b) * ratio,
+});
+
+const luminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
+  const transform = (channel: number) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+
+  const [R, G, B] = [transform(r), transform(g), transform(b)];
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+};
+
+const rgbToHsl = ({ r, g, b }: { r: number; g: number; b: number }) => {
+  const nr = r / 255;
+  const ng = g / 255;
+  const nb = b / 255;
+  const max = Math.max(nr, ng, nb);
+  const min = Math.min(nr, ng, nb);
+  const l = (max + min) / 2;
+  const d = max - min;
+
+  if (d === 0) return { h: 0, s: 0, l };
+
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+
+  switch (max) {
+    case nr:
+      h = (ng - nb) / d + (ng < nb ? 6 : 0);
+      break;
+    case ng:
+      h = (nb - nr) / d + 2;
+      break;
+    default:
+      h = (nr - ng) / d + 4;
+      break;
+  }
+
+  h /= 6;
+  return { h, s, l };
+};
+
+const hue2rgb = (p: number, q: number, t: number) => {
+  let x = t;
+  if (x < 0) x += 1;
+  if (x > 1) x -= 1;
+  if (x < 1 / 6) return p + (q - p) * 6 * x;
+  if (x < 1 / 2) return q;
+  if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
+  return p;
+};
+
+const hslToRgb = ({ h, s, l }: { h: number; s: number; l: number }) => {
+  if (s === 0) {
+    const value = l * 255;
+    return { r: value, g: value, b: value };
+  }
+
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+
+  return {
+    r: hue2rgb(p, q, h + 1 / 3) * 255,
+    g: hue2rgb(p, q, h) * 255,
+    b: hue2rgb(p, q, h - 1 / 3) * 255,
+  };
+};
+
+const normalizeHex = (raw: string) => {
+  const sanitized = raw.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+  if (sanitized.length !== 6) return null;
+  return `#${sanitized.toLowerCase()}`;
+};
+
+const buildTheme = (hex: string) => {
+  const base = hexToRgb(hex);
+  const white = { r: 255, g: 255, b: 255 };
+  const black = { r: 12, g: 16, b: 22 };
+  const isLight = luminance(base) > 0.46;
+  const baseHsl = rgbToHsl(base);
+  const accent = hslToRgb({
+    h: (baseHsl.h + (isLight ? 0.06 : 0.04)) % 1,
+    s: clamp(Math.max(baseHsl.s, 0.14) + 0.12, 0.2, 0.72),
+    l: isLight ? 0.42 : 0.7,
+  });
+
+  const start = isLight ? mixRgb(base, white, 0.1) : mixRgb(base, black, 0.42);
+  const end = isLight ? mixRgb(base, black, 0.12) : mixRgb(base, black, 0.56);
+  const panelLight = isLight ? mixRgb(base, white, 0.52) : mixRgb(base, white, 0.1);
+  const panelDark = isLight ? mixRgb(base, black, 0.18) : mixRgb(base, black, 0.34);
+  const textPrimary = isLight ? mixRgb(base, black, 0.96) : mixRgb(base, white, 0.98);
+  const textSecondary = isLight ? mixRgb(base, black, 0.84) : mixRgb(base, white, 0.92);
+  const textMuted = isLight ? mixRgb(base, black, 0.62) : mixRgb(base, white, 0.68);
+  const accentBg = isLight ? mixRgb(accent, white, 0.74) : mixRgb(accent, black, 0.4);
+  const accentStroke = isLight ? mixRgb(accent, black, 0.26) : mixRgb(accent, white, 0.28);
+  const accentText = isLight ? mixRgb(accent, black, 0.56) : mixRgb(accent, white, 0.94);
+
+  return {
+    '--app-bg-start': rgbToHex(start),
+    '--app-bg-end': rgbToHex(end),
+    '--text-primary': rgbToHex(textPrimary),
+    '--text-secondary': rgbToHex(textSecondary),
+    '--text-muted': rgbToHex(textMuted),
+    '--button-bg': isLight ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.10)',
+    '--button-hover': isLight ? 'rgba(255,255,255,0.34)' : 'rgba(255,255,255,0.16)',
+    '--button-border': rgba(panelDark, isLight ? 0.14 : 0.26),
+    '--input-bg': isLight ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.09)',
+    '--input-border': rgba(panelDark, isLight ? 0.14 : 0.22),
+    '--panel-glass-outer': rgba(panelLight, isLight ? 0.18 : 0.1),
+    '--panel-glass-inner': rgba(panelLight, isLight ? 0.08 : 0.04),
+    '--panel-highlight': rgba(white, isLight ? 0.18 : 0.12),
+    '--panel-shadow': isLight ? 'rgba(12,18,24,0.16)' : 'rgba(0,0,0,0.26)',
+    '--panel-divider': rgba(white, isLight ? 0.32 : 0.16),
+    '--accent-bg': rgba(accentBg, isLight ? 0.58 : 0.42),
+    '--accent-border': rgba(accentStroke, isLight ? 0.62 : 0.56),
+    '--accent-text': rgbToHex(accentText),
+    '--accent-solid': rgbToHex(accentStroke),
+    '--accent-glow': rgba(accent, isLight ? 0.22 : 0.28),
+    '--scene-halo': rgba(accent, isLight ? 0.1 : 0.18),
+    '--modal-backdrop': isLight ? 'rgba(10,14,20,0.24)' : 'rgba(0,0,0,0.62)',
+    '--thumb-bg': isLight ? 'rgba(232, 237, 244, 0.82)' : 'rgba(200, 210, 224, 0.14)',
+  } as CSSProperties;
+};
+
+const buildBodyProfileFromGender = (gender: BodyGender): BodyProfile => ({
+  simple: { ...genderBaseMeasurements[gender] },
+  detailed: {},
+});
+
+const clampBodySimple = (simple: BodySimple): BodySimple =>
+  bodyFieldOrder.reduce((next, field) => {
+    next[field.key] = clamp(simple[field.key], field.min, field.max);
+    return next;
+  }, { ...simple });
+
+const withMeasurements = (
+  gender: BodyGender,
+  delta: Partial<Record<BodyFieldKey, number>>
+): BodySimple => {
+  const base = { ...genderBaseMeasurements[gender] };
+  return clampBodySimple({
+    ...base,
+    heightCm: base.heightCm + (delta.heightCm ?? 0),
+    shoulderCm: base.shoulderCm + (delta.shoulderCm ?? 0),
+    chestCm: base.chestCm + (delta.chestCm ?? 0),
+    waistCm: base.waistCm + (delta.waistCm ?? 0),
+    hipCm: base.hipCm + (delta.hipCm ?? 0),
+    inseamCm: base.inseamCm + (delta.inseamCm ?? 0),
+  });
 };
 
 const readSavedBodyProfile = () => {
-  if (typeof window === 'undefined') return defaultBodyProfile;
+  if (typeof window === 'undefined') return buildBodyProfileFromGender('female');
   try {
     const raw = window.localStorage.getItem(bodyStorageKey);
-    if (!raw) return defaultBodyProfile;
+    if (!raw) return buildBodyProfileFromGender('female');
     return normalizeBodyProfile(JSON.parse(raw));
   } catch {
-    return defaultBodyProfile;
+    return buildBodyProfileFromGender('female');
   }
 };
 
 const readSavedAvatarPreset = () => {
-  if (typeof window === 'undefined') return parseAvatarPresetId(undefined);
+  if (typeof window === 'undefined') return 'muse' as AvatarPresetId;
   try {
     return parseAvatarPresetId(window.localStorage.getItem(avatarStorageKey));
   } catch {
-    return parseAvatarPresetId(undefined);
+    return 'muse' as AvatarPresetId;
+  }
+};
+
+const readSavedSceneState = (): StoredSceneState => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(sceneStorageKey);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as StoredSceneState;
+    return {
+      activeCategory: parsed.activeCategory,
+      avatarId: parsed.avatarId ? parseAvatarPresetId(parsed.avatarId) : undefined,
+      equippedBySlot: parsed.equippedBySlot,
+      poseId: parsed.poseId,
+      selectedAssetId: parsed.selectedAssetId,
+    };
+  } catch {
+    return {};
   }
 };
 
@@ -114,861 +429,808 @@ const ensureUniqueAssets = (assets: Asset[]) => {
   });
 };
 
-const uniqueIds = (ids: string[]) => Array.from(new Set(ids.filter(Boolean)));
+const resolvePrimaryAssets = (
+  assets: Asset[],
+  focusAssetId: string | null,
+  previousScene: StoredSceneState
+): {
+  activeCategory: WearableCategory;
+  equippedBySlot: Partial<Record<WearableCategory, string>>;
+  selectedAssetId: string;
+} => {
+  const availableByCategory = Object.fromEntries(
+    wearableCategories.map((category) => [
+      category,
+      assets.filter((asset) => asset.category === category),
+    ])
+  ) as Record<WearableCategory, Asset[]>;
 
-const formatMeasurementLine = (label: string, value: number | undefined) =>
-  typeof value === 'number' ? `${label} ${value} cm` : null;
+  const focusAsset = focusAssetId
+    ? assets.find((asset) => asset.id === focusAssetId) ?? null
+    : null;
+  const nextEquipped: Partial<Record<WearableCategory, string>> = {};
 
-const buildLabCopy = (language: RenewalLanguage) =>
+  wearableCategories.forEach((category) => {
+    const preferredId = previousScene.equippedBySlot?.[category];
+    const categoryAssets = availableByCategory[category];
+
+    if (preferredId && categoryAssets.some((asset) => asset.id === preferredId)) {
+      nextEquipped[category] = preferredId;
+      return;
+    }
+
+    if (focusAsset && focusAsset.category === category) {
+      nextEquipped[category] = focusAsset.id;
+      return;
+    }
+
+    nextEquipped[category] = categoryAssets[0]?.id;
+  });
+
+  const selectedCandidate =
+    previousScene.selectedAssetId &&
+    assets.some((asset) => asset.id === previousScene.selectedAssetId)
+      ? previousScene.selectedAssetId
+      : focusAsset?.id ??
+        nextEquipped[previousScene.activeCategory ?? 'outerwear'] ??
+        nextEquipped.outerwear ??
+        nextEquipped.tops ??
+        '';
+
+  const activeCategory = (() => {
+    const selectedAsset =
+      assets.find((asset) => asset.id === selectedCandidate) ?? focusAsset ?? null;
+    if (selectedAsset && isWearableCategory(selectedAsset.category)) {
+      return selectedAsset.category;
+    }
+
+    if (
+      previousScene.activeCategory &&
+      availableByCategory[previousScene.activeCategory].length > 0
+    ) {
+      return previousScene.activeCategory;
+    }
+
+    return (
+      wearableCategories.find((category) => availableByCategory[category].length > 0) ??
+      'tops'
+    );
+  })();
+
+  return {
+    activeCategory,
+    equippedBySlot: nextEquipped,
+    selectedAssetId: selectedCandidate,
+  };
+};
+
+const thumbClassForId = (id: string) => id.replace(/[^a-z0-9_]/gi, '_');
+
+const orbStyleFromImage = (imageSrc?: string): CSSProperties | undefined => {
+  if (!imageSrc) return undefined;
+  return {
+    backgroundImage: `radial-gradient(circle at 50% 22%, rgba(255,255,255,0.9), rgba(255,255,255,0.24) 58%, rgba(255,255,255,0.08) 100%), url("${imageSrc}")`,
+    backgroundSize: 'cover, cover',
+    backgroundPosition: 'center, center',
+  };
+};
+
+const buildCopy = (language: 'ko' | 'en'): BrowserCopy =>
   language === 'ko'
     ? {
-        eyebrow: '옷장 / 피팅 랩',
-        title: '3D 마네킹 피팅 랩',
-        description:
-          '선택한 옷장 아이템을 중심으로 다른 에셋을 겹쳐 입히고, 마네킹 치수를 조정하고, 부족한 실측값을 바로 보정할 수 있습니다.',
-        loading: '피팅 랩을 준비하는 중...',
-        loadError: '피팅 랩을 불러오지 못했습니다.',
-        saveError: '피팅 메타데이터를 저장하지 못했습니다.',
-        retry: '다시 시도',
-        openStudio: '캔버스 열기',
-        sourceLink: '원본 링크 열기',
-        cutoutReady: '배경 제거 완료',
-        cutoutFallback: '원본 이미지를 사용 중',
-        avatars: 'Avatar',
-        avatarSource: '공개 avatar asset',
-        mannequin: '마네킹',
-        mannequinHint: '체형 슬라이더를 조절하면 중앙 스테이지가 즉시 업데이트됩니다.',
-        stageTitle: '3D 스테이지',
-        stageHint: '드래그로 회전하고 확대해 실루엣과 레이어 균형을 확인하세요.',
-        stageEmpty: '오른쪽 라이브러리에서 에셋을 장착하면 레이어가 여기에 쌓입니다.',
-        measurements: '치수 보정',
-        fitProfile: '핏 프로필',
-        summaries: '핏 요약',
-        save: '피팅 메타데이터 저장',
-        saving: '저장 중...',
-        search: '에셋 검색',
-        allCategories: '전체 카테고리',
-        empty: '현재 필터에 맞는 에셋이 없습니다.',
-        emptyCloset: '아직 옷장 에셋이 없습니다. 캔버스에서 링크나 업로드를 가져오면 여기서 바로 마네킹에 입혀볼 수 있습니다.',
-        emptySelection: '의류를 선택하면 측정치와 핏 프로필을 편집할 수 있습니다.',
-        noFitAsset: '마네킹에 에셋을 하나 이상 추가하면 여기서 핏 요약을 확인할 수 있습니다.',
-        equipped: '장착 중',
-        select: '선택',
-        equip: '장착',
-        remove: '해제',
-        body: '바디 치수',
-        resetBody: '기본 체형',
-        selectedGarment: '선택한 의류',
-        live: '실시간 반영',
-        missingMeasurements: '실측값이 비어 있으면 이미지 비율과 카테고리 기본값으로 먼저 추정합니다.',
-        layerCount: (count: number) => `${count}개 레이어`,
+        activeLabel: '선택 중',
+        all: '전체',
+        allClothing: '전체',
+        apply: '적용',
+        autoContrast: '대비 자동 적용',
+        backgroundTheme: '배경 테마',
+        basicPose: '기본',
+        browseTitle: 'Outfit',
+        casualPose: '캐주얼',
+        close: '닫기',
+        coat: '코트',
+        createAZoi: 'CREATE A ZOI',
+        customize: '마네킹 커스텀',
         demoRack: '데모 랙',
-        demoRackHint: '옷장이 비어 있거나 API에 연결되지 않아 기본 dress-up 샘플을 보여주고 있습니다.',
-        assetLibrary: '옷장 에셋',
-        assetLibraryHint: '검색과 카테고리 필터로 에셋을 찾고, 선택과 장착을 분리해서 관리합니다.',
-        detailLink: '상세 피팅 열기',
-        currentLook: '현재 착장',
-        currentLookHint: '아래 레이어 칩으로 현재 스테이지 구성과 선택 상태를 빠르게 전환합니다.',
-        noActiveLook: '아직 스테이지에 올라간 아이템이 없습니다.',
-        fitEditor: '핏 편집',
-        fitEditorHint: '선택한 의류의 measurement override와 fit profile을 저장합니다.',
-        bodyPanelTitle: '바디 / 아바타',
-        bodyPanelHint: '왼쪽에서 아바타 프리셋과 체형을 조절하고, 중앙에서 결과를 바로 확인합니다.',
-        librarySelected: '선택됨',
-        primaryPiece: '기준 아이템',
+        demoRackHint: 'API가 비어 있어도 로컬 starter pack으로 계속 피팅됩니다.',
+        directPick: '직접 선택',
+        empty: '이 카테고리에는 표시할 아이템이 없습니다.',
+        exit: '나가기',
+        female: '여성',
+        femaleOnly: '여성',
+        fittingPose: '피팅',
+        hex: 'HEX',
+        loading: '옷장 스테이지를 준비하는 중...',
+        loadError: '옷장 스테이지를 불러오지 못했습니다.',
+        male: '남성',
+        maleOnly: '남성',
+        mannequin: '마네킹',
+        mannequinModalTitle: '마네킹 커스텀',
+        noItems: '표시할 아이템이 없습니다.',
+        outerwear: '외투',
+        pants: '팬츠',
+        pose: '포즈',
+        preset: 'Preset',
+        recommended: '추천',
+        reset: '리셋',
+        retry: '다시 시도',
+        save: '저장',
+        saved: '저장됨',
+        shirts: '셔츠',
+        shoes: '신발',
+        shorts: '쇼츠',
+        slotSummary: '현재 상태',
+        stageTitle: '스타일 편집',
+        status: '현재 상태',
+        styleEdit: '스타일 편집',
+        tops: '상의',
+        unitCm: 'CM',
+        unitInch: 'INCH',
       }
     : {
-        eyebrow: 'Closet / Fitting Lab',
-        title: 'Real-time 3D Mannequin Lab',
-        description:
-          'Dress the selected closet item with other wardrobe assets, adjust the mannequin measurements, and correct missing garment data live.',
-        loading: 'Preparing the fitting lab...',
-        loadError: 'Failed to load the fitting lab.',
-        saveError: 'Failed to save fitting metadata.',
-        retry: 'Retry',
-        openStudio: 'Open canvas',
-        sourceLink: 'Open source link',
-        cutoutReady: 'Background removed',
-        cutoutFallback: 'Using original image',
-        avatars: 'Avatar',
-        avatarSource: 'Public avatar asset',
-        mannequin: 'Mannequin',
-        mannequinHint: 'Body sliders update the central stage immediately so you can read silhouette and drape live.',
-        stageTitle: '3D stage',
-        stageHint: 'Drag to rotate and zoom so you can inspect silhouette, drape, and layer balance.',
-        stageEmpty: 'Equip garments from the library to start layering them on the stage.',
-        measurements: 'Measurement override',
-        fitProfile: 'Fit profile',
-        summaries: 'Fit summaries',
-        save: 'Save fitting metadata',
-        saving: 'Saving...',
-        search: 'Search assets',
-        allCategories: 'All categories',
-        empty: 'No assets match the current filter.',
-        emptyCloset: 'No wardrobe assets yet. Import links or uploads from the canvas and they will appear here for mannequin fitting.',
-        emptySelection: 'Select a garment to edit its measurements and fit profile.',
-        noFitAsset: 'Add at least one asset to the mannequin to review the fit summary here.',
-        equipped: 'Equipped',
-        select: 'Select',
-        equip: 'Equip',
-        remove: 'Remove',
-        body: 'Body measurements',
-        resetBody: 'Default body',
-        selectedGarment: 'Selected garment',
-        live: 'Live response',
-        missingMeasurements: 'Missing measurements are inferred from image proportions and category defaults until you override them.',
-        layerCount: (count: number) => `${count} ${count === 1 ? 'layer' : 'layers'}`,
+        activeLabel: 'Active',
+        all: 'All',
+        allClothing: 'All',
+        apply: 'Apply',
+        autoContrast: 'Auto contrast',
+        backgroundTheme: 'Background theme',
+        basicPose: 'Base',
+        browseTitle: 'Outfit',
+        casualPose: 'Casual',
+        close: 'Close',
+        coat: 'Coats',
+        createAZoi: 'CREATE A ZOI',
+        customize: 'Customize mannequin',
         demoRack: 'Demo rack',
-        demoRackHint: 'The closet is empty or the API is unavailable, so the built-in dress-up sample is loaded.',
-        assetLibrary: 'Wardrobe assets',
-        assetLibraryHint: 'Search and filter the library, then manage selection and stage toggles separately.',
-        detailLink: 'Open detailed fit',
-        currentLook: 'Current look',
-        currentLookHint: 'Use the layer chips below to switch the active stage selection without leaving the viewport.',
-        noActiveLook: 'No garments are on the stage yet.',
-        fitEditor: 'Fit editor',
-        fitEditorHint: 'Save measurement overrides and fit profile data for the selected garment.',
-        bodyPanelTitle: 'Body / avatar',
-        bodyPanelHint: 'Adjust avatar presets and body traits on the left, then inspect the result on the central stage.',
-        librarySelected: 'Selected',
-        primaryPiece: 'Primary piece',
+        demoRackHint: 'The local starter pack keeps fitting usable when the API is empty.',
+        directPick: 'Direct pick',
+        empty: 'No items are available in this category.',
+        exit: 'Exit',
+        female: 'Female',
+        femaleOnly: 'Female',
+        fittingPose: 'Fitting',
+        hex: 'HEX',
+        loading: 'Preparing the closet stage...',
+        loadError: 'Failed to load the closet stage.',
+        male: 'Male',
+        maleOnly: 'Male',
+        mannequin: 'Mannequin',
+        mannequinModalTitle: 'Customize mannequin',
+        noItems: 'No items available.',
+        outerwear: 'Outerwear',
+        pants: 'Pants',
+        pose: 'Pose',
+        preset: 'Preset',
+        recommended: 'Recommended',
+        reset: 'Reset',
+        retry: 'Retry',
+        save: 'Save',
+        saved: 'Saved',
+        shirts: 'Shirts',
+        shoes: 'Shoes',
+        shorts: 'Shorts',
+        slotSummary: 'Current state',
+        stageTitle: 'Style Edit',
+        status: 'Current state',
+        styleEdit: 'Style Edit',
+        tops: 'Tops',
+        unitCm: 'CM',
+        unitInch: 'INCH',
       };
 
-type LabCopy = ReturnType<typeof buildLabCopy>;
-type LibraryCategory = Asset['category'] | 'all';
+const buildTabMeta = (copy: BrowserCopy, language: 'ko' | 'en') =>
+  ({
+    mannequin: {
+      title: copy.mannequin,
+      rail: copy.mannequin,
+      label: copy.mannequin,
+    },
+    pose: {
+      title: copy.pose,
+      rail: copy.pose,
+      label: copy.pose,
+    },
+    tops: {
+      title: copy.tops,
+      rail: copy.tops,
+      label: copy.tops,
+    },
+    outerwear: {
+      title: copy.outerwear,
+      rail: copy.outerwear,
+      label: copy.outerwear,
+    },
+    bottoms: {
+      title: getClosetCategoryLabel('bottoms', language),
+      rail: copy.pants,
+      label: getClosetCategoryLabel('bottoms', language),
+    },
+    shoes: {
+      title: copy.shoes,
+      rail: copy.shoes,
+      label: copy.shoes,
+    },
+  }) satisfies Record<BrowserTab, { title: string; rail: string; label: string }>;
 
-type ClosetItemFittingLabProps = {
-  assetId?: string;
-  compact?: boolean;
-};
+const buildSubcategories = (copy: BrowserCopy) =>
+  ({
+    mannequin: [
+      { id: 'all', label: copy.all },
+      { id: 'female', label: copy.femaleOnly },
+      { id: 'male', label: copy.maleOnly },
+      { id: 'recommended', label: copy.recommended },
+    ],
+    pose: [
+      { id: 'all', label: copy.all },
+      { id: 'base', label: copy.basicPose },
+      { id: 'casual', label: copy.casualPose },
+      { id: 'fitting', label: copy.fittingPose },
+    ],
+    tops: [
+      { id: 'all', label: copy.allClothing },
+      { id: 'shirts', label: copy.shirts },
+      { id: 'tees', label: 'T-Shirts' },
+    ],
+    outerwear: [
+      { id: 'all', label: copy.allClothing },
+      { id: 'bombers', label: 'Bombers' },
+      { id: 'blazers', label: 'Blazers' },
+      { id: 'coats', label: copy.coat },
+    ],
+    bottoms: [
+      { id: 'all', label: copy.allClothing },
+      { id: 'pants', label: copy.pants },
+      { id: 'shorts', label: copy.shorts },
+    ],
+    shoes: [
+      { id: 'all', label: copy.allClothing },
+      { id: 'sneakers', label: 'Sneakers' },
+      { id: 'boots', label: 'Boots' },
+      { id: 'runners', label: 'Runners' },
+    ],
+  }) satisfies Record<BrowserTab, SubcategoryOption[]>;
 
-type SectionCardProps = {
-  children: ReactNode;
-  className?: string;
-};
-
-function SectionCard({ children, className }: SectionCardProps) {
-  return <section className={cn('rounded-[24px] border border-white/10 bg-white/[0.05] p-4', className)}>{children}</section>;
-}
-
-type FitEditPanelProps = {
-  assets: Asset[];
-  copy: LabCopy;
-  draftFitProfile: GarmentFitProfile;
-  draftMeasurements: GarmentMeasurements;
-  isSaving: boolean;
-  onFitProfileChange: (updates: Partial<GarmentFitProfile>) => void;
-  onMeasurementChange: (key: MeasurementFieldKey, value: string) => void;
-  onSave: () => void;
-  saveError: string | null;
-  selectedAsset: Asset | null;
-};
-
-function FitEditPanel({
-  assets,
-  copy,
-  draftFitProfile,
-  draftMeasurements,
-  isSaving,
-  onFitProfileChange,
-  onMeasurementChange,
+function TopControls({
+  onExit,
+  onReset,
   onSave,
-  saveError,
-  selectedAsset,
-}: FitEditPanelProps) {
-  if (!selectedAsset) {
-    return (
-      <div className="rounded-[24px] border border-dashed border-white/15 px-5 py-10 text-sm leading-7 text-white/56">
-        {assets.length === 0 ? copy.emptyCloset : copy.emptySelection}
-      </div>
-    );
-  }
-
+  copy,
+  saveLabel,
+}: {
+  copy: BrowserCopy;
+  onExit: () => void;
+  onReset: () => void;
+  onSave: () => void;
+  saveLabel: string;
+}) {
   return (
-    <div className="space-y-4">
-      <SectionCard>
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-white/10 p-2 text-white">
-            <Ruler className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.fitEditor}</p>
-            <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">{selectedAsset.name}</h3>
-            <p className="mt-2 text-sm leading-6 text-white/58">{copy.fitEditorHint}</p>
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard>
-        <div className="mb-3 flex items-center gap-2">
-          <Ruler className="h-4 w-4 text-[#d2a264]" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.measurements}</p>
-        </div>
-        <p className="mb-4 text-sm leading-6 text-white/56">{copy.missingMeasurements}</p>
-        <div className="grid grid-cols-2 gap-3">
-          {measurementFields.map((field) => (
-            <label key={String(field.key)} className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-white/56">{field.label}</span>
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={draftMeasurements[field.key] ?? ''}
-                onChange={(event) => onMeasurementChange(field.key, event.target.value)}
-                className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#d2a264]/55"
-                placeholder="cm"
-              />
-            </label>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard>
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.fitProfile}</p>
-        <div className="grid gap-3">
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-white/56">Silhouette</span>
-            <select
-              value={draftFitProfile.silhouette ?? 'regular'}
-              onChange={(event) =>
-                onFitProfileChange({
-                  silhouette: event.target.value as NonNullable<GarmentFitProfile['silhouette']>,
-                })
-              }
-              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[#d2a264]/55"
-            >
-              <option value="tailored">Tailored</option>
-              <option value="regular">Regular</option>
-              <option value="relaxed">Relaxed</option>
-              <option value="oversized">Oversized</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-white/56">Layer</span>
-            <select
-              value={draftFitProfile.layer ?? 'mid'}
-              onChange={(event) =>
-                onFitProfileChange({
-                  layer: event.target.value as NonNullable<GarmentFitProfile['layer']>,
-                })
-              }
-              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[#d2a264]/55"
-            >
-              <option value="base">Base</option>
-              <option value="mid">Mid</option>
-              <option value="outer">Outer</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-white/56">Structure</span>
-            <select
-              value={draftFitProfile.structure ?? 'balanced'}
-              onChange={(event) =>
-                onFitProfileChange({
-                  structure: event.target.value as NonNullable<GarmentFitProfile['structure']>,
-                })
-              }
-              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[#d2a264]/55"
-            >
-              <option value="soft">Soft</option>
-              <option value="balanced">Balanced</option>
-              <option value="structured">Structured</option>
-            </select>
-          </label>
-        </div>
-      </SectionCard>
-
-      <div className="space-y-3">
-        <Button
+    <div className={styles.topControls}>
+      <button type="button" className={styles.topButton} onClick={onExit}>
+        {copy.exit}
+      </button>
+      <div className={styles.topActions}>
+        <button type="button" className={styles.topButton} onClick={onReset}>
+          <RotateCcw className="h-3.5 w-3.5" />
+          {copy.reset}
+        </button>
+        <button
           type="button"
-          className="h-12 w-full rounded-full bg-[#d2a264] text-[#1a1511] hover:bg-[#ddb17a]"
-          disabled={isSaving}
+          className={cn(styles.topButton, styles.topButtonPrimary)}
           onClick={onSave}
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {copy.saving}
-            </>
-          ) : (
-            copy.save
-          )}
-        </Button>
-        {saveError ? <p className="text-sm text-[#f1b7b7]">{saveError}</p> : null}
+          <Sparkles className="h-3.5 w-3.5" />
+          {saveLabel}
+        </button>
       </div>
     </div>
   );
 }
 
-type LeftPanelProps = {
-  avatarId: AvatarPresetId;
-  bodyProfile: BodyProfile;
-  copy: LabCopy;
-  focusAssetId: string | null;
-  language: RenewalLanguage;
-  onAvatarChange: (avatarId: AvatarPresetId) => void;
-  onBodyFieldChange: (key: BodyFieldKey, value: number) => void;
-  onBodyReset: () => void;
-  selectedAsset: Asset | null;
-  selectedAvatarPreset: (typeof avatarPresets)[number];
-  selectedLayer: GarmentLayerConfig | null;
-  selectedMeasurementSummary: string[];
-  fitEditPanel: ReactNode;
-};
-
 function LeftPanel({
-  avatarId,
+  backgroundColor,
+  copy,
+  onBackgroundChange,
+  onCustomize,
+  statusDetail,
+  statusTitle,
+}: {
+  backgroundColor: string;
+  copy: BrowserCopy;
+  onBackgroundChange: (value: string) => void;
+  onCustomize: () => void;
+  statusDetail: string;
+  statusTitle: string;
+}) {
+  const handleHexChange = (value: string) => {
+    const normalized = normalizeHex(value);
+    if (normalized) {
+      onBackgroundChange(normalized);
+    }
+  };
+
+  return (
+    <section className={cn(styles.overlayPanel, styles.glassPanel, styles.leftPanel)}>
+      <div className={styles.leftTitle}>
+        <div className={styles.eyebrow}>{copy.createAZoi}</div>
+        <h1>{copy.styleEdit}</h1>
+      </div>
+
+      <div className={cn(styles.leftSection, styles.subtleSurface)}>
+        <div className={styles.sectionTitleRow}>
+          <strong>{copy.backgroundTheme}</strong>
+          <span>{copy.autoContrast}</span>
+        </div>
+        <div className={styles.themeGrid}>
+          <label className={styles.themeField}>
+            <span>{copy.directPick}</span>
+            <input
+              type="color"
+              value={backgroundColor}
+              onChange={(event) => onBackgroundChange(event.target.value)}
+            />
+          </label>
+          <label className={styles.themeField}>
+            <span>{copy.hex}</span>
+            <input
+              value={backgroundColor.toUpperCase()}
+              maxLength={7}
+              onChange={(event) => handleHexChange(event.target.value)}
+            />
+          </label>
+        </div>
+      </div>
+
+      <button type="button" className={styles.heroButton} onClick={onCustomize}>
+        {copy.customize}
+      </button>
+
+      <div className={styles.leftBottomSpacer} />
+
+      <div className={cn(styles.statusPanel, styles.subtleSurface)}>
+        <span className={styles.miniLabel}>{copy.status}</span>
+        <strong>{statusTitle}</strong>
+        <small>{statusDetail}</small>
+      </div>
+    </section>
+  );
+}
+
+function MeasurementModal({
   bodyProfile,
   copy,
-  focusAssetId,
-  language,
-  onAvatarChange,
+  currentGender,
+  mannequinCards,
   onBodyFieldChange,
-  onBodyReset,
-  selectedAsset,
-  selectedAvatarPreset,
-  selectedLayer,
-  selectedMeasurementSummary,
-  fitEditPanel,
-}: LeftPanelProps) {
+  onClose,
+  onGenderChange,
+  onPickMannequin,
+  onPoseChange,
+  open,
+  poseId,
+  uiLanguage,
+  unit,
+  onUnitChange,
+}: {
+  bodyProfile: BodyProfile;
+  copy: BrowserCopy;
+  currentGender: BodyGender;
+  mannequinCards: MannequinCard[];
+  onBodyFieldChange: (key: BodyFieldKey, value: number) => void;
+  onClose: () => void;
+  onGenderChange: (gender: BodyGender) => void;
+  onPickMannequin: (card: MannequinCard) => void;
+  onPoseChange: (poseId: FittingPoseId) => void;
+  open: boolean;
+  poseId: FittingPoseId;
+  uiLanguage: 'ko' | 'en';
+  unit: UnitSystem;
+  onUnitChange: (nextUnit: UnitSystem) => void;
+}) {
+  if (!open) return null;
+
+  const visiblePresets = mannequinCards.filter((card) => card.gender === currentGender);
+
   return (
-    <aside className="order-2 min-h-0 overflow-hidden rounded-[28px] border border-white/12 bg-[#11161d]/78 shadow-[0_20px_60px_rgba(8,12,18,0.28)] backdrop-blur-xl lg:order-1">
-      <div className="flex h-full flex-col">
-        <div className="border-b border-white/10 px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.bodyPanelTitle}</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">{copy.selectedGarment}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/58">{copy.bodyPanelHint}</p>
+    <div className={styles.modalRoot}>
+      <div className={styles.modalPanel}>
+        <div className={styles.modalHeader}>
+          <div>
+            <div className={styles.modalEyebrow}>{copy.customize}</div>
+            <h2>{copy.mannequinModalTitle}</h2>
+          </div>
+          <button type="button" className={styles.modalClose} onClick={onClose}>
+            {copy.close}
+          </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          <SectionCard>
-            <div className="flex items-start gap-3">
-              <div className="h-16 w-16 overflow-hidden rounded-[20px] bg-[#ede1cf]">
-                {selectedAsset ? (
-                  <img src={selectedAsset.imageSrc} alt={selectedAsset.name} className="h-full w-full object-contain p-2" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-[#7a6b57]">
-                    <Shirt className="h-6 w-6" />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.selectedGarment}</p>
-                {selectedAsset ? (
-                  <>
-                    <h3 className="mt-2 truncate text-xl font-semibold tracking-[-0.04em] text-white">{selectedAsset.name}</h3>
-                    <p className="mt-1 text-sm text-white/58">
-                      {getClosetCategoryLabel(selectedAsset.category, language)}
-                      {selectedAsset.brand ? ` · ${selectedAsset.brand}` : ''}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-2 text-sm leading-6 text-white/56">{copy.emptySelection}</p>
-                )}
-              </div>
+        <div className={styles.modalToolbar}>
+          <div className={styles.modalToolbarSplit}>
+            <div className={styles.segmentedSwitch}>
+              <button
+                type="button"
+                className={cn(currentGender === 'female' && styles.activePill)}
+                onClick={() => onGenderChange('female')}
+              >
+                {copy.female}
+              </button>
+              <button
+                type="button"
+                className={cn(currentGender === 'male' && styles.activePill)}
+                onClick={() => onGenderChange('male')}
+              >
+                {copy.male}
+              </button>
             </div>
+            <div className={styles.unitSwitch}>
+              <button
+                type="button"
+                className={cn(unit === 'cm' && styles.activePill)}
+                onClick={() => onUnitChange('cm')}
+              >
+                {copy.unitCm}
+              </button>
+              <button
+                type="button"
+                className={cn(unit === 'inch' && styles.activePill)}
+                onClick={() => onUnitChange('inch')}
+              >
+                {copy.unitInch}
+              </button>
+            </div>
+          </div>
+        </div>
 
-            {selectedAsset ? (
-              <>
-                <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/54">
-                  <span className="rounded-full bg-white/8 px-3 py-2">{copy.live}</span>
-                  {focusAssetId && selectedAsset.id === focusAssetId ? (
-                    <span className="rounded-full bg-[#d2a264]/16 px-3 py-2 text-[#f5d1a0]">{copy.primaryPiece}</span>
-                  ) : null}
-                  <span className="rounded-full bg-white/8 px-3 py-2">
-                    {selectedAsset.metadata?.cutout?.removedBackground ? copy.cutoutReady : copy.cutoutFallback}
-                  </span>
-                  <span className="rounded-full bg-white/8 px-3 py-2">
-                    {getWardrobeSourceLabel(selectedAsset.source, language)}
+        <div className={styles.presetGrid}>
+          {visiblePresets.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              className={styles.presetCard}
+              onClick={() => onPickMannequin(card)}
+            >
+              <strong>{card.title}</strong>
+              <span>
+                {bodyFieldOrder[0].label.ko} {card.bodySimple.heightCm} ·
+                {' '}
+                {bodyFieldOrder[1].label.ko} {card.bodySimple.shoulderCm} ·
+                {' '}
+                {bodyFieldOrder[3].label.ko} {card.bodySimple.waistCm}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.modalToolbar}>
+          <div className={styles.poseStrip}>
+            {posePresets.map((pose) => (
+              <button
+                key={pose.id}
+                type="button"
+                className={cn(styles.ghostPill, poseId === pose.id && styles.activePill)}
+                onClick={() => onPoseChange(pose.id)}
+              >
+                {pose.label[uiLanguage]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.modalFieldList}>
+          {bodyFieldOrder.map((field) => {
+            const displayValue = Number(
+              toDisplay(bodyProfile.simple[field.key], unit).toFixed(unit === 'cm' ? 1 : 2)
+            );
+
+            return (
+              <div key={field.key} className={styles.fieldCard}>
+                <div className={styles.fieldHead}>
+                  <span>{field.label[uiLanguage]}</span>
+                  <span className={styles.fieldRange}>
+                    {field.min}–{field.max} {unit === 'cm' ? field.unit : field.unitInch}
                   </span>
                 </div>
-
-                {selectedMeasurementSummary.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedMeasurementSummary.map((line) => (
-                      <span key={line} className="rounded-full bg-black/20 px-3 py-2 text-[11px] font-semibold text-white/72">
-                        {line}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {!focusAssetId ? (
-                    <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]">
-                      <Link href={`/app/closet/item/${selectedAsset.id}`}>{copy.detailLink}</Link>
-                    </Button>
-                  ) : null}
-                  {selectedAsset.sourceUrl ? (
-                    <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]">
-                      <a href={selectedAsset.sourceUrl} target="_blank" rel="noreferrer">
-                        {copy.sourceLink}
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  ) : null}
+                <div className={styles.fieldInputRow}>
+                  <input
+                    type="number"
+                    min={unit === 'cm' ? field.min : Number((field.min / CM_PER_INCH).toFixed(1))}
+                    max={unit === 'cm' ? field.max : Number((field.max / CM_PER_INCH).toFixed(1))}
+                    step={unit === 'cm' ? 1 : 0.1}
+                    value={displayValue}
+                    onChange={(event) => {
+                      const nextValue = Number(event.target.value);
+                      if (Number.isNaN(nextValue)) return;
+                      onBodyFieldChange(
+                        field.key,
+                        clamp(fromDisplay(nextValue, unit), field.min, field.max)
+                      );
+                    }}
+                  />
+                  <span className={styles.fieldUnit}>
+                    {unit === 'cm' ? field.unit : field.unitInch}
+                  </span>
                 </div>
-              </>
-            ) : null}
-          </SectionCard>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          <SectionCard>
-            <div className="flex items-start gap-3">
-              <div className="rounded-full bg-[#d2a264] p-2 text-[#1a1511]">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.avatars}</p>
-                <h3 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{selectedAvatarPreset.label[language]}</h3>
-                <p className="mt-2 text-sm leading-6 text-white/58">{selectedAvatarPreset.description[language]}</p>
-              </div>
+function AssetPanel({
+  activeTab,
+  cards,
+  copy,
+  onCardPick,
+  onSubcategoryChange,
+  onTabChange,
+  selectedId,
+  subcategories,
+  subcategoryId,
+  tabMeta,
+  usingDemoRack,
+}: {
+  activeTab: BrowserTab;
+  cards: BrowserCard[];
+  copy: BrowserCopy;
+  onCardPick: (card: BrowserCard) => void;
+  onSubcategoryChange: (id: string) => void;
+  onTabChange: (tab: BrowserTab) => void;
+  selectedId: string | null;
+  subcategories: SubcategoryOption[];
+  subcategoryId: string;
+  tabMeta: Record<BrowserTab, { title: string; rail: string; label: string }>;
+  usingDemoRack: boolean;
+}) {
+  return (
+    <section className={cn(styles.overlayPanel, styles.glassPanel, styles.rightPanel)}>
+      <div className={styles.outfitTopline}>{copy.browseTitle}</div>
+      <div className={styles.outfitTitle}>{tabMeta[activeTab].title}</div>
+
+      <div className={styles.referenceBrowser}>
+        <div className={styles.verticalRail}>
+          {railOrder.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={cn(styles.railRow, activeTab === tab && styles.railRowActive)}
+              onClick={() => onTabChange(tab)}
+            >
+              <span className={styles.railIcon}>{railShortLabel[tab]}</span>
+              <span className={styles.railLabel}>{tabMeta[tab].label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.subcategoryColumn}>
+          <div className={styles.subcategoryTitle}>{tabMeta[activeTab].rail}</div>
+          {subcategories.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={cn(
+                styles.subcategoryPill,
+                subcategoryId === option.id && styles.subcategoryPillActive
+              )}
+              onClick={() => onSubcategoryChange(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.assetColumn}>
+          <div className={styles.assetToolbar}>
+            <button type="button" className={styles.toolbarText}>
+              {usingDemoRack ? copy.demoRack : activeTab === 'mannequin' ? copy.preset : copy.apply}
+            </button>
+            <div className={styles.toolbarIcons}>
+              <span className={styles.toolbarDot} />
+              <span className={cn(styles.toolbarDot, styles.toolbarDotAlt)} />
+              <span className={styles.toolbarFilter}>{cards.length}</span>
             </div>
+          </div>
 
-            <div className="mt-4 grid gap-2">
-              {avatarPresets.map((preset) => {
-                const active = preset.id === avatarId;
+          {cards.length > 0 ? (
+            <div className={styles.assetGrid}>
+              {cards.map((card) => {
+                const thumbStyle =
+                  card.kind === 'asset' ? card.thumbStyle : undefined;
                 return (
                   <button
-                    key={preset.id}
+                    key={card.id}
                     type="button"
-                    onClick={() => onAvatarChange(preset.id)}
                     className={cn(
-                      'rounded-[18px] border px-4 py-3 text-left transition',
-                      active
-                        ? 'border-[#d2a264] bg-[#231d17] text-white'
-                        : 'border-white/10 bg-white/[0.03] text-white/66 hover:border-white/18 hover:text-white'
+                      styles.assetTile,
+                      selectedId === card.id && styles.assetTileSelected
                     )}
+                    onClick={() => onCardPick(card)}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{preset.label[language]}</p>
-                        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/42">{preset.license}</p>
-                      </div>
-                      <span className="rounded-full bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
-                        {active ? copy.librarySelected : preset.author}
-                      </span>
+                    <div className={styles.assetOrbWrap}>
+                      <div
+                        className={cn(
+                          styles.assetOrb,
+                          card.thumbClass ? styles[card.thumbClass] : undefined
+                        )}
+                        style={thumbStyle}
+                      />
+                    </div>
+                    <div className={cn(styles.assetCopy, styles.referenceCopy)}>
+                      <strong>{card.title}</strong>
+                      <small>{card.subtitle}</small>
                     </div>
                   </button>
                 );
               })}
             </div>
-
-            <p className="mt-4 text-xs leading-5 text-white/54">
-              {copy.avatarSource}:{' '}
-              <a href={selectedAvatarPreset.sourceUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                {selectedAvatarPreset.author}
-              </a>
-            </p>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="flex items-start gap-3">
-              <div className="rounded-full bg-white/10 p-2 text-white">
-                <SlidersHorizontal className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.mannequin}</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">{copy.body}</h3>
-                <p className="mt-2 text-sm leading-6 text-white/58">{copy.mannequinHint}</p>
-              </div>
+          ) : (
+            <div className={cn(styles.subtleSurface, 'rounded-[24px] px-4 py-6 text-sm text-[color:var(--text-muted)]')}>
+              {copy.noItems}
             </div>
-
-            <div className="mt-5 space-y-3">
-              {bodyFields.map((field) => (
-                <label key={String(field.key)} className="block">
-                  <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/56">
-                    <span>{field.label}</span>
-                    <span>{bodyProfile.simple[field.key]} cm</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={field.min}
-                    max={field.max}
-                    value={bodyProfile.simple[field.key]}
-                    onChange={(event) => onBodyFieldChange(field.key, Number(event.target.value))}
-                    className="w-full accent-[#d2a264]"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 rounded-full border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.1]"
-              onClick={onBodyReset}
-            >
-              <RefreshCcw className="h-4 w-4" />
-              {copy.resetBody}
-            </Button>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="mb-3 flex items-center gap-2">
-              <Layers3 className="h-4 w-4 text-[#d2a264]" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.summaries}</p>
-            </div>
-            {selectedLayer?.fitSummary.length ? (
-              <div className="grid gap-2">
-                {selectedLayer.fitSummary.map((summary) => (
-                  <div key={summary.label} className="rounded-[18px] border border-white/10 bg-black/18 px-3 py-2">
-                    <p className="text-sm font-semibold text-white">{summary.label}</p>
-                    <p className="text-[11px] text-white/44">{summary.easeCm} cm ease</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-white/56">{copy.noFitAsset}</p>
-            )}
-          </SectionCard>
-
-          {fitEditPanel}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-type StagePanelProps = {
-  activeAssets: Asset[];
-  avatarId: AvatarPresetId;
-  bodyProfile: BodyProfile;
-  compact: boolean;
-  copy: LabCopy;
-  focusAssetId: string | null;
-  language: RenewalLanguage;
-  layers: GarmentLayerConfig[];
-  onSelectAsset: (assetId: string) => void;
-  onToggleAsset: (asset: Asset) => void;
-  selectedAsset: Asset | null;
-  selectedAssetId: string;
-  usingDemoRack: boolean;
-};
-
-function StagePanel({
-  activeAssets,
-  avatarId,
-  bodyProfile,
-  compact,
-  copy,
-  focusAssetId,
-  language,
-  layers,
-  onSelectAsset,
-  onToggleAsset,
-  selectedAsset,
-  selectedAssetId,
-  usingDemoRack,
-}: StagePanelProps) {
-  return (
-    <section className="order-1 min-h-0 overflow-hidden rounded-[32px] border border-white/14 bg-[linear-gradient(180deg,rgba(12,18,26,0.96),rgba(20,27,37,0.9))] shadow-[0_24px_80px_rgba(7,11,17,0.32)] lg:order-2">
-      <div className="flex h-full flex-col">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.stageTitle}</p>
-            <h2 className="mt-2 text-[clamp(1.65rem,2vw,2.3rem)] font-semibold tracking-[-0.05em] text-white">
-              {selectedAsset?.name ?? copy.title}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">{copy.stageHint}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white/8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/58">
-              {copy.layerCount(activeAssets.length)}
-            </span>
-            <Button
-              asChild
-              variant="outline"
-              className={cn(
-                'rounded-full border-white/18 bg-white/[0.04] text-white hover:bg-white/[0.1]',
-                compact && 'h-10'
-              )}
-            >
-              <Link href="/studio">
-                {copy.openStudio}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        {usingDemoRack ? (
-          <div className="border-b border-[#d2a264]/18 bg-[#d2a264]/10 px-5 py-3 text-sm text-[#f5ddba]">
-            <span className="font-semibold">{copy.demoRack}.</span> {copy.demoRackHint}
-          </div>
-        ) : null}
-
-        <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
-          <div className="relative min-h-[420px] flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_50%_14%,rgba(240,244,250,0.95),rgba(214,221,232,0.48)_52%,rgba(192,199,210,0.2)_100%)]">
-            <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
-              <span className="rounded-full bg-black/45 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/82">
-                {avatarPresetMap[avatarId].label[language]}
-              </span>
-              {selectedAsset ? (
-                <span className="rounded-full bg-white/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#1b2430]">
-                  {getClosetCategoryLabel(selectedAsset.category, language)}
-                </span>
-              ) : null}
-            </div>
-            <div className="h-full w-full">
-              <FittingCanvas3D body={bodyProfile} layers={layers} selectedAssetId={selectedAssetId} avatarId={avatarId} />
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.currentLook}</p>
-                <p className="mt-2 text-sm leading-6 text-white/58">{copy.currentLookHint}</p>
-              </div>
-            </div>
-
-            {activeAssets.length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {activeAssets.map((asset) => {
-                  const canToggle = asset.id !== focusAssetId;
-                  const selected = asset.id === selectedAssetId;
-                  return (
-                    <div
-                      key={asset.id}
-                      className={cn(
-                        'flex items-center gap-2 rounded-full border px-3 py-2',
-                        selected ? 'border-[#d2a264]/60 bg-[#d2a264]/12 text-white' : 'border-white/10 bg-black/15 text-white/72'
-                      )}
-                    >
-                      <button type="button" onClick={() => onSelectAsset(asset.id)} className="text-left text-sm font-semibold">
-                        {asset.name}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onToggleAsset(asset)}
-                        disabled={!canToggle}
-                        className="rounded-full bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/68"
-                      >
-                        {canToggle ? copy.remove : copy.primaryPiece}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm leading-6 text-white/56">{copy.stageEmpty}</p>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-type RightPanelProps = {
-  activeAssetIdSet: Set<string>;
-  category: LibraryCategory;
-  copy: LabCopy;
-  filteredAssets: Asset[];
-  focusAssetId: string | null;
-  language: RenewalLanguage;
-  onCategoryChange: (category: LibraryCategory) => void;
-  onQueryChange: (query: string) => void;
-  onSelectAsset: (assetId: string) => void;
-  onToggleAsset: (asset: Asset) => void;
-  query: string;
-  selectedAssetId: string;
-  visibleCategories: LibraryCategory[];
-};
-
-function RightPanel({
-  activeAssetIdSet,
-  category,
-  copy,
-  filteredAssets,
-  focusAssetId,
-  language,
-  onCategoryChange,
-  onQueryChange,
-  onSelectAsset,
-  onToggleAsset,
-  query,
-  selectedAssetId,
-  visibleCategories,
-}: RightPanelProps) {
-  return (
-    <aside className="order-3 min-h-0 overflow-hidden rounded-[28px] border border-white/12 bg-[#131922]/78 shadow-[0_20px_60px_rgba(8,12,18,0.28)] backdrop-blur-xl">
-      <div className="flex h-full flex-col">
-        <div className="border-b border-white/10 px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">{copy.assetLibrary}</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">{copy.assetLibrary}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/58">{copy.assetLibraryHint}</p>
-        </div>
-
-        <div className="border-b border-white/10 px-4 py-4">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-            <input
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder={copy.search}
-              className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#d2a264]/55"
-            />
-          </label>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {visibleCategories.map((entry) => {
-              const Icon = categoryRailIcons[entry] ?? Layers3;
-              const label = entry === 'all' ? copy.allCategories : getClosetCategoryLabel(entry, language);
-              return (
-                <button
-                  key={entry}
-                  type="button"
-                  onClick={() => onCategoryChange(entry)}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition',
-                    category === entry
-                      ? 'border-[#d2a264]/55 bg-[#d2a264]/14 text-white'
-                      : 'border-white/10 bg-white/[0.03] text-white/66 hover:border-white/18 hover:text-white'
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-          {filteredAssets.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-white/12 px-4 py-8 text-sm leading-6 text-white/56">{copy.empty}</div>
-          ) : (
-            filteredAssets.map((asset) => {
-              const canToggle = asset.id !== focusAssetId;
-              const equipped = activeAssetIdSet.has(asset.id);
-              const selected = selectedAssetId === asset.id;
-              const isPrimary = focusAssetId === asset.id;
-              return (
-                <div
-                  key={asset.id}
-                  className={cn(
-                    'rounded-[24px] border p-3 transition',
-                    selected
-                      ? 'border-[#d2a264]/55 bg-[#d2a264]/10'
-                      : 'border-white/10 bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.05]'
-                  )}
-                >
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onSelectAsset(asset.id)}
-                      className="h-20 w-20 overflow-hidden rounded-[18px] bg-white/90 p-2"
-                    >
-                      <img src={asset.imageSrc} alt={asset.name} className="h-full w-full object-contain" />
-                    </button>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <button type="button" onClick={() => onSelectAsset(asset.id)} className="truncate text-left text-sm font-semibold text-white">
-                            {asset.name}
-                          </button>
-                          <p className="mt-1 text-xs text-white/52">
-                            {getClosetCategoryLabel(asset.category, language)}
-                            {asset.brand ? ` · ${asset.brand}` : ''}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {selected ? (
-                            <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72">
-                              {copy.librarySelected}
-                            </span>
-                          ) : null}
-                          {equipped ? (
-                            <span className="rounded-full bg-[#d2a264]/16 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f5d1a0]">
-                              {copy.equipped}
-                            </span>
-                          ) : null}
-                          {isPrimary ? (
-                            <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72">
-                              {copy.primaryPiece}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 rounded-full border-white/12 bg-white/[0.03] px-3 text-white hover:bg-white/[0.09]"
-                          onClick={() => onSelectAsset(asset.id)}
-                        >
-                          {copy.select}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={equipped ? 'outline' : 'default'}
-                          disabled={!canToggle}
-                          className={cn(
-                            'h-9 rounded-full px-3',
-                            equipped
-                              ? 'border-white/12 bg-white/[0.03] text-white hover:bg-white/[0.09]'
-                              : 'bg-[#d2a264] text-[#1a1511] hover:bg-[#ddb17a]'
-                          )}
-                          onClick={() => onToggleAsset(asset)}
-                        >
-                          {canToggle ? (equipped ? copy.remove : copy.equip) : copy.primaryPiece}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFittingLabProps) {
+export function ClosetItemFittingLab({
+  assetId,
+}: {
+  assetId?: string;
+  compact?: boolean;
+}) {
+  const router = useRouter();
   const { language } = useLanguage();
-  const uiLanguage: RenewalLanguage = language === 'ko' ? 'ko' : 'en';
+  const uiLanguage = language === 'ko' ? 'ko' : 'en';
+  const copy = useMemo(() => buildCopy(uiLanguage), [uiLanguage]);
+  const tabMeta = useMemo(() => buildTabMeta(copy, uiLanguage), [copy, uiLanguage]);
+  const subcategoryMeta = useMemo(() => buildSubcategories(copy), [copy]);
   const focusAssetId = assetId?.trim() ? assetId.trim() : null;
+  const savedScene = useMemo(readSavedSceneState, []);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<LibraryCategory>('all');
-  const [activeAssetIds, setActiveAssetIds] = useState<string[]>(focusAssetId ? [focusAssetId] : []);
-  const [selectedAssetId, setSelectedAssetId] = useState<string>(focusAssetId ?? '');
-  const [avatarId, setAvatarId] = useState<AvatarPresetId>(readSavedAvatarPreset);
-  const [bodyProfile, setBodyProfile] = useState<BodyProfile>(readSavedBodyProfile);
-  const [draftMeasurements, setDraftMeasurements] = useState<GarmentMeasurements>({});
-  const [draftFitProfile, setDraftFitProfile] = useState<GarmentFitProfile>(fitProfileDefaults);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [usingDemoRack, setUsingDemoRack] = useState(false);
-  const [isSaving, startSaving] = useTransition();
-  const deferredQuery = useDeferredValue(query);
-  const deferredBodyProfile = useDeferredValue(bodyProfile);
-  const copy = buildLabCopy(uiLanguage);
+  const [avatarId, setAvatarId] = useState<AvatarPresetId>(
+    savedScene.avatarId ?? readSavedAvatarPreset
+  );
+  const [bodyProfile, setBodyProfile] = useState<BodyProfile>(readSavedBodyProfile);
+  const [activeCategory, setActiveCategory] = useState<WearableCategory>(
+    savedScene.activeCategory ?? 'outerwear'
+  );
+  const [activeTab, setActiveTab] = useState<BrowserTab>(
+    savedScene.activeCategory ?? 'outerwear'
+  );
+  const [selectedAssetId, setSelectedAssetId] = useState<string>(
+    savedScene.selectedAssetId ?? focusAssetId ?? defaultDemoClosetAssetId
+  );
+  const [equippedBySlot, setEquippedBySlot] = useState<
+    Partial<Record<WearableCategory, string>>
+  >(savedScene.equippedBySlot ?? defaultDemoEquippedBySlot);
+  const [poseId, setPoseId] = useState<FittingPoseId>(savedScene.poseId ?? 'apose');
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BG);
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [unit, setUnit] = useState<UnitSystem>('cm');
+  const [activeSubcategory, setActiveSubcategory] = useState('all');
+  const [selectedMannequinCardId, setSelectedMannequinCardId] = useState(
+    defaultMannequinCardByGender[avatarGenderMap[savedScene.avatarId ?? readSavedAvatarPreset()] ?? 'female']
+  );
+
+  const currentGender = avatarGenderMap[avatarId] ?? 'female';
+
+  const mannequinCards = useMemo<MannequinCard[]>(
+    () => [
+      {
+        id: 'female_standard',
+        avatarId: 'muse',
+        gender: 'female',
+        title: uiLanguage === 'ko' ? '베이직 실루엣' : 'Female Standard',
+        subtitle: uiLanguage === 'ko' ? '기본 여성 rig' : 'Baseline feminine rig',
+        bodySimple: withMeasurements('female', {}),
+      },
+      {
+        id: 'female_slim',
+        avatarId: 'muse',
+        gender: 'female',
+        title: uiLanguage === 'ko' ? '슬림 실루엣' : 'Female Slim',
+        subtitle: uiLanguage === 'ko' ? '가벼운 어깨와 허리' : 'Narrow shoulder and waist',
+        bodySimple: withMeasurements('female', {
+          heightCm: -2,
+          shoulderCm: -2,
+          chestCm: -4,
+          waistCm: -6,
+          hipCm: -4,
+          inseamCm: -1,
+        }),
+      },
+      {
+        id: 'female_tall',
+        avatarId: 'muse',
+        gender: 'female',
+        title: uiLanguage === 'ko' ? '롱 실루엣' : 'Female Tall',
+        subtitle: uiLanguage === 'ko' ? '긴 다리와 세로 비율' : 'Longer inseam and height',
+        bodySimple: withMeasurements('female', {
+          heightCm: 8,
+          shoulderCm: 1,
+          chestCm: 2,
+          waistCm: -2,
+          hipCm: 2,
+          inseamCm: 7,
+        }),
+      },
+      {
+        id: 'male_standard',
+        avatarId: 'operator',
+        gender: 'male',
+        title: uiLanguage === 'ko' ? '스탠다드 프레임' : 'Male Standard',
+        subtitle: uiLanguage === 'ko' ? '기본 남성 rig' : 'Baseline masculine rig',
+        bodySimple: withMeasurements('male', {}),
+      },
+      {
+        id: 'male_slim',
+        avatarId: 'operator',
+        gender: 'male',
+        title: uiLanguage === 'ko' ? '슬림 테일러' : 'Male Slim',
+        subtitle: uiLanguage === 'ko' ? '폭을 줄인 프레임' : 'Trimmed width and waist',
+        bodySimple: withMeasurements('male', {
+          heightCm: -3,
+          shoulderCm: -2,
+          chestCm: -6,
+          waistCm: -5,
+          hipCm: -3,
+          inseamCm: -2,
+        }),
+      },
+      {
+        id: 'male_broad',
+        avatarId: 'operator',
+        gender: 'male',
+        title: uiLanguage === 'ko' ? '브로드 프레임' : 'Male Broad',
+        subtitle: uiLanguage === 'ko' ? '넓은 어깨와 상체' : 'Wider shoulder and chest',
+        bodySimple: withMeasurements('male', {
+          heightCm: 4,
+          shoulderCm: 4,
+          chestCm: 10,
+          waistCm: 6,
+          hipCm: 4,
+          inseamCm: 3,
+        }),
+      },
+    ],
+    [uiLanguage]
+  );
 
   const activateDemoRack = useCallback(() => {
+    const previousScene = readSavedSceneState();
     setUsingDemoRack(true);
     setAssets(demoClosetAssets);
-    setSelectedAssetId(defaultDemoClosetAssetId);
-    setActiveAssetIds(demoClosetActiveAssetIds);
-  }, []);
+    const nextState = resolvePrimaryAssets(demoClosetAssets, focusAssetId, previousScene);
+    setActiveCategory(nextState.activeCategory);
+    setActiveTab(nextState.activeCategory);
+    setEquippedBySlot(nextState.equippedBySlot);
+    setSelectedAssetId(nextState.selectedAssetId || defaultDemoClosetAssetId);
+  }, [focusAssetId]);
 
   const loadLab = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      const previousScene = readSavedSceneState();
+
       if (focusAssetId) {
-        const [{ response: currentResponse, data: currentData }, { response: listResponse, data: listData }] =
-          await Promise.all([
-            apiFetchJson<unknown>(`/v1/assets/${focusAssetId}`),
-            apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>('/v1/assets?page=1&page_size=200'),
-          ]);
+        const [
+          { response: currentResponse, data: currentData },
+          { response: listResponse, data: listData },
+        ] = await Promise.all([
+          apiFetchJson<unknown>(`/v1/assets/${focusAssetId}`),
+          apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
+            '/v1/assets?page=1&page_size=200'
+          ),
+        ]);
 
         if (!currentResponse.ok) {
           throw new Error(getApiErrorMessage(currentData, copy.loadError));
@@ -984,22 +1246,27 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
           : Array.isArray(listData?.assets)
             ? listData.assets
             : [];
-        const parsedAssets = listResponse.ok
-          ? rawAssets.map((entry) => toAsset(entry)).filter((entry): entry is Asset => Boolean(entry))
-          : [];
-        const nextAssets = ensureUniqueAssets([currentAsset, ...parsedAssets]);
 
+        const parsedAssets = listResponse.ok
+          ? rawAssets
+              .map((entry) => toAsset(entry))
+              .filter((entry): entry is Asset => Boolean(entry))
+          : [];
+
+        const nextAssets = ensureUniqueAssets([currentAsset, ...parsedAssets]);
         setUsingDemoRack(false);
         setAssets(nextAssets);
-        setSelectedAssetId((prev: string) => (nextAssets.some((asset) => asset.id === prev) ? prev : currentAsset.id));
-        setActiveAssetIds((prev: string[]) => {
-          const preserved = prev.filter((id) => id !== currentAsset.id && nextAssets.some((asset) => asset.id === id));
-          return uniqueIds([currentAsset.id, ...preserved]);
-        });
+        const nextState = resolvePrimaryAssets(nextAssets, focusAssetId, previousScene);
+        setActiveCategory(nextState.activeCategory);
+        setActiveTab(nextState.activeCategory);
+        setEquippedBySlot(nextState.equippedBySlot);
+        setSelectedAssetId(nextState.selectedAssetId || currentAsset.id);
         return;
       }
 
-      const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>('/v1/assets?page=1&page_size=200');
+      const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
+        '/v1/assets?page=1&page_size=200'
+      );
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, copy.loadError));
       }
@@ -1010,9 +1277,10 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
           ? data.assets
           : [];
       const nextAssets = ensureUniqueAssets(
-        rawAssets.map((entry) => toAsset(entry)).filter((entry): entry is Asset => Boolean(entry))
+        rawAssets
+          .map((entry) => toAsset(entry))
+          .filter((entry): entry is Asset => Boolean(entry))
       );
-      const fallbackAsset = nextAssets[0] ?? null;
 
       if (nextAssets.length === 0) {
         activateDemoRack();
@@ -1021,17 +1289,17 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
 
       setUsingDemoRack(false);
       setAssets(nextAssets);
-      setSelectedAssetId((prev: string) => (nextAssets.some((asset) => asset.id === prev) ? prev : fallbackAsset?.id ?? ''));
-      setActiveAssetIds((prev: string[]) => {
-        const preserved = prev.filter((id) => nextAssets.some((asset) => asset.id === id));
-        if (preserved.length > 0) return preserved;
-        return fallbackAsset ? [fallbackAsset.id] : [];
-      });
+      const nextState = resolvePrimaryAssets(nextAssets, focusAssetId, previousScene);
+      setActiveCategory(nextState.activeCategory);
+      setActiveTab(nextState.activeCategory);
+      setEquippedBySlot(nextState.equippedBySlot);
+      setSelectedAssetId(nextState.selectedAssetId);
     } catch (nextError) {
       if (!focusAssetId) {
         activateDemoRack();
         return;
       }
+
       setError(nextError instanceof Error ? nextError.message : copy.loadError);
     } finally {
       setLoading(false);
@@ -1046,7 +1314,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     try {
       window.localStorage.setItem(bodyStorageKey, JSON.stringify(bodyProfile));
     } catch {
-      // Ignore local persistence failures.
+      // Ignore persistence failures.
     }
   }, [bodyProfile]);
 
@@ -1054,251 +1322,441 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
     try {
       window.localStorage.setItem(avatarStorageKey, avatarId);
     } catch {
-      // Ignore local persistence failures.
+      // Ignore persistence failures.
     }
   }, [avatarId]);
 
-  const focusAsset = useMemo(
-    () => (focusAssetId ? assets.find((asset) => asset.id === focusAssetId) ?? null : null),
-    [assets, focusAssetId]
+  useEffect(() => {
+    setSelectedMannequinCardId(defaultMannequinCardByGender[currentGender]);
+  }, [currentGender]);
+
+  useEffect(() => {
+    setActiveSubcategory(subcategoryMeta[activeTab][0]?.id ?? 'all');
+  }, [activeTab, subcategoryMeta]);
+
+  const equippedAssets = useMemo(
+    () =>
+      Object.fromEntries(
+        wearableCategories.map((category) => [
+          category,
+          assets.find((asset) => asset.id === equippedBySlot[category]) ?? null,
+        ])
+      ) as Partial<Record<WearableCategory, Asset | null>>,
+    [assets, equippedBySlot]
   );
 
-  const activeAssets = useMemo(() => {
-    const byId = new Map(assets.map((asset) => [asset.id, asset]));
-    return activeAssetIds.map((id) => byId.get(id)).filter((asset): asset is Asset => Boolean(asset));
-  }, [activeAssetIds, assets]);
-
-  const activeAssetIdSet = useMemo(() => new Set(activeAssetIds), [activeAssetIds]);
-
   const selectedAsset = useMemo(
-    () => assets.find((asset) => asset.id === selectedAssetId) ?? focusAsset ?? activeAssets[0] ?? assets[0] ?? null,
-    [activeAssets, assets, focusAsset, selectedAssetId]
+    () =>
+      assets.find((asset) => asset.id === selectedAssetId) ??
+      equippedAssets[activeCategory] ??
+      null,
+    [activeCategory, assets, equippedAssets, selectedAssetId]
+  );
+
+  const activeCategoryAssets = useMemo(
+    () => assets.filter((asset) => asset.category === activeCategory),
+    [activeCategory, assets]
   );
 
   useEffect(() => {
-    if (!selectedAsset) return;
-    setDraftMeasurements(selectedAsset.metadata?.measurements ?? {});
-    setDraftFitProfile({
-      ...fitProfileDefaults,
-      ...(selectedAsset.metadata?.fitProfile ?? {}),
-    });
-  }, [selectedAsset]);
+    if (activeCategoryAssets.length === 0) return;
+    if (selectedAsset && selectedAsset.category === activeCategory) return;
+    setSelectedAssetId(
+      equippedBySlot[activeCategory] ?? activeCategoryAssets[0]?.id ?? ''
+    );
+  }, [activeCategory, activeCategoryAssets, equippedBySlot, selectedAsset]);
 
-  const filteredAssets = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase();
-    return assets.filter((asset) => {
-      if (category !== 'all' && asset.category !== category) return false;
-      if (!normalizedQuery) return true;
-      return (
-        asset.name.toLowerCase().includes(normalizedQuery) ||
-        asset.brand?.toLowerCase().includes(normalizedQuery) ||
-        asset.category.toLowerCase().includes(normalizedQuery)
-      );
-    });
-  }, [assets, category, deferredQuery]);
-
-  const visibleCategories = useMemo(() => {
-    const available = new Set(assets.map((asset) => asset.category));
-    return categoryRailOrder.filter((entry) => entry === 'all' || available.has(entry));
-  }, [assets]);
-
-  const layers = useMemo(
-    () => buildFittingLayers(activeAssets, deferredBodyProfile),
-    [activeAssets, deferredBodyProfile]
-  );
-
-  const selectedLayer = useMemo(
-    () => layers.find((layer) => layer.assetId === selectedAsset?.id) ?? null,
-    [layers, selectedAsset?.id]
-  );
-
-  const selectedMeasurementSummary = useMemo(() => {
-    if (!selectedAsset) return [];
-    const mergedMeasurements = {
-      ...(selectedAsset.metadata?.measurements ?? {}),
-      ...draftMeasurements,
-    };
-    return [
-      formatMeasurementLine('Chest', mergedMeasurements.chestCm),
-      formatMeasurementLine('Waist', mergedMeasurements.waistCm),
-      formatMeasurementLine('Hip', mergedMeasurements.hipCm),
-      formatMeasurementLine('Length', mergedMeasurements.lengthCm),
-      formatMeasurementLine('Inseam', mergedMeasurements.inseamCm),
-    ].filter((entry): entry is string => Boolean(entry));
-  }, [draftMeasurements, selectedAsset]);
-
-  const selectedAvatarPreset = avatarPresetMap[avatarId];
-
-  const handleSelectAsset = useCallback((assetId: string) => {
-    setSelectedAssetId(assetId);
+  const handleEquipAsset = useCallback((asset: Asset) => {
+    if (!isWearableCategory(asset.category)) return;
+    setActiveCategory(asset.category);
+    setActiveTab(asset.category);
+    setSelectedAssetId(asset.id);
+    setEquippedBySlot((prev) => ({
+      ...prev,
+      [asset.category]: asset.id,
+    }));
   }, []);
 
-  const handleToggleAsset = useCallback(
-    (nextAsset: Asset) => {
-      setSelectedAssetId(nextAsset.id);
-      if (focusAssetId && nextAsset.id === focusAssetId) return;
+  const applyMannequinCard = useCallback((card: MannequinCard) => {
+    setSelectedMannequinCardId(card.id);
+    setAvatarId(card.avatarId);
+    setBodyProfile({ simple: { ...card.bodySimple }, detailed: {} });
+  }, []);
 
-      setActiveAssetIds((prev: string[]) =>
-        prev.includes(nextAsset.id) ? prev.filter((id) => id !== nextAsset.id) : [...prev, nextAsset.id]
-      );
-    },
-    [focusAssetId]
-  );
+  const handleGenderChange = useCallback((nextGender: BodyGender) => {
+    setAvatarId(genderAvatarMap[nextGender]);
+    setBodyProfile(buildBodyProfileFromGender(nextGender));
+    setSelectedMannequinCardId(defaultMannequinCardByGender[nextGender]);
+  }, []);
 
   const handleBodyFieldChange = useCallback((key: BodyFieldKey, value: number) => {
-    setBodyProfile((prev: BodyProfile) => setSimpleBodyMeasurement(prev, key, value));
-  }, []);
-
-  const handleMeasurementChange = useCallback((key: MeasurementFieldKey, value: string) => {
-    const nextValue = value.trim();
-    setDraftMeasurements((prev: GarmentMeasurements) => ({
+    setBodyProfile((prev) => ({
       ...prev,
-      [key]: nextValue.length === 0 ? undefined : Number(nextValue),
+      simple: clampBodySimple({
+        ...prev.simple,
+        [key]: value,
+      }),
     }));
   }, []);
 
-  const handleFitProfileChange = useCallback((updates: Partial<GarmentFitProfile>) => {
-    setDraftFitProfile((prev: GarmentFitProfile) => ({
-      ...prev,
-      ...updates,
-    }));
-  }, []);
+  const handleReset = useCallback(() => {
+    const nextAvatarId = focusAssetId ? avatarId : 'muse';
+    const nextGender = avatarGenderMap[nextAvatarId] ?? 'female';
+    const nextBody = buildBodyProfileFromGender(nextGender);
+    const nextScene = resolvePrimaryAssets(
+      assets.length > 0 ? assets : demoClosetAssets,
+      focusAssetId,
+      {}
+    );
+    setAvatarId(nextAvatarId);
+    setBodyProfile(nextBody);
+    setPoseId('apose');
+    setActiveCategory(nextScene.activeCategory);
+    setActiveTab(nextScene.activeCategory);
+    setEquippedBySlot(nextScene.equippedBySlot);
+    setSelectedAssetId(nextScene.selectedAssetId || focusAssetId || defaultDemoClosetAssetId);
+    setSelectedMannequinCardId(defaultMannequinCardByGender[nextGender]);
+    setBackgroundColor(DEFAULT_BG);
+    setSaveStatus(null);
+    setUnit('cm');
+  }, [assets, avatarId, focusAssetId]);
 
-  const handleSaveAssetMetadata = useCallback(() => {
-    if (!selectedAsset) return;
-    setSaveError(null);
+  const handleSave = useCallback(() => {
+    const payload: StoredSceneState = {
+      activeCategory,
+      avatarId,
+      equippedBySlot,
+      poseId,
+      selectedAssetId,
+    };
 
-    startSaving(async () => {
-      const { response, data } = await apiFetchJson<unknown>(`/v1/assets/${selectedAsset.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: {
-            measurements: draftMeasurements,
-            fitProfile: draftFitProfile,
-          },
-        }),
+    try {
+      window.localStorage.setItem(sceneStorageKey, JSON.stringify(payload));
+      window.localStorage.setItem(bodyStorageKey, JSON.stringify(bodyProfile));
+      window.localStorage.setItem(avatarStorageKey, avatarId);
+      setSaveStatus(copy.saved);
+      window.setTimeout(() => setSaveStatus(null), 1200);
+    } catch {
+      setSaveStatus(null);
+    }
+  }, [activeCategory, avatarId, bodyProfile, copy.saved, equippedBySlot, poseId, selectedAssetId]);
+
+  const handleTabChange = useCallback(
+    (nextTab: BrowserTab) => {
+      setActiveTab(nextTab);
+      if (
+        nextTab === 'tops' ||
+        nextTab === 'outerwear' ||
+        nextTab === 'bottoms' ||
+        nextTab === 'shoes'
+      ) {
+        setActiveCategory(nextTab);
+        setSelectedAssetId(
+          equippedBySlot[nextTab] ??
+            assets.find((asset) => asset.category === nextTab)?.id ??
+            ''
+        );
+      }
+    },
+    [assets, equippedBySlot]
+  );
+
+  const themeStyle = useMemo(() => buildTheme(backgroundColor), [backgroundColor]);
+
+  const poseCards = useMemo<BrowserCard[]>(
+    () =>
+      posePresets.map((pose) => ({
+        id: pose.id,
+        kind: 'pose',
+        title: pose.label[uiLanguage],
+        subtitle:
+          uiLanguage === 'ko'
+            ? pose.id === 'apose' || pose.id === 'tpose'
+              ? copy.basicPose
+              : pose.id === 'relaxed' || pose.id === 'walk'
+                ? copy.casualPose
+                : copy.fittingPose
+            : pose.id === 'apose' || pose.id === 'tpose'
+              ? copy.basicPose
+              : pose.id === 'relaxed' || pose.id === 'walk'
+                ? copy.casualPose
+                : copy.fittingPose,
+        thumbClass: thumbClassForId(pose.id),
+        poseId: pose.id,
+      })),
+    [copy.basicPose, copy.casualPose, copy.fittingPose, uiLanguage]
+  );
+
+  const mannequinBrowserCards = useMemo<BrowserCard[]>(
+    () =>
+      mannequinCards.map((card) => ({
+        id: card.id,
+        kind: 'mannequin',
+        title: card.title,
+        subtitle: card.subtitle,
+        thumbClass: thumbClassForId(card.id),
+        mannequin: card,
+      })),
+    [mannequinCards]
+  );
+
+  const wearableBrowserCards = useMemo(() => {
+    const cards = Object.fromEntries(
+      wearableCategories.map((category) => [
+        category,
+        assets
+          .filter((asset) => asset.category === category)
+          .map<BrowserCard>((asset) => {
+            const templateId = resolveGarmentTemplate(asset).id.replace(/-/g, '_');
+            return {
+              id: asset.id,
+              kind: 'asset',
+              title: asset.name,
+              subtitle: asset.brand ?? getClosetCategoryLabel(category, uiLanguage),
+              thumbClass: thumbClassForId(templateId),
+              thumbStyle: orbStyleFromImage(asset.imageSrc),
+              category,
+              asset,
+            };
+          }),
+      ])
+    ) as Record<WearableCategory, BrowserCard[]>;
+
+    return cards;
+  }, [assets, uiLanguage]);
+
+  const filteredCards = useMemo(() => {
+    const filterMannequins = (cards: BrowserCard[]) => {
+      if (activeSubcategory === 'female') {
+        return cards.filter(
+          (card) => card.kind === 'mannequin' && card.mannequin.gender === 'female'
+        );
+      }
+      if (activeSubcategory === 'male') {
+        return cards.filter(
+          (card) => card.kind === 'mannequin' && card.mannequin.gender === 'male'
+        );
+      }
+      if (activeSubcategory === 'recommended') {
+        return cards.filter(
+          (card) =>
+            card.id === 'female_standard' ||
+            card.id === 'female_tall' ||
+            card.id === 'male_standard' ||
+            card.id === 'male_broad'
+        );
+      }
+      return cards;
+    };
+
+    const filterPoses = (cards: BrowserCard[]) => {
+      if (activeSubcategory === 'base') {
+        return cards.filter(
+          (card) =>
+            card.kind === 'pose' &&
+            (card.poseId === 'apose' || card.poseId === 'tpose')
+        );
+      }
+      if (activeSubcategory === 'casual') {
+        return cards.filter(
+          (card) =>
+            card.kind === 'pose' &&
+            (card.poseId === 'relaxed' || card.poseId === 'walk')
+        );
+      }
+      if (activeSubcategory === 'fitting') {
+        return cards.filter(
+          (card) =>
+            card.kind === 'pose' &&
+            (card.poseId === 'contrapposto' || card.poseId === 'handsonhips')
+        );
+      }
+      return cards;
+    };
+
+    const filterAssets = (cards: BrowserCard[]) => {
+      return cards.filter((card) => {
+        if (card.kind !== 'asset') return false;
+        const templateId = resolveGarmentTemplate(card.asset).id;
+        switch (activeTab) {
+          case 'tops':
+            if (activeSubcategory === 'shirts') return templateId === 'top-shirt';
+            if (activeSubcategory === 'tees') return templateId === 'top-tee';
+            return true;
+          case 'outerwear':
+            if (activeSubcategory === 'bombers') return templateId === 'outer-bomber';
+            if (activeSubcategory === 'blazers') return templateId === 'outer-blazer';
+            if (activeSubcategory === 'coats') return templateId === 'outer-coat';
+            return true;
+          case 'bottoms':
+            if (activeSubcategory === 'shorts') return templateId === 'bottom-shorts';
+            if (activeSubcategory === 'pants') return templateId !== 'bottom-shorts';
+            return true;
+          case 'shoes':
+            if (activeSubcategory === 'sneakers') return templateId === 'shoes-sneaker';
+            if (activeSubcategory === 'boots') return templateId === 'shoes-boot';
+            if (activeSubcategory === 'runners') return templateId === 'shoes-runner';
+            return true;
+          default:
+            return true;
+        }
       });
+    };
 
-      if (!response.ok) {
-        setSaveError(getApiErrorMessage(data, copy.saveError));
+    if (activeTab === 'mannequin') return filterMannequins(mannequinBrowserCards);
+    if (activeTab === 'pose') return filterPoses(poseCards);
+    return filterAssets(wearableBrowserCards[activeTab]);
+  }, [
+    activeSubcategory,
+    activeTab,
+    mannequinBrowserCards,
+    poseCards,
+    wearableBrowserCards,
+  ]);
+
+  const handleCardPick = useCallback(
+    (card: BrowserCard) => {
+      if (card.kind === 'mannequin') {
+        applyMannequinCard(card.mannequin);
         return;
       }
 
-      const updatedAsset = toAsset(data);
-      if (!updatedAsset) {
-        setSaveError(copy.saveError);
+      if (card.kind === 'pose') {
+        setPoseId(card.poseId);
         return;
       }
 
-      setAssets((prev: Asset[]) => prev.map((asset) => (asset.id === updatedAsset.id ? updatedAsset : asset)));
-    });
-  }, [copy.saveError, draftFitProfile, draftMeasurements, selectedAsset]);
-
-  const fitEditPanel = (
-    <FitEditPanel
-      assets={assets}
-      copy={copy}
-      draftFitProfile={draftFitProfile}
-      draftMeasurements={draftMeasurements}
-      isSaving={isSaving}
-      onFitProfileChange={handleFitProfileChange}
-      onMeasurementChange={handleMeasurementChange}
-      onSave={handleSaveAssetMetadata}
-      saveError={saveError}
-      selectedAsset={selectedAsset}
-    />
+      handleEquipAsset(card.asset);
+    },
+    [applyMannequinCard, handleEquipAsset]
   );
 
-  const workspace = (
-    <div
-      className={cn(
-        'relative mx-auto w-full overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,#59606d_0%,#717887_22%,#9098a6_48%,#c0c6cf_100%)] text-white',
-        compact ? 'min-h-screen rounded-none lg:h-screen' : 'min-h-[820px] lg:h-[min(860px,calc(100vh-13rem))]'
-      )}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.32),rgba(255,255,255,0.06)_42%,transparent_76%)]" />
-      <div className="relative z-10 grid h-full min-h-0 gap-4 p-4 lg:grid-cols-[320px_minmax(0,1fr)_340px] lg:p-5">
-        <LeftPanel
-          avatarId={avatarId}
-          bodyProfile={bodyProfile}
-          copy={copy}
-          focusAssetId={focusAssetId}
-          language={uiLanguage}
-          onAvatarChange={setAvatarId}
-          onBodyFieldChange={handleBodyFieldChange}
-          onBodyReset={() => setBodyProfile(defaultBodyProfile)}
-          selectedAsset={selectedAsset}
-          selectedAvatarPreset={selectedAvatarPreset}
-          selectedLayer={selectedLayer}
-          selectedMeasurementSummary={selectedMeasurementSummary}
-          fitEditPanel={fitEditPanel}
-        />
-        <StagePanel
-          activeAssets={activeAssets}
-          avatarId={avatarId}
-          bodyProfile={deferredBodyProfile}
-          compact={compact}
-          copy={copy}
-          focusAssetId={focusAssetId}
-          language={uiLanguage}
-          layers={layers}
-          onSelectAsset={handleSelectAsset}
-          onToggleAsset={handleToggleAsset}
-          selectedAsset={selectedAsset}
-          selectedAssetId={selectedAssetId}
-          usingDemoRack={usingDemoRack}
-        />
-        <RightPanel
-          activeAssetIdSet={activeAssetIdSet}
-          category={category}
-          copy={copy}
-          filteredAssets={filteredAssets}
-          focusAssetId={focusAssetId}
-          language={uiLanguage}
-          onCategoryChange={setCategory}
-          onQueryChange={setQuery}
-          onSelectAsset={handleSelectAsset}
-          onToggleAsset={handleToggleAsset}
-          query={query}
-          selectedAssetId={selectedAssetId}
-          visibleCategories={visibleCategories}
-        />
+  const selectedBrowserId =
+    activeTab === 'mannequin'
+      ? selectedMannequinCardId
+      : activeTab === 'pose'
+        ? poseId
+        : equippedBySlot[activeTab] ?? selectedAssetId;
+
+  const currentSummary = useMemo(() => {
+    const selectedMannequin =
+      mannequinCards.find((card) => card.id === selectedMannequinCardId) ??
+      mannequinCards.find((card) => card.gender === currentGender) ??
+      mannequinCards[0];
+    const currentPose = posePresets.find((pose) => pose.id === poseId);
+    const detail = wearableCategories
+      .map((category) => {
+        const asset = equippedAssets[category];
+        return `${getClosetCategoryLabel(category, uiLanguage)} ${asset?.name ?? '-'}`;
+      })
+      .join(' · ');
+
+    return {
+      title: `${selectedMannequin?.title ?? copy.mannequin} · ${currentPose?.label[uiLanguage] ?? copy.pose}`,
+      detail: usingDemoRack ? `${copy.demoRackHint} ${detail}` : detail,
+    };
+  }, [
+    copy.demoRackHint,
+    copy.mannequin,
+    copy.pose,
+    currentGender,
+    equippedAssets,
+    mannequinCards,
+    poseId,
+    selectedMannequinCardId,
+    uiLanguage,
+    usingDemoRack,
+  ]);
+
+  return (
+    <>
+      <div className={styles.appShell} style={themeStyle}>
+        <div className={styles.sceneShell}>
+          <div className={styles.sceneSurface}>
+            <FittingCanvas3D
+              body={bodyProfile}
+              equippedAssets={equippedAssets}
+              selectedAssetId={selectedAsset?.id ?? selectedAssetId}
+              avatarId={avatarId}
+              poseId={poseId}
+            />
+          </div>
+
+          <TopControls
+            copy={copy}
+            onExit={() => router.back()}
+            onReset={handleReset}
+            onSave={handleSave}
+            saveLabel={saveStatus ?? copy.save}
+          />
+
+          <LeftPanel
+            backgroundColor={backgroundColor}
+            copy={copy}
+            onBackgroundChange={setBackgroundColor}
+            onCustomize={() => setIsCustomizeOpen(true)}
+            statusDetail={currentSummary.detail}
+            statusTitle={currentSummary.title}
+          />
+
+          <AssetPanel
+            activeTab={activeTab}
+            cards={filteredCards}
+            copy={copy}
+            onCardPick={handleCardPick}
+            onSubcategoryChange={setActiveSubcategory}
+            onTabChange={handleTabChange}
+            selectedId={selectedBrowserId}
+            subcategories={subcategoryMeta[activeTab]}
+            subcategoryId={activeSubcategory}
+            tabMeta={tabMeta}
+            usingDemoRack={usingDemoRack}
+          />
+
+          {loading ? (
+            <div className={styles.loadingOverlay}>
+              <div className={styles.errorCard}>
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {copy.loading}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className={styles.errorOverlay}>
+              <div className={styles.errorCard}>
+                <p className="text-sm">{error ?? copy.loadError}</p>
+                <button
+                  type="button"
+                  className={cn(styles.ghostPill, 'mt-4 px-4')}
+                  onClick={() => void loadLab()}
+                >
+                  {copy.retry}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+
+      <MeasurementModal
+        bodyProfile={bodyProfile}
+        copy={copy}
+        currentGender={currentGender}
+        mannequinCards={mannequinCards}
+        onBodyFieldChange={handleBodyFieldChange}
+        onClose={() => setIsCustomizeOpen(false)}
+        onGenderChange={handleGenderChange}
+        onPickMannequin={applyMannequinCard}
+        onPoseChange={setPoseId}
+        open={isCustomizeOpen}
+        poseId={poseId}
+        uiLanguage={uiLanguage}
+        unit={unit}
+        onUnitChange={setUnit}
+      />
+    </>
   );
-
-  const renderFrame = (content: ReactNode) => {
-    if (compact) return content;
-
-    const title = focusAsset ? (uiLanguage === 'ko' ? `${focusAsset.name} 피팅 랩` : `${focusAsset.name} Fitting Lab`) : copy.title;
-    return (
-      <AppPageFrame eyebrow={copy.eyebrow} title={title} description={copy.description}>
-        {content}
-      </AppPageFrame>
-    );
-  };
-
-  if (loading) {
-    return renderFrame(
-      <section className="flex min-h-[320px] items-center justify-center border border-black/8 bg-white text-sm text-black/50">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        {copy.loading}
-      </section>
-    );
-  }
-
-  if (error || (focusAssetId && !focusAsset)) {
-    return renderFrame(
-      <section className="space-y-4 border border-red-500/20 bg-red-50 px-5 py-6">
-        <p className="text-sm text-red-700">{error ?? copy.loadError}</p>
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => void loadLab()}>
-          <RefreshCcw className="h-4 w-4" />
-          {copy.retry}
-        </Button>
-      </section>
-    );
-  }
-
-  return renderFrame(workspace);
 }

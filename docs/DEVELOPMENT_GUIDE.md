@@ -123,7 +123,7 @@
 - Studio 캔버스 에셋 선택/드래그는 알파 픽셀 hit-test를 우선 적용해 투명 영역 클릭 시 선택되지 않도록 유지한다.
 - Studio는 3가지 핵심 flow를 항상 우선 보장한다: `asset 생성(업로드/URL/장바구니 + 누끼)`, `canvas 배치`, `3D mannequin fitting`.
 - 3D mannequin fitting은 canvas 조합과 옷장 asset 둘 다 같은 surface에서 다뤄야 하며, body profile과 garment measurements를 동시에 조절할 수 있어야 한다.
-- `/app/closet`은 요약 대시보드보다 `좌측 에셋 라이브러리 + 중앙 3D 마네킹 + 우측 body/fit control` 워크스페이스를 기본값으로 유지하고, 페이지 자체는 한 화면 height budget 안에서 닫아 문서 스크롤이 생기지 않게 설계한다.
+- `/app/closet`은 요약 대시보드보다 `v18 overlay shell` 워크스페이스를 기본값으로 유지한다. 즉 `좌측 glass status/customize panel + 중앙 3D 마네킹 + 우측 fixed 3-column asset browser + modal body customizer` 구성을 사용하고, 페이지 자체는 한 화면 height budget 안에서 닫아 문서 스크롤이 생기지 않게 설계한다.
 - 공개 3D avatar/mannequin asset을 번들링할 때는 `apps/web/public/assets/**`에 두고, 출처/저자/라이선스를 `docs/OPEN_ASSET_CREDITS.md`와 preset metadata에 같이 기록한다.
 - 게임형 dress-up UI 언어는 `/app/closet` 기본 workspace 안으로 흡수하되, 사용자 업로드 상품 preview와 공개 슬롯 교체형 3D asset의 렌더링 원리는 분리 유지한다.
 - Discover는 inspiration feed를 직접 노출하되, 사용자가 바로 `closet` 또는 `canvas`로 이동해 번역 작업을 이어갈 수 있어야 한다.

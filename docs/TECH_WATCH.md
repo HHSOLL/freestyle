@@ -17,9 +17,32 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-11
+- 2026-04-12
 
 ## 점검 로그
+### 2026-04-12
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 `next 16.2.3`, `react/react-dom 19.2.5`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.3`이다.
+  - 3D runtime 관련 핵심 라이브러리 latest stable은 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`이다.
+  - 전일 대비 최신 stable 값은 유지되며, 지금 배치의 핵심은 dependency upgrade보다 product realignment와 runtime boundary 정리다.
+- 우리 프로젝트 영향:
+  - 현재 저장소는 `next 16.1.6`, `eslint-config-next 16.1.4`, `react/react-dom 19.2.4`, `typescript ^5`로 최신 stable보다 일부 뒤처져 있다.
+  - 이번 배치에서는 runtime/product/legacy/lab 경계와 mannequin-first architecture를 우선 고정하고, dependency uplift는 별도 maintenance batch로 분리하는 편이 안전하다.
+  - `three`, `@react-three/fiber`, `@react-three/drei` 최신 stable은 현재 설계와 직접 충돌하지 않으므로, 우선순위는 avatar asset promotion과 design-system stabilization 쪽이 더 높다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/architecture-overview.md`
+    - `docs/avatar-pipeline.md`
+    - `docs/garment-fitting-contract.md`
+    - `docs/design-system.md`
+    - `docs/migration-notes.md`
+
 ### 2026-04-11
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)

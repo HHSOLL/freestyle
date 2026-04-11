@@ -1,0 +1,19 @@
+{
+  "name": "@freestyle/runtime-3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@freestyle/domain-avatar": "file:../domain-avatar",
+    "@freestyle/domain-garment": "file:../domain-garment",
+    "@freestyle/shared-types": "file:../shared-types",
+    "@freestyle/shared-utils": "file:../shared-utils",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "react": "19.2.4",
+    "three": "^0.183.2"
+  }
+}

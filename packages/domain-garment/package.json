@@ -1,0 +1,13 @@
+{
+  "name": "@freestyle/domain-garment",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@freestyle/shared-types": "file:../shared-types",
+    "@freestyle/shared-utils": "file:../shared-utils"
+  }
+}

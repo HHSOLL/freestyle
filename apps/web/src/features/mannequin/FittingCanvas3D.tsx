@@ -5,6 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { defaultBodyProfile as canonicalDefaultBodyProfile, flattenBodyProfile } from '@freestyle/contracts/domain-types';
 import { avatarPresetMap, type AvatarPresetId } from '@/features/shared-3d/avatarPresets';
 import { guardGarment3dUsage } from '@/features/shared-3d/garment3dRuntimeGuard';
 import { MannequinScene3D } from './MannequinScene3D';
@@ -23,14 +24,7 @@ const isSkinnedFittingEnabled = process.env.NEXT_PUBLIC_SKINNED_FITTING_ENABLED 
 const isClothMvpEnabled = process.env.NEXT_PUBLIC_CLOTH_MVP_ENABLED === 'true';
 const isClothSpikePassed = process.env.NEXT_PUBLIC_CLOTH_SPIKE_PASSED === 'true';
 const isClothIntegrationEnabled = isClothMvpEnabled && isClothSpikePassed;
-const bodyReferenceProfile: BodyProfile = {
-  heightCm: 172,
-  shoulderCm: 44,
-  chestCm: 94,
-  waistCm: 78,
-  hipCm: 95,
-  inseamCm: 79,
-};
+const bodyReferenceProfile = flattenBodyProfile(canonicalDefaultBodyProfile);
 
 const openSourceGarmentMap: Partial<Record<GarmentLayerConfig['category'], string>> = {
   outerwear: 'opensource-jacket-outer-v1',
@@ -91,18 +85,21 @@ function makeAvatarMaterial(color: string) {
 
 const clamp01 = (value: number) => Math.max(-1, Math.min(1, value));
 
-const buildShapeParamsFromBody = (body: BodyProfile) => ({
-  beta_0: clamp01((body.chestCm - bodyReferenceProfile.chestCm) / 22),
-  beta_1: clamp01((body.waistCm - bodyReferenceProfile.waistCm) / 22),
-  beta_2: clamp01((body.hipCm - bodyReferenceProfile.hipCm) / 22),
-  beta_3: clamp01((body.shoulderCm - bodyReferenceProfile.shoulderCm) / 16),
-  beta_4: clamp01((body.inseamCm - bodyReferenceProfile.inseamCm) / 16),
-  height: clamp01((body.heightCm - bodyReferenceProfile.heightCm) / 22),
-  chest: clamp01((body.chestCm - bodyReferenceProfile.chestCm) / 22),
-  waist: clamp01((body.waistCm - bodyReferenceProfile.waistCm) / 22),
-  hip: clamp01((body.hipCm - bodyReferenceProfile.hipCm) / 22),
-  shoulders: clamp01((body.shoulderCm - bodyReferenceProfile.shoulderCm) / 16),
-});
+const buildShapeParamsFromBody = (body: BodyProfile) => {
+  const flatBody = flattenBodyProfile(body);
+  return {
+    beta_0: clamp01((flatBody.chestCm - bodyReferenceProfile.chestCm) / 22),
+    beta_1: clamp01((flatBody.waistCm - bodyReferenceProfile.waistCm) / 22),
+    beta_2: clamp01((flatBody.hipCm - bodyReferenceProfile.hipCm) / 22),
+    beta_3: clamp01((flatBody.shoulderCm - bodyReferenceProfile.shoulderCm) / 16),
+    beta_4: clamp01((flatBody.inseamCm - bodyReferenceProfile.inseamCm) / 16),
+    height: clamp01((flatBody.heightCm - bodyReferenceProfile.heightCm) / 22),
+    chest: clamp01((flatBody.chestCm - bodyReferenceProfile.chestCm) / 22),
+    waist: clamp01((flatBody.waistCm - bodyReferenceProfile.waistCm) / 22),
+    hip: clamp01((flatBody.hipCm - bodyReferenceProfile.hipCm) / 22),
+    shoulders: clamp01((flatBody.shoulderCm - bodyReferenceProfile.shoulderCm) / 16),
+  };
+};
 
 const applyShapeToMorphTargets = (mesh: THREE.Mesh, shapeParams: Record<string, number>) => {
   const dictionary = mesh.morphTargetDictionary;
@@ -148,6 +145,7 @@ function CenterStageAvatar({
   const gltf = useGLTF(preset.modelPath);
 
   const { model, position, scale, skinnedMeshes, skeleton } = useMemo(() => {
+    const flatBody = flattenBodyProfile(body);
     const scene = clone(gltf.scene);
     const nextSkinnedMeshes: THREE.Mesh[] = [];
     let nextSkeleton: THREE.Skeleton | null = null;
@@ -177,7 +175,7 @@ function CenterStageAvatar({
     box.getSize(size);
 
     const sourceHeight = Math.max(size.y, 0.001);
-    const bodyHeightScale = body.heightCm / 172;
+    const bodyHeightScale = flatBody.heightCm / 172;
     const nextScale = (avatarHeightUnits / sourceHeight) * bodyHeightScale * preset.scaleMultiplier;
     const nextPosition = new THREE.Vector3(
       -center.x * nextScale,
@@ -192,7 +190,7 @@ function CenterStageAvatar({
       skinnedMeshes: nextSkinnedMeshes,
       skeleton: nextSkeleton,
     };
-  }, [body.heightCm, gltf.scene, preset]);
+  }, [body, gltf.scene, preset]);
 
   useEffect(() => {
     onSkeletonReady(skeleton);
@@ -359,8 +357,9 @@ function GarmentLayer({
 }
 
 function resolveTorsoCollider(body: BodyProfile) {
-  const chestRadius = THREE.MathUtils.clamp(body.chestCm / 240, 0.33, 0.62);
-  const waistRadius = THREE.MathUtils.clamp(body.waistCm / 255, 0.28, 0.55);
+  const flatBody = flattenBodyProfile(body);
+  const chestRadius = THREE.MathUtils.clamp(flatBody.chestCm / 240, 0.33, 0.62);
+  const waistRadius = THREE.MathUtils.clamp(flatBody.waistCm / 255, 0.28, 0.55);
   return {
     top: new THREE.Vector3(0, 1.14, 0.01),
     bottom: new THREE.Vector3(0, -0.72, -0.04),
@@ -393,6 +392,7 @@ function ClothPreviewLayer({
   onSolverFailure: () => void;
 }) {
   const preparedTexture = usePreparedTexture(layer.textureUrl);
+  const flatBody = useMemo(() => flattenBodyProfile(body), [body]);
   const color = useMemo(
     () => new THREE.Color(isSelected ? '#f6efe4' : layer.color),
     [isSelected, layer.color]
@@ -428,11 +428,11 @@ function ClothPreviewLayer({
   useEffect(() => {
     needsResetRef.current = true;
   }, [
-    body.heightCm,
-    body.chestCm,
-    body.waistCm,
-    body.hipCm,
-    body.shoulderCm,
+    flatBody.heightCm,
+    flatBody.chestCm,
+    flatBody.waistCm,
+    flatBody.hipCm,
+    flatBody.shoulderCm,
     layer.assetId,
     layer.shellHeight,
     layer.shellWidth,

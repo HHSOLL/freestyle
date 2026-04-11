@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { Asset } from '@/features/studio/types';
+import type { Asset } from '@freestyle/contracts/domain-types';
 import { buildGarmentLayerConfig, buildFittingLayers, defaultBodyProfile, resolveGarmentMeasurements } from './fitting';
 
 const topAsset: Asset = {

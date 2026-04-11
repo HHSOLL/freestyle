@@ -1,4 +1,5 @@
-import type { AssetSource, CanvasSize, EditableAssetCategory } from './types';
+import type { AssetSource } from '@freestyle/contracts/domain-types';
+import type { CanvasSize, EditableAssetCategory } from './types';
 
 export const presetColors = [
   '#F8F9FA',

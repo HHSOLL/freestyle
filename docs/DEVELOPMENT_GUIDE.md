@@ -33,6 +33,10 @@
 - 언어 선택은 `apps/web/src/lib/LanguageContext.tsx`의 cookie(`freestyle-language`) + localStorage 동기화로 유지하고, `apps/web/src/app/layout.tsx`는 cookie/`Accept-Language` 기준 초기 언어를 계산해 서버 렌더와 hydration 언어를 맞춘다.
 - `apps/web`는 Vercel의 독립 workspace 빌드를 전제로 하므로 Tailwind/PostCSS 등 웹 빌드 의존성과 설정 파일(`postcss.config.mjs`)을 워크스페이스 내부에 둔다.
 - `apps/web`가 `packages/contracts`를 타입 전용으로 참조할 때는 `@freestyle/contracts/domain-types` subpath를 우선 사용한다. `@freestyle/contracts` root entry는 zod schema/runtime를 포함하므로, Vercel의 `apps/web` 단독 install/build 경로에서는 타입-only 소비와 분리하는 편이 안전하다.
+- shared studio/mannequin domain type 중 canonical 대상은 `packages/contracts`에 둔다. 현재 기준 `BodyProfile*`, `AssetMetadata`, `AssetUpdateInput`, asset category/source, garment measurements/fit/profile이 여기에 포함된다.
+- `apps/web/src/features/studio/types.ts`는 `CanvasItem`, `TextItem`, `CanvasSize`, `StudioCategoryOption`, translator 같은 UI/view-model 타입만 유지한다.
+- canonical `BodyProfile`은 flat object가 아니라 `{ simple, detailed? }` envelope다. simple 필드 6개(`heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`)는 필수이고, detailed 필드는 optional reservation으로 유지한다.
+- 클라이언트 persistence와 legacy hydration은 `normalizeBodyProfile`, `flattenBodyProfile`, `setSimpleBodyMeasurement` helper를 사용한다. localStorage나 임시 상태를 flat shape로 직접 spread-merge하지 않는다.
 
 2. 에셋 처리
 - API에서 다음 job 생성 endpoint 제공:
@@ -73,6 +77,7 @@
 - `unitScale`은 authored asset을 meter contract로 정규화하기 위한 양수 scale이다. meter authoring이면 `1`을 기본값으로 사용한다.
 - 런타임 사용 전에는 `garment3dRuntimeGuard`로 catalog registration + metadata 유효성 + category/profile 요구사항을 확인한다.
 - catalog metadata 변경 시에는 `npm run validate:garment3d`를 필수로 실행하고, 실패하면 intake를 차단한다.
+- body profile/state 변경 배치에서는 legacy flat payload와 canonical envelope payload 둘 다 hydrate되는지 확인한다.
 
 6. 인증 라우트
 - `GET /v1/auth/naver/start?redirect_to=<absolute-url>`
@@ -196,6 +201,7 @@
 - `npm run build`
 - `npm run check` (lint + typecheck + build:services + build)
 - `npm run bench:cloth4a` (cloth 4A 회귀 확인 시)
+- `npm --prefix apps/web run build` (Vercel isolated workspace build 회귀 확인)
 
 ## 7. 변경 시 문서 동기화
 아래 항목 변경 시 문서를 반드시 같이 수정합니다.

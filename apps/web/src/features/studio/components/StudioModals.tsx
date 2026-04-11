@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw, Upload } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import type { Asset, AssetCategory, CanvasItem, StudioCategoryOption, StudioTranslator } from '../types';
+import type { Asset } from '@freestyle/contracts/domain-types';
+import type { AssetCategory, CanvasItem, StudioCategoryOption, StudioTranslator } from '../types';
 import { TryOnWorkbench } from './TryOnWorkbench';
 
 type ReviewResult = {

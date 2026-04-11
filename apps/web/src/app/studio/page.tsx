@@ -29,7 +29,6 @@ import {
 } from '@/features/studio/musinsaBridge';
 import { getErrorMessage, isEditableAssetCategory, toAsset } from '@/features/studio/utils';
 import type {
-  Asset,
   AssetCategory,
   CanvasItem,
   CanvasSize,
@@ -37,6 +36,7 @@ import type {
   StudioCategoryOption,
   TextItem,
 } from '@/features/studio/types';
+import type { Asset } from '@freestyle/contracts/domain-types';
 
 type ReviewResult = {
   overallScore?: number;

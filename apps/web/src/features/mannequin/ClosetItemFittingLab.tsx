@@ -27,8 +27,8 @@ import {
   parseAvatarPresetId,
   type AvatarPresetId,
 } from '@/features/shared-3d/avatarPresets';
+import { normalizeBodyProfile, setSimpleBodyMeasurement, type Asset, type GarmentFitProfile, type GarmentMeasurements } from '@freestyle/contracts/domain-types';
 import { getClosetCategoryLabel, getWardrobeSourceLabel } from '@/features/renewal-app/data';
-import type { Asset, GarmentFitProfile, GarmentMeasurements } from '@/features/studio/types';
 import { toAsset } from '@/features/studio/utils';
 import { apiFetchJson, getApiErrorMessage } from '@/lib/clientApi';
 import { useLanguage } from '@/lib/LanguageContext';
@@ -90,10 +90,7 @@ const readSavedBodyProfile = () => {
   try {
     const raw = window.localStorage.getItem(bodyStorageKey);
     if (!raw) return defaultBodyProfile;
-    return {
-      ...defaultBodyProfile,
-      ...(JSON.parse(raw) as Partial<BodyProfile>),
-    };
+    return normalizeBodyProfile(JSON.parse(raw));
   } catch {
     return defaultBodyProfile;
   }
@@ -581,13 +578,13 @@ function LeftPanel({
                 <label key={String(field.key)} className="block">
                   <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/56">
                     <span>{field.label}</span>
-                    <span>{bodyProfile[field.key]} cm</span>
+                    <span>{bodyProfile.simple[field.key]} cm</span>
                   </div>
                   <input
                     type="range"
                     min={field.min}
                     max={field.max}
-                    value={bodyProfile[field.key]}
+                    value={bodyProfile.simple[field.key]}
                     onChange={(event) => onBodyFieldChange(field.key, Number(event.target.value))}
                     className="w-full accent-[#d2a264]"
                   />
@@ -1149,10 +1146,7 @@ export function ClosetItemFittingLab({ assetId, compact = false }: ClosetItemFit
   );
 
   const handleBodyFieldChange = useCallback((key: BodyFieldKey, value: number) => {
-    setBodyProfile((prev: BodyProfile) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setBodyProfile((prev: BodyProfile) => setSimpleBodyMeasurement(prev, key, value));
   }, []);
 
   const handleMeasurementChange = useCallback((key: MeasurementFieldKey, value: string) => {

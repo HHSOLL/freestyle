@@ -1,4 +1,4 @@
-import type { Asset } from '@/features/studio/types';
+import type { Asset } from '@freestyle/contracts/domain-types';
 
 export const demoClosetAssets: Asset[] = [
   {

@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic';
 import { startTransition, useMemo, useState, type ChangeEvent } from 'react';
 import { Download, RefreshCw, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Asset, CanvasItem, StudioTranslator } from '../types';
+import type { Asset } from '@freestyle/contracts/domain-types';
+import type { CanvasItem, StudioTranslator } from '../types';
 import type { MannequinMeasurements, ViewerGarmentLayer } from './ThreeDMannequinViewer';
 
 const DynamicThreeDMannequinViewer = dynamic(

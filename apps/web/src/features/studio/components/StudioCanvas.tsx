@@ -26,7 +26,8 @@ import {
 } from 'react';
 import { canvasSizeOptions, presetColors } from '../constants';
 import { formatSourceLink } from '../utils';
-import type { Asset, CanvasItem, CanvasSize, TextItem } from '../types';
+import type { Asset } from '@freestyle/contracts/domain-types';
+import type { CanvasItem, CanvasSize, TextItem } from '../types';
 
 type StudioCanvasProps = {
   canvasRef: MutableRefObject<HTMLDivElement | null>;

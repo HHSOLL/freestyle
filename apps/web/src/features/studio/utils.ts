@@ -1,5 +1,6 @@
 import { assetSources, editableAssetCategories } from './constants';
-import type { Asset, AssetMetadata, AssetSource, EditableAssetCategory, GarmentProfile } from './types';
+import type { Asset, AssetMetadata, AssetSource, GarmentProfile } from '@freestyle/contracts/domain-types';
+import type { EditableAssetCategory } from './types';
 
 export const isEditableAssetCategory = (value: string): value is EditableAssetCategory =>
   editableAssetCategories.includes(value as EditableAssetCategory);

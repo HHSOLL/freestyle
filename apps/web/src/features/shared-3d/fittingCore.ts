@@ -1,11 +1,13 @@
-import type { BodyProfile } from '@freestyle/contracts/domain-types';
-import type {
-  Asset,
-  EditableAssetCategory,
-  GarmentFitProfile,
-  GarmentMeasurements,
-  GarmentProfile,
-} from '@/features/studio/types';
+import {
+  defaultBodyProfile as canonicalDefaultBodyProfile,
+  flattenBodyProfile,
+  type Asset,
+  type AssetCategory,
+  type BodyProfile,
+  type GarmentFitProfile,
+  type GarmentMeasurements,
+  type GarmentProfile,
+} from '@freestyle/contracts/domain-types';
 
 export type { BodyProfile } from '@freestyle/contracts/domain-types';
 
@@ -20,7 +22,7 @@ export type GarmentFitSummary = {
 export type GarmentLayerConfig = {
   assetId: string;
   name: string;
-  category: EditableAssetCategory;
+  category: AssetCategory;
   layerOrder: number;
   shellWidth: number;
   shellDepth: number;
@@ -36,14 +38,7 @@ export type GarmentLayerConfig = {
   fitSummary: GarmentFitSummary[];
 };
 
-export const defaultBodyProfile: BodyProfile = {
-  heightCm: 172,
-  shoulderCm: 44,
-  chestCm: 94,
-  waistCm: 78,
-  hipCm: 95,
-  inseamCm: 79,
-};
+export const defaultBodyProfile: BodyProfile = canonicalDefaultBodyProfile;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -55,36 +50,37 @@ const getAssetAspectRatio = (asset: Asset) => {
 };
 
 const inferBaseMeasurements = (
-  category: EditableAssetCategory,
+  category: AssetCategory,
   body: BodyProfile
 ): GarmentMeasurements => {
+  const flatBody = flattenBodyProfile(body);
   switch (category) {
     case 'tops':
       return {
-        chestCm: body.chestCm + 10,
-        waistCm: body.waistCm + 8,
-        shoulderCm: body.shoulderCm + 3,
+        chestCm: flatBody.chestCm + 10,
+        waistCm: flatBody.waistCm + 8,
+        shoulderCm: flatBody.shoulderCm + 3,
         sleeveLengthCm: 61,
         lengthCm: 66,
-        hemCm: body.waistCm + 10,
+        hemCm: flatBody.waistCm + 10,
       };
     case 'outerwear':
       return {
-        chestCm: body.chestCm + 16,
-        waistCm: body.waistCm + 14,
-        shoulderCm: body.shoulderCm + 4,
+        chestCm: flatBody.chestCm + 16,
+        waistCm: flatBody.waistCm + 14,
+        shoulderCm: flatBody.shoulderCm + 4,
         sleeveLengthCm: 63,
         lengthCm: 71,
-        hemCm: body.hipCm + 8,
+        hemCm: flatBody.hipCm + 8,
       };
     case 'bottoms':
       return {
-        waistCm: body.waistCm + 6,
-        hipCm: body.hipCm + 8,
-        inseamCm: body.inseamCm,
+        waistCm: flatBody.waistCm + 6,
+        hipCm: flatBody.hipCm + 8,
+        inseamCm: flatBody.inseamCm,
         riseCm: 31,
         hemCm: 38,
-        lengthCm: body.inseamCm + 30,
+        lengthCm: flatBody.inseamCm + 30,
       };
     case 'shoes':
       return {
@@ -97,19 +93,20 @@ const inferBaseMeasurements = (
       };
     case 'custom':
       return {
-        chestCm: body.chestCm + 10,
-        waistCm: body.waistCm + 10,
-        hipCm: body.hipCm + 10,
+        chestCm: flatBody.chestCm + 10,
+        waistCm: flatBody.waistCm + 10,
+        hipCm: flatBody.hipCm + 10,
         lengthCm: 68,
       };
   }
 };
 
 const inferMeasurementsFromAspect = (
-  category: EditableAssetCategory,
+  category: AssetCategory,
   aspectRatio: number | undefined,
   body: BodyProfile
 ): GarmentMeasurements => {
+  const flatBody = flattenBodyProfile(body);
   const base = inferBaseMeasurements(category, body);
   if (!aspectRatio || !Number.isFinite(aspectRatio)) return base;
 
@@ -125,8 +122,8 @@ const inferMeasurementsFromAspect = (
     const inseamMultiplier = clamp(1 / Math.max(aspectRatio, 0.4), 0.88, 1.16);
     return {
       ...base,
-      inseamCm: Math.round((base.inseamCm ?? body.inseamCm) * inseamMultiplier),
-      lengthCm: Math.round((base.lengthCm ?? body.inseamCm + 30) * inseamMultiplier),
+      inseamCm: Math.round((base.inseamCm ?? flatBody.inseamCm) * inseamMultiplier),
+      lengthCm: Math.round((base.lengthCm ?? flatBody.inseamCm + 30) * inseamMultiplier),
     };
   }
 
@@ -220,15 +217,16 @@ const fitLabel = (severity: FitSeverity) => {
 };
 
 const buildFitSummaries = (
-  category: EditableAssetCategory,
+  category: AssetCategory,
   body: BodyProfile,
   measurements: GarmentMeasurements
 ) => {
+  const flatBody = flattenBodyProfile(body);
   const summaries: GarmentFitSummary[] = [];
 
   if (category === 'tops' || category === 'outerwear' || category === 'custom') {
-    const chestEase = (measurements.chestCm ?? body.chestCm) - body.chestCm;
-    const waistEase = (measurements.waistCm ?? body.waistCm) - body.waistCm;
+    const chestEase = (measurements.chestCm ?? flatBody.chestCm) - flatBody.chestCm;
+    const waistEase = (measurements.waistCm ?? flatBody.waistCm) - flatBody.waistCm;
     const sleeveEase = (measurements.sleeveLengthCm ?? 61) - 61;
     summaries.push({
       label: `Chest ${fitLabel(fitSeverityFromEase(chestEase))}`,
@@ -249,9 +247,9 @@ const buildFitSummaries = (
   }
 
   if (category === 'bottoms') {
-    const waistEase = (measurements.waistCm ?? body.waistCm) - body.waistCm;
-    const hipEase = (measurements.hipCm ?? body.hipCm) - body.hipCm;
-    const inseamDelta = (measurements.inseamCm ?? body.inseamCm) - body.inseamCm;
+    const waistEase = (measurements.waistCm ?? flatBody.waistCm) - flatBody.waistCm;
+    const hipEase = (measurements.hipCm ?? flatBody.hipCm) - flatBody.hipCm;
+    const inseamDelta = (measurements.inseamCm ?? flatBody.inseamCm) - flatBody.inseamCm;
     summaries.push({
       label: `Waist ${fitLabel(fitSeverityFromEase(waistEase))}`,
       severity: fitSeverityFromEase(waistEase),
@@ -284,7 +282,7 @@ type GarmentProfileInfluence = {
 const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 
 const resolveGarmentProfileInfluence = (
-  category: EditableAssetCategory,
+  category: AssetCategory,
   garmentProfile: GarmentProfile | undefined
 ): GarmentProfileInfluence => {
   if (!garmentProfile) {
@@ -337,6 +335,7 @@ const resolveGarmentProfileInfluence = (
 };
 
 export const buildGarmentLayerConfig = (asset: Asset, body: BodyProfile): GarmentLayerConfig => {
+  const flatBody = flattenBodyProfile(body);
   const measurements = resolveGarmentMeasurements(asset, body);
   const fitProfile = resolveFitProfile(asset);
   const layer = fitProfile.layer ?? 'mid';
@@ -345,14 +344,14 @@ export const buildGarmentLayerConfig = (asset: Asset, body: BodyProfile): Garmen
   const influence = resolveGarmentProfileInfluence(asset.category, asset.garmentProfile ?? asset.metadata?.garmentProfile);
 
   if (asset.category === 'bottoms') {
-    const shellWidth = ((measurements.hipCm ?? body.hipCm + 8) / 110) * influence.widthScale;
+    const shellWidth = ((measurements.hipCm ?? flatBody.hipCm + 8) / 110) * influence.widthScale;
     const shellDepth = Math.max(
       0.78,
-      (body.hipCm / 120 + ((measurements.hipCm ?? body.hipCm + 6) - body.hipCm) / 80) * influence.depthScale
+      (flatBody.hipCm / 120 + ((measurements.hipCm ?? flatBody.hipCm + 6) - flatBody.hipCm) / 80) * influence.depthScale
     );
     const shellHeight = Math.max(
       0.96,
-      ((measurements.lengthCm ?? body.inseamCm + 30) / 95) * influence.heightScale
+      ((measurements.lengthCm ?? flatBody.inseamCm + 30) / 95) * influence.heightScale
     );
     return {
       assetId: asset.id,
@@ -366,7 +365,7 @@ export const buildGarmentLayerConfig = (asset: Asset, body: BodyProfile): Garmen
       limbWidth: Math.max(0.34, ((measurements.hemCm ?? 38) / 65) * influence.widthScale),
       limbLength: Math.max(
         1.2,
-        ((measurements.inseamCm ?? body.inseamCm) / 52) * influence.limbLengthScale
+        ((measurements.inseamCm ?? flatBody.inseamCm) / 52) * influence.limbLengthScale
       ),
       hemWidth: (measurements.hemCm ?? 38) / 60,
       color,
@@ -401,28 +400,28 @@ export const buildGarmentLayerConfig = (asset: Asset, body: BodyProfile): Garmen
     };
   }
 
-  const chestEase = (measurements.chestCm ?? body.chestCm + 8) - body.chestCm;
-  const waistEase = (measurements.waistCm ?? body.waistCm + 8) - body.waistCm;
-  const shoulderEase = (measurements.shoulderCm ?? body.shoulderCm + 2) - body.shoulderCm;
+  const chestEase = (measurements.chestCm ?? flatBody.chestCm + 8) - flatBody.chestCm;
+  const waistEase = (measurements.waistCm ?? flatBody.waistCm + 8) - flatBody.waistCm;
+  const shoulderEase = (measurements.shoulderCm ?? flatBody.shoulderCm + 2) - flatBody.shoulderCm;
 
   return {
     assetId: asset.id,
     name: asset.name,
     category: asset.category,
     layerOrder,
-    shellWidth: Math.max(0.95, (body.chestCm / 105 + chestEase / 70) * influence.widthScale),
-    shellDepth: Math.max(0.68, (body.waistCm / 120 + waistEase / 90) * influence.depthScale),
+    shellWidth: Math.max(0.95, (flatBody.chestCm / 105 + chestEase / 70) * influence.widthScale),
+    shellDepth: Math.max(0.68, (flatBody.waistCm / 120 + waistEase / 90) * influence.depthScale),
     shellHeight: Math.max(0.95, ((measurements.lengthCm ?? 68) / 62) * influence.heightScale),
     shellYOffset: (asset.category === 'outerwear' ? 0.08 : 0.15) + influence.yOffsetDelta,
     limbWidth: Math.max(
       0.24,
-      ((measurements.shoulderCm ?? body.shoulderCm) / 95 + shoulderEase / 120) * influence.shoulderScale
+      ((measurements.shoulderCm ?? flatBody.shoulderCm) / 95 + shoulderEase / 120) * influence.shoulderScale
     ),
     limbLength: Math.max(
       1.1,
       ((measurements.sleeveLengthCm ?? 61) / 44) * influence.limbLengthScale
     ),
-    hemWidth: Math.max(0.8, (measurements.hemCm ?? body.waistCm + 8) / 90),
+    hemWidth: Math.max(0.8, (measurements.hemCm ?? flatBody.waistCm + 8) / 90),
     color,
     textureUrl: asset.imageSrc,
     measurements,

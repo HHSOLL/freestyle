@@ -27,8 +27,10 @@
 - 기존 shape assumption은 유지한다. `measurements`는 기존 cm 필드(`chestCm`, `waistCm`, `hipCm`, `shoulderCm`, `sleeveLengthCm`, `lengthCm`, `inseamCm`, `riseCm`, `hemCm`)를 그대로 사용한다.
 
 ### Reserved body profile persistence extension point
-- canonical `BodyProfile` shape는 다음 simple 필드를 필수로 유지한다: `heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`.
-- detailed extension fields(`neckCm`, `torsoLengthCm`, `armLengthCm`, `sleeveLengthCm`, `bicepCm`, `forearmCm`, `wristCm`, `riseCm`, `outseamCm`, `thighCm`, `kneeCm`, `calfCm`, `ankleCm`)는 모두 optional numeric cm 필드다.
+- canonical `BodyProfile` shape는 flat object가 아니라 envelope다: `{ simple, detailed? }`.
+- `simple`은 필수 numeric cm 필드 `heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`를 가진다.
+- `detailed`는 optional object이며 `neckCm`, `torsoLengthCm`, `armLengthCm`, `sleeveLengthCm`, `bicepCm`, `forearmCm`, `wristCm`, `riseCm`, `outseamCm`, `thighCm`, `kneeCm`, `calfCm`, `ankleCm`를 optional numeric cm 필드로 가진다.
+- 클라이언트 localStorage migration을 위해 legacy flat payload는 읽기 시 정규화할 수 있지만, canonical reserved contract는 envelope 기준으로 정의한다.
 - planned reservation: `GET /v1/body-profiles/me`, `PUT /v1/body-profiles/me`
 - 상태: reserved only, not implemented. 현재 body profile은 Studio/Closet 클라이언트 로컬 상태에서만 사용되며 `/v1` persistence endpoint는 아직 없다.
 

@@ -8,7 +8,9 @@
 5. `npm run build`
 6. `npm run validate:garment3d`
 7. (cloth 변경 배치일 때) `npm run bench:cloth4a`
-8. 주요 API smoke check
+8. body profile migration smoke check
+- legacy flat localStorage payload와 canonical envelope payload 둘 다 Studio/Closet에서 hydrate되는지 확인
+9. 주요 API smoke check
 - `/healthz`
 - `/readyz`
 - `/v1/jobs/import/product`
@@ -24,7 +26,7 @@
 - `/v1/widget/config?tenant_id={tenant}&product_id={product}`
 - `/v1/widget/events`
 - `/auth/callback`
-9. 주요 UI smoke check
+10. 주요 UI smoke check
 - `/`
 - `/app/closet`
 - `/studio`
@@ -42,6 +44,7 @@
 - Vercel 프론트의 `NEXT_PUBLIC_CLOTH_MVP_ENABLED`, `NEXT_PUBLIC_CLOTH_SPIKE_PASSED` 값이 현재 rollout 단계와 일치하는지 확인
 - Vercel 프로젝트 루트가 `apps/web`인지, 또는 루트 배포 시 `npm run build`가 `@freestyle/web`를 호출하는지 확인
 - `apps/web` 내부에 `postcss.config.mjs`와 Tailwind/PostCSS 의존성이 존재하는지 확인(독립 workspace 빌드 기준)
+- `apps/web`가 `@freestyle/contracts` root가 아니라 `@freestyle/contracts/domain-types` subpath로 타입을 가져오는지 확인(독립 workspace build 재발 방지)
 - Supabase 관련 키 (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`)
 - Supabase Auth `site_url`, `uri_allow_list`에 현재 운영 도메인과 `/auth/callback`이 등록되어 있는지 확인
 - Railway 각 서비스에 `RAILWAY_DOCKERFILE_PATH=infra/docker/railway/<service>.Dockerfile`가 설정되어 있는지 확인
@@ -64,6 +67,7 @@
 4. 오류 로그 확인
 - 네트워크 타임아웃/외부 API 오류/스토리지 권한
 - Vercel 프론트 5xx/404 발생 시 rewrite 대상(`BACKEND_ORIGIN`) 및 Railway API health 동시 확인
+- Vercel typecheck/build 실패가 `packages/contracts/src/index.ts`와 `zod` 경계에서 나오면, 웹이 root entry를 import하지 않았는지 먼저 확인
 5. Vercel Git 배포 경로 확인
 - GitHub 재연결/권한 변경 직후 자동 배포가 멈춘 것처럼 보이면 `main`에 새 커밋을 푸시해 Git 기반 production deployment가 다시 트리거되는지 먼저 확인한다.
 - 자동 배포가 계속 멈추면 Vercel Dashboard의 Deployments 화면에서 Git reference(branch 또는 commit SHA) 기준 수동 deployment를 생성해 우회할 수 있다.

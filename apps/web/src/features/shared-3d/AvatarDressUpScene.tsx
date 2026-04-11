@@ -5,16 +5,8 @@ import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { flattenBodyProfile, type BodyProfile } from '@freestyle/contracts/domain-types';
 import { avatarPresetMap, type AvatarPresetId } from './avatarPresets';
-
-type SceneBodyProfile = {
-  heightCm: number;
-  shoulderCm: number;
-  chestCm: number;
-  waistCm: number;
-  hipCm: number;
-  inseamCm: number;
-};
 
 type SceneLayerConfig = {
   assetId: string;
@@ -31,7 +23,7 @@ type SceneLayerConfig = {
 };
 
 type AvatarDressUpSceneProps = {
-  body: SceneBodyProfile;
+  body: BodyProfile;
   layers: SceneLayerConfig[];
   selectedAssetId: string | null;
   avatarId?: AvatarPresetId;
@@ -59,11 +51,12 @@ function makeAvatarMaterial(color: string) {
   });
 }
 
-function AvatarModel({ avatarId, body }: { avatarId: AvatarPresetId; body: SceneBodyProfile }) {
+function AvatarModel({ avatarId, body }: { avatarId: AvatarPresetId; body: BodyProfile }) {
   const preset = avatarPresetMap[avatarId];
   const gltf = useGLTF(preset.modelPath);
 
   const { model, scale, position } = useMemo(() => {
+    const flatBody = flattenBodyProfile(body);
     const scene = clone(gltf.scene);
     scene.traverse((object) => {
       if ('isMesh' in object && object.isMesh) {
@@ -81,7 +74,7 @@ function AvatarModel({ avatarId, body }: { avatarId: AvatarPresetId; body: Scene
     box.getCenter(center);
 
     const sourceHeight = Math.max(size.y, 0.001);
-    const bodyHeightScale = body.heightCm / 172;
+    const bodyHeightScale = flatBody.heightCm / 172;
     const nextScale = (dressupHeightUnits / sourceHeight) * bodyHeightScale * preset.scaleMultiplier;
     const nextPosition = new THREE.Vector3(
       -center.x * nextScale,
@@ -94,7 +87,7 @@ function AvatarModel({ avatarId, body }: { avatarId: AvatarPresetId; body: Scene
       scale: nextScale,
       position: nextPosition,
     };
-  }, [body.heightCm, gltf.scene, preset]);
+  }, [body, gltf.scene, preset]);
 
   return <primitive object={model} scale={scale} position={position} />;
 }

@@ -4,10 +4,11 @@
 import dynamic from 'next/dynamic';
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
 import { Cuboid, RotateCcw, Ruler, X } from 'lucide-react';
+import { normalizeBodyProfile, setSimpleBodyMeasurement, type Asset, type GarmentFitProfile, type GarmentMeasurements } from '@freestyle/contracts/domain-types';
 import { Button } from '@/components/ui/button';
 import { avatarPresets, avatarStorageKey, parseAvatarPresetId, type AvatarPresetId } from '@/features/shared-3d/avatarPresets';
 import { buildFittingLayers, defaultBodyProfile, type BodyProfile } from '../fitting';
-import type { Asset, GarmentFitProfile, GarmentMeasurements, StudioTranslator } from '../types';
+import type { StudioTranslator } from '../types';
 
 const MannequinScene3D = dynamic(
   () => import('./MannequinScene3D').then((module) => module.MannequinScene3D),
@@ -60,11 +61,7 @@ const parseSavedBodyProfile = () => {
   try {
     const raw = window.localStorage.getItem(bodyStorageKey);
     if (!raw) return defaultBodyProfile;
-    const parsed = JSON.parse(raw) as Partial<BodyProfile>;
-    return {
-      ...defaultBodyProfile,
-      ...parsed,
-    };
+    return normalizeBodyProfile(JSON.parse(raw));
   } catch {
     return defaultBodyProfile;
   }
@@ -261,18 +258,15 @@ export function FittingWorkbench({
                     <label key={String(field.key)} className="block">
                       <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-black/60">
                         <span>{field.label}</span>
-                        <span>{bodyProfile[field.key]} cm</span>
+                        <span>{bodyProfile.simple[field.key]} cm</span>
                       </div>
                       <input
                         type="range"
                         min={field.min}
                         max={field.max}
-                        value={bodyProfile[field.key]}
+                        value={bodyProfile.simple[field.key]}
                         onChange={(event) =>
-                          setBodyProfile((prev: BodyProfile) => ({
-                            ...prev,
-                            [field.key]: Number(event.target.value),
-                          }))
+                          setBodyProfile((prev: BodyProfile) => setSimpleBodyMeasurement(prev, field.key, Number(event.target.value)))
                         }
                         className="w-full accent-black"
                       />

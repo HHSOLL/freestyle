@@ -3,9 +3,23 @@ export type {
   BodyProfile,
   BodyProfileRecord,
   BodyProfileUpsertInput,
+  FlattenedBodyProfile,
   GarmentFitProfile,
   GarmentMeasurements,
   GarmentProfile,
+} from "./domain-types.js";
+export {
+  bodyProfileDetailedKeys,
+  bodyProfileSimpleKeys,
+  defaultBodyProfile,
+  defaultBodyProfileDetailed,
+  defaultBodyProfileSimple,
+  flattenBodyProfile,
+  getBodyMeasurement,
+  isBodyProfile,
+  isLegacyBodyProfileFlat,
+  normalizeBodyProfile,
+  setSimpleBodyMeasurement,
 } from "./domain-types.js";
 
 export const widgetErrorCodeSchema = z.enum([
@@ -146,7 +160,7 @@ export const widgetErrorResponseSchema = z
 
 export const measurementCmSchema = z.number().min(0).max(400);
 
-export const bodyProfileSchema = z
+export const bodyProfileSimpleSchema = z
   .object({
     heightCm: measurementCmSchema,
     shoulderCm: measurementCmSchema,
@@ -154,6 +168,11 @@ export const bodyProfileSchema = z
     waistCm: measurementCmSchema,
     hipCm: measurementCmSchema,
     inseamCm: measurementCmSchema,
+  })
+  .strict();
+
+export const bodyProfileDetailedSchema = z
+  .object({
     neckCm: measurementCmSchema.optional(),
     torsoLengthCm: measurementCmSchema.optional(),
     armLengthCm: measurementCmSchema.optional(),
@@ -169,6 +188,42 @@ export const bodyProfileSchema = z
     ankleCm: measurementCmSchema.optional(),
   })
   .strict();
+
+export const legacyBodyProfileFlatSchema = bodyProfileSimpleSchema
+  .extend({
+    neckCm: measurementCmSchema.optional(),
+    torsoLengthCm: measurementCmSchema.optional(),
+    armLengthCm: measurementCmSchema.optional(),
+    sleeveLengthCm: measurementCmSchema.optional(),
+    bicepCm: measurementCmSchema.optional(),
+    forearmCm: measurementCmSchema.optional(),
+    wristCm: measurementCmSchema.optional(),
+    riseCm: measurementCmSchema.optional(),
+    outseamCm: measurementCmSchema.optional(),
+    thighCm: measurementCmSchema.optional(),
+    kneeCm: measurementCmSchema.optional(),
+    calfCm: measurementCmSchema.optional(),
+    ankleCm: measurementCmSchema.optional(),
+  })
+  .strict();
+
+export const bodyProfileSchema = z
+  .object({
+    simple: bodyProfileSimpleSchema,
+    detailed: bodyProfileDetailedSchema.optional(),
+  })
+  .strict();
+
+export const assetCategorySchema = z.enum([
+  "tops",
+  "bottoms",
+  "outerwear",
+  "shoes",
+  "accessories",
+  "custom",
+]);
+
+export const assetSourceSchema = z.enum(["inventory", "upload", "url", "import"]);
 
 export const garmentMeasurementsSchema = z
   .object({
@@ -249,6 +304,67 @@ export const garmentProfileSchema = z
   })
   .strict();
 
+export const assetMetadataSchema = z
+  .object({
+    sourceTitle: z.string().trim().min(1).max(256).optional(),
+    sourceBrand: z.string().trim().min(1).max(128).optional(),
+    sourceUrl: z.url().optional(),
+    originalSize: z
+      .object({
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+      .strict()
+      .optional(),
+    cutout: z
+      .object({
+        removedBackground: z.boolean().optional(),
+        strategy: z.enum(["remote_remove_bg", "embedded_alpha", "local_heuristic"]).optional(),
+        fallbackUsed: z.boolean().optional(),
+        quality: z.record(z.string(), z.unknown()).optional(),
+        trimRect: z
+          .object({
+            left: z.number().int().nonnegative(),
+            top: z.number().int().nonnegative(),
+            width: z.number().int().positive(),
+            height: z.number().int().positive(),
+            padding: z.number().int().nonnegative(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    measurements: garmentMeasurementsSchema.optional(),
+    fitProfile: garmentFitProfileSchema.optional(),
+    garmentProfile: garmentProfileSchema.optional(),
+    dominantColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  })
+  .strict();
+
+export const assetSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    name: z.string().trim().min(1),
+    imageSrc: z.string().trim().min(1),
+    category: assetCategorySchema,
+    price: z.number().nonnegative().optional(),
+    brand: z.string().trim().min(1).optional(),
+    source: assetSourceSchema,
+    removedBackground: z.boolean().optional(),
+    sourceUrl: z.url().optional(),
+    metadata: assetMetadataSchema.optional(),
+    garmentProfile: garmentProfileSchema.optional(),
+  })
+  .strict();
+
+export const assetUpdateInputSchema = z
+  .object({
+    category: assetCategorySchema.optional(),
+    metadata: assetMetadataSchema.optional(),
+  })
+  .strict();
+
 // Reserved for future `/v1/body-profiles/me` persistence endpoint (not implemented yet).
 export const bodyProfileRecordSchema = z
   .object({
@@ -276,3 +392,11 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
+export type BodyProfileSimple = z.infer<typeof bodyProfileSimpleSchema>;
+export type BodyProfileDetailed = z.infer<typeof bodyProfileDetailedSchema>;
+export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
+export type AssetCategory = z.infer<typeof assetCategorySchema>;
+export type AssetSource = z.infer<typeof assetSourceSchema>;
+export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
+export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
+export type Asset = z.infer<typeof assetSchema>;

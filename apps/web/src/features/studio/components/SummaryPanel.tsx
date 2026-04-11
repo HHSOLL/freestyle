@@ -5,7 +5,8 @@ import { Cuboid, ExternalLink, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatSourceLink } from '../utils';
-import type { Asset, CanvasItem, StudioTranslator } from '../types';
+import type { Asset } from '@freestyle/contracts/domain-types';
+import type { CanvasItem, StudioTranslator } from '../types';
 
 type SummaryPanelProps = {
   t: StudioTranslator;

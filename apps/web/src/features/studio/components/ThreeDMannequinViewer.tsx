@@ -10,7 +10,7 @@ import {
   Texture,
   TextureLoader,
 } from 'three';
-import type { GarmentProfile } from '../types';
+import type { GarmentProfile } from '@freestyle/contracts/domain-types';
 
 export type MannequinMeasurements = {
   heightCm: number;

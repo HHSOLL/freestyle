@@ -1,8 +1,6 @@
 import { z } from "zod";
 import {
-  garmentFitProfileSchema,
-  garmentMeasurementsSchema,
-  garmentProfileSchema,
+  type AssetMetadata,
 } from "../../contracts/src/index.js";
 
 export * from "../../contracts/src/index.js";
@@ -57,51 +55,6 @@ export const importUploadJobInputSchema = z.object({
   idempotency_key: z.string().trim().min(1).max(128).optional(),
 });
 
-export const assetMetadataSchema = z
-  .object({
-    sourceTitle: z.string().trim().min(1).max(256).optional(),
-    sourceBrand: z.string().trim().min(1).max(128).optional(),
-    sourceUrl: z.url().optional(),
-    originalSize: z
-      .object({
-        width: z.number().int().positive(),
-        height: z.number().int().positive(),
-      })
-      .strict()
-      .optional(),
-    cutout: z
-      .object({
-        removedBackground: z.boolean().optional(),
-        strategy: z.enum(["remote_remove_bg", "embedded_alpha", "local_heuristic"]).optional(),
-        fallbackUsed: z.boolean().optional(),
-        quality: z.record(z.string(), z.unknown()).optional(),
-        trimRect: z
-          .object({
-            left: z.number().int().nonnegative(),
-            top: z.number().int().nonnegative(),
-            width: z.number().int().positive(),
-            height: z.number().int().positive(),
-            padding: z.number().int().nonnegative(),
-          })
-          .strict()
-          .optional(),
-      })
-      .strict()
-      .optional(),
-    measurements: garmentMeasurementsSchema.optional(),
-    fitProfile: garmentFitProfileSchema.optional(),
-    garmentProfile: garmentProfileSchema.optional(),
-    dominantColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  })
-  .strict();
-
-export const assetUpdateInputSchema = z
-  .object({
-    category: z.string().trim().min(1).max(64).optional(),
-    metadata: assetMetadataSchema.optional(),
-  })
-  .strict();
-
 export const evaluateOutfitInputSchema = z.object({
   request_payload: z.record(z.string(), z.unknown()),
   idempotency_key: z.string().trim().min(1).max(128).optional(),
@@ -117,8 +70,6 @@ export type ImportProductJobInput = z.infer<typeof importProductJobInputSchema>;
 export type ImportProductBatchJobInput = z.infer<typeof importProductBatchJobInputSchema>;
 export type ImportCartJobInput = z.infer<typeof importCartJobInputSchema>;
 export type ImportUploadJobInput = z.infer<typeof importUploadJobInputSchema>;
-export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
-export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type EvaluateOutfitInput = z.infer<typeof evaluateOutfitInputSchema>;
 export type CreateTryonInput = z.infer<typeof createTryonInputSchema>;
 

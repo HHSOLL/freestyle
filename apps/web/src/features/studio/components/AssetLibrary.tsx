@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, LayoutGrid, Link as LinkIcon, Plus, Search, ShoppingCart, Trash2, Upload } from 'lucide-react';
-import type { Asset, AssetCategory, StudioCategoryOption, StudioTranslator } from '../types';
+import type { Asset } from '@freestyle/contracts/domain-types';
+import type { AssetCategory, StudioCategoryOption, StudioTranslator } from '../types';
 
 type AssetLibraryProps = {
   t: StudioTranslator;

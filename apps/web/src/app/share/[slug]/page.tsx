@@ -21,14 +21,14 @@ const toSharedOutfitItem = (value: unknown): SharedOutfitItem | null => {
 
 export default async function SharePage({ params }: PageProps) {
   const resolvedParams = await params;
-  const response = await fetch(buildApiPath(`/v1/discover/looks/${resolvedParams.slug}`), {
+  const response = await fetch(buildApiPath(`/v1/community/looks/${resolvedParams.slug}`), {
     cache: "no-store",
   });
   if (!response.ok) {
     notFound();
   }
-  const payload = (await response.json()) as { outfit?: Record<string, unknown> };
-  const rawOutfit = payload?.outfit;
+  const payload = (await response.json()) as { look?: Record<string, unknown>; outfit?: Record<string, unknown> };
+  const rawOutfit = payload?.look ?? payload?.outfit;
   const data =
     rawOutfit && typeof rawOutfit === "object"
       ? (rawOutfit as {

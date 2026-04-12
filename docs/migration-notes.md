@@ -38,13 +38,14 @@ Legacy redirects now live in `apps/web/route-map.mjs`.
 Current quarantine behavior:
 
 - `/studio -> /app/fitting`
-- `/trends -> /app/discover`
-- `/examples -> /app/discover`
-- `/how-it-works -> /app/discover`
+- `/trends -> /app/community`
+- `/examples -> /app/community`
+- `/how-it-works -> /app/community`
 - `/profile -> /app/profile`
 - `/app/looks* -> /app/canvas`
 - `/app/decide* -> /app/closet`
 - `/app/journal* -> /app/profile`
+- `/app/discover* -> /app/community`
 
 ## 4. API Realignment
 
@@ -58,7 +59,7 @@ Result:
 
 - import/assets/outfits/widget remain available only as deprecated or supporting flows
 - AI evaluation and try-on moved behind lab isolation
-- main product routes expose body profile, closet, canvas, and discover
+- main product routes expose body profile, closet, canvas, and community
 
 ## 5. State Migration
 
@@ -106,3 +107,4 @@ This is a real gap. It is documented in `docs/avatar-pipeline.md` and should not
 - continue shrinking or removing obsolete legacy packages once no longer needed
 - keep page files thin and move additional logic into domain packages where necessary
 - keep every new surface inside the same wardrobe design language
+- keep `/` home, `/app/closet`, `/app/canvas`, `/app/community`, and `/app/profile` aligned to the same shell hierarchy

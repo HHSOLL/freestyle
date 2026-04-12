@@ -2,7 +2,7 @@
 "use client";
 
 import React, { type CSSProperties, type ReactNode } from "react";
-import type { PrimaryNavigationItem, ProductSurfaceId } from "@freestyle/shared-types";
+import type { PrimaryNavigationItem } from "@freestyle/shared-types";
 import { wardrobeTokens } from "@freestyle/design-tokens";
 import { cn } from "@freestyle/shared-utils";
 
@@ -119,32 +119,53 @@ export function MeasurementSlider({
 export function BottomModeBar({
   active,
   items,
+  className,
 }: {
-  active: ProductSurfaceId;
+  active: string;
   items: Array<{
-    id: ProductSurfaceId;
+    id: string;
     label: string;
-    href: string;
+    href?: string;
+    onClick?: () => void;
   }>;
+  className?: string;
 }) {
   return (
     <SurfacePanel
-      className="flex items-center justify-between gap-2 px-2 py-2"
+      className={cn("flex items-center justify-between gap-2 px-2 py-2", className)}
       style={{ borderRadius: 999, overflowX: "auto" }}
     >
-      {items.map((item) => (
-        <a
-          key={item.id}
-          href={item.href}
-          className="inline-flex min-w-[92px] items-center justify-center rounded-full px-4 py-2 text-[12px] font-semibold no-underline transition"
-          style={{
-            background: item.id === active ? wardrobeTokens.color.accent : "transparent",
-            color: item.id === active ? "#ffffff" : wardrobeTokens.color.textMuted,
-          }}
-        >
-          {item.label}
-        </a>
-      ))}
+      {items.map((item) => {
+        const style = {
+          background: item.id === active ? wardrobeTokens.color.accent : "transparent",
+          color: item.id === active ? "#ffffff" : wardrobeTokens.color.textMuted,
+        };
+
+        if (item.href) {
+          return (
+            <a
+              key={item.id}
+              href={item.href}
+              className="inline-flex min-w-[92px] items-center justify-center rounded-full px-4 py-2 text-[12px] font-semibold no-underline transition"
+              style={style}
+            >
+              {item.label}
+            </a>
+          );
+        }
+
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={item.onClick}
+            className="inline-flex min-w-[92px] items-center justify-center rounded-full px-4 py-2 text-[12px] font-semibold transition"
+            style={style}
+          >
+            {item.label}
+          </button>
+        );
+      })}
     </SurfacePanel>
   );
 }
@@ -253,6 +274,46 @@ export function WorkspaceFrame({
         <div className="min-h-0">{right}</div>
       </div>
       <div>{footer}</div>
+    </div>
+  );
+}
+
+export function ReferenceWorkspace({
+  toolbar,
+  left,
+  stage,
+  right,
+  footer,
+  className,
+  layoutClassName,
+}: {
+  toolbar?: ReactNode;
+  left: ReactNode;
+  stage: ReactNode;
+  right: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  layoutClassName?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-auto flex min-h-[calc(100svh-148px)] w-full max-w-[1720px] flex-col gap-4 px-4 pb-6 sm:px-6 lg:px-8",
+        className,
+      )}
+    >
+      {toolbar ? <div className="flex justify-center">{toolbar}</div> : null}
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 gap-4 lg:grid-cols-[296px_minmax(0,1fr)_372px] xl:grid-cols-[308px_minmax(0,1fr)_396px]",
+          layoutClassName,
+        )}
+      >
+        <div className="min-h-0">{left}</div>
+        <div className="min-h-0">{stage}</div>
+        <div className="min-h-0">{right}</div>
+      </div>
+      {footer ? <div className="flex justify-center pb-1">{footer}</div> : null}
     </div>
   );
 }

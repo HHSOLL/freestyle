@@ -6,15 +6,15 @@ export const appNav = {
   ko: [
     { href: '/', label: '홈' },
     { href: '/app/closet', label: '옷장' },
-    { href: '/studio', label: '캔버스' },
-    { href: '/app/discover', label: '발견' },
+    { href: '/app/canvas', label: '캔버스' },
+    { href: '/app/community', label: '커뮤니티' },
     { href: '/app/profile', label: '마이페이지' },
   ],
   en: [
     { href: '/', label: 'Home' },
     { href: '/app/closet', label: 'Closet' },
-    { href: '/studio', label: 'Canvas' },
-    { href: '/app/discover', label: 'Discover' },
+    { href: '/app/canvas', label: 'Canvas' },
+    { href: '/app/community', label: 'Community' },
     { href: '/app/profile', label: 'My Page' },
   ],
 } as const;
@@ -34,18 +34,18 @@ export const appMeta = {
       en: 'The default workspace where the wardrobe asset rail and custom mannequin stage stay side by side.',
     },
   },
-  '/studio': {
+  '/app/canvas': {
     title: { ko: 'Canvas', en: 'Canvas' },
     description: {
       ko: '에셋을 가져오고 2D 캔버스에서 조합을 빠르게 실험하는 작업 화면입니다.',
       en: 'The working surface for importing assets and experimenting with combinations on the 2D canvas.',
     },
   },
-  '/app/discover': {
-    title: { ko: 'Discover', en: 'Discover' },
+  '/app/community': {
+    title: { ko: '커뮤니티', en: 'Community' },
     description: {
-      ko: '영감을 소비하는 대신 내 옷장과 캔버스로 번역하는 화면입니다.',
-      en: 'A surface for translating inspiration into your real closet and canvas workflow.',
+      ko: '조용한 스타일 보드를 보고 내 옷장과 캔버스로 번역하는 화면입니다.',
+      en: 'A surface for translating quiet styling boards into your real closet and canvas workflow.',
     },
   },
   '/app/profile': {

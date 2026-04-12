@@ -3,13 +3,14 @@
 import Image from "next/image";
 import {
   Footprints,
+  Layers3,
   PersonStanding,
   Shirt,
   Sparkles,
   Waves,
 } from "lucide-react";
 import type { Asset, GarmentCategory, StarterGarment } from "@freestyle/shared-types";
-import { Eyebrow, PillButton, SurfacePanel } from "@freestyle/ui";
+import { Eyebrow, SurfacePanel } from "@freestyle/ui";
 
 const categoryLabels: Record<GarmentCategory, { ko: string; en: string }> = {
   tops: { ko: "상의", en: "Tops" },
@@ -65,22 +66,31 @@ export function ClosetCatalogPanel({
       <SurfacePanel className="space-y-4 rounded-[30px] border border-black/6 bg-white/38 px-4 py-4 shadow-none backdrop-blur-[18px]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <Eyebrow>Runtime catalog</Eyebrow>
-            <h2 className="mt-2 text-[20px] font-semibold text-[#151b24]">
-              {language === "ko" ? "실시간 착장 카탈로그" : "Runtime garment catalog"}
-            </h2>
-            <p className="mt-1 text-[12px] leading-5 text-black/45">
+            <Eyebrow>Outfit</Eyebrow>
+            <h2 className="mt-2 text-[20px] font-semibold text-[#151b24]">{language === "ko" ? "Wardrobe catalog" : "Wardrobe catalog"}</h2>
+            <p className="mt-1 max-w-[250px] text-[12px] leading-5 text-black/45">
               {language === "ko"
-                ? "메인 플로우에는 rig contract가 검증된 starter garment만 노출합니다."
-                : "The main flow only exposes starter garments that already satisfy the rig and fitting contract."}
+                ? "착장 가능한 verified garment만 메인 fitting surface에 연결합니다."
+                : "Only verified garments stay connected to the main fitting surface."}
             </p>
           </div>
-          <div className="rounded-full bg-white/78 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/38">
-            {starterItems.length} live
+          <div className="flex items-center gap-2">
+            {[
+              Shirt,
+              Layers3,
+              Sparkles,
+            ].map((Icon, index) => (
+              <div
+                key={index}
+                className="grid h-9 w-9 place-items-center rounded-full border border-black/6 bg-white/78 text-black/44"
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[50px_82px_minmax(0,1fr)]">
+        <div className="grid gap-3 lg:grid-cols-[52px_92px_minmax(0,1fr)]">
           <div className="flex flex-col items-center gap-2 rounded-[26px] bg-white/22 px-1.5 py-2.5">
             {categoryOrder.map((category) => {
               const Icon = categoryIcons[category];
@@ -109,7 +119,7 @@ export function ClosetCatalogPanel({
               {subcategoryLabels[activeCategory].map((label, index) => (
                 <div
                   key={label}
-                  className="rounded-full px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                  className="rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.18em]"
                   style={{
                     background: index === 0 ? "rgba(255,255,255,0.82)" : "transparent",
                     color: index === 0 ? "#151b24" : "rgba(21,27,36,0.46)",
@@ -151,7 +161,7 @@ export function ClosetCatalogPanel({
                     unoptimized
                   />
                 </div>
-                <div className="truncate text-[11px] font-medium text-[#151b24]">{item.name}</div>
+                <div className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-[#151b24]">{item.name}</div>
               </button>
             ))}
           </div>
@@ -165,21 +175,24 @@ export function ClosetCatalogPanel({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2 pt-1">
-          {categoryOrder.map((category) => (
-            <PillButton key={category} active={activeCategory === category} onClick={() => onCategoryChange(category)}>
-              {categoryLabels[category][language]}
-            </PillButton>
-          ))}
+        <div className="flex items-center justify-between rounded-[22px] border border-black/6 bg-white/34 px-4 py-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-black/35">{language === "ko" ? "active" : "active"}</div>
+            <div className="mt-1 text-[13px] font-semibold text-[#151b24]">{categoryLabels[activeCategory][language]}</div>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-black/8 bg-[#c8def8] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#243040]"
+          >
+            {language === "ko" ? "Complete" : "Complete"}
+          </button>
         </div>
       </SurfacePanel>
 
       <SurfacePanel className="space-y-3 rounded-[30px] border border-black/6 bg-white/38 px-4 py-4 shadow-none backdrop-blur-[18px]">
         <div>
           <Eyebrow>Imported references</Eyebrow>
-          <h3 className="mt-2 text-[16px] font-semibold text-[#151b24]">
-            {language === "ko" ? "보관된 참고 에셋" : "Stored reference assets"}
-          </h3>
+          <h3 className="mt-2 text-[16px] font-semibold text-[#151b24]">{language === "ko" ? "Stored imports" : "Stored imports"}</h3>
           <p className="mt-1 text-[12px] leading-5 text-black/45">
             {language === "ko"
               ? "이 영역은 lab 밖에서도 조회 가능하지만, rig fitting 계약이 없는 에셋은 메인 착장에는 직접 연결하지 않습니다."

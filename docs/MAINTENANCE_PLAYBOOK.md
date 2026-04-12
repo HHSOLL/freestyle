@@ -19,7 +19,7 @@
 - `/app/closet`
 - `/app/fitting`
 - `/app/canvas`
-- `/app/discover`
+- `/app/community`
 - `/app/profile`
 - `/app/lab`
 - `/auth/callback`
@@ -28,13 +28,14 @@
 ### Redirect smoke
 
 - `/studio -> /app/fitting`
-- `/trends -> /app/discover`
-- `/examples -> /app/discover`
-- `/how-it-works -> /app/discover`
+- `/trends -> /app/community`
+- `/examples -> /app/community`
+- `/how-it-works -> /app/community`
 - `/profile -> /app/profile`
 - `/app/looks -> /app/canvas`
 - `/app/decide -> /app/closet`
 - `/app/journal -> /app/profile`
+- `/app/discover -> /app/community`
 
 ### API smoke
 
@@ -43,7 +44,7 @@
 - `/v1/profile/body-profile`
 - `/v1/closet/items`
 - `/v1/canvas/looks`
-- `/v1/discover/looks`
+- `/v1/community/looks`
 - `/v1/legacy/assets`
 - `/v1/lab/tryons`
 
@@ -57,7 +58,7 @@ Also confirm namespace headers:
 
 Before a release:
 
-1. Capture fresh screenshots for `Closet`, `Fitting`, `Canvas`, `Discover`, and `Profile`.
+1. Capture fresh screenshots for `Home`, `Closet`, `Fitting`, `Canvas`, `Community`, and `Profile`.
 2. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
 3. Confirm the floating top bar, bottom mode bar, left rail, right catalog rail, and centered mannequin stage still hold.
 4. Confirm old routes are still redirected or removed from the main flow.

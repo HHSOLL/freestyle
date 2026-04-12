@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import { startTransition, useMemo, useState } from "react";
-import { wardrobeTokens } from "@freestyle/design-tokens";
-import { Eyebrow, PillButton, SurfacePanel, WorkspaceFrame } from "@freestyle/ui";
+import { BottomModeBar, Eyebrow, ReferenceWorkspace, SurfacePanel } from "@freestyle/ui";
 import { CanvasBoard } from "@/components/product/CanvasBoard";
 import { useBodyProfile } from "@/hooks/useBodyProfile";
 import { useCanvasCompositions } from "@/hooks/useCanvasCompositions";
 import { useClosetScene } from "@/hooks/useClosetScene";
+import { communityLibrary } from "@/lib/community-data";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function CanvasPage() {
@@ -31,34 +31,26 @@ export default function CanvasPage() {
   };
 
   return (
-    <WorkspaceFrame
+    <ReferenceWorkspace
       toolbar={
-        <SurfacePanel className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Eyebrow>Canvas styling</Eyebrow>
-            <h1 className="mt-2 text-[22px] font-semibold text-[#151b24]">
-              {language === "ko" ? "룩 조합 캔버스" : "Look composition canvas"}
-            </h1>
-            <p className="mt-1 text-[12px] leading-5 text-black/45">
-              {language === "ko"
-                ? "현재 착장 스냅샷을 2D styling board로 전환해 배치합니다."
-                : "Translate the active fitting stack into a 2D styling board and arrange it."}
-            </p>
+        <SurfacePanel className="mx-auto flex w-full max-w-[520px] items-center justify-between gap-2 rounded-full border border-black/6 bg-white/34 px-3 py-2.5 shadow-none backdrop-blur-[18px]">
+          <div className="rounded-full border border-black/6 bg-white/56 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/38">
+            Canvas stage
           </div>
-          <PillButton active={false} onClick={createLookBoard}>
-            {language === "ko" ? "현재 룩으로 보드 만들기" : "Create board from current look"}
-          </PillButton>
+          <button
+            type="button"
+            onClick={createLookBoard}
+            className="rounded-full border border-black/8 bg-[#c8def8] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#243040]"
+          >
+            {language === "ko" ? "Create look" : "Create look"}
+          </button>
         </SurfacePanel>
       }
       left={
         <div className="space-y-4">
           <SurfacePanel className="space-y-4 px-4 py-4">
-            <div>
-              <Eyebrow>Current stack</Eyebrow>
-              <h2 className="mt-2 text-[18px] font-semibold text-[#151b24]">
-                {language === "ko" ? "캔버스로 보낼 의상" : "Garments sent to canvas"}
-              </h2>
-            </div>
+            <Eyebrow>{language === "ko" ? "Current stack" : "Current stack"}</Eyebrow>
+            <h2 className="text-[18px] font-semibold text-[#151b24]">{language === "ko" ? "Canvas source look" : "Canvas source look"}</h2>
             <div className="space-y-3">
               {equippedGarments.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 rounded-[20px] border border-black/8 bg-white/52 p-3">
@@ -79,23 +71,38 @@ export default function CanvasPage() {
             </div>
           </SurfacePanel>
           <SurfacePanel className="space-y-3 px-4 py-4">
-            <Eyebrow>Persistence</Eyebrow>
+            <Eyebrow>{language === "ko" ? "Board notes" : "Board notes"}</Eyebrow>
             <p className="text-[12px] leading-5 text-black/45">
               {language === "ko"
-                ? "현재는 local repository adapter에 저장되며, 동일 contract로 API repository를 붙일 수 있게 분리했습니다."
-                : "Canvas state currently persists through a local repository adapter and can later swap to an API repository behind the same contract."}
+                ? "현재 착장 스냅샷을 2D arrangement로 옮기고, 같은 contract로 저장/복원합니다."
+                : "The canvas turns the active fitting stack into a 2D arrangement that persists through the same repository contract."}
             </p>
           </SurfacePanel>
         </div>
       }
       stage={
-        <SurfacePanel className="h-full min-h-[720px] px-4 py-4">
+        <SurfacePanel className="h-full min-h-[760px] rounded-[36px] border border-black/6 bg-white/28 px-4 py-4 shadow-none backdrop-blur-[18px]">
           {selectedComposition ? (
-            <CanvasBoard
-              composition={selectedComposition}
-              garments={equippedGarments}
-              onChange={(composition) => updateComposition(composition)}
-            />
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between px-2 pb-3">
+                <div>
+                  <Eyebrow>{language === "ko" ? "Canvas" : "Canvas"}</Eyebrow>
+                  <div className="mt-2 text-[22px] font-semibold text-[#151b24]">
+                    {language === "ko" ? "Styling composition stage" : "Styling composition stage"}
+                  </div>
+                </div>
+                <div className="rounded-full border border-black/6 bg-white/74 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-black/38">
+                  {selectedComposition.items.length} items
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden rounded-[32px] border border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.38),rgba(255,255,255,0.16))]">
+                <CanvasBoard
+                  composition={selectedComposition}
+                  garments={equippedGarments}
+                  onChange={(composition) => updateComposition(composition)}
+                />
+              </div>
+            </div>
           ) : (
             <div className="flex h-full min-h-[640px] items-center justify-center rounded-[28px] border border-dashed border-black/12 bg-white/42 px-8 text-center text-[14px] text-black/45">
               {language === "ko"
@@ -107,35 +114,32 @@ export default function CanvasPage() {
       }
       right={
         <SurfacePanel className="space-y-4 px-4 py-4">
-          <div>
-            <Eyebrow>Saved looks</Eyebrow>
-            <h2 className="mt-2 text-[18px] font-semibold text-[#151b24]">
-              {language === "ko" ? "저장된 캔버스" : "Saved canvases"}
-            </h2>
-          </div>
+          <Eyebrow>{language === "ko" ? "Saved looks" : "Saved looks"}</Eyebrow>
+          <h2 className="text-[18px] font-semibold text-[#151b24]">{language === "ko" ? "Saved canvases" : "Saved canvases"}</h2>
           <div className="space-y-3">
             {items.map((composition) => (
-              <button
+              <div
                 key={composition.id}
-                type="button"
-                onClick={() => setSelectedId(composition.id)}
-                className="w-full rounded-[22px] border p-4 text-left transition"
+                className="w-full rounded-[22px] border p-4 transition"
                 style={{
                   background: composition.id === selectedId ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.5)",
-                  borderColor: composition.id === selectedId ? wardrobeTokens.color.accentWarm : "rgba(19,24,32,0.08)",
+                  borderColor: composition.id === selectedId ? "rgba(157,192,232,0.9)" : "rgba(19,24,32,0.08)",
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(composition.id)}
+                    className="min-w-0 text-left"
+                  >
                     <div className="text-[14px] font-semibold text-[#151b24]">{composition.title}</div>
                     <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-black/38">
                       {new Date(composition.updatedAt).toLocaleDateString()}
                     </div>
-                  </div>
+                  </button>
                   <button
                     type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
+                    onClick={() => {
                       removeComposition(composition.id);
                       if (selectedId === composition.id) {
                         setSelectedId(items.find((item) => item.id !== composition.id)?.id ?? null);
@@ -146,7 +150,7 @@ export default function CanvasPage() {
                     {language === "ko" ? "삭제" : "Delete"}
                   </button>
                 </div>
-              </button>
+              </div>
             ))}
             {items.length === 0 ? (
               <div className="rounded-[20px] border border-black/8 bg-white/46 px-4 py-4 text-[13px] text-black/45">
@@ -154,9 +158,41 @@ export default function CanvasPage() {
               </div>
             ) : null}
           </div>
+
+          <div className="space-y-3 rounded-[24px] border border-black/6 bg-white/34 px-3 py-3">
+            <Eyebrow>{language === "ko" ? "Community cues" : "Community cues"}</Eyebrow>
+            {communityLibrary.slice(0, 2).map((entry) => (
+              <div key={entry.id} className="grid grid-cols-[60px_minmax(0,1fr)] gap-3 rounded-[18px] border border-black/6 bg-white/54 p-2.5">
+                <Image
+                  src={entry.image}
+                  alt={entry.title.en}
+                  width={60}
+                  height={60}
+                  className="h-[60px] w-[60px] rounded-[14px] object-cover"
+                  unoptimized
+                />
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-semibold text-[#151b24]">{entry.title[language]}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-black/35">{entry.author[language]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </SurfacePanel>
       }
-      footer={null}
+      footer={
+        <BottomModeBar
+          active="stage"
+          className="w-full max-w-[560px] border border-black/6 bg-white/38 shadow-none backdrop-blur-[18px]"
+          items={[
+            { id: "stage", label: language === "ko" ? "Stage" : "Stage" },
+            { id: "cards", label: language === "ko" ? "Cards" : "Cards" },
+            { id: "layers", label: language === "ko" ? "Layers" : "Layers" },
+            { id: "notes", label: language === "ko" ? "Notes" : "Notes" },
+            { id: "export", label: language === "ko" ? "Export" : "Export" },
+          ]}
+        />
+      }
     />
   );
 }

@@ -25,7 +25,7 @@ export const bodyProfileDetailedKeys = [
 
 export type AvatarGender = "female" | "male" | "neutral";
 export type BodyFrame = "balanced" | "athletic" | "soft" | "curvy";
-export type ProductSurfaceId = "closet" | "fitting" | "canvas" | "discover" | "profile";
+export type ProductSurfaceId = "closet" | "fitting" | "canvas" | "community" | "profile";
 export type QualityTier = "low" | "balanced" | "high";
 export type AvatarPoseId = "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
 export type AvatarRenderVariantId = "female-base" | "male-base";

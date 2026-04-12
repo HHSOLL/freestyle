@@ -69,10 +69,17 @@ This is the reference page.
 - keep the same shell treatment
 - allow more stage area for arrangement work
 
-### Discover
+### Community
 
 - keep the same tone, spacing, radii, and control style
 - do not revert into a generic card dashboard
+- community feed cards should still feel like quiet wardrobe boards, not social-media tiles
+
+### Home
+
+- keep the same gray-white glass language
+- treat the first screen as a product poster, not a dashboard
+- use the wardrobe reference image and the fitting shell as the main visual anchor
 
 ### Profile
 

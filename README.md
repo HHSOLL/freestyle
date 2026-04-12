@@ -12,12 +12,14 @@ FreeStyle is now a mannequin-first wardrobe product. The main experience is no l
 
 ## Main IA
 
+- `Home` at `/`
 - `Closet` at `/app/closet`
 - `Fitting` at `/app/fitting`
 - `Canvas` at `/app/canvas`
-- `Discover` at `/app/discover`
+- `Community` at `/app/community`
 - `Profile` at `/app/profile`
 
+`/app/discover` still resolves, but only as a compatibility redirect to `/app/community`.
 `/app/lab` still exists, but it is quarantined as experimental. It is not part of the main product flow.
 
 ## Product, Legacy, Lab
@@ -28,7 +30,7 @@ The repository is now split into three runtime surfaces:
   - `/v1/profile/body-profile`
   - `/v1/closet/items`
   - `/v1/canvas/looks`
-  - `/v1/discover/looks`
+  - `/v1/community/looks`
 - `Legacy`: `/v1/legacy/*`
   - old import/assets/outfits/widget APIs
   - response header `x-freestyle-surface: legacy`
@@ -78,7 +80,7 @@ packages/contracts       supporting API/widget contracts kept outside the core p
 ## What Changed In This Realignment
 
 - Old duplicate root trees `src/` and `public/` were removed.
-- Main navigation was rebuilt around `Closet / Fitting / Canvas / Discover / Profile`.
+- Main navigation was rebuilt around `Closet / Fitting / Canvas / Community / Profile`.
 - Legacy public routes such as `/studio`, `/trends`, `/examples`, `/how-it-works`, `/app/looks`, `/app/decide`, `/app/journal`, and `/profile` were redirected or removed from the main IA.
 - Large legacy feature trees were deleted or quarantined.
 - The product shell was rebuilt around the supplied wardrobe reference image:
@@ -87,6 +89,7 @@ packages/contracts       supporting API/widget contracts kept outside the core p
   - floating top micro-toolbar
   - bottom segmented mode bar
   - neutral gray and white glass surfaces
+- A real public home surface now exists at `/` instead of redirecting directly into `Closet`.
 
 See [docs/migration-notes.md](docs/migration-notes.md) for the detailed deletion and quarantine log.
 

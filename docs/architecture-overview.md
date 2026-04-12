@@ -33,7 +33,7 @@ flowchart LR
 ### Product
 
 - route prefix: `/v1`
-- purpose: body profile, closet, canvas, discover, auth bridge
+- purpose: body profile, closet, canvas, community, auth bridge
 - UI exposure: main product only
 
 ### Legacy
@@ -75,10 +75,11 @@ Rules:
 
 Main navigation:
 
+- `/`
 - `/app/closet`
 - `/app/fitting`
 - `/app/canvas`
-- `/app/discover`
+- `/app/community`
 - `/app/profile`
 
 Redirect quarantine:
@@ -91,6 +92,7 @@ Redirect quarantine:
 - `/app/looks*`
 - `/app/decide*`
 - `/app/journal*`
+- `/app/discover*`
 
 Source-of-truth files:
 
@@ -150,7 +152,7 @@ This is intentional. The UI and scene runtime are already separated from persist
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Product IA reset | Implemented | Main nav now targets Closet, Fitting, Canvas, Discover, Profile. |
+| Product IA reset | Implemented | Main nav now targets Closet, Fitting, Canvas, Community, Profile, with a public Home at `/`. |
 | Legacy route quarantine | Implemented | Redirect map is active and dead route files were removed. |
 | Domain package split | Implemented | Avatar, garment, canvas, UI, tokens, runtime packages are live. |
 | Product vs legacy vs lab API split | Implemented | Mounted in `apps/api/src/main.ts`. |

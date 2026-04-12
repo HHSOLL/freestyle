@@ -19,8 +19,10 @@ The main product is the five-surface wardrobe runtime:
 - `Closet`
 - `Fitting`
 - `Canvas`
-- `Discover`
+- `Community`
 - `Profile`
+
+`/` is the public home entry and must stay visually aligned with the wardrobe system.
 
 Do not reintroduce old IA into the main shell.
 
@@ -168,7 +170,7 @@ Main product UI must talk to product routes only:
 - `/v1/profile/*`
 - `/v1/closet/*`
 - `/v1/canvas/*`
-- `/v1/discover/*`
+- `/v1/community/*`
 
 Legacy and lab must remain isolated:
 
@@ -183,6 +185,7 @@ Use the wardrobe reference image as the visual truth source.
 
 Required visual characteristics:
 
+- public home that reads as the same product, not a marketing template from another system
 - centered full-height mannequin stage
 - slim translucent side rails
 - floating top control rail

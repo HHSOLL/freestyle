@@ -1,7 +1,24 @@
 "use client";
 
+import type { ComponentType } from "react";
+import {
+  Circle,
+  CircleGauge,
+  Footprints,
+  PersonStanding,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import type { AvatarPoseId, QualityTier } from "@freestyle/shared-types";
-import { Eyebrow, PillButton, SurfacePanel } from "@freestyle/ui";
+import { SurfacePanel } from "@freestyle/ui";
+
+const poseIcons: Record<AvatarPoseId, ComponentType<{ className?: string }>> = {
+  neutral: PersonStanding,
+  relaxed: Sparkles,
+  contrapposto: RotateCcw,
+  stride: Footprints,
+  tailored: Circle,
+};
 
 export function ProductMiniToolbar({
   language,
@@ -19,27 +36,49 @@ export function ProductMiniToolbar({
   onQualityChange: (qualityTier: QualityTier) => void;
 }) {
   return (
-    <SurfacePanel className="mx-auto flex w-full max-w-[760px] flex-col items-center gap-3 rounded-[999px] border border-black/6 bg-white/44 px-3 py-3 shadow-none backdrop-blur-[18px]">
-      <div className="text-center">
-        <Eyebrow>Stage controls</Eyebrow>
-        <p className="mt-1 text-[11px] leading-5 text-black/42">
-          {language === "ko"
-            ? "중앙 툴바에서 pose와 quality만 빠르게 조절합니다."
-            : "Keep pose and quality in a centered micro-toolbar."}
-        </p>
+    <SurfacePanel className="mx-auto flex w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-black/6 bg-white/34 px-3 py-2.5 shadow-none backdrop-blur-[18px]">
+      <div className="hidden items-center gap-2 rounded-full border border-black/6 bg-white/46 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/38 md:flex">
+        <CircleGauge className="h-3.5 w-3.5" />
+        {language === "ko" ? "Stage" : "Stage"}
       </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex items-center gap-1.5">
         {poseOptions.map((pose) => (
-          <PillButton key={pose.id} active={poseId === pose.id} onClick={() => onPoseChange(pose.id)}>
-            {pose.label[language]}
-          </PillButton>
+          <button
+            key={pose.id}
+            type="button"
+            aria-label={pose.label[language]}
+            title={pose.label[language]}
+            onClick={() => onPoseChange(pose.id)}
+            className="grid h-10 w-10 place-items-center rounded-full border transition"
+            style={{
+              background: poseId === pose.id ? "rgba(153,190,235,0.22)" : "rgba(255,255,255,0.5)",
+              borderColor: poseId === pose.id ? "rgba(121,168,219,0.84)" : "rgba(19,24,32,0.08)",
+              color: poseId === pose.id ? "#151b24" : "rgba(21,27,36,0.5)",
+            }}
+          >
+            {(() => {
+              const Icon = poseIcons[pose.id];
+              return <Icon className="h-4 w-4" />;
+            })()}
+          </button>
         ))}
-        <span className="mx-1 hidden h-5 w-px bg-black/8 sm:block" />
+      </div>
+      <span className="mx-1 hidden h-5 w-px bg-black/8 sm:block" />
+      <div className="flex items-center gap-1.5">
         {(["low", "balanced", "high"] as const).map((tier) => (
-          <PillButton key={tier} active={qualityTier === tier} onClick={() => onQualityChange(tier)}>
+          <button
+            key={tier}
+            type="button"
+            onClick={() => onQualityChange(tier)}
+            className="rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition"
+            style={{
+              background: qualityTier === tier ? "rgba(255,255,255,0.84)" : "rgba(255,255,255,0.42)",
+              borderColor: qualityTier === tier ? "rgba(19,24,32,0.18)" : "rgba(19,24,32,0.08)",
+              color: qualityTier === tier ? "#151b24" : "rgba(21,27,36,0.46)",
+            }}
+          >
             {tier}
-          </PillButton>
+          </button>
         ))}
       </div>
     </SurfacePanel>

@@ -65,12 +65,15 @@ export const deleteCanvasLookForUser = async (userId: string, id: string) => {
   await deleteOutfitByIdForUser(id, userId);
 };
 
-export const listDiscoverLooks = async () => {
+export const listCommunityLooks = async () => {
   const outfits = await listOutfits();
   return outfits.map(mapOutfitSummary);
 };
 
-export const getDiscoverLook = async (slug: string) => {
+export const getCommunityLook = async (slug: string) => {
   const outfit = await getOutfitBySlug(slug);
   return outfit ? mapOutfitRecord(outfit) : null;
 };
+
+export const listDiscoverLooks = listCommunityLooks;
+export const getDiscoverLook = getCommunityLook;

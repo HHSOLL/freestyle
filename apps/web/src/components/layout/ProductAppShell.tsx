@@ -26,7 +26,7 @@ export function ProductAppShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <div className="pointer-events-none fixed left-4 top-4 z-50 sm:left-6 sm:top-5 lg:left-8">
-        <Link href="/app/closet" className="pointer-events-auto min-w-0 no-underline">
+        <Link href="/" className="pointer-events-auto min-w-0 no-underline">
           <SurfacePanel className="rounded-full px-3 py-2">
             <div className="flex items-center gap-3">
               <div
@@ -39,10 +39,8 @@ export function ProductAppShell({ children }: { children: React.ReactNode }) {
                 FS
               </div>
               <div className="hidden min-w-0 sm:block">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--fs-text-faint)]">
-                  Wardrobe runtime
-                </p>
-                <p className="truncate text-[13px] font-semibold text-[var(--fs-text)]">Human fitting studio</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--fs-text-faint)]">FreeStyle</p>
+                <p className="truncate text-[13px] font-semibold text-[var(--fs-text)]">Mannequin wardrobe</p>
               </div>
             </div>
           </SurfacePanel>
@@ -71,6 +69,11 @@ export function ProductAppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex items-center gap-2 sm:right-6 sm:top-5 lg:right-8">
+        <Link href="/app/canvas" className="pointer-events-auto hidden no-underline lg:block">
+          <SurfacePanel className="rounded-full px-4 py-2.5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fs-text-muted)]">Upload to Canvas</div>
+          </SurfacePanel>
+        </Link>
         <SurfacePanel className="pointer-events-auto hidden items-center gap-1 rounded-full px-1 py-1 sm:flex">
           <PillButton active={language === "ko"} onClick={() => setLanguage("ko")} className="px-3 py-1.5">
             KO
@@ -104,7 +107,7 @@ export function ProductAppShell({ children }: { children: React.ReactNode }) {
 
       <main className="px-0 pb-34 pt-24 lg:pt-28">{children}</main>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-5 lg:hidden">
         <SurfacePanel className="pointer-events-auto flex w-full max-w-[620px] items-center justify-between gap-1 rounded-full px-2 py-2">
           {navigation.map((item) => {
             const isActive = item.id === activeSurface;

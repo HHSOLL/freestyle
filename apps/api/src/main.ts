@@ -15,6 +15,7 @@ import { registerProfileRoutes } from "./routes/profile.routes.js";
 import { registerClosetRoutes } from "./routes/closet.routes.js";
 import { registerCanvasRoutes } from "./routes/canvas.routes.js";
 import { registerCommunityRoutes } from "./routes/community.routes.js";
+import { registerRuntimeGarmentRoutes } from "./routes/runtime-garments.routes.js";
 import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
 import { LAB_API_PREFIX, LEGACY_API_PREFIX, LEGACY_WIDGET_ASSET_PREFIX, PRODUCT_API_PREFIX } from "./lib/route-namespaces.js";
@@ -59,6 +60,7 @@ export const buildServer = () => {
     registerAuthRoutes(product);
     registerProfileRoutes(product);
     registerClosetRoutes(product);
+    registerRuntimeGarmentRoutes(product);
     registerCanvasRoutes(product);
     registerCommunityRoutes(product);
   }, { prefix: PRODUCT_API_PREFIX });

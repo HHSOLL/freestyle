@@ -1,14 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo } from "react";
-import { detectQualityTier, preloadRuntimeAssets } from "@freestyle/runtime-3d";
-import type { BodyProfile, StarterGarment } from "@freestyle/shared-types";
+import { useMemo } from "react";
+import type { BodyProfile, RuntimeGarmentAsset } from "@freestyle/shared-types";
 
 const DynamicAvatarStage = dynamic(
-  () => import("@freestyle/runtime-3d").then((module) => module.AvatarStageCanvas),
+  () => import("@freestyle/runtime-3d").then((module) => module.ReferenceClosetStageCanvas),
   { ssr: false },
 );
+
+function detectQualityTier(): "low" | "balanced" | "high" {
+  if (typeof window === "undefined") return "balanced";
+
+  const memory =
+    "deviceMemory" in navigator
+      ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 6
+      : 6;
+  const cores = navigator.hardwareConcurrency ?? 6;
+
+  if (memory <= 4 || cores <= 4) return "low";
+  if (memory >= 8 && cores >= 8) return "high";
+  return "balanced";
+}
 
 export function AvatarStageViewport({
   bodyProfile,
@@ -21,15 +34,11 @@ export function AvatarStageViewport({
   bodyProfile: BodyProfile;
   avatarVariantId: "female-base" | "male-base";
   poseId: "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
-  equippedGarments: StarterGarment[];
+  equippedGarments: RuntimeGarmentAsset[];
   selectedItemId: string | null;
   qualityTier?: "low" | "balanced" | "high";
 }) {
   const resolvedQualityTier = useMemo(() => qualityTier ?? detectQualityTier(), [qualityTier]);
-
-  useEffect(() => {
-    preloadRuntimeAssets();
-  }, []);
 
   return (
     <DynamicAvatarStage

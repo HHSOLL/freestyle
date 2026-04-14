@@ -32,6 +32,8 @@ const normalizePublicApiBaseUrl = (value: string | undefined) => {
 
 const publicApiBaseUrl = normalizePublicApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 const serverApiBaseUrl = normalizePublicApiBaseUrl(process.env.BACKEND_ORIGIN);
+export const isClientApiConfigured = publicApiBaseUrl.length > 0;
+export const isServerApiConfigured = serverApiBaseUrl.length > 0 || publicApiBaseUrl.length > 0;
 const publicAuthRequired = (() => {
   const value = process.env.NEXT_PUBLIC_AUTH_REQUIRED?.trim().toLowerCase() || "";
   return value === "1" || value === "true" || value === "yes" || value === "on";

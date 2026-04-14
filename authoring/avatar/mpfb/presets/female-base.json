@@ -1,0 +1,35 @@
+{
+  "name": "mpfb-female-base",
+  "clothes": [],
+  "color_adjustments": {},
+  "eyebrows": "eyebrow001/eyebrow001.mhclo",
+  "eyelashes": "eyelashes01/eyelashes01.mhclo",
+  "eyes": "high-poly/high-poly.mhclo",
+  "eyes_material_settings": {},
+  "eyes_material_type": "GAMEENGINE",
+  "hair": "ponytail01/ponytail01.mhclo",
+  "makeup": [],
+  "phenotype": {
+    "age": 0.44,
+    "cupsize": 0.62,
+    "firmness": 0.58,
+    "gender": 0.0,
+    "height": 0.53,
+    "muscle": 0.46,
+    "proportions": 0.5,
+    "race": {
+      "african": 0.22,
+      "asian": 0.18,
+      "caucasian": 0.6
+    },
+    "weight": 0.47
+  },
+  "proxy": "",
+  "rig": "game_engine",
+  "skin_material_settings": {},
+  "skin_material_type": "GAMEENGINE",
+  "skin_mhmat": "young_caucasian_female/young_caucasian_female.mhmat",
+  "targets": [],
+  "teeth": "",
+  "tongue": ""
+}

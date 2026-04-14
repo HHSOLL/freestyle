@@ -1,0 +1,20 @@
+# MPFB Avatar Authoring
+
+This directory contains the canonical offline source-of-truth for promoted human base avatars.
+
+Contents:
+
+- `presets/`
+  - deterministic human info JSON used to generate base female and male avatars
+- `scripts/`
+  - Blender Python entrypoints for MPFB setup, asset-pack installation, and GLB export
+
+The intended command path is:
+
+1. fetch MPFB source into `authoring/avatar/.cache/mpfb2`
+2. fetch the official `makehuman_system_assets` pack into `authoring/avatar/.cache`
+3. run the Blender build wrapper
+4. inspect `authoring/avatar/exports/raw/*`
+5. promote approved GLBs into `apps/web/public/assets/avatars/*`
+
+Do not commit the downloaded MPFB source or asset-pack zip. Only commit source presets, scripts, and approved outputs.

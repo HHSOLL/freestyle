@@ -8,9 +8,11 @@ import { runtimeAssetBudget } from "./index.js";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 test("avatar runtime assets stay within declared size budget", () => {
-  const female = fs.statSync(path.join(repoRoot, "apps/web/public/assets/avatars/quaternius-animated-woman.glb")).size;
-  const male = fs.statSync(path.join(repoRoot, "apps/web/public/assets/avatars/quaternius-man.glb")).size;
-  const garment = fs.statSync(path.join(repoRoot, "apps/web/public/assets/closet/models/outer_bomber.glb")).size;
+  const female = fs.statSync(path.join(repoRoot, "apps/web/public/assets/avatars/mpfb-female-base.glb")).size;
+  const male = fs.statSync(path.join(repoRoot, "apps/web/public/assets/avatars/mpfb-male-base.glb")).size;
+  const garment = fs.statSync(
+    path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb"),
+  ).size;
 
   assert.ok(female <= runtimeAssetBudget.avatarGlbBytes);
   assert.ok(male <= runtimeAssetBudget.avatarGlbBytes);

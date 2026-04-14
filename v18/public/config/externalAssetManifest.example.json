@@ -1,0 +1,18 @@
+{
+  "humanoids": {
+    "baseUrl": "https://cdn.jsdelivr.net/gh/c-frame/valid-avatars-glb@c539a28/",
+    "manifestUrl": "https://cdn.jsdelivr.net/gh/c-frame/valid-avatars-glb@c539a28/avatars.json",
+    "labelsUrl": "https://raw.githubusercontent.com/google/valid-avatar-library/main/Metadata/Agreement-Rates/Validated-Labels.csv"
+  },
+  "clothing": {
+    "top_bomber": { "modelUrl": "https://your-cdn.example.com/top_bomber.glb" },
+    "top_shirt": { "modelUrl": "https://your-cdn.example.com/top_shirt.glb" },
+    "top_tee": { "modelUrl": "https://your-cdn.example.com/top_tee.glb" },
+    "bottom_cargo": { "modelUrl": "https://your-cdn.example.com/bottom_cargo.glb" },
+    "bottom_denim": { "modelUrl": "https://your-cdn.example.com/bottom_denim.glb" },
+    "bottom_shorts": { "modelUrl": "https://your-cdn.example.com/bottom_shorts.glb" },
+    "shoes_sneaker": { "modelUrl": "https://your-cdn.example.com/shoes_sneaker.glb" },
+    "shoes_boot": { "modelUrl": "https://your-cdn.example.com/shoes_boot.glb" },
+    "shoes_runner": { "modelUrl": "https://your-cdn.example.com/shoes_runner.glb" }
+  }
+}

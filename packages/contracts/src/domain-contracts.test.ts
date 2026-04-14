@@ -10,6 +10,7 @@ import {
   garmentFitProfileSchema,
   garmentMeasurementsSchema,
   normalizeBodyProfile,
+  runtimeGarmentAssetSchema,
 } from './index.js';
 
 test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
@@ -43,12 +44,14 @@ test('bodyProfileSchema accepts detailed optional extension fields inside envelo
       thighCm: 54,
       calfCm: 36,
       armLengthCm: 61,
+      headCircumferenceCm: 56,
     },
   });
 
   assert.equal(parsed.detailed?.neckCm, 37);
   assert.equal(parsed.detailed?.thighCm, 54);
   assert.equal(parsed.detailed?.armLengthCm, 61);
+  assert.equal(parsed.detailed?.headCircumferenceCm, 56);
 });
 
 test('legacyBodyProfileFlatSchema accepts legacy flat payloads and normalizes to canonical shape', () => {
@@ -63,6 +66,7 @@ test('legacyBodyProfileFlatSchema accepts legacy flat payloads and normalizes to
     thighCm: 54,
     calfCm: 36,
     armLengthCm: 61,
+    headCircumferenceCm: 56,
   });
   const normalized = normalizeBodyProfile(parsed);
 
@@ -70,6 +74,7 @@ test('legacyBodyProfileFlatSchema accepts legacy flat payloads and normalizes to
   assert.equal(normalized.detailed?.neckCm, 37);
   assert.equal(normalized.detailed?.thighCm, 54);
   assert.equal(normalized.detailed?.armLengthCm, 61);
+  assert.equal(normalized.detailed?.headCircumferenceCm, 56);
 });
 
 test('body profile reservation schemas parse reserved payloads', () => {
@@ -113,6 +118,56 @@ test('garment measurement + fit profile schemas stay backward-compatible', () =>
   assert.equal(fitProfile.layer, 'mid');
 });
 
+test('garment measurement schema accepts accessory-facing keys', () => {
+  const measurements = garmentMeasurementsSchema.parse({
+    headCircumferenceCm: 57,
+    frameWidthCm: 14.5,
+  });
+
+  assert.equal(measurements.headCircumferenceCm, 57);
+  assert.equal(measurements.frameWidthCm, 14.5);
+});
+
+test('runtime garment binding schema accepts hair category with head measurement metadata', () => {
+  const parsed = runtimeGarmentAssetSchema.parse({
+    id: 'test-hair',
+    name: 'Test Hair',
+    imageSrc: '/garments/test-hair.png',
+    category: 'hair',
+    source: 'inventory',
+    palette: ['#3c2d27'],
+    metadata: {
+      measurements: {
+        headCircumferenceCm: 56.8,
+      },
+      measurementModes: {
+        headCircumferenceCm: 'body-circumference',
+      },
+      fitProfile: {
+        layer: 'base',
+        silhouette: 'regular',
+      },
+    },
+    runtime: {
+      modelPath: '/assets/garments/test-hair.glb',
+      skeletonProfileId: 'freestyle-rig-v2',
+      anchorBindings: [
+        { id: 'headCenter', weight: 0.5 },
+        { id: 'foreheadCenter', weight: 0.25 },
+        { id: 'leftTemple', weight: 0.125 },
+        { id: 'rightTemple', weight: 0.125 },
+      ],
+      collisionZones: [],
+      bodyMaskZones: [],
+      surfaceClearanceCm: 0.12,
+      renderPriority: 2,
+    },
+  });
+
+  assert.equal(parsed.category, 'hair');
+  assert.equal(parsed.metadata?.measurements?.headCircumferenceCm, 56.8);
+});
+
 test('asset metadata schema accepts garment-facing metadata payloads', () => {
   const parsed = assetMetadataSchema.parse({
     sourceTitle: 'Tailored jacket',
@@ -135,6 +190,67 @@ test('asset metadata schema accepts garment-facing metadata payloads', () => {
   assert.equal(parsed.fitProfile?.layer, 'outer');
 });
 
+test('asset metadata schema accepts physical-fit size chart extensions', () => {
+  const parsed = assetMetadataSchema.parse({
+    measurements: {
+      shoulderCm: 52.5,
+      chestCm: 58.5,
+      sleeveLengthCm: 21,
+      lengthCm: 65.5,
+    },
+    measurementModes: {
+      chestCm: 'flat-half-circumference',
+      shoulderCm: 'linear-length',
+      sleeveLengthCm: 'linear-length',
+      lengthCm: 'linear-length',
+    },
+    sizeChart: [
+      {
+        label: 'L',
+        measurements: {
+          shoulderCm: 52.5,
+          chestCm: 58.5,
+          sleeveLengthCm: 21,
+          lengthCm: 65.5,
+        },
+        measurementModes: {
+          chestCm: 'flat-half-circumference',
+          shoulderCm: 'linear-length',
+        },
+        source: 'product-detail',
+      },
+    ],
+    selectedSizeLabel: 'L',
+    physicalProfile: {
+      materialStretchRatio: 0.1,
+      maxComfortStretchRatio: 0.06,
+    },
+    correctiveFit: {
+      compression: {
+        widthScale: 0.994,
+        depthScale: 0.992,
+        clearanceBiasCm: -0.12,
+      },
+      regular: {
+        widthScale: 1,
+        depthScale: 1,
+        heightScale: 1,
+      },
+      relaxed: {
+        widthScale: 1.014,
+        depthScale: 1.01,
+        clearanceBiasCm: 0.14,
+      },
+    },
+  });
+
+  assert.equal(parsed.sizeChart?.[0]?.label, 'L');
+  assert.equal(parsed.measurementModes?.chestCm, 'flat-half-circumference');
+  assert.equal(parsed.physicalProfile?.materialStretchRatio, 0.1);
+  assert.equal(parsed.correctiveFit?.compression?.widthScale, 0.994);
+  assert.equal(parsed.correctiveFit?.relaxed?.clearanceBiasCm, 0.14);
+});
+
 test('bodyProfileSimpleSchema keeps required simple fields explicit', () => {
   const parsed = bodyProfileSimpleSchema.parse({
     heightCm: 172,
@@ -146,4 +262,54 @@ test('bodyProfileSimpleSchema keeps required simple fields explicit', () => {
   });
 
   assert.equal(parsed.heightCm, 172);
+});
+
+test('runtime garment binding schema accepts pose-aware collision and body-mask tuning', () => {
+  const parsed = runtimeGarmentAssetSchema.parse({
+    id: 'test-top',
+    name: 'Test Top',
+    imageSrc: '/garments/test-top.png',
+    category: 'tops',
+    source: 'inventory',
+    palette: ['#ffffff'],
+    metadata: {
+      measurements: {
+        chestCm: 110,
+        waistCm: 96,
+        sleeveLengthCm: 60,
+        lengthCm: 82,
+      },
+      fitProfile: {
+        layer: 'mid',
+        silhouette: 'relaxed',
+      },
+    },
+    runtime: {
+      modelPath: '/assets/garments/test-top.glb',
+      skeletonProfileId: 'freestyle-rig-v2',
+      anchorBindings: [
+        { id: 'leftShoulder', weight: 0.5 },
+        { id: 'rightShoulder', weight: 0.5 },
+      ],
+      collisionZones: ['torso', 'arms'],
+      bodyMaskZones: ['torso'],
+      poseTuning: {
+        stride: {
+          clearanceMultiplier: 1.06,
+          widthScale: 1.01,
+          extraBodyMaskZones: ['hips'],
+        },
+        tailored: {
+          clearanceMultiplier: 1.08,
+          depthScale: 1.02,
+          extraBodyMaskZones: ['arms'],
+        },
+      },
+      surfaceClearanceCm: 1.4,
+      renderPriority: 2,
+    },
+  });
+
+  assert.equal(parsed.runtime.poseTuning?.stride?.clearanceMultiplier, 1.06);
+  assert.deepEqual(parsed.runtime.poseTuning?.tailored?.extraBodyMaskZones, ['arms']);
 });

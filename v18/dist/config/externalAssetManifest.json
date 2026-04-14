@@ -1,0 +1,7 @@
+{
+  "humanoids": {
+    "baseUrl": "https://cdn.jsdelivr.net/gh/c-frame/valid-avatars-glb@c539a28/",
+    "manifestUrl": "https://cdn.jsdelivr.net/gh/c-frame/valid-avatars-glb@c539a28/avatars.json",
+    "labelsUrl": "https://raw.githubusercontent.com/google/valid-avatar-library/main/Metadata/Agreement-Rates/Validated-Labels.csv"
+  }
+}

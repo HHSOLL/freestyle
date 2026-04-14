@@ -1,0 +1,17 @@
+{
+  "variantId": "female-base",
+  "accessoryType": "bucket_hat",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Accessory.BucketHat",
+      "vertices": 624,
+      "materials": [
+        "FS_BucketHat_Twill",
+        "FS_BucketHat_Brim"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-accessory_city_bucket_hat.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb"
+}

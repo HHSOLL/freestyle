@@ -8,8 +8,8 @@ import {
 } from "@freestyle/domain-avatar";
 import {
   defaultEquippedItems,
+  createRuntimeGarmentLookup,
   getCatalogByCategory,
-  starterGarmentById,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
 import type {
@@ -18,11 +18,13 @@ import type {
   ClosetSceneState,
   GarmentCategory,
   QualityTier,
+  RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 
 const repository = createLocalClosetSceneRepository();
 
-export function useClosetScene() {
+export function useClosetScene(catalog: RuntimeGarmentAsset[] = starterGarmentCatalog) {
+  const catalogLookup = useMemo(() => createRuntimeGarmentLookup(catalog), [catalog]);
   const [scene, setScene] = useState<ClosetSceneState>(() => {
     const next = repository.load();
     return {
@@ -43,10 +45,10 @@ export function useClosetScene() {
     () => ({
       scene,
       poses: avatarPoseLibrary,
-      catalog: starterGarmentCatalog,
-      visibleCatalog: getCatalogByCategory(scene.activeCategory),
+      catalog,
+      visibleCatalog: getCatalogByCategory(scene.activeCategory, catalog),
       equippedGarments: Object.values(scene.equippedItemIds)
-        .map((id) => (id ? starterGarmentById.get(id) ?? null : null))
+        .map((id) => (id ? catalogLookup.get(id) ?? null : null))
         .filter((item): item is NonNullable<typeof item> => Boolean(item)),
       setAvatarVariantId: (avatarVariantId: AvatarRenderVariantId) =>
         setScene((current) => ({ ...current, avatarVariantId })),
@@ -54,17 +56,29 @@ export function useClosetScene() {
       setCategory: (activeCategory: GarmentCategory) => setScene((current) => ({ ...current, activeCategory })),
       setSelectedItemId: (selectedItemId: string | null) => setScene((current) => ({ ...current, selectedItemId })),
       setQualityTier: (qualityTier: QualityTier) => setScene((current) => ({ ...current, qualityTier })),
+      clearCategory: (category: GarmentCategory) =>
+        setScene((current) => {
+          const nextEquipped = { ...current.equippedItemIds };
+          delete nextEquipped[category];
+          return {
+            ...current,
+            activeCategory: category,
+            selectedItemId: null,
+            equippedItemIds: nextEquipped,
+          };
+        }),
       equipItem: (category: GarmentCategory, itemId: string) =>
-        setScene((current) => ({
-          ...current,
-          activeCategory: category,
-          selectedItemId: itemId,
-          equippedItemIds: {
-            ...current.equippedItemIds,
-            [category]: itemId,
-          },
-        })),
+        setScene((current) => {
+          const nextEquipped = { ...current.equippedItemIds };
+          nextEquipped[category] = itemId;
+          return {
+            ...current,
+            activeCategory: category,
+            selectedItemId: itemId,
+            equippedItemIds: nextEquipped,
+          };
+        }),
     }),
-    [scene],
+    [catalog, catalogLookup, scene],
   );
 }

@@ -1,12 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { starterGarmentCatalog } from "@freestyle/domain-garment";
-import type { Asset, StarterGarment } from "@freestyle/shared-types";
-import { apiFetchJson } from "@/lib/clientApi";
+import {
+  createLocalPublishedGarmentRepository,
+  mergeRuntimeGarmentCatalogs,
+  starterGarmentCatalog,
+  validatePublishedGarmentAsset,
+} from "@freestyle/domain-garment";
+import type { Asset, PublishedGarmentAsset, RuntimeGarmentAsset, StarterGarment } from "@freestyle/shared-types";
+import { apiFetchJson, isClientApiConfigured } from "@/lib/clientApi";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const publishedRepository = createLocalPublishedGarmentRepository();
 
 const toAsset = (value: unknown): Asset | null => {
   if (!isRecord(value)) return null;
@@ -30,13 +37,62 @@ const toAsset = (value: unknown): Asset | null => {
   };
 };
 
+const toPublishedRuntimeGarment = (value: unknown): PublishedGarmentAsset | null => {
+  if (!isRecord(value)) return null;
+  const base = toAsset(value);
+  const runtime = isRecord(value.runtime) ? (value.runtime as PublishedGarmentAsset["runtime"]) : null;
+  const publication = isRecord(value.publication)
+    ? (value.publication as PublishedGarmentAsset["publication"])
+    : null;
+  const palette = Array.isArray(value.palette) ? value.palette.filter((entry): entry is string => typeof entry === "string") : [];
+
+  if (!base || !runtime || palette.length === 0 || !publication) {
+    return null;
+  }
+
+  const published: PublishedGarmentAsset = {
+    ...base,
+    source: base.source === "import" ? "import" : "inventory",
+    runtime,
+    palette,
+    publication,
+  };
+
+  return validatePublishedGarmentAsset(published).length === 0 ? published : null;
+};
+
 export function useWardrobeAssets() {
   const [remoteAssets, setRemoteAssets] = useState<Asset[]>([]);
+  const [publishedAssets, setPublishedAssets] = useState<PublishedGarmentAsset[]>(() => publishedRepository.load());
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    if (!isClientApiConfigured) {
+      setRemoteAssets([]);
+      setPublishedAssets(publishedRepository.load());
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
+      const runtimeCatalog = await apiFetchJson<{ items?: unknown[] }>("/v1/closet/runtime-garments");
+      if (runtimeCatalog.response.ok) {
+        const items = Array.isArray(runtimeCatalog.data?.items) ? runtimeCatalog.data.items : [];
+        const published = items
+          .map(toPublishedRuntimeGarment)
+          .filter((item): item is PublishedGarmentAsset => Boolean(item));
+
+        if (items.length === 0 || published.length > 0) {
+          setPublishedAssets(published);
+          publishedRepository.save(published);
+        } else {
+          setPublishedAssets(publishedRepository.load());
+        }
+      } else {
+        setPublishedAssets(publishedRepository.load());
+      }
+
       const candidates = [
         "/v1/closet/items?page=1&page_size=60",
         "/v1/profile/closet/items?page=1&page_size=60",
@@ -54,8 +110,10 @@ export function useWardrobeAssets() {
       }
 
       setRemoteAssets([]);
+      setPublishedAssets(publishedRepository.load());
     } catch {
       setRemoteAssets([]);
+      setPublishedAssets(publishedRepository.load());
     } finally {
       setLoading(false);
     }
@@ -70,9 +128,12 @@ export function useWardrobeAssets() {
       loading,
       refresh,
       starterAssets: starterGarmentCatalog,
+      publishedAssets,
+      closetRuntimeAssets: mergeRuntimeGarmentCatalogs(starterGarmentCatalog, publishedAssets),
       remoteAssets,
-      mergedAssets: [...starterGarmentCatalog, ...remoteAssets] as Array<StarterGarment | Asset>,
+      mergedAssets: [...starterGarmentCatalog, ...publishedAssets, ...remoteAssets] as Array<StarterGarment | Asset>,
+      runtimeAssets: [...starterGarmentCatalog, ...publishedAssets] as RuntimeGarmentAsset[],
     }),
-    [loading, refresh, remoteAssets],
+    [loading, publishedAssets, refresh, remoteAssets],
   );
 }

@@ -23,39 +23,84 @@ export type AvatarRigAlias =
   | "leftFoot"
   | "rightFoot";
 
-export const avatarRenderManifest = {
+export const referenceRigAliasPatterns = {
+  root: ["root"],
+  hips: ["hips"],
+  spine: ["spine"],
+  torso: ["spine"],
+  chest: ["chest"],
+  neck: ["neck"],
+  head: ["head"],
+  leftShoulder: ["leftshoulder"],
+  rightShoulder: ["rightshoulder"],
+  leftUpperArm: ["leftupperarm"],
+  rightUpperArm: ["rightupperarm"],
+  leftLowerArm: ["leftlowerarm"],
+  rightLowerArm: ["rightlowerarm"],
+  leftHand: ["lefthand"],
+  rightHand: ["righthand"],
+  leftUpperLeg: ["leftupperleg"],
+  rightUpperLeg: ["rightupperleg"],
+  leftLowerLeg: ["leftlowerleg"],
+  rightLowerLeg: ["rightlowerleg"],
+  leftFoot: ["leftfoot"],
+  rightFoot: ["rightfoot"],
+} satisfies Record<AvatarRigAlias, string[]>;
+
+export type AvatarRenderManifestEntry = {
+  id: AvatarRenderVariantId;
+  label: string;
+  modelPath: string;
+  authoringSource: "mpfb2" | "charmorph" | "runtime-fallback";
+  bodyMaskStrategy: "named-mesh-zones" | "none";
+  stageOffsetY: number;
+  stageScale: number;
+  meshZones: {
+    fullBody: string[];
+    torso: string[];
+    hips: string[];
+    legs: string[];
+    feet: string[];
+  };
+  aliasPatterns: Record<AvatarRigAlias, string[]>;
+};
+
+export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderManifestEntry> = {
   "female-base": {
     id: "female-base" as AvatarRenderVariantId,
     label: "Female base",
-    modelPath: "/assets/avatars/quaternius-animated-woman.glb",
-    authoringSource: "runtime-fallback",
-    stageOffsetY: 0.02,
-    stageScale: 1,
+    modelPath: "/assets/avatars/mpfb-female-base.glb",
+    authoringSource: "mpfb2",
+    bodyMaskStrategy: "named-mesh-zones",
+    stageOffsetY: -0.02,
+    stageScale: 0.68,
     meshZones: {
-      torso: ["Casual_Body_1", "Casual_Body_2"],
-      legs: ["Casual_Legs"],
-      feet: ["Casual_Feet_1", "Casual_Feet_2"],
+      fullBody: ["fullbody"],
+      torso: ["torso"],
+      hips: ["hips"],
+      legs: ["legs"],
+      feet: ["feet"],
     },
     aliasPatterns: {
-      root: ["root", "body"],
-      hips: ["hips"],
-      spine: ["abdomen", "spine"],
-      torso: ["torso"],
-      chest: ["chest"],
-      neck: ["neck"],
+      root: ["root"],
+      hips: ["pelvis"],
+      spine: ["spine01"],
+      torso: ["spine02"],
+      chest: ["spine03"],
+      neck: ["neck01"],
       head: ["head"],
-      leftShoulder: ["shoulderl"],
-      rightShoulder: ["shoulderr"],
+      leftShoulder: ["claviclel"],
+      rightShoulder: ["clavicler"],
       leftUpperArm: ["upperarml"],
       rightUpperArm: ["upperarmr"],
       leftLowerArm: ["lowerarml"],
       rightLowerArm: ["lowerarmr"],
-      leftHand: ["wristl"],
-      rightHand: ["wristr"],
-      leftUpperLeg: ["upperlegl"],
-      rightUpperLeg: ["upperlegr"],
-      leftLowerLeg: ["lowerlegl"],
-      rightLowerLeg: ["lowerlegr"],
+      leftHand: ["handl"],
+      rightHand: ["handr"],
+      leftUpperLeg: ["thighl"],
+      rightUpperLeg: ["thighr"],
+      leftLowerLeg: ["calfl"],
+      rightLowerLeg: ["calfr"],
       leftFoot: ["footl"],
       rightFoot: ["footr"],
     } satisfies Record<AvatarRigAlias, string[]>,
@@ -63,55 +108,40 @@ export const avatarRenderManifest = {
   "male-base": {
     id: "male-base" as AvatarRenderVariantId,
     label: "Male base",
-    modelPath: "/assets/avatars/quaternius-man.glb",
-    authoringSource: "runtime-fallback",
-    stageOffsetY: 0.04,
-    stageScale: 1.03,
+    modelPath: "/assets/avatars/mpfb-male-base.glb",
+    authoringSource: "mpfb2",
+    bodyMaskStrategy: "named-mesh-zones",
+    stageOffsetY: -0.02,
+    stageScale: 0.68,
     meshZones: {
-      torso: ["BaseHuman_1", "BaseHuman_2", "BaseHuman_3"],
-      legs: ["BaseHuman_4", "BaseHuman_5"],
-      feet: ["BaseHuman_6"],
+      fullBody: ["fullbody"],
+      torso: ["torso"],
+      hips: ["hips"],
+      legs: ["legs"],
+      feet: ["feet"],
     },
     aliasPatterns: {
-      root: ["bone", "body"],
-      hips: ["hips"],
-      spine: ["abdomen"],
-      torso: ["torso"],
-      chest: ["torso"],
-      neck: ["neck"],
+      root: ["root"],
+      hips: ["pelvis"],
+      spine: ["spine01"],
+      torso: ["spine02"],
+      chest: ["spine03"],
+      neck: ["neck01"],
       head: ["head"],
-      leftShoulder: ["shoulderl"],
-      rightShoulder: ["shoulderr"],
+      leftShoulder: ["claviclel"],
+      rightShoulder: ["clavicler"],
       leftUpperArm: ["upperarml"],
       rightUpperArm: ["upperarmr"],
       leftLowerArm: ["lowerarml"],
       rightLowerArm: ["lowerarmr"],
-      leftHand: ["palml"],
-      rightHand: ["palmr"],
-      leftUpperLeg: ["upperlegl"],
-      rightUpperLeg: ["upperlegr"],
-      leftLowerLeg: ["lowerlegl"],
-      rightLowerLeg: ["lowerlegr"],
+      leftHand: ["handl"],
+      rightHand: ["handr"],
+      leftUpperLeg: ["thighl"],
+      rightUpperLeg: ["thighr"],
+      leftLowerLeg: ["calfl"],
+      rightLowerLeg: ["calfr"],
       leftFoot: ["footl"],
       rightFoot: ["footr"],
     } satisfies Record<AvatarRigAlias, string[]>,
   },
-} satisfies Record<
-  AvatarRenderVariantId,
-  {
-    id: AvatarRenderVariantId;
-    label: string;
-    modelPath: string;
-    authoringSource: "mpfb2" | "charmorph" | "runtime-fallback";
-    stageOffsetY: number;
-    stageScale: number;
-    meshZones: {
-      torso: string[];
-      legs: string[];
-      feet: string[];
-    };
-    aliasPatterns: Record<AvatarRigAlias, string[]>;
-  }
->;
-
-export const referenceRigPath = "/assets/closet/models/rig-base.glb";
+};

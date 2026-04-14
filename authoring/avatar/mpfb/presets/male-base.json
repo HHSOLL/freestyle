@@ -1,0 +1,35 @@
+{
+  "name": "mpfb-male-base",
+  "clothes": [],
+  "color_adjustments": {},
+  "eyebrows": "eyebrow001/eyebrow001.mhclo",
+  "eyelashes": "eyelashes01/eyelashes01.mhclo",
+  "eyes": "high-poly/high-poly.mhclo",
+  "eyes_material_settings": {},
+  "eyes_material_type": "GAMEENGINE",
+  "hair": "short02/short02.mhclo",
+  "makeup": [],
+  "phenotype": {
+    "age": 0.5,
+    "cupsize": 0.5,
+    "firmness": 0.5,
+    "gender": 1.0,
+    "height": 0.54,
+    "muscle": 0.56,
+    "proportions": 0.58,
+    "race": {
+      "african": 0.2,
+      "asian": 0.16,
+      "caucasian": 0.64
+    },
+    "weight": 0.52
+  },
+  "proxy": "",
+  "rig": "game_engine",
+  "skin_material_settings": {},
+  "skin_material_type": "GAMEENGINE",
+  "skin_mhmat": "young_caucasian_male/young_caucasian_male.mhmat",
+  "targets": [],
+  "teeth": "",
+  "tongue": ""
+}

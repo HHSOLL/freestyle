@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "short03",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.short03",
+      "vertices": 1011,
+      "materials": [
+        "FS_Hair_short03"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_textured_crop.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_textured_crop.glb"
+}

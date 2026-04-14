@@ -1,39 +1,51 @@
 #!/usr/bin/env node
 
-import { garment3dCatalog, garment3dColliderProfiles, garment3dSkeletonProfiles } from '../apps/web/src/features/shared-3d/garment3dCatalog.ts';
-import { validateGarment3dCatalogEntry } from '../apps/web/src/features/shared-3d/garment3dContract.ts';
+import fs from "node:fs";
+import path from "node:path";
+import {
+  collectGarmentRuntimeModelPaths,
+  starterGarmentCatalog,
+  validateStarterGarment,
+} from "../packages/domain-garment/src/index.ts";
 
-const registryValidationOptions = {
-  skeletonProfiles: garment3dSkeletonProfiles,
-  colliderProfiles: garment3dColliderProfiles,
-};
-
+const repoRoot = process.cwd();
 const issues = [];
 const seenIds = new Set();
 
-for (const [index, entry] of garment3dCatalog.entries()) {
-  const entryPath = `garment3dCatalog[${index}]`;
-  issues.push(...validateGarment3dCatalogEntry(entry, registryValidationOptions, entryPath));
+const resolvePublicPath = (assetPath) => {
+  if (!assetPath.startsWith("/")) {
+    issues.push(`asset path must start with '/': ${assetPath}`);
+    return null;
+  }
+  return path.join(repoRoot, "apps/web/public", assetPath.replace(/^\//, ""));
+};
 
-  if (seenIds.has(entry.id)) {
-    issues.push({
-      path: `${entryPath}.id`,
-      message: `must be unique. Duplicate id "${entry.id}".`,
-    });
+for (const item of starterGarmentCatalog) {
+  if (seenIds.has(item.id)) {
+    issues.push(`${item.id}: garment id must be unique`);
   } else {
-    seenIds.add(entry.id);
+    seenIds.add(item.id);
   }
 
+  issues.push(...validateStarterGarment(item));
+
+  for (const modelPath of collectGarmentRuntimeModelPaths(item.runtime)) {
+    const absolute = resolvePublicPath(modelPath);
+    if (!absolute) {
+      continue;
+    }
+    if (!fs.existsSync(absolute)) {
+      issues.push(`${item.id}: missing file ${modelPath}`);
+    }
+  }
 }
 
 if (issues.length > 0) {
-  console.error(`Garment 3D catalog validation failed with ${issues.length} issue(s).\n`);
+  console.error(`Garment 3D validation failed with ${issues.length} issue(s).\n`);
   for (const issue of issues) {
-    console.error(`- ${issue.path}: ${issue.message}`);
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }
 
-console.log(
-  `Garment 3D catalog validation passed for ${garment3dCatalog.length} entr${garment3dCatalog.length === 1 ? 'y' : 'ies'}.`
-);
+console.log(`Garment 3D validation passed for ${starterGarmentCatalog.length} starter garments.`);

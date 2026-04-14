@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "long01",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.long01",
+      "vertices": 3239,
+      "materials": [
+        "FS_Hair_long01"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_long_fall.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb"
+}

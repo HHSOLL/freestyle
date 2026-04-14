@@ -1,6 +1,6 @@
 "use client";
 
-import { buildApiPath } from "@/lib/clientApi";
+import { buildApiPath, isClientApiConfigured } from "@/lib/clientApi";
 
 type CanaryWidgetConfig = {
   tenant_id: string;
@@ -59,6 +59,10 @@ const isCanaryEnabled = (config: CanaryWidgetConfig) =>
   config.feature_flags[CANARY_RELEASE_FLAG] === true && config.feature_flags[CANARY_KILL_SWITCH] !== true;
 
 const loadCanaryRuntime = async (): Promise<CanaryRuntime | null> => {
+  if (!isClientApiConfigured) {
+    return null;
+  }
+
   const query = new URLSearchParams({
     tenant_id: CANARY_TENANT_ID,
     product_id: CANARY_PRODUCT_ID,

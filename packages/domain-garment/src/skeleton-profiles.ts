@@ -8,6 +8,10 @@ export const freestyleSkeletonProfiles: Record<string, SkeletonProfile> = {
     unit: "meter",
     anchors: [
       "neckBase",
+      "headCenter",
+      "foreheadCenter",
+      "leftTemple",
+      "rightTemple",
       "leftShoulder",
       "rightShoulder",
       "chestCenter",

@@ -14,7 +14,7 @@ import type {
   BodyProfileSimpleKey,
 } from "@freestyle/shared-types";
 import { normalizeBodyProfile } from "@freestyle/shared-types";
-import { apiFetchJson } from "@/lib/clientApi";
+import { apiFetchJson, isClientApiConfigured } from "@/lib/clientApi";
 
 const repository = createLocalBodyProfileRepository();
 
@@ -23,6 +23,10 @@ export function useBodyProfile() {
   const [apiReady, setApiReady] = useState(false);
 
   useEffect(() => {
+    if (!isClientApiConfigured) {
+      return;
+    }
+
     let cancelled = false;
 
     const hydrate = async () => {
@@ -55,7 +59,7 @@ export function useBodyProfile() {
   }, [profile]);
 
   useEffect(() => {
-    if (!apiReady) return;
+    if (!isClientApiConfigured || !apiReady) return;
 
     const timeout = window.setTimeout(() => {
       apiFetchJson("/v1/profile/body-profile", {

@@ -4,9 +4,18 @@ export type {
   BodyProfileRecord,
   BodyProfileUpsertInput,
   FlattenedBodyProfile,
+  GarmentPublicationRecord,
+  GarmentFitAssessment,
+  GarmentFitDimensionAssessment,
   GarmentFitProfile,
+  GarmentMeasurementMode,
+  GarmentMeasurementModeMap,
   GarmentMeasurements,
+  GarmentPhysicalProfile,
   GarmentProfile,
+  PublishedGarmentAsset,
+  RuntimeGarmentAsset,
+  GarmentSizeSpec,
 } from "./domain-types.js";
 export {
   bodyProfileDetailedKeys,
@@ -173,6 +182,7 @@ export const bodyProfileSimpleSchema = z
 
 export const bodyProfileDetailedSchema = z
   .object({
+    headCircumferenceCm: measurementCmSchema.optional(),
     neckCm: measurementCmSchema.optional(),
     torsoLengthCm: measurementCmSchema.optional(),
     armLengthCm: measurementCmSchema.optional(),
@@ -191,6 +201,7 @@ export const bodyProfileDetailedSchema = z
 
 export const legacyBodyProfileFlatSchema = bodyProfileSimpleSchema
   .extend({
+    headCircumferenceCm: measurementCmSchema.optional(),
     neckCm: measurementCmSchema.optional(),
     torsoLengthCm: measurementCmSchema.optional(),
     armLengthCm: measurementCmSchema.optional(),
@@ -220,6 +231,7 @@ export const assetCategorySchema = z.enum([
   "outerwear",
   "shoes",
   "accessories",
+  "hair",
   "custom",
 ]);
 
@@ -230,12 +242,75 @@ export const garmentMeasurementsSchema = z
     chestCm: measurementCmSchema.optional(),
     waistCm: measurementCmSchema.optional(),
     hipCm: measurementCmSchema.optional(),
+    headCircumferenceCm: measurementCmSchema.optional(),
+    frameWidthCm: measurementCmSchema.optional(),
     shoulderCm: measurementCmSchema.optional(),
     sleeveLengthCm: measurementCmSchema.optional(),
     lengthCm: measurementCmSchema.optional(),
     inseamCm: measurementCmSchema.optional(),
     riseCm: measurementCmSchema.optional(),
     hemCm: measurementCmSchema.optional(),
+  })
+  .strict();
+
+export const garmentMeasurementModeSchema = z.enum([
+  "body-circumference",
+  "flat-half-circumference",
+  "linear-length",
+]);
+
+export const garmentMeasurementModeMapSchema = z
+  .object({
+    chestCm: garmentMeasurementModeSchema.optional(),
+    waistCm: garmentMeasurementModeSchema.optional(),
+    hipCm: garmentMeasurementModeSchema.optional(),
+    headCircumferenceCm: garmentMeasurementModeSchema.optional(),
+    frameWidthCm: garmentMeasurementModeSchema.optional(),
+    shoulderCm: garmentMeasurementModeSchema.optional(),
+    sleeveLengthCm: garmentMeasurementModeSchema.optional(),
+    lengthCm: garmentMeasurementModeSchema.optional(),
+    inseamCm: garmentMeasurementModeSchema.optional(),
+    riseCm: garmentMeasurementModeSchema.optional(),
+    hemCm: garmentMeasurementModeSchema.optional(),
+  })
+  .strict();
+
+export const garmentSizeSpecSchema = z
+  .object({
+    label: z.string().trim().min(1).max(64),
+    measurements: garmentMeasurementsSchema,
+    measurementModes: garmentMeasurementModeMapSchema.optional(),
+    source: z.enum(["authoring", "product-detail", "estimated"]).optional(),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+export const garmentPhysicalProfileSchema = z
+  .object({
+    materialStretchRatio: z.number().min(0).max(1).optional(),
+    maxComfortStretchRatio: z.number().min(0).max(1).optional(),
+    compressionToleranceCm: garmentMeasurementsSchema.optional(),
+    easeBiasCm: garmentMeasurementsSchema.optional(),
+  })
+  .strict();
+
+export const garmentCorrectiveProfileEntrySchema = z
+  .object({
+    widthScale: z.number().min(0.85).max(1.2).optional(),
+    depthScale: z.number().min(0.85).max(1.2).optional(),
+    heightScale: z.number().min(0.85).max(1.2).optional(),
+    clearanceBiasCm: z.number().min(-2).max(4).optional(),
+    offsetY: z.number().min(-0.2).max(0.2).optional(),
+  })
+  .strict();
+
+export const garmentCorrectiveProfileSchema = z
+  .object({
+    compression: garmentCorrectiveProfileEntrySchema.optional(),
+    snug: garmentCorrectiveProfileEntrySchema.optional(),
+    regular: garmentCorrectiveProfileEntrySchema.optional(),
+    relaxed: garmentCorrectiveProfileEntrySchema.optional(),
+    oversized: garmentCorrectiveProfileEntrySchema.optional(),
   })
   .strict();
 
@@ -246,6 +321,121 @@ export const garmentFitProfileSchema = z
     structure: z.enum(["soft", "balanced", "structured"]).optional(),
     stretch: z.number().min(0).max(1).optional(),
     drape: z.number().min(0).max(1).optional(),
+  })
+  .strict();
+
+export const garmentRuntimeBindingSchema = z
+  .object({
+    modelPath: z.string().trim().min(1),
+    modelPathByVariant: z
+      .object({
+        "female-base": z.string().trim().min(1).optional(),
+        "male-base": z.string().trim().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    skeletonProfileId: z.string().trim().min(1),
+    anchorBindings: z
+      .array(
+        z
+          .object({
+            id: z.enum([
+              "neckBase",
+              "headCenter",
+              "foreheadCenter",
+              "leftTemple",
+              "rightTemple",
+              "leftShoulder",
+              "rightShoulder",
+              "chestCenter",
+              "waistCenter",
+              "hipCenter",
+              "leftKnee",
+              "rightKnee",
+              "leftAnkle",
+              "rightAnkle",
+              "leftFoot",
+              "rightFoot",
+            ]),
+            weight: z.number(),
+          })
+          .strict(),
+      )
+      .min(1),
+    collisionZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])),
+    bodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])),
+    poseTuning: z
+      .object({
+        neutral: z
+          .object({
+            widthScale: z.number().positive().optional(),
+            depthScale: z.number().positive().optional(),
+            heightScale: z.number().positive().optional(),
+            clearanceMultiplier: z.number().positive().optional(),
+            offsetY: z.number().optional(),
+            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+          })
+          .strict()
+          .optional(),
+        relaxed: z
+          .object({
+            widthScale: z.number().positive().optional(),
+            depthScale: z.number().positive().optional(),
+            heightScale: z.number().positive().optional(),
+            clearanceMultiplier: z.number().positive().optional(),
+            offsetY: z.number().optional(),
+            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+          })
+          .strict()
+          .optional(),
+        contrapposto: z
+          .object({
+            widthScale: z.number().positive().optional(),
+            depthScale: z.number().positive().optional(),
+            heightScale: z.number().positive().optional(),
+            clearanceMultiplier: z.number().positive().optional(),
+            offsetY: z.number().optional(),
+            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+          })
+          .strict()
+          .optional(),
+        stride: z
+          .object({
+            widthScale: z.number().positive().optional(),
+            depthScale: z.number().positive().optional(),
+            heightScale: z.number().positive().optional(),
+            clearanceMultiplier: z.number().positive().optional(),
+            offsetY: z.number().optional(),
+            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+          })
+          .strict()
+          .optional(),
+        tailored: z
+          .object({
+            widthScale: z.number().positive().optional(),
+            depthScale: z.number().positive().optional(),
+            heightScale: z.number().positive().optional(),
+            clearanceMultiplier: z.number().positive().optional(),
+            offsetY: z.number().optional(),
+            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    surfaceClearanceCm: z.number().positive(),
+    renderPriority: z.number().int().positive(),
+  })
+  .strict();
+
+export const garmentPublicationRecordSchema = z
+  .object({
+    sourceSystem: z.enum(["starter-catalog", "admin-domain", "api-published"]),
+    publishedAt: z.iso.datetime(),
+    assetVersion: z.string().trim().min(1).max(64),
+    measurementStandard: z.literal("body-garment-v1"),
+    provenanceUrl: z.url().optional(),
   })
   .strict();
 
@@ -336,6 +526,11 @@ export const assetMetadataSchema = z
       .strict()
       .optional(),
     measurements: garmentMeasurementsSchema.optional(),
+    measurementModes: garmentMeasurementModeMapSchema.optional(),
+    sizeChart: z.array(garmentSizeSpecSchema).min(1).optional(),
+    selectedSizeLabel: z.string().trim().min(1).max(64).optional(),
+    physicalProfile: garmentPhysicalProfileSchema.optional(),
+    correctiveFit: garmentCorrectiveProfileSchema.optional(),
     fitProfile: garmentFitProfileSchema.optional(),
     garmentProfile: garmentProfileSchema.optional(),
     dominantColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
@@ -355,6 +550,21 @@ export const assetSchema = z
     sourceUrl: z.url().optional(),
     metadata: assetMetadataSchema.optional(),
     garmentProfile: garmentProfileSchema.optional(),
+  })
+  .strict();
+
+export const runtimeGarmentAssetSchema = assetSchema
+  .extend({
+    runtime: garmentRuntimeBindingSchema,
+    palette: z.array(z.string().trim().min(1)).min(1),
+    publication: garmentPublicationRecordSchema.optional(),
+  })
+  .strict();
+
+export const publishedGarmentAssetSchema = runtimeGarmentAssetSchema
+  .extend({
+    source: z.enum(["inventory", "import"]),
+    publication: garmentPublicationRecordSchema,
   })
   .strict();
 

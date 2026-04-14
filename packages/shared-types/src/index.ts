@@ -9,6 +9,7 @@ export const bodyProfileSimpleKeys = [
 
 export const bodyProfileDetailedKeys = [
   "armLengthCm",
+  "headCircumferenceCm",
   "neckCm",
   "torsoLengthCm",
   "sleeveLengthCm",
@@ -44,6 +45,7 @@ export type BodyProfileSimple = {
 
 export type BodyProfileDetailed = {
   armLengthCm?: number;
+  headCircumferenceCm?: number;
   neckCm?: number;
   torsoLengthCm?: number;
   sleeveLengthCm?: number;
@@ -85,6 +87,7 @@ export const defaultBodyProfileSimple: BodyProfileSimple = Object.freeze({
 
 export const defaultBodyProfileDetailed: BodyProfileDetailed = Object.freeze({
   armLengthCm: 59,
+  headCircumferenceCm: 55,
   torsoLengthCm: 61,
   thighCm: 55,
   calfCm: 36,
@@ -110,16 +113,93 @@ export type AvatarNormalizedParams = {
   legVolume: number;
 };
 
+export type AvatarRigTargets = {
+  statureScale: number;
+  shoulderOffset: number;
+  chestScale: number;
+  waistScale: number;
+  hipScale: number;
+  armLengthScale: number;
+  legLengthScale: number;
+  torsoScale: number;
+  legVolumeScale: number;
+};
+
+export type AvatarMorphPlan = {
+  variantId: AvatarRenderVariantId;
+  targetWeights: Record<string, number>;
+  rigTargets: AvatarRigTargets;
+};
+
 export type GarmentMeasurements = {
   chestCm?: number;
   waistCm?: number;
   hipCm?: number;
+  headCircumferenceCm?: number;
+  frameWidthCm?: number;
   shoulderCm?: number;
   sleeveLengthCm?: number;
   lengthCm?: number;
   inseamCm?: number;
   riseCm?: number;
   hemCm?: number;
+};
+
+export type GarmentMeasurementKey = keyof GarmentMeasurements;
+
+export type GarmentMeasurementMode =
+  | "body-circumference"
+  | "flat-half-circumference"
+  | "linear-length";
+
+export type GarmentMeasurementModeMap = Partial<Record<GarmentMeasurementKey, GarmentMeasurementMode>>;
+
+export type GarmentSizeSpec = {
+  label: string;
+  measurements: GarmentMeasurements;
+  measurementModes?: GarmentMeasurementModeMap;
+  source?: "authoring" | "product-detail" | "estimated";
+  notes?: string;
+};
+
+export type GarmentPhysicalProfile = {
+  materialStretchRatio?: number;
+  maxComfortStretchRatio?: number;
+  compressionToleranceCm?: Partial<Record<GarmentMeasurementKey, number>>;
+  easeBiasCm?: Partial<Record<GarmentMeasurementKey, number>>;
+};
+
+export type GarmentCorrectiveProfileEntry = {
+  widthScale?: number;
+  depthScale?: number;
+  heightScale?: number;
+  clearanceBiasCm?: number;
+  offsetY?: number;
+};
+
+export type GarmentCorrectiveProfile = Partial<Record<GarmentFitState, GarmentCorrectiveProfileEntry>>;
+
+export type GarmentFitState = "compression" | "snug" | "regular" | "relaxed" | "oversized";
+
+export type GarmentFitDimensionAssessment = {
+  key: GarmentMeasurementKey;
+  measurementMode: GarmentMeasurementMode;
+  garmentCm: number;
+  bodyCm: number;
+  effectiveGarmentCm: number;
+  easeCm: number;
+  requiredStretchRatio: number;
+  state: GarmentFitState;
+};
+
+export type GarmentFitAssessment = {
+  sizeLabel: string | null;
+  overallState: GarmentFitState;
+  tensionRisk: "low" | "medium" | "high";
+  clippingRisk: "low" | "medium" | "high";
+  stretchLoad: number;
+  limitingKeys: GarmentMeasurementKey[];
+  dimensions: GarmentFitDimensionAssessment[];
 };
 
 export type GarmentFitProfile = {
@@ -130,7 +210,7 @@ export type GarmentFitProfile = {
   drape?: number;
 };
 
-export type GarmentCategory = "tops" | "bottoms" | "outerwear" | "shoes" | "accessories" | "custom";
+export type GarmentCategory = "tops" | "bottoms" | "outerwear" | "shoes" | "accessories" | "hair" | "custom";
 export type AssetCategory = GarmentCategory;
 export type AssetSource = "inventory" | "upload" | "url" | "import" | "starter" | "lab";
 
@@ -195,6 +275,11 @@ export type AssetMetadata = Partial<{
     };
   };
   measurements: GarmentMeasurements;
+  measurementModes: GarmentMeasurementModeMap;
+  sizeChart: GarmentSizeSpec[];
+  selectedSizeLabel: string;
+  physicalProfile: GarmentPhysicalProfile;
+  correctiveFit: GarmentCorrectiveProfile;
   fitProfile: GarmentFitProfile;
   garmentProfile: GarmentProfile;
   dominantColor: string;
@@ -216,6 +301,10 @@ export type Asset = {
 
 export type AvatarAnchorId =
   | "neckBase"
+  | "headCenter"
+  | "foreheadCenter"
+  | "leftTemple"
+  | "rightTemple"
   | "leftShoulder"
   | "rightShoulder"
   | "chestCenter"
@@ -235,14 +324,35 @@ export type GarmentAnchorBinding = {
 
 export type GarmentCollisionZone = "torso" | "arms" | "hips" | "legs" | "feet";
 
+export type GarmentPoseRuntimeTuningEntry = {
+  widthScale?: number;
+  depthScale?: number;
+  heightScale?: number;
+  clearanceMultiplier?: number;
+  offsetY?: number;
+  extraBodyMaskZones?: GarmentCollisionZone[];
+};
+
+export type GarmentPoseRuntimeTuning = Partial<Record<AvatarPoseId, GarmentPoseRuntimeTuningEntry>>;
+
 export type GarmentRuntimeBinding = {
   modelPath: string;
+  modelPathByVariant?: Partial<Record<AvatarRenderVariantId, string>>;
   skeletonProfileId: string;
   anchorBindings: GarmentAnchorBinding[];
   collisionZones: GarmentCollisionZone[];
   bodyMaskZones: GarmentCollisionZone[];
+  poseTuning?: GarmentPoseRuntimeTuning;
   surfaceClearanceCm: number;
   renderPriority: number;
+};
+
+export type GarmentPublicationRecord = {
+  sourceSystem: "starter-catalog" | "admin-domain" | "api-published";
+  publishedAt: string;
+  assetVersion: string;
+  measurementStandard: "body-garment-v1";
+  provenanceUrl?: string;
 };
 
 export type SkeletonProfile = {
@@ -256,9 +366,19 @@ export type SkeletonProfile = {
   notes?: string;
 };
 
-export type StarterGarment = Asset & {
+export type RuntimeGarmentAsset = Asset & {
   runtime: GarmentRuntimeBinding;
   palette: string[];
+  publication?: GarmentPublicationRecord;
+};
+
+export type StarterGarment = RuntimeGarmentAsset & {
+  source: "starter";
+};
+
+export type PublishedGarmentAsset = RuntimeGarmentAsset & {
+  source: "inventory" | "import";
+  publication: GarmentPublicationRecord;
 };
 
 export type ClosetSceneState = {

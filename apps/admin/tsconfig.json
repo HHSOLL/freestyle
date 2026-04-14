@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@freestyle/contracts": ["../../packages/contracts/src/index.ts"],
+      "@freestyle/design-tokens": ["../../packages/design-tokens/src/index.ts"],
+      "@freestyle/shared": ["../../packages/shared/src/index.ts"],
+      "@freestyle/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@freestyle/shared-utils": ["../../packages/shared-utils/src/index.ts"],
+      "@freestyle/ui": ["../../packages/ui/src/index.tsx"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}

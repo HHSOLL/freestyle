@@ -1,0 +1,16 @@
+{
+  "variantId": "male-base",
+  "hairStyle": "ponytail01",
+  "armature": "mpfb-male-base",
+  "objects": [
+    {
+      "name": "FS.Hair.ponytail01",
+      "vertices": 3718,
+      "materials": [
+        "FS_Hair_ponytail01"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-male-hair_signature_ponytail.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb"
+}

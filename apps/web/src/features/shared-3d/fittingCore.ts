@@ -91,6 +91,11 @@ const inferBaseMeasurements = (
       return {
         lengthCm: 28,
       };
+    case 'hair':
+      return {
+        headCircumferenceCm: flatBody.headCircumferenceCm ?? 56,
+        lengthCm: 30,
+      };
     case 'custom':
       return {
         chestCm: flatBody.chestCm + 10,
@@ -267,6 +272,16 @@ const buildFitSummaries = (
     });
   }
 
+  if (category === 'accessories' || category === 'hair') {
+    const headEase = (measurements.headCircumferenceCm ?? flatBody.headCircumferenceCm ?? 56) - (flatBody.headCircumferenceCm ?? 56);
+    summaries.push({
+      label: `${category === 'hair' ? 'Hair base' : 'Head fit'} ${fitLabel(fitSeverityFromEase(headEase))}`,
+      severity: fitSeverityFromEase(headEase),
+      easeCm: Math.round(headEase * 10) / 10,
+    });
+    return summaries;
+  }
+
   return summaries;
 };
 
@@ -321,6 +336,17 @@ const resolveGarmentProfileInfluence = (
       shoulderScale: 1,
       limbLengthScale: 1,
       yOffsetDelta: 0,
+    };
+  }
+
+  if (category === 'accessories' || category === 'hair') {
+    return {
+      widthScale: clamp(0.88 + bounds.width * 0.34, 0.9, 1.18),
+      depthScale: clamp(0.9 + coverage.lengthRatio * 0.18, 0.92, 1.16),
+      heightScale: clamp(0.84 + bounds.height * 0.26, 0.86, 1.18),
+      shoulderScale: 1,
+      limbLengthScale: 1,
+      yOffsetDelta: clamp((bounds.top - 0.12) * -0.2, -0.06, 0.06),
     };
   }
 
@@ -397,6 +423,24 @@ export const buildGarmentLayerConfig = (asset: Asset, body: BodyProfile): Garmen
           easeCm: 0,
         },
       ],
+    };
+  }
+
+  if (asset.category === 'accessories' || asset.category === 'hair') {
+    return {
+      assetId: asset.id,
+      name: asset.name,
+      category: asset.category,
+      layerOrder,
+      shellWidth: 0.84 * influence.widthScale,
+      shellDepth: 0.78 * influence.depthScale,
+      shellHeight: 0.72 * influence.heightScale,
+      shellYOffset: 1.18 + influence.yOffsetDelta,
+      color,
+      textureUrl: asset.imageSrc,
+      measurements,
+      fitProfile,
+      fitSummary: buildFitSummaries(asset.category, body, measurements),
     };
   }
 

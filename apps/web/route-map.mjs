@@ -1,13 +1,12 @@
 export const primaryNavItems = [
   { id: "closet", href: "/app/closet", label: { ko: "Closet", en: "Closet" } },
-  { id: "fitting", href: "/app/fitting", label: { ko: "Fitting", en: "Fitting" } },
   { id: "canvas", href: "/app/canvas", label: { ko: "Canvas", en: "Canvas" } },
   { id: "community", href: "/app/community", label: { ko: "Community", en: "Community" } },
   { id: "profile", href: "/app/profile", label: { ko: "Profile", en: "Profile" } },
 ];
 
 export const legacyRedirects = [
-  { source: "/studio", destination: "/app/fitting", permanent: false },
+  { source: "/studio", destination: "/app/closet", permanent: false },
   { source: "/profile", destination: "/app/profile", permanent: false },
   { source: "/trends", destination: "/app/community", permanent: false },
   { source: "/examples", destination: "/app/community", permanent: false },
@@ -20,7 +19,8 @@ export const legacyRedirects = [
   { source: "/app/journal/:entryId", destination: "/app/profile", permanent: false },
   { source: "/app/decide", destination: "/app/closet", permanent: false },
   { source: "/app/decide/item/:id", destination: "/app/closet", permanent: false },
+  { source: "/app/fitting", destination: "/app/closet", permanent: false },
   { source: "/app/discover", destination: "/app/community", permanent: false },
   { source: "/app/discover/inspiration/:id", destination: "/app/community", permanent: false },
-  { source: "/app/closet/item/:id", destination: "/app/fitting?item=:id", permanent: false },
+  { source: "/app/closet/item/:id", destination: "/app/closet", permanent: false },
 ];

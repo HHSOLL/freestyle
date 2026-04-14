@@ -23,7 +23,6 @@ const LANGUAGE_STORAGE_KEY = "freestyle-language";
 
 const translations: TranslationMap = {
   "nav.closet": { ko: "Closet", en: "Closet" },
-  "nav.fitting": { ko: "Fitting", en: "Fitting" },
   "nav.canvas": { ko: "Canvas", en: "Canvas" },
   "nav.community": { ko: "Community", en: "Community" },
   "nav.profile": { ko: "Profile", en: "Profile" },

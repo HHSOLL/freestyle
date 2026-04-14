@@ -2,14 +2,13 @@ import type { PrimaryNavigationItem, ProductSurfaceId } from "@freestyle/shared-
 
 export const primaryNavigation: PrimaryNavigationItem[] = [
   { id: "closet", href: "/app/closet", label: { ko: "Closet", en: "Closet" } },
-  { id: "fitting", href: "/app/fitting", label: { ko: "Fitting", en: "Fitting" } },
   { id: "canvas", href: "/app/canvas", label: { ko: "Canvas", en: "Canvas" } },
   { id: "community", href: "/app/community", label: { ko: "Community", en: "Community" } },
   { id: "profile", href: "/app/profile", label: { ko: "Profile", en: "Profile" } },
 ];
 
 export const quarantinedLegacyRoutes = [
-  { from: "/studio", to: "/app/fitting" },
+  { from: "/studio", to: "/app/closet" },
   { from: "/trends", to: "/app/community" },
   { from: "/examples", to: "/app/community" },
   { from: "/how-it-works", to: "/app/community" },
@@ -20,7 +19,7 @@ export const quarantinedLegacyRoutes = [
 ] as const;
 
 export const resolveSurfaceFromPath = (pathname: string): ProductSurfaceId => {
-  if (pathname.startsWith("/app/fitting")) return "fitting";
+  if (pathname.startsWith("/app/fitting")) return "closet";
   if (pathname.startsWith("/app/canvas")) return "canvas";
   if (pathname.startsWith("/app/community") || pathname.startsWith("/app/discover")) return "community";
   if (pathname.startsWith("/app/profile")) return "profile";

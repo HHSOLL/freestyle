@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { bodyProfileToAvatarParams } from "@freestyle/domain-avatar";
 import { computeGarmentEaseSummary } from "@freestyle/domain-garment";
 import { wardrobeTokens } from "@freestyle/design-tokens";
 import { Eyebrow, MeasurementSlider, PillButton, SurfacePanel } from "@freestyle/ui";
@@ -12,7 +11,7 @@ import type {
   BodyProfileDetailedKey,
   BodyProfileSimpleKey,
   GarmentCategory,
-  StarterGarment,
+  RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 import { flattenBodyProfile } from "@freestyle/shared-types";
 
@@ -279,12 +278,10 @@ export function GarmentCatalogPanel({
   activeCategory: GarmentCategory;
   selectedItemId: string | null;
   categories: GarmentCategory[];
-  garments: StarterGarment[];
+  garments: RuntimeGarmentAsset[];
   onSelectCategory: (category: GarmentCategory) => void;
-  onSelectGarment: (garment: StarterGarment) => void;
+  onSelectGarment: (garment: RuntimeGarmentAsset) => void;
 }) {
-  const avatarParams = bodyProfileToAvatarParams(bodyProfile);
-
   return (
     <RailPanel className="fs-scrollbar h-full overflow-auto px-4 py-5 sm:px-5">
       <PanelHeader eyebrow={language === "ko" ? "Catalog" : "Catalog"} title={title} description={description} />
@@ -293,7 +290,7 @@ export function GarmentCatalogPanel({
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
         {garments.map((garment) => {
-          const ease = computeGarmentEaseSummary(garment.metadata?.measurements, avatarParams);
+          const ease = computeGarmentEaseSummary(garment, bodyProfile);
           return (
             <button
               key={garment.id}

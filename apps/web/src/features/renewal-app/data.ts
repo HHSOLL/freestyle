@@ -72,7 +72,7 @@ export const toWardrobeAsset = (value: unknown): WardrobeAsset | null => {
   };
 };
 
-export const closetCategories = ['tops', 'bottoms', 'outerwear', 'shoes', 'accessories', 'custom'] as const;
+export const closetCategories = ['tops', 'bottoms', 'outerwear', 'shoes', 'accessories', 'hair', 'custom'] as const;
 
 export const closetCategoryLabels: Record<RenewalLanguage, Record<(typeof closetCategories)[number], string>> = {
   ko: {
@@ -81,6 +81,7 @@ export const closetCategoryLabels: Record<RenewalLanguage, Record<(typeof closet
     outerwear: '아우터',
     shoes: '신발',
     accessories: '액세서리',
+    hair: '헤어',
     custom: '커스텀',
   },
   en: {
@@ -89,6 +90,7 @@ export const closetCategoryLabels: Record<RenewalLanguage, Record<(typeof closet
     outerwear: 'Outerwear',
     shoes: 'Shoes',
     accessories: 'Accessories',
+    hair: 'Hair',
     custom: 'Custom',
   },
 };

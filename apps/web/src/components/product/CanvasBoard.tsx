@@ -3,11 +3,11 @@
 import Image from "next/image";
 import { startTransition, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import type { CanvasComposition, StarterGarment } from "@freestyle/shared-types";
+import type { CanvasComposition, RuntimeGarmentAsset } from "@freestyle/shared-types";
 
 type CanvasBoardProps = {
   composition: CanvasComposition;
-  garments: StarterGarment[];
+  garments: RuntimeGarmentAsset[];
   onChange: (composition: CanvasComposition) => void;
 };
 

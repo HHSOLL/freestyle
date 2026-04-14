@@ -1,0 +1,20 @@
+{
+  "name": "fsp-local",
+  "interface": {
+    "displayName": "FSP Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "blender",
+      "source": {
+        "source": "local",
+        "path": "./plugins/blender"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "3D Authoring"
+    }
+  ]
+}

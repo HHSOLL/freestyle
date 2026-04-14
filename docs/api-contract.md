@@ -22,7 +22,7 @@
 ## Canonical Domain Contracts
 
 ### `/v1` compatibility notes
-- `/v1` 런타임 endpoint 동작은 유지한다. 현재 저장/조회 중인 garment-side contract는 계속 `assets.metadata.measurements`, `assets.metadata.fitProfile`, `assets.metadata.garmentProfile`이다.
+- `/v1` 런타임 endpoint 동작은 유지한다. 현재 저장/조회 중인 garment-side contract는 계속 `assets.metadata.measurements`, `assets.metadata.fitProfile`, `assets.metadata.garmentProfile`을 포함하고, 여기에 optional physical-fit fields인 `assets.metadata.measurementModes`, `assets.metadata.sizeChart`, `assets.metadata.selectedSizeLabel`, `assets.metadata.physicalProfile`가 추가되었다.
 - canonical schema source는 `@freestyle/contracts`다. `@freestyle/shared`는 동일 contract를 소비/re-export하지만 shape를 별도로 정의하지 않는다.
 - 기존 shape assumption은 유지한다. `measurements`는 기존 cm 필드(`chestCm`, `waistCm`, `hipCm`, `shoulderCm`, `sleeveLengthCm`, `lengthCm`, `inseamCm`, `riseCm`, `hemCm`)를 그대로 사용한다.
 
@@ -33,6 +33,86 @@
 - 클라이언트 localStorage migration을 위해 legacy flat payload는 읽기 시 정규화할 수 있지만, canonical reserved contract는 envelope 기준으로 정의한다.
 - planned reservation: `GET /v1/body-profiles/me`, `PUT /v1/body-profiles/me`
 - 상태: reserved only, not implemented. 현재 body profile은 Studio/Closet 클라이언트 로컬 상태에서만 사용되며 `/v1` persistence endpoint는 아직 없다.
+
+### Admin garment publication boundary
+- garment generation itself should happen in a separate admin/publishing surface, not in `Closet`.
+- implemented local-first endpoints:
+  - `POST /v1/admin/garments`
+  - `GET /v1/admin/garments`
+  - `GET /v1/admin/garments/:id`
+  - `PUT /v1/admin/garments/:id`
+  - `GET /v1/closet/runtime-garments`
+- still reserved for future workflow expansion:
+  - `POST /v1/admin/garments/:id/publish`
+- expected published payload shape is the runtime garment contract:
+  - asset fields
+  - `runtime`
+  - `palette`
+  - `publication`
+  - garment measurement and size-chart metadata
+- current persistence: local JSON repository behind the API boundary
+- intended future persistence: dedicated admin domain backing store
+- accessory-oriented size keys `headCircumferenceCm` and `frameWidthCm` are valid in the canonical garment measurement contract
+
+#### `GET /v1/closet/runtime-garments`
+- auth: same as other `/v1/closet/*` routes
+- response:
+```json
+{
+  "items": [
+    {
+      "id": "published-top-precision-tee",
+      "name": "Precision Tee",
+      "category": "tops",
+      "source": "inventory",
+      "runtime": {
+        "modelPath": "/assets/garments/partner/precision-tee.glb",
+        "skeletonProfileId": "freestyle-humanoid-v1",
+        "anchorBindings": [
+          { "id": "leftShoulder", "weight": 0.3 }
+        ],
+        "collisionZones": ["torso", "arms"],
+        "bodyMaskZones": [],
+        "surfaceClearanceCm": 1.2,
+        "renderPriority": 1
+      },
+      "publication": {
+        "sourceSystem": "admin-domain",
+        "publishedAt": "2026-04-14T12:00:00.000Z",
+        "assetVersion": "precision-tee@1.0.0",
+        "measurementStandard": "body-garment-v1"
+      }
+    }
+  ],
+  "total": 1
+}
+```
+
+#### `POST /v1/admin/garments`
+- auth: same as other product routes for now; later admin-domain auth will replace this
+- request body must satisfy `PublishedGarmentAsset`
+- duplicate `id` returns `409 CONFLICT`
+- response:
+```json
+{
+  "item": {
+    "id": "published-top-precision-tee"
+  }
+}
+```
+
+#### `PUT /v1/admin/garments/:id`
+- auth: same as other product routes for now; later admin-domain auth will replace this
+- request body must satisfy `PublishedGarmentAsset`
+- route `:id` must match `body.id`
+- response:
+```json
+{
+  "item": {
+    "id": "published-top-precision-tee"
+  }
+}
+```
 
 ## Widget
 

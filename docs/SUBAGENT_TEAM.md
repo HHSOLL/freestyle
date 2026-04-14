@@ -2,6 +2,8 @@
 
 FreeStyle 프로젝트를 병렬로 밀어붙일 때 사용하는 기본 서브에이전트 팀 정의입니다.
 
+현재 mannequin-first 완성 목표의 실행 순서와 완료 정의는 `docs/PERFECT_FITTING_EXECUTION_PLAN.md`를 우선 기준으로 삼습니다. 이 문서는 "누가 어떻게 병렬로 일할지"를 정의하고, execution plan 문서는 "무엇을 어떤 순서로 끝내야 하는지"를 정의합니다.
+
 ## VoltAgent Source of Truth
 - 기본 실행 풀: `~/.codex/agents/`의 VoltAgent `awesome-codex-subagents` 커스텀 에이전트
 - upstream 스냅샷: `~/.codex/vendor_imports/awesome-codex-subagents/`

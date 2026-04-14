@@ -17,9 +17,64 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-12
+- 2026-04-14
 
 ## 점검 로그
+### 2026-04-14
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+  - MakeHuman / MPFB official docs:
+    - `https://static.makehumancommunity.org/about/license.html`
+    - `https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html`
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/creating_clothes.html`
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/concept_clothes_hair_bodyparts.html`
+    - `https://static.makehumancommunity.org/assets/creatingassets/makeclothes/introduction.html`
+  - Blender official manual:
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/shrinkwrap.html`
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/modify/data_transfer.html`
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/corrective_smooth.html`
+    - `https://docs.blender.org/manual/en/latest/physics/cloth/introduction.html`
+  - OSS / paper evaluation:
+    - `https://github.com/chaitanya100100/TailorNet`
+    - `https://arxiv.org/abs/2003.04583`
+    - `https://github.com/mbotsch/GarmentMeasurements`
+    - `https://arxiv.org/abs/2306.13908`
+    - `https://github.com/dimforge/rapier`
+- 신규 변화 요약:
+  - npm latest stable 값은 전일과 동일하다: `next 16.2.3`, `react/react-dom 19.2.5`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.3`, `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`.
+  - official MakeHuman / MPFB docs는 core assets를 `CC0`로, addon/source code를 GPL/AGPL split으로 명시한다. 즉, generated avatar/garment outputs와 official system assets는 메인 제품에 쓰되, addon source 자체를 섞는 방식은 계속 분리해야 한다.
+  - official MPFB / MakeClothes docs는 garment를 같은 basemesh/asset pipeline 위에서 authoring하는 흐름을 전제로 한다. 이건 현재 제품의 `same body space` 방향과 일치한다.
+  - TailorNet은 기술적으로는 매우 유의미하지만 repo license가 non-commercial scientific/artistic use로 제한되어 있어 product code adoption 대상이 아니다.
+  - GarmentMeasurements / GarmentCode 계열은 offline measurement/generation 연구에는 도움이 되지만 GPL-3.0와 native dependency 체인 때문에 shipping monorepo 직접 편입 대상으로는 부적절하다.
+  - Rapier는 Apache-2.0이므로 이후 coarse collision / rigid constraint layer 후보로 유지할 수 있다.
+- 우리 프로젝트 영향:
+  - 오늘부터 `physical-fit-system.md`를 fit/cloth/source-adoption 결정의 추가 source of truth로 유지한다.
+  - runtime 우선순위는 full cloth simulation이 아니라 `size chart contract -> fit assessment -> corrective garment authoring -> selective collision` 순서로 고정한다.
+  - 현재 배치에서는 `packages/domain-garment`에 size-chart / measurement-mode / physical-profile 계약을 추가하고, `Closet`에 이 결과를 노출하는 것이 맞다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+    - `docs/physical-fit-system.md`
+    - `docs/garment-fitting-contract.md`
+    - `docs/PERFECT_FITTING_EXECUTION_PLAN.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `README.md`
+
+### 2026-04-13
+- 확인 소스:
+  - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)
+- 신규 변화 요약:
+  - npm registry 기준 최신 stable은 전일과 동일하게 `next 16.2.3`, `react/react-dom 19.2.5`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.3`이다.
+  - 3D runtime 관련 핵심 라이브러리 latest stable도 전일과 동일하게 `three 0.183.2`, `@react-three/fiber 9.5.0`, `@react-three/drei 10.7.7`이다.
+  - 오늘 배치의 핵심 변화는 dependency uplift가 아니라 Blender authoring capability가 열렸다는 점이다.
+- 우리 프로젝트 영향:
+  - 현재 저장소의 버전 격차는 어제와 동일하므로, dependency maintenance는 별도 배치로 유지한다.
+  - 오늘 우선순위는 shipped MPFB avatar/garment runtime의 morph calibration과 garment coverage tuning을 끌어올리는 것이다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+
 ### 2026-04-12
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)

@@ -28,8 +28,10 @@ Duplicate or dead trees removed:
 
 - root `src/`
 - root `public/`
-- `v18/` snapshot
 - dead legacy feature directories under `apps/web/src/features/*`
+- duplicate legacy runtime stage implementation formerly embedded in `packages/runtime-3d/src/index.tsx`
+- stale Railway service docs and Dockerfiles for dedicated `worker_background_removal`, `worker_asset_processor`, `worker_evaluator`, and `worker_tryon`
+- the old multi-service Railway topology is no longer a valid target; only `api + worker_importer` remains the intended main project shape
 
 ## 3. Redirected Or Quarantined
 
@@ -37,7 +39,8 @@ Legacy redirects now live in `apps/web/route-map.mjs`.
 
 Current quarantine behavior:
 
-- `/studio -> /app/fitting`
+- `/app/fitting -> /app/closet`
+- `/studio -> /app/closet`
 - `/trends -> /app/community`
 - `/examples -> /app/community`
 - `/how-it-works -> /app/community`
@@ -77,6 +80,7 @@ These areas were not deleted outright because they still provide supporting valu
 - auth callback flow
 - import and asset infrastructure under legacy
 - evaluation and try-on experiments under lab
+- `v18/` source snapshot retained as a direct UI reference for the Closet shell
 - supporting packages such as `packages/contracts`, `packages/db`, `packages/storage`, and worker runtime
 
 They are no longer allowed to define the main product narrative.
@@ -86,6 +90,7 @@ They are no longer allowed to define the main product narrative.
 - `apps/web/src/lib/product-routes.ts`
 - `apps/web/route-map.mjs`
 - `apps/api/src/main.ts`
+- `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/domain-avatar/src/index.ts`
 - `packages/domain-garment/src/index.ts`
 - `packages/domain-garment/src/skeleton-profiles.ts`
@@ -94,17 +99,23 @@ They are no longer allowed to define the main product narrative.
 
 ## 8. Honest Blockers
 
-The remaining important blocker is the avatar authoring pipeline:
+The remaining important blocker is no longer "missing MPFB assets". Those now ship in-repo. The real blockers are quality blockers:
 
-- the runtime contract is ready for MPFB2 or MakeHuman authored assets
-- the repo currently ships fallback human GLBs instead of a true MPFB2-authored morph-target mannequin
+- measurement-to-morph calibration now reaches exported MPFB runtime shape keys, but it still uses heuristic weight mapping and needs tighter fit against the actual MPFB shape-key space
+- per-garment body mask coverage is not fully tuned across every starter silhouette, so non-default outfits can still reveal weak spots
+- the new size-chart / physical-fit layer is now in the domain contract, but only the first starter tee uses a product-detail style size chart so far
 
 This is a real gap. It is documented in `docs/avatar-pipeline.md` and should not be hidden.
 
+Operationally, the remote Railway cleanup has now been executed as well. As of `2026-04-14`, the main `freestyle` Railway project only retains `api` and `worker_importer`. The older dedicated `worker_background_removal`, `worker_asset_processor`, `worker_evaluator`, and `worker_tryon` services were removed from the live project, not just from the repo.
+
 ## 9. Next Migration Targets
 
-- replace fallback avatar assets with a promoted MPFB2-authored base
+- tighten MPFB morph calibration and garment coverage tuning
+- expand product-detail size-chart coverage across the starter catalog
 - continue shrinking or removing obsolete legacy packages once no longer needed
+- keep local-first web flows from probing dead relative `/v1/*` paths when no public API base URL is configured
 - keep page files thin and move additional logic into domain packages where necessary
 - keep every new surface inside the same wardrobe design language
 - keep `/` home, `/app/closet`, `/app/canvas`, `/app/community`, and `/app/profile` aligned to the same shell hierarchy
+- keep fitting inside `Closet` instead of splitting it back into a standalone page

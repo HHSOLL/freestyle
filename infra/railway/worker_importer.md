@@ -29,4 +29,5 @@
 
 ## Cost Optimization
 - 기본 운영은 이 서비스 하나만 상시 실행한다.
-- `worker_background_removal`, `worker_asset_processor`, `worker_evaluator`, `worker_tryon`는 병목이 보일 때만 scale-up 한다.
+- `worker_background_removal`, `worker_asset_processor`, `worker_evaluator`, `worker_tryon`는 main Railway 프로젝트에서 제거 대상이다.
+- `2026-04-14` 기준 main `freestyle` Railway 프로젝트의 실서비스 토폴로지는 `api + worker_importer`로 정리되었다.

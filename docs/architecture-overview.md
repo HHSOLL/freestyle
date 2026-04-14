@@ -16,13 +16,18 @@ Old import, basket, AI evaluation, and AI try-on features no longer define the p
 ```mermaid
 flowchart LR
   User["User"] --> Web["apps/web"]
+  Admin["Admin"] --> AdminWeb["apps/admin"]
   Web --> UI["packages/ui"]
+  AdminWeb --> UI
   Web --> Tokens["packages/design-tokens"]
+  AdminWeb --> Tokens
   Web --> Avatar["packages/domain-avatar"]
   Web --> Garment["packages/domain-garment"]
   Web --> Canvas["packages/domain-canvas"]
   Web --> Runtime["packages/runtime-3d"]
+  AdminWeb --> Garment
   Web --> API["apps/api"]
+  AdminWeb --> API
   API --> Workers["workers/runtime"]
   API --> Storage["Supabase / object storage"]
   Workers --> Storage
@@ -60,14 +65,17 @@ shared-types/shared-utils
   -> ui
   -> domain-avatar / domain-garment / domain-canvas
   -> runtime-3d
+  -> apps/admin
   -> apps/web
   -> apps/api
 ```
 
 Rules:
 
+- `apps/admin` owns internal garment publication workflows only
 - `apps/web` orchestrates only
-- `runtime-3d` owns scene mutation
+- `packages/runtime-3d` owns the shared avatar manifest and reusable scene contract
+- `packages/runtime-3d/src/closet-stage.tsx` is the current live `Closet` stage implementation
 - domain packages own logic and persistence helpers
 - shared packages do not import app code
 
@@ -77,10 +85,13 @@ Main navigation:
 
 - `/`
 - `/app/closet`
-- `/app/fitting`
 - `/app/canvas`
 - `/app/community`
 - `/app/profile`
+
+Compatibility redirect:
+
+- `/app/fitting -> /app/closet`
 
 Redirect quarantine:
 
@@ -115,6 +126,7 @@ Source-of-truth files:
 - active category
 - equipped garments
 - quality tier
+- live stage renderer: `packages/runtime-3d/src/closet-stage.tsx`
 
 ### Canvas composition
 
@@ -148,19 +160,41 @@ Current state:
 
 This is intentional. The UI and scene runtime are already separated from persistence so remote adapters can replace local storage without rewriting pages.
 
+The first admin publishing boundary is now active through:
+
+- `apps/admin`
+- `POST /v1/admin/garments`
+- `/v1/admin/garments`
+- `/v1/closet/runtime-garments`
+
+`apps/admin` is now the dedicated admin surface, with a guided create/update workflow for garment identity, exact size-chart rows, runtime binding, and raw manifest inspection. The API endpoints still use a local JSON repository so the public `Closet` surface can consume published runtime garments without being coupled to garment authoring logic.
+
 ## 9. Implementation Status
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Product IA reset | Implemented | Main nav now targets Closet, Fitting, Canvas, Community, Profile, with a public Home at `/`. |
+| Product IA reset | Implemented | Main nav now targets Closet, Canvas, Community, and Profile, with a public Home at `/`. Fitting is absorbed into Closet. |
 | Legacy route quarantine | Implemented | Redirect map is active and dead route files were removed. |
 | Domain package split | Implemented | Avatar, garment, canvas, UI, tokens, runtime packages are live. |
 | Product vs legacy vs lab API split | Implemented | Mounted in `apps/api/src/main.ts`. |
 | Reference-driven shell layout | Implemented | `ProductAppShell` and surface panels follow the wardrobe composition. |
-| Measurement-to-rig mapping | Implemented | `bodyProfileToAvatarParams` and `avatarParamsToRigTargets` are live. |
-| Garment runtime contract | Implemented | skeleton profile registry, runtime bindings, and tests exist. |
-| MPFB2-authored shipping mannequin | Partial | Policy and runtime boundary exist, but shipped asset is still fallback GLB-based. |
+| Measurement-to-avatar plan mapping | Implemented | `bodyProfileToAvatarMorphPlan` now emits formal morph-target and rig-target plans for runtime application. |
+| Garment runtime contract | Implemented | skeleton profile registry, runtime bindings, size-chart fields, and tests exist. |
+| MPFB2-authored shipping mannequin | Partial | MPFB-authored base avatar GLBs now ship with exported body morph targets, and official MakeHuman starter garment GLBs now ship in-repo, but measurement calibration and garment coverage tuning are still below the final product bar. |
 
-## 10. Superseded Docs
+## 10. Current Runtime Reality
+
+The current `Closet` stage now uses one canonical runtime:
+
+- visible MPFB-authored avatar GLB variants from `packages/runtime-3d/src/avatar-manifest.ts`
+- visible MPFB-authored garment GLBs rendered inside the same shared wrapper transform as the avatar
+- formal body mapping path through `bodyProfileToAvatarMorphPlan`, with MPFB morph-target application active in runtime
+- size-chart aware garment metadata with `measurementModes`, `sizeChart`, `selectedSizeLabel`, and `physicalProfile`
+- physical fit assessment output from `packages/domain-garment/src/index.ts`
+- merged runtime catalog support so `Closet` can consume published admin-domain garments in addition to starter assets
+
+This is materially closer to the target architecture than the old proxy-driven stage, but it is still not the final avatar-quality state. The repo now ships real MPFB runtime assets, yet morph fidelity and garment coverage tuning still need another pass before the result reaches the intended “real person” bar.
+
+## 11. Superseded Docs
 
 `docs/architecture.md` is now an archive pointer. Use this file as the current architecture source.

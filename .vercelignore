@@ -1,0 +1,13 @@
+.git
+.github
+.agents
+docs
+infra
+output
+test-results
+v18
+plugins
+supabase
+authoring
+workers/background_removal
+apps/api

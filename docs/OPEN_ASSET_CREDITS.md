@@ -1,59 +1,68 @@
 # Open Asset Credits
 
-현재 옷장/3D fitting surface는 공개 라이선스 3D asset을 함께 사용한다.
+현재 메인 `Closet` / `Canvas` / `Community` surface에서 실제 shipped 상태로 쓰는 공개 라이선스 3D asset은 MPFB 계열만 남긴다.
 
-## Avatar / Props
-- `apps/web/public/models/quaternius/Casual.fbx`
-- `apps/web/public/models/quaternius/Suit.fbx`
-- `apps/web/public/models/quaternius/Witch.fbx`
-- `apps/web/public/models/quaternius/Worker.fbx`
-  - Source pack: [Ultimate Modular Women Pack - Quaternius](https://quaternius.com/packs/ultimatemodularwomen.html)
-  - Author: Quaternius
-  - License: CC0
-- `apps/web/public/assets/avatars/quaternius-animated-woman.glb`
-  - Source: [Animated Woman - Poly Pizza](https://poly.pizza/m/9kF7eTDbhO)
-  - Author: Quaternius
-  - License: CC0
-- `apps/web/public/assets/avatars/quaternius-man.glb`
-  - Source: [Man - Poly Pizza](https://poly.pizza/m/HMnuH5geEG)
-  - Author: Quaternius
-  - License: CC0
-- `apps/web/public/assets/props/reyshapes-mannequin.glb`
-  - Source: [Mannequin - Poly Pizza](https://poly.pizza/m/tYwjQJvcFX)
-  - Author: reyshapes
-  - License: CC0
-- `apps/web/public/assets/props/polygonalmind-jacket.glb`
-  - Source: [Jacket - Poly Pizza](https://poly.pizza/m/eeKk3ObCbf)
-  - Author: Polygonal Mind
-  - License: CC0
+## Runtime Avatar
+- `apps/web/public/assets/avatars/mpfb-female-base.glb`
+- `apps/web/public/assets/avatars/mpfb-male-base.glb`
+  - Source pipeline: [MPFB2](https://github.com/makehumancommunity/mpfb2) + [makehuman_system_assets](https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html)
+  - Authoring source: MakeHuman Community
+  - License: MPFB2 addon code is GPL-3.0-or-later, generated avatar outputs and the official system asset pack are documented as CC0-compatible on the official asset page
+  - Note: the repo ships generated runtime GLBs, not the full upstream asset pack zip
+  - Current promoted presets: female uses `ponytail01` hair, `eyebrow001`, `eyelashes01`; male uses `short02`
+
+## Runtime Garments
+- `apps/web/public/assets/garments/mpfb/female/*.glb`
+- `apps/web/public/assets/garments/mpfb/male/*.glb`
+  - Usage: `/app/closet` starter outfit and shoes catalog
+  - Source pipeline: `authoring/garments/mpfb/scripts/build_runtime_garment.py` -> `scripts/build-mpfb-starter-garments.mjs`
+  - Upstream sources: [MPFB2](https://github.com/makehumancommunity/mpfb2), [makehuman_system_assets](https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html)
+  - License: generated runtime outputs from the official MakeHuman Community asset pack
+  - Current promoted starter set: `Soft Tucked Tee`, `Soft Wool Trousers`, `Soft Day Shoe`
+  - Official pack inputs: `shirts01`, `pants01`, `shoes01`
+
+## Runtime Hair
+- `apps/web/public/assets/garments/mpfb/female/hair_*.glb`
+- `apps/web/public/assets/garments/mpfb/male/hair_*.glb`
+  - Usage: `/app/closet` selectable hair-style catalog
+  - Source pipeline: `authoring/garments/mpfb/scripts/build_runtime_hair.py` -> `scripts/build-mpfb-hair-assets.mjs`
+  - Upstream sources: [MPFB2](https://github.com/makehumancommunity/mpfb2), [makehuman_system_assets](https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html)
+  - License: generated runtime outputs from the official MakeHuman Community asset pack
+  - Current promoted starter set: `Signature Ponytail`, `Soft Bob`, `Long Fall`, `Textured Crop`
+  - Official pack inputs: `ponytail01`, `bob01`, `long01`, `short03`
+
+## Runtime Accessories
+- `apps/web/public/assets/garments/mpfb/female/accessory_*.glb`
+- `apps/web/public/assets/garments/mpfb/male/accessory_*.glb`
+  - Usage: `/app/closet` accessory catalog
+  - Source pipeline: `authoring/garments/mpfb/scripts/build_runtime_accessory.py` -> `scripts/build-mpfb-accessory-assets.mjs`
+  - Authoring source: generated in-repo against the promoted MPFB base avatars
+  - License: repo-authored runtime meshes and materials
+  - Current promoted starter set: `City Bucket Hat`, `Oval Shades`
+
+## Removed Legacy Open Assets
+- old Quaternius avatar FBX/GLB samples
+- legacy `assets/closet/models/*` slot-test garments
+- demo SVG clothing placeholders
+- unused Poly Pizza prop GLBs
+  - These were removed from the repo during the mannequin-first realignment because they no longer participate in the live product path.
 
 ## Closet Stage
-- `apps/web/public/assets/avatars/quaternius-animated-woman.glb`
-- `apps/web/public/assets/avatars/quaternius-man.glb`
-  - Usage: `/app/closet`의 실제 사람형 rigged base body
-  - Source: [Animated Woman - Poly Pizza](https://poly.pizza/m/9kF7eTDbhO), [Man - Poly Pizza](https://poly.pizza/m/HMnuH5geEG)
-  - Author: Quaternius
-  - License: CC0
-- `apps/web/public/assets/closet/models/rig-base.glb`
-- `apps/web/public/assets/closet/models/top_shirt.glb`
-- `apps/web/public/assets/closet/models/top_tee.glb`
-- `apps/web/public/assets/closet/models/outer_bomber.glb`
-- `apps/web/public/assets/closet/models/outer_blazer.glb`
-- `apps/web/public/assets/closet/models/outer_coat.glb`
-- `apps/web/public/assets/closet/models/bottom_cargo.glb`
-- `apps/web/public/assets/closet/models/bottom_denim.glb`
-- `apps/web/public/assets/closet/models/bottom_shorts.glb`
-- `apps/web/public/assets/closet/models/shoes_boot.glb`
-- `apps/web/public/assets/closet/models/shoes_runner.glb`
-- `apps/web/public/assets/closet/models/shoes_sneaker.glb`
-  - Usage: `/app/closet` slot-based fitting용 body-compatible local starter pack
-  - Source: project-local reference pack from `v18/public/assets/models/*`, generated/curated by `v18/tools/generate_rigged_assets.py`
-  - License: repository-local experimental assets provided with this workspace
-  - Note: 공개 clothing pack 호환성이 맞지 않아, 현재는 스켈레톤/스케일 안정성을 우선한 로컬 기본 팩으로 고정했다.
+- `apps/web/public/assets/avatars/mpfb-female-base.glb`
+- `apps/web/public/assets/avatars/mpfb-male-base.glb`
+- `apps/web/public/assets/garments/mpfb/female/*.glb`
+- `apps/web/public/assets/garments/mpfb/male/*.glb`
+  - Usage: `/app/closet`의 실제 shipped mannequin, outfit, shoes, accessory, hair runtime
+  - Avatar pipeline: `authoring/avatar/mpfb/presets/*` -> `authoring/avatar/mpfb/scripts/build_runtime_avatar.py` -> `scripts/build-mpfb-base-avatars.mjs`
+  - Garment pipeline: `authoring/garments/mpfb/scripts/build_runtime_garment.py` -> `scripts/build-mpfb-starter-garments.mjs`
+  - Hair pipeline: `authoring/garments/mpfb/scripts/build_runtime_hair.py` -> `scripts/build-mpfb-hair-assets.mjs`
+  - Accessory pipeline: `authoring/garments/mpfb/scripts/build_runtime_accessory.py` -> `scripts/build-mpfb-accessory-assets.mjs`
+  - Upstream sources: [MPFB2](https://github.com/makehumancommunity/mpfb2), [makehuman_system_assets](https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html)
+  - License: generated assets tracked as CC0-compatible source outputs; see MakeHuman Community asset-pack page and commercial-use FAQ
 
 ## Integration Notes
-- wardrobe avatar preset metadata는 `apps/web/src/features/shared-3d/avatarPresets.ts`에서 관리한다.
 - 새 공개 asset을 추가할 때는 source URL, author, license를 preset/문서에 같이 기록한다.
-- `/app/closet`는 Quaternius human avatar(GLB)를 visible base body로 사용하고, 로컬 starter pack garment GLB를 slot별로 겹쳐 렌더링한다.
-- clothing stage transform은 garment bounding box가 아니라 `apps/web/public/assets/closet/models/rig-base.glb`의 고정 fit reference 높이 기준으로만 계산한다.
-- 포즈/체형 보정은 avatar와 clothing skeleton에 같은 규칙으로 적용하고, 원격 asset API가 비어도 로컬 starter pack으로 동작이 유지된다.
+- `/app/closet`는 MPFB-authored human avatar(GLB)를 visible base body로 사용하고, 같은 authoring scale의 MPFB garment GLB를 같은 runtime wrapper 안에서 함께 렌더링한다.
+- garment stage transform은 garment bounding box를 다시 피팅하지 않고, avatar fit transform을 그대로 공유한다.
+- 포즈/체형 보정은 avatar와 garment skeleton에 같은 규칙으로 적용하고, 원격 asset API가 비어도 로컬 starter pack으로 동작이 유지된다.
+- avatar manifest와 stage registration은 `packages/runtime-3d/src/avatar-manifest.ts`와 `packages/runtime-3d/src/closet-stage.tsx`가 source of truth다.

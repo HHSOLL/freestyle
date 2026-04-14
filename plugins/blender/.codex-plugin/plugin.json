@@ -1,0 +1,33 @@
+{
+  "name": "blender",
+  "version": "0.1.0",
+  "description": "Local Blender bridge for Codex asset authoring and export workflows.",
+  "author": {
+    "name": "Local Workspace"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "blender",
+    "glb-export",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Blender",
+    "shortDescription": "Headless Blender bridge for Codex",
+    "longDescription": "Connects Codex to the locally installed Blender app for version checks, Python execution, and GLB export.",
+    "developerName": "Local Workspace",
+    "category": "3D Authoring",
+    "capabilities": [
+      "Interactive",
+      "Automation"
+    ],
+    "defaultPrompt": [
+      "Check the local Blender version.",
+      "Run a headless Blender Python snippet.",
+      "Export a .blend file to GLB."
+    ],
+    "brandColor": "#F5792A"
+  }
+}

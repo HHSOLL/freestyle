@@ -5,10 +5,14 @@
 1. Confirm `docs/TECH_WATCH.md` was updated today.
 2. Run `npm run lint`.
 3. Run `npm run typecheck`.
-4. Run `npm run test:core`.
-5. Run `npm run build:services`.
-6. Run `npm run build`.
-7. Run `npm run validate:garment3d` when asset metadata changed.
+4. Run `npm run typecheck:admin`.
+5. Run `npm run test:core`.
+6. Run `npm run build:services`.
+7. Run `npm run build`.
+8. Run `npm run build:admin`.
+9. Run `npm run validate:garment3d` when asset metadata changed.
+10. Run `npm run validate:avatar3d` when avatar assets or morph mapping changed.
+11. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
 
 ## 2. Product Smoke Checklist
 
@@ -17,7 +21,6 @@
 - `/`
 - `/app`
 - `/app/closet`
-- `/app/fitting`
 - `/app/canvas`
 - `/app/community`
 - `/app/profile`
@@ -27,7 +30,8 @@
 
 ### Redirect smoke
 
-- `/studio -> /app/fitting`
+- `/app/fitting -> /app/closet`
+- `/studio -> /app/closet`
 - `/trends -> /app/community`
 - `/examples -> /app/community`
 - `/how-it-works -> /app/community`
@@ -43,8 +47,11 @@
 - `/readyz`
 - `/v1/profile/body-profile`
 - `/v1/closet/items`
+- `/v1/closet/runtime-garments`
 - `/v1/canvas/looks`
 - `/v1/community/looks`
+- `/v1/admin/garments`
+- `POST /v1/admin/garments`
 - `/v1/legacy/assets`
 - `/v1/lab/tryons`
 
@@ -58,9 +65,9 @@ Also confirm namespace headers:
 
 Before a release:
 
-1. Capture fresh screenshots for `Home`, `Closet`, `Fitting`, `Canvas`, `Community`, and `Profile`.
+1. Capture fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`.
 2. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
-3. Confirm the floating top bar, bottom mode bar, left rail, right catalog rail, and centered mannequin stage still hold.
+3. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
 4. Confirm old routes are still redirected or removed from the main flow.
 5. Confirm `lab` failures do not break any main product page.
 6. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
@@ -73,7 +80,9 @@ Verify these after any mannequin or asset change:
 - poses apply without broken limbs
 - measurement changes update multiple rig regions, not a single global scale
 - body masks hide covered mesh zones correctly
+- pose-aware body masks expand correctly in `stride` and `tailored`
 - garments respect render order and clearance
+- garments respect pose-aware clearance tuning
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
 
@@ -99,7 +108,7 @@ If any of the above regress, stop the release.
 
 - inspect `apps/web/route-map.mjs`
 - inspect `apps/web/src/lib/product-routes.ts`
-- verify the main nav still shows only the five product surfaces
+- verify the main nav still shows only the four app surfaces
 
 ### Persistence regression
 
@@ -111,6 +120,13 @@ If any of the above regress, stop the release.
 
 - verify `apps/api/src/main.ts`
 - confirm new routes were not mounted directly onto legacy or lab by mistake
+
+### Admin publish regression
+
+- verify `apps/admin` can create a new garment without editing raw JSON first
+- verify accessory measurements (`headCircumferenceCm`, `frameWidthCm`) survive save/load
+- verify the archetype fit preview updates when size rows or measurement modes change
+- verify guided form edits still round-trip through the raw manifest inspector
 
 ## 6. Operational Rules
 
@@ -126,5 +142,6 @@ When these areas change, update the paired docs:
 - architecture or route boundaries: `architecture-overview.md`
 - avatar asset authoring or rig rules: `avatar-pipeline.md`
 - garment contract or fit logic: `garment-fitting-contract.md`
+- physical fit model or source-adoption decisions: `physical-fit-system.md`
 - shell layout or tokens: `design-system.md`
 - deleted or quarantined features: `migration-notes.md`

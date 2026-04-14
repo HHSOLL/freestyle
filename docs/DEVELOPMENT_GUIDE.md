@@ -5,22 +5,26 @@
 Before changing the product, read these in order:
 
 1. `README.md`
-2. `docs/architecture-overview.md`
-3. `docs/design-system.md`
-4. `docs/avatar-pipeline.md`
-5. `docs/garment-fitting-contract.md`
-6. `docs/migration-notes.md`
-7. `docs/TECH_WATCH.md`
+2. `docs/PERFECT_FITTING_EXECUTION_PLAN.md`
+3. `docs/architecture-overview.md`
+4. `docs/design-system.md`
+5. `docs/avatar-pipeline.md`
+6. `docs/garment-fitting-contract.md`
+7. `docs/physical-fit-system.md`
+8. `docs/admin-asset-publishing.md`
+9. `docs/migration-notes.md`
+10. `docs/TECH_WATCH.md`
 
 ## 2. Product Boundary
 
-The main product is the five-surface wardrobe runtime:
+The main product is the public Home plus four app surfaces:
 
 - `Closet`
-- `Fitting`
 - `Canvas`
 - `Community`
 - `Profile`
+
+`Fitting` still exists as a product capability, but it belongs inside `Closet`. `/app/fitting` should remain only as a compatibility redirect.
 
 `/` is the public home entry and must stay visually aligned with the wardrobe system.
 
@@ -35,6 +39,9 @@ Allowed exceptions:
 
 The minimum domain structure is fixed:
 
+- `apps/admin`
+  - internal publishing workflows only
+  - no public closet logic
 - `apps/web`
   - page orchestration only
   - no direct domain logic embedded in large page files
@@ -103,6 +110,7 @@ Use these boundaries:
 - `bodyProfileToAvatarParams` converts measurements into normalized control space
 - `avatarParamsToRigTargets` converts normalized values into rig-level transforms
 - `AvatarStageCanvas` applies those transforms to the active skeleton
+- `fitReviewArchetypes` is the representative QA set for admin publishing and fit calibration
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.
 
@@ -117,6 +125,7 @@ Required runtime fields:
 - `anchorBindings`
 - `collisionZones`
 - `bodyMaskZones`
+- `poseTuning` for pose-specific clearance and mask overrides on clipping-prone garments
 - `surfaceClearanceCm`
 - `renderPriority`
 - `metadata.measurements`
@@ -129,23 +138,35 @@ Current registry:
 
 Every new garment asset must validate before product use. Use `npm run validate:garment3d` and keep the runtime contract aligned with [garment-fitting-contract.md](./garment-fitting-contract.md).
 
+If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
+
+Admin workflow rule:
+
+- `apps/admin` should stay form-first for partner operations
+- raw JSON remains as an inspector and escape hatch, not the primary workflow
+- every new garment should be creatable through the guided flow before it reaches `Closet`
+- every publish candidate should also be reviewed through the built-in archetype fit preview before it reaches `Closet`
+
 ## 7. 3D Runtime Rules
 
-`packages/runtime-3d` is the only place that should directly mutate the avatar scene graph.
+The shared avatar manifest, reusable garment/runtime contract, and the current production `Closet` scene all live in `packages/runtime-3d`.
 
 Current source-of-truth files:
 
 - `packages/runtime-3d/src/avatar-manifest.ts`
 - `packages/runtime-3d/src/index.tsx`
+- `packages/runtime-3d/src/closet-stage.tsx`
 
 Rules:
 
 - keep humanoid alias patterns with the avatar manifest
-- preload runtime assets through `preloadRuntimeAssets`
+- keep the live `Closet` stage aligned with the shared manifest and garment contract
 - preserve quality tiers: `low`, `balanced`, `high`
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
 - keep body masking and render-order rules aligned with garment bindings
+- validate promoted avatar assets with `npm run validate:avatar3d`
+- validate starter and partner fit calibration with `npm run validate:fit-calibration`
 
 ## 8. Persistence Rules
 
@@ -171,6 +192,12 @@ Main product UI must talk to product routes only:
 - `/v1/closet/*`
 - `/v1/canvas/*`
 - `/v1/community/*`
+
+Current product-fit specific routes:
+
+- public `Closet` runtime catalog: `/v1/closet/runtime-garments`
+- admin/publishing boundary: `/v1/admin/garments`
+- admin create path: `POST /v1/admin/garments`
 
 Legacy and lab must remain isolated:
 
@@ -235,7 +262,31 @@ Core tests that must stay healthy:
 - runtime asset budget
 - critical shared UI rendering
 
-## 13. Documentation Sync
+## 13. Codex Plugin Scaffolds
+
+Repo-local Codex plugins live under `plugins/<plugin-name>`.
+If the plugin should appear in Codex UI ordering, update `.agents/plugins/marketplace.json` in the same change.
+
+Use the shared plugin-creator skill script for new scaffolds:
+
+```bash
+python3 /Users/sol/.codex/skills/.system/plugin-creator/scripts/create_basic_plugin.py <plugin-name> \
+  --path /Users/sol/Desktop/fsp/plugins \
+  --marketplace-path /Users/sol/Desktop/fsp/.agents/plugins/marketplace.json \
+  --with-marketplace
+```
+
+Rules:
+
+- keep `.codex-plugin/plugin.json` present
+- keep placeholder manifest values until the plugin contract is intentionally defined
+- add tracked placeholder files when you create empty folders so the scaffold survives in git
+- update this guide or `README.md` when plugin layout or plugin operating conventions change
+- when a plugin exposes an MCP bridge, validate the bridge command and the runtime binary path in the same task
+- for local MCP testing, prefer `codex mcp add <name> -- <command ...>` over shell-only ad hoc wiring so the connection is reproducible
+- if a plugin is meant to be globally reusable across Codex agents on the same machine, provide one installer that syncs the home-local plugin copy, its runtime, global skill links, and the matching `mcp_servers.<name>` entry together
+
+## 14. Documentation Sync
 
 If you change:
 
@@ -245,5 +296,6 @@ If you change:
 - garment fitting contract
 - design tokens or shell layout
 - persistence shape
+- plugin layout or plugin operating conventions
 
 you must update the corresponding document in the same change.

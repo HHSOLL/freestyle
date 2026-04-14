@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "blender-bridge": {
+      "command": "/bin/sh",
+      "args": [
+        "-lc",
+        "PLUGIN_HOME=\"$HOME/plugins/blender\"; if [ -x \"$PLUGIN_HOME/.venv/bin/python\" ] && [ -f \"$PLUGIN_HOME/scripts/blender_mcp_bridge.py\" ]; then exec \"$PLUGIN_HOME/.venv/bin/python\" \"$PLUGIN_HOME/scripts/blender_mcp_bridge.py\"; fi; REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; REPO_PLUGIN=\"$REPO_ROOT/plugins/blender\"; if [ -x \"$REPO_PLUGIN/.venv/bin/python\" ] && [ -f \"$REPO_PLUGIN/scripts/blender_mcp_bridge.py\" ]; then exec \"$REPO_PLUGIN/.venv/bin/python\" \"$REPO_PLUGIN/scripts/blender_mcp_bridge.py\"; fi; if command -v python3 >/dev/null 2>&1 && python3 -c 'from mcp.server.fastmcp import FastMCP' >/dev/null 2>&1; then exec python3 \"$REPO_PLUGIN/scripts/blender_mcp_bridge.py\"; fi; echo 'Blender MCP runtime is not installed. Run python3 plugins/blender/scripts/install_global_blender_plugin.py first.' >&2; exit 1"
+      ],
+      "env": {
+        "BLENDER_BIN": "/Applications/Blender.app/Contents/MacOS/Blender"
+      }
+    }
+  }
+}

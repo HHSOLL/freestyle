@@ -14,11 +14,11 @@ FreeStyle is now a mannequin-first wardrobe product. The main experience is no l
 
 - `Home` at `/`
 - `Closet` at `/app/closet`
-- `Fitting` at `/app/fitting`
 - `Canvas` at `/app/canvas`
 - `Community` at `/app/community`
 - `Profile` at `/app/profile`
 
+`Fitting` is no longer a standalone surface. It now lives inside `Closet`, and `/app/fitting` only remains as a compatibility redirect to `/app/closet`.
 `/app/discover` still resolves, but only as a compatibility redirect to `/app/community`.
 `/app/lab` still exists, but it is quarantined as experimental. It is not part of the main product flow.
 
@@ -29,8 +29,11 @@ The repository is now split into three runtime surfaces:
 - `Product`: `/v1/*`
   - `/v1/profile/body-profile`
   - `/v1/closet/items`
+  - `/v1/closet/runtime-garments`
   - `/v1/canvas/looks`
   - `/v1/community/looks`
+  - `POST /v1/admin/garments`
+  - `/v1/admin/garments`
 - `Legacy`: `/v1/legacy/*`
   - old import/assets/outfits/widget APIs
   - response header `x-freestyle-surface: legacy`
@@ -47,7 +50,7 @@ The shipped runtime now uses:
 
 - rigged human GLB base bodies
 - a body-profile normalization layer
-- rig-target transforms driven by measurements
+- MPFB shape-key morph targets plus rig-target transforms driven by measurements
 - garment runtime bindings with anchors, collision zones, body masks, and render order
 - pose control and quality tiers
 
@@ -58,11 +61,13 @@ Preferred authoring policy is:
 - Blender only as offline authoring/export tooling
 - web runtime output as `glb` or `gltf`
 
-Important: the repo is structurally ready for that pipeline, but it does not yet ship an MPFB2-authored morph-target mannequin asset. The current production runtime uses fallback rigged human GLBs plus measurement-driven bone transforms. That is documented explicitly in [docs/avatar-pipeline.md](docs/avatar-pipeline.md).
+Important: the repo now ships MPFB2-authored base avatar GLBs with exported body morph targets, MPFB starter garment GLBs generated from the official `shirts01 / pants01 / shoes01` packs, runtime accessories, and selectable runtime hair GLBs. The remaining gap is no longer “missing mannequin assets”; it is quality tuning: measurement-to-morph calibration still needs tighter fit against the real MPFB shape-key space, and the starter catalog still needs corrective refinement to consistently read as a high-end try-on experience. That state is documented explicitly in [docs/avatar-pipeline.md](docs/avatar-pipeline.md).
+The repo now also ships a representative archetype review layer for partner publishing: `apps/admin` previews fit across multiple body archetypes before save, and `npm run validate:fit-calibration` writes a starter-catalog fit matrix report to `output/fit-calibration/latest.json`.
 
 ## Monorepo Structure
 
 ```txt
+apps/admin               Next.js admin publishing surface with guided garment create/update workflow
 apps/web                 Next.js product shell and routes
 apps/api                 Fastify API with product / legacy / lab namespaces
 workers/runtime          background worker runtime
@@ -75,12 +80,14 @@ packages/ui              shared wardrobe UI primitives
 packages/shared-types    canonical product types
 packages/shared-utils    shared helpers
 packages/contracts       supporting API/widget contracts kept outside the core product domains
+plugins/blender          repo-local Blender Codex plugin source, skills, and installer
+.agents/plugins          repo-local plugin marketplace metadata for Codex
 ```
 
 ## What Changed In This Realignment
 
 - Old duplicate root trees `src/` and `public/` were removed.
-- Main navigation was rebuilt around `Closet / Fitting / Canvas / Community / Profile`.
+- Main navigation was rebuilt around `Closet / Canvas / Community / Profile`, with a public Home at `/`.
 - Legacy public routes such as `/studio`, `/trends`, `/examples`, `/how-it-works`, `/app/looks`, `/app/decide`, `/app/journal`, and `/profile` were redirected or removed from the main IA.
 - Large legacy feature trees were deleted or quarantined.
 - The product shell was rebuilt around the supplied wardrobe reference image:
@@ -98,6 +105,7 @@ See [docs/migration-notes.md](docs/migration-notes.md) for the detailed deletion
 Current persistence is intentionally split by boundary:
 
 - local repositories for body profile, closet scene, and canvas compositions
+- local file-backed publication repository for admin-published runtime garments
 - product API namespace ready for remote persistence adapters
 - normalized payloads that preserve compatibility with older flat `bodyProfile` storage
 
@@ -117,10 +125,20 @@ npm run dev
 Useful commands:
 
 - `npm run dev`
+- `npm run dev:admin`
 - `npm run dev:api`
 - `npm run dev:worker`
 - `npm run check`
 - `npm run validate:garment3d`
+
+Admin local setup:
+
+- copy `apps/admin/.env.example` to `apps/admin/.env.local`
+- point `BACKEND_ORIGIN` and `NEXT_PUBLIC_API_BASE_URL` to the Railway API origin
+- set the Supabase browser auth variables before running `npm run dev:admin`
+
+Repo-local Codex plugin work lives under `plugins/`, and plugin ordering metadata lives in `.agents/plugins/marketplace.json`.
+The current Blender plugin source is `plugins/blender`; run `python3 plugins/blender/scripts/install_global_blender_plugin.py` to sync the global plugin copy, skill links, and the `blender` MCP server.
 
 ## Quality Gate
 
@@ -128,15 +146,23 @@ CI requires all of the following:
 
 - `npm run lint`
 - `npm run typecheck`
+- `npm run typecheck:admin`
 - `npm run test:core`
+- `npm run validate:garment3d`
+- `npm run validate:avatar3d`
+- `npm run validate:fit-calibration`
 - `npm run build:services`
 - `npm run build`
+- `npm run build:admin`
 
 ## Core Documents
 
+- [docs/PERFECT_FITTING_EXECUTION_PLAN.md](docs/PERFECT_FITTING_EXECUTION_PLAN.md)
 - [docs/architecture-overview.md](docs/architecture-overview.md)
 - [docs/avatar-pipeline.md](docs/avatar-pipeline.md)
 - [docs/garment-fitting-contract.md](docs/garment-fitting-contract.md)
+- [docs/physical-fit-system.md](docs/physical-fit-system.md)
+- [docs/admin-asset-publishing.md](docs/admin-asset-publishing.md)
 - [docs/design-system.md](docs/design-system.md)
 - [docs/migration-notes.md](docs/migration-notes.md)
 - [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md)

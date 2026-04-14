@@ -6,6 +6,7 @@
 
 The reference image above is the design truth source for the wardrobe product. The goal is not vague mood matching. The goal is matching the interaction hierarchy:
 
+- shared top bar with home logo, centered product nav, and login/account control
 - central full-height mannequin stage
 - slim left information rail
 - slim right outfit and catalog rail
@@ -14,6 +15,15 @@ The reference image above is the design truth source for the wardrobe product. T
 - soft translucent surfaces
 - thin separators
 - restrained neutral palette
+
+Implementation note:
+
+- the current `Closet` shell now ports the user-supplied `v18` UI structure directly
+- source reference files:
+  - `v18/src/App.jsx`
+  - `v18/src/App.css`
+  - `apps/web/src/components/product/V18ClosetExperience.tsx`
+  - `apps/web/src/components/product/v18-closet.module.css`
 
 ## 2. Token Sources
 
@@ -56,35 +66,36 @@ This is the reference page.
 - left rail for body profile and outfit context
 - center stage for the mannequin
 - right rail for dense catalog browsing
-- floating top navigation
-- floating bottom mode bar
+- floating top controls
+- modal-driven mannequin customization
 
-### Fitting
-
-- keep the same shell language
-- bias controls toward pose, quality, and current garment focus
+Fitting is not a separate route anymore. It lives inside this surface.
 
 ### Canvas
 
 - keep the same shell treatment
-- allow more stage area for arrangement work
+- keep the Closet shell language
+- replace the mannequin center with a composition canvas
+- remove mannequin-only controls from the center stage
 
 ### Community
 
 - keep the same tone, spacing, radii, and control style
 - do not revert into a generic card dashboard
-- community feed cards should still feel like quiet wardrobe boards, not social-media tiles
+- use an Instagram-style vertical feed while keeping the wardrobe palette and restraint
 
 ### Home
 
 - keep the same gray-white glass language
 - treat the first screen as a product poster, not a dashboard
-- use the wardrobe reference image and the fitting shell as the main visual anchor
+- use the wardrobe reference image and the Closet shell as the main visual anchor
+- keep the same shared top bar as app pages
 
 ### Profile
 
 - keep the same product surfaces and panel hierarchy
-- saved looks and preferences should feel like part of the same wardrobe system
+- stay formal and summary-driven rather than pretending to be another workspace
+- saved looks and account state should feel like part of the same wardrobe system
 
 ## 5. Component Rules
 
@@ -129,9 +140,16 @@ Even with dense controls:
 Use these as the current implementation anchors:
 
 - `apps/web/src/components/layout/ProductAppShell.tsx`
-- `apps/web/src/components/product/ProductMiniToolbar.tsx`
-- `apps/web/src/components/product/BodyProfilePanel.tsx`
-- `apps/web/src/components/product/ClosetCatalogPanel.tsx`
+- `apps/web/src/components/layout/AppTopBar.tsx`
+- `apps/web/src/components/product/reference-shell.module.css`
+- `apps/web/src/components/product/V18ClosetExperience.tsx`
+- `apps/web/src/components/product/V18CanvasExperience.tsx`
+- `apps/web/src/components/product/CommunityFeedExperience.tsx`
+- `apps/web/src/components/product/ProfileOverviewExperience.tsx`
+- `apps/web/src/components/product/v18-closet.module.css`
 - `apps/web/src/components/product/AvatarStageViewport.tsx`
+- `packages/runtime-3d/src/closet-stage.tsx`
+- `apps/web/src/app/page.tsx`
+- `apps/web/src/app/app/closet/page.tsx`
 
 If a new page looks visually cheaper than `Closet`, it is out of spec.

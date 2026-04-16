@@ -13,6 +13,10 @@ const builds = [
   { styleId: "bob01", slug: "soft_bob", color: "#47362f" },
   { styleId: "long01", slug: "long_fall", color: "#2f2724" },
   { styleId: "short03", slug: "textured_crop", color: "#332824" },
+  { styleId: "braid01", slug: "studio_braid", color: "#382a25" },
+  { styleId: "bob02", slug: "volume_bob", color: "#4a382f" },
+  { styleId: "short04", slug: "clean_sweep", color: "#342925" },
+  { styleId: "afro01", slug: "afro_cloud", color: "#241d1b" },
 ].flatMap((style) => [
   {
     hairStyle: style.styleId,

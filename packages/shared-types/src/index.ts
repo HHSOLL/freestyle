@@ -335,6 +335,27 @@ export type GarmentPoseRuntimeTuningEntry = {
 
 export type GarmentPoseRuntimeTuning = Partial<Record<AvatarPoseId, GarmentPoseRuntimeTuningEntry>>;
 
+export type GarmentSecondaryMotionProfileId =
+  | "hair-sway"
+  | "hair-long"
+  | "hair-bob"
+  | "garment-soft"
+  | "garment-loose";
+
+export type GarmentSecondaryMotionBinding = {
+  profileId: GarmentSecondaryMotionProfileId;
+  stiffness: number;
+  damping: number;
+  influence: number;
+  maxYawDeg: number;
+  maxPitchDeg: number;
+  maxRollDeg: number;
+  idleAmplitudeDeg?: number;
+  idleFrequencyHz?: number;
+  verticalBobCm?: number;
+  lateralSwingCm?: number;
+};
+
 export type GarmentRuntimeBinding = {
   modelPath: string;
   modelPathByVariant?: Partial<Record<AvatarRenderVariantId, string>>;
@@ -343,6 +364,7 @@ export type GarmentRuntimeBinding = {
   collisionZones: GarmentCollisionZone[];
   bodyMaskZones: GarmentCollisionZone[];
   poseTuning?: GarmentPoseRuntimeTuning;
+  secondaryMotion?: GarmentSecondaryMotionBinding;
   surfaceClearanceCm: number;
   renderPriority: number;
 };
@@ -382,7 +404,7 @@ export type PublishedGarmentAsset = RuntimeGarmentAsset & {
 };
 
 export type ClosetSceneState = {
-  version: 1;
+  version: 1 | 2;
   avatarVariantId: AvatarRenderVariantId;
   poseId: AvatarPoseId;
   activeCategory: GarmentCategory;

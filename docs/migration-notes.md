@@ -1,5 +1,11 @@
 # Migration Notes
 
+## 2026-04-16
+
+- Bumped local closet scene persistence from `freestyle:closet-scene:v1` to `freestyle:closet-scene:v2`.
+- Reason: ship a cleaner evaluation baseline for deployed users with the new neutral default pose, hero default outfit loadout, and variant-aware default runtime hair.
+- Impact: previously saved local closet scene selections are reset once so the upgraded baseline is actually visible in production.
+
 ## 1. Goal Of This Migration
 
 The repo was realigned from an older shopping-link import and AI experiment shape into a mannequin-first product:

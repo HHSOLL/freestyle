@@ -25,7 +25,7 @@ import {
 
 export const avatarStorageKeys = {
   bodyProfile: "freestyle:avatar-profile:v2",
-  closetScene: "freestyle:closet-scene:v1",
+  closetScene: "freestyle:closet-scene:v2",
 } as const;
 
 export const bodyMeasurementFields: Array<{
@@ -200,9 +200,9 @@ export const fitReviewArchetypes = [
 ] as const;
 
 export const defaultClosetSceneState: ClosetSceneState = {
-  version: 1,
+  version: 2,
   avatarVariantId: "female-base",
-  poseId: "relaxed",
+  poseId: "neutral",
   activeCategory: "tops",
   selectedItemId: null,
   equippedItemIds: {},
@@ -430,6 +430,9 @@ export const createLocalBodyProfileRepository = (): BodyProfileRepository => ({
 export const createLocalClosetSceneRepository = (): ClosetSceneRepository => ({
   load: () => {
     const stored = readStoredJson<ClosetSceneState>(avatarStorageKeys.closetScene, defaultClosetSceneState);
+    if (!stored || stored.version !== defaultClosetSceneState.version) {
+      return defaultClosetSceneState;
+    }
     return {
       ...defaultClosetSceneState,
       ...stored,

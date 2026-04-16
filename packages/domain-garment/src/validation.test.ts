@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import {
   assessGarmentPhysicalFit,
   computeGarmentCorrectiveTransform,
+  defaultHairItemIdsByVariant,
   mergeRuntimeGarmentCatalogs,
   formatGarmentFitSummary,
   defaultSkeletonProfileId,
   getGarmentEffectiveBodyMaskZones,
   getGarmentPoseRuntimeTuning,
+  resolveDefaultClosetLoadout,
   starterGarmentCatalog,
   validateGarmentRuntimeBinding,
   validateStarterGarment,
@@ -56,10 +58,14 @@ test("starter garment catalog includes hair samples with head-aware fit assessme
     .sort();
 
   assert.deepEqual(hairIds, [
+    "starter-hair-afro-cloud",
+    "starter-hair-clean-sweep",
     "starter-hair-long-fall",
     "starter-hair-signature-ponytail",
     "starter-hair-soft-bob",
+    "starter-hair-studio-braid",
     "starter-hair-textured-crop",
+    "starter-hair-volume-bob",
   ]);
 
   for (const hairId of hairIds) {
@@ -69,6 +75,33 @@ test("starter garment catalog includes hair samples with head-aware fit assessme
     assert.ok(assessment);
     assert.ok(assessment.dimensions.some((entry) => entry.key === "headCircumferenceCm"));
   }
+});
+
+test("default closet loadout promotes hero starter pieces and variant-aware hair", () => {
+  const femaleLoadout = resolveDefaultClosetLoadout("female-base");
+  const maleLoadout = resolveDefaultClosetLoadout("male-base");
+
+  assert.equal(femaleLoadout.tops, "starter-top-city-relaxed");
+  assert.equal(femaleLoadout.shoes, "starter-shoe-sneaker");
+  assert.equal(femaleLoadout.hair, defaultHairItemIdsByVariant["female-base"]);
+  assert.equal(maleLoadout.hair, defaultHairItemIdsByVariant["male-base"]);
+  assert.notEqual(femaleLoadout.hair, maleLoadout.hair);
+});
+
+test("hero hair and drape pieces declare secondary motion bindings", () => {
+  const ids = [
+    "starter-top-city-relaxed",
+    "starter-outer-tailored-layer",
+    "starter-hair-signature-ponytail",
+    "starter-hair-long-fall",
+    "starter-hair-studio-braid",
+  ];
+
+  ids.forEach((id) => {
+    const item = starterGarmentCatalog.find((entry) => entry.id === id);
+    assert.ok(item);
+    assert.ok(item.runtime.secondaryMotion, `${id} is missing runtime.secondaryMotion`);
+  });
 });
 
 test("garment runtime binding rejects unknown skeleton profiles and anchors", () => {

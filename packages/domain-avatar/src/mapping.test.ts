@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   avatarParamsToRigTargets,
+  avatarStorageKeys,
   bodyProfileToAvatarMorphPlan,
   bodyProfileToAvatarParams,
+  createLocalClosetSceneRepository,
+  defaultClosetSceneState,
 } from "./index.js";
 import { normalizeBodyProfile } from "@freestyle/shared-types";
 
@@ -187,4 +190,50 @@ test("male mpfb morph calibration rewards athletic proportions", () => {
     (athleticPlan.targetWeights["$md-$ma-$yn-max$mu-$av$wg-$id$pr"] ?? 0) >
       (softPlan.targetWeights["$md-$ma-$yn-max$mu-$av$wg-$id$pr"] ?? 0),
   );
+});
+
+test("default closet scene baseline uses the new neutral review pose", () => {
+  assert.equal(defaultClosetSceneState.version, 2);
+  assert.equal(defaultClosetSceneState.poseId, "neutral");
+});
+
+test("closet scene repository resets stale v1 scene snapshots", () => {
+  const previousWindow = globalThis.window;
+  const storage = new Map<string, string>();
+  storage.set(
+    avatarStorageKeys.closetScene,
+    JSON.stringify({
+      version: 1,
+      avatarVariantId: "female-base",
+      poseId: "relaxed",
+      activeCategory: "tops",
+      selectedItemId: "starter-top-soft-casual",
+      equippedItemIds: { tops: "starter-top-soft-casual" },
+      qualityTier: "balanced",
+    }),
+  );
+
+  globalThis.window = {
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+      removeItem: (key: string) => {
+        storage.delete(key);
+      },
+    },
+  } as unknown as Window & typeof globalThis;
+
+  try {
+    const repository = createLocalClosetSceneRepository();
+    assert.deepEqual(repository.load(), defaultClosetSceneState);
+  } finally {
+    if (previousWindow) {
+      globalThis.window = previousWindow;
+    } else {
+      // @ts-expect-error test cleanup removes the temporary browser shim
+      delete globalThis.window;
+    }
+  }
 });

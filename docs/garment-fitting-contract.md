@@ -19,6 +19,7 @@ Every runtime garment needs:
 - `collisionZones`
 - `bodyMaskZones`
 - `poseTuning` when the garment needs additional clearance or body masking in specific poses
+- `secondaryMotion` when long hair or loose garments need a lightweight spring response in runtime
 - `surfaceClearanceCm`
 - `renderPriority`
 - `metadata.measurements`
@@ -196,7 +197,45 @@ Each entry may provide:
 
 Use this when a garment is generally valid, but certain poses need extra room or more aggressive body hiding to stay believable.
 
-## 11. Anti-Clipping Strategy
+## 11. Secondary Motion Contract
+
+`runtime.secondaryMotion` is intentionally narrow. It exists for:
+
+- long hair
+- braids
+- loose tops
+- loose outerwear
+
+It is not a substitute for:
+
+- correct size charts
+- measured fit assessment
+- corrective authoring
+- body masking
+- pose-aware clearance tuning
+
+Current binding fields:
+
+- `profileId`
+- `stiffness`
+- `damping`
+- `influence`
+- `maxYawDeg`
+- `maxPitchDeg`
+- `maxRollDeg`
+- `idleAmplitudeDeg`
+- `idleFrequencyHz`
+- `verticalBobCm`
+- `lateralSwingCm`
+
+Current runtime behavior:
+
+- long hair and braids use higher yaw/pitch swing and more lateral travel
+- bob/crop styles use tighter, smaller motion envelopes
+- loose garments use smaller, slower drape response than hair
+- fit state still modulates amplitude, so `relaxed / oversized` pieces move more than `compression / snug`
+
+## 12. Anti-Clipping Strategy
 
 Current mitigation stack:
 
@@ -210,6 +249,7 @@ Current mitigation stack:
 - limiting-dimension-aware adaptive clearance multipliers
 - runtime adaptive wrapper tuning for hero garments and accessories, driven by pose plus limiting dimensions
 - runtime adaptive wrapper tuning for head-worn assets, so hair, hats, and eyewear can react to head circumference or frame-width pressure
+- selective `secondaryMotion` on long hair and loose garments so the product can show believable sway without shipping full browser cloth simulation
 - explicit `renderPriority`
 - garment-specific corrective transform from measured fit state
 - offline Blender fit passes for hero garments before export, using shape-safe widening, hem drop, and shrinkwrap/projection offsets where needed

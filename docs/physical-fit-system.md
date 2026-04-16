@@ -13,6 +13,12 @@ This is not a promise of full real-time cloth simulation on every garment. The p
 
 `measurement-driven fit assessment first -> corrective fit authoring second -> selective cloth simulation last`
 
+Current runtime interpretation:
+
+- measured fit remains the first truth source
+- lightweight secondary motion is allowed for long hair and loose garments
+- full cloth simulation remains an offline authoring/reference tool, not the default browser runtime
+
 ## 2. Product Decision
 
 The core product is a `curated 3D fitting system`, not an unrestricted image try-on lab.
@@ -176,7 +182,7 @@ Companion document:
 
 ## 8. Current Implementation Status
 
-As of `2026-04-14`:
+As of `2026-04-16`:
 
 - the repo ships MPFB-authored avatar GLBs with runtime shape keys
 - the repo ships MPFB starter garments
@@ -188,6 +194,10 @@ As of `2026-04-14`:
   - `soft bob`
   - `long fall`
   - `textured crop`
+  - `studio braid`
+  - `volume bob`
+  - `clean sweep`
+  - `afro cloud`
 - the domain contract now supports:
   - `measurementModes`
   - `sizeChart`
@@ -199,13 +209,16 @@ As of `2026-04-14`:
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space
 - `Closet` now also surfaces head-aware fit for accessories, so hats and eyewear can report pressure against `headCircumferenceCm` or `frameWidthCm`
 - `Closet` now also surfaces head-aware fit for selectable hair assets, so hairstyle shells can react to `headCircumferenceCm` rather than being treated as static cosmetics
+- `Closet` now also uses a lightweight spring layer for long hair and loose garments, so the product can show sway/drape without shipping full cloth simulation in the browser
 - the stage runtime now applies subtle fit cues to equipped garments so `tight / regular / relaxed` states are visible beyond text alone
 - the runtime now also supports `metadata.correctiveFit`, so each garment can react with its own width/depth/height/clearance adjustments instead of relying on one generic fit-scale hint
 - the runtime now supports `poseTuning` in the garment binding, so `stride` and `tailored` can expand body masking and clearance without affecting the neutral pose
+- the runtime now supports `secondaryMotion` in the garment binding, so long hair and loose hero garments can move as product assets instead of reading as rigid shells
 - the runtime now expands collision and body-mask pressure zones from the garment's limiting dimensions, so chest, shoulder, hip, inseam, and hem bottlenecks influence protection zones instead of only category defaults
 - the runtime now adds an adaptive wrapper-adjustment pass for hero garments and accessories, so pose plus limiting dimensions can nudge width/depth/height even after the authored corrective profile is applied
 - the runtime now hides baked base-hair meshes when a runtime hair asset is equipped, allowing multiple hairstyles to be swapped without rebuilding the avatar base GLB
 - the MPFB mapping layer now derives lean / body-mass / soft-frame / curve / tall / long-leg / proportion signals from the normalized body profile, and uses those to drive the exported female and male shape keys more selectively
+- shipped runtime GLBs now pass through a browser-delivery optimization step (`meshopt` geometry compression plus texture recompression), and `Closet` now preloads only the active avatar and near-term garment set instead of whole-catalog eager preload
 - the repo now has a representative fit-calibration harness, so starter garments are checked across multiple body archetypes instead of only one default profile
 - the stage now switches to a warmer avatar-review lighting pass when no garments are equipped so silhouette review is easier before dressing
 - the avatar-review mode now also uses tighter camera framing and warmer skin/hair material treatment so `Remove All` reads like a product avatar review state instead of a raw fallback scene

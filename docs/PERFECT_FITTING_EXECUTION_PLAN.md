@@ -53,6 +53,7 @@ Work is not complete until all of the following are true.
 - garments can be equipped and removed in real time
 - layer order is stable: base -> mid -> outer -> shoes
 - body masking and clearance reduce obvious poke-through
+- long hair and loose hero garments may use selective secondary motion, but measured fit and corrective authoring remain the primary truth
 
 ### Poses
 
@@ -130,6 +131,7 @@ Preferred garment workflow:
 2. shared skeleton profile
 3. corrective morph support
 4. exported GLB with manifest metadata
+5. selective `secondaryMotion` only for long hair and loose garments
 
 Allowed open-source adoption:
 

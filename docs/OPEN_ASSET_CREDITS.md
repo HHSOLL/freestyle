@@ -28,8 +28,8 @@
   - Source pipeline: `authoring/garments/mpfb/scripts/build_runtime_hair.py` -> `scripts/build-mpfb-hair-assets.mjs`
   - Upstream sources: [MPFB2](https://github.com/makehumancommunity/mpfb2), [makehuman_system_assets](https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html)
   - License: generated runtime outputs from the official MakeHuman Community asset pack
-  - Current promoted starter set: `Signature Ponytail`, `Soft Bob`, `Long Fall`, `Textured Crop`
-  - Official pack inputs: `ponytail01`, `bob01`, `long01`, `short03`
+  - Current promoted starter set: `Signature Ponytail`, `Soft Bob`, `Long Fall`, `Textured Crop`, `Studio Braid`, `Volume Bob`, `Clean Sweep`, `Afro Cloud`
+  - Official pack inputs: `ponytail01`, `bob01`, `long01`, `short03`, `braid01`, `bob02`, `short04`, `afro01`
 
 ## Runtime Accessories
 - `apps/web/public/assets/garments/mpfb/female/accessory_*.glb`
@@ -64,5 +64,6 @@
 - 새 공개 asset을 추가할 때는 source URL, author, license를 preset/문서에 같이 기록한다.
 - `/app/closet`는 MPFB-authored human avatar(GLB)를 visible base body로 사용하고, 같은 authoring scale의 MPFB garment GLB를 같은 runtime wrapper 안에서 함께 렌더링한다.
 - garment stage transform은 garment bounding box를 다시 피팅하지 않고, avatar fit transform을 그대로 공유한다.
+- long hair와 loose hero garment의 sway/drape는 repo-owned runtime spring layer로 처리하며, 별도 third-party runtime dependency를 shipping source로 들여오지 않는다.
 - 포즈/체형 보정은 avatar와 garment skeleton에 같은 규칙으로 적용하고, 원격 asset API가 비어도 로컬 starter pack으로 동작이 유지된다.
 - avatar manifest와 stage registration은 `packages/runtime-3d/src/avatar-manifest.ts`와 `packages/runtime-3d/src/closet-stage.tsx`가 source of truth다.

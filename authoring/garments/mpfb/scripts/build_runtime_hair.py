@@ -16,7 +16,11 @@ def parse_args():
         import sys
 
         argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
-    parser.add_argument("--hair-style", required=True, choices=["ponytail01", "bob01", "long01", "short03"])
+    parser.add_argument(
+        "--hair-style",
+        required=True,
+        choices=["ponytail01", "bob01", "long01", "short03", "braid01", "bob02", "short04", "afro01"],
+    )
     parser.add_argument("--output-blend", required=True)
     parser.add_argument("--output-glb", required=True)
     parser.add_argument("--summary-json", required=True)

@@ -159,6 +159,19 @@ test('runtime garment binding schema accepts hair category with head measurement
       ],
       collisionZones: [],
       bodyMaskZones: [],
+      secondaryMotion: {
+        profileId: 'hair-long',
+        stiffness: 5.8,
+        damping: 0.82,
+        influence: 1.2,
+        maxYawDeg: 8,
+        maxPitchDeg: 6,
+        maxRollDeg: 5,
+        idleAmplitudeDeg: 1.1,
+        idleFrequencyHz: 0.9,
+        verticalBobCm: 0.2,
+        lateralSwingCm: 0.5,
+      },
       surfaceClearanceCm: 0.12,
       renderPriority: 2,
     },
@@ -166,6 +179,7 @@ test('runtime garment binding schema accepts hair category with head measurement
 
   assert.equal(parsed.category, 'hair');
   assert.equal(parsed.metadata?.measurements?.headCircumferenceCm, 56.8);
+  assert.equal(parsed.runtime.secondaryMotion?.profileId, 'hair-long');
 });
 
 test('asset metadata schema accepts garment-facing metadata payloads', () => {

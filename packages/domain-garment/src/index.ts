@@ -63,6 +63,7 @@ const createRuntime = (
     bodyMaskZones: GarmentCollisionZone[];
     anchorBindings?: GarmentAnchorBinding[];
     poseTuning?: GarmentRuntimeBinding["poseTuning"];
+    secondaryMotion?: GarmentRuntimeBinding["secondaryMotion"];
     surfaceClearanceCm?: number;
     renderPriority: number;
   },
@@ -81,6 +82,7 @@ const createRuntime = (
   collisionZones: config.collisionZones,
   bodyMaskZones: config.bodyMaskZones,
   poseTuning: config.poseTuning,
+  secondaryMotion: config.secondaryMotion,
   surfaceClearanceCm:
     config.surfaceClearanceCm ??
     (config.renderPriority === 3 ? 2.2 : config.renderPriority === 2 ? 1.6 : 1.1),
@@ -89,6 +91,7 @@ const createRuntime = (
 
 const correctiveFit = (profile: GarmentCorrectiveProfile) => profile;
 const poseTuning = (profile: GarmentRuntimeBinding["poseTuning"]) => profile;
+const secondaryMotion = (profile: NonNullable<GarmentRuntimeBinding["secondaryMotion"]>) => profile;
 
 const sizeSpec = (
   label: string,
@@ -414,6 +417,19 @@ export const starterGarmentCatalog: StarterGarment[] = [
           extraBodyMaskZones: ["arms", "hips"],
         },
       }),
+      secondaryMotion: secondaryMotion({
+        profileId: "garment-soft",
+        stiffness: 7.8,
+        damping: 0.86,
+        influence: 0.9,
+        maxYawDeg: 2.4,
+        maxPitchDeg: 2,
+        maxRollDeg: 1.4,
+        idleAmplitudeDeg: 0.5,
+        idleFrequencyHz: 0.82,
+        verticalBobCm: 0.28,
+        lateralSwingCm: 0.22,
+      }),
       renderPriority: 2,
       surfaceClearanceCm: 1.9,
     }),
@@ -511,6 +527,19 @@ export const starterGarmentCatalog: StarterGarment[] = [
           offsetY: 0.006,
           extraBodyMaskZones: ["hips"],
         },
+      }),
+      secondaryMotion: secondaryMotion({
+        profileId: "garment-loose",
+        stiffness: 6.2,
+        damping: 0.83,
+        influence: 1.16,
+        maxYawDeg: 4.2,
+        maxPitchDeg: 3.4,
+        maxRollDeg: 2.6,
+        idleAmplitudeDeg: 0.92,
+        idleFrequencyHz: 0.74,
+        verticalBobCm: 0.48,
+        lateralSwingCm: 0.44,
       }),
       renderPriority: 3,
       surfaceClearanceCm: 2.45,
@@ -843,6 +872,19 @@ export const starterGarmentCatalog: StarterGarment[] = [
       ],
       collisionZones: [],
       bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-long",
+        stiffness: 5.6,
+        damping: 0.82,
+        influence: 1.28,
+        maxYawDeg: 8.4,
+        maxPitchDeg: 7.2,
+        maxRollDeg: 5.4,
+        idleAmplitudeDeg: 1.35,
+        idleFrequencyHz: 0.88,
+        verticalBobCm: 0.34,
+        lateralSwingCm: 0.82,
+      }),
       surfaceClearanceCm: 0.12,
       renderPriority: 2,
     }),
@@ -889,6 +931,19 @@ export const starterGarmentCatalog: StarterGarment[] = [
       ],
       collisionZones: [],
       bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-bob",
+        stiffness: 8.8,
+        damping: 0.87,
+        influence: 0.78,
+        maxYawDeg: 4,
+        maxPitchDeg: 3.2,
+        maxRollDeg: 2.8,
+        idleAmplitudeDeg: 0.72,
+        idleFrequencyHz: 0.96,
+        verticalBobCm: 0.18,
+        lateralSwingCm: 0.22,
+      }),
       surfaceClearanceCm: 0.11,
       renderPriority: 2,
     }),
@@ -935,6 +990,19 @@ export const starterGarmentCatalog: StarterGarment[] = [
       ],
       collisionZones: [],
       bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-long",
+        stiffness: 5.2,
+        damping: 0.8,
+        influence: 1.34,
+        maxYawDeg: 9.2,
+        maxPitchDeg: 8,
+        maxRollDeg: 5.8,
+        idleAmplitudeDeg: 1.48,
+        idleFrequencyHz: 0.82,
+        verticalBobCm: 0.4,
+        lateralSwingCm: 0.92,
+      }),
       surfaceClearanceCm: 0.12,
       renderPriority: 2,
     }),
@@ -981,10 +1049,259 @@ export const starterGarmentCatalog: StarterGarment[] = [
       ],
       collisionZones: [],
       bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-sway",
+        stiffness: 9.4,
+        damping: 0.9,
+        influence: 0.52,
+        maxYawDeg: 1.8,
+        maxPitchDeg: 1.2,
+        maxRollDeg: 1,
+        idleAmplitudeDeg: 0.26,
+        idleFrequencyHz: 1.04,
+        verticalBobCm: 0.08,
+        lateralSwingCm: 0.08,
+      }),
       surfaceClearanceCm: 0.1,
       renderPriority: 2,
     }),
     palette: ["#382c28", "#58453f", "#8c7267"],
+  },
+  {
+    id: "starter-hair-studio-braid",
+    name: "Studio Braid",
+    imageSrc: createSwatchThumbnail("Studio Braid", "#3a2d28"),
+    category: "hair",
+    brand: "MakeHuman CC0",
+    source: "starter",
+    metadata: {
+      dominantColor: "#3a2d28",
+      measurements: { headCircumferenceCm: 56.9 },
+      measurementModes: { headCircumferenceCm: "body-circumference" },
+      sizeChart: [sizeSpec("One", { headCircumferenceCm: 56.9 }, { headCircumferenceCm: "body-circumference" })],
+      selectedSizeLabel: "One",
+      physicalProfile: {
+        materialStretchRatio: 0.01,
+        maxComfortStretchRatio: 0.006,
+        compressionToleranceCm: { headCircumferenceCm: 0.34 },
+      },
+      correctiveFit: correctiveFit({
+        compression: { widthScale: 0.998, depthScale: 0.997, clearanceBiasCm: -0.016, offsetY: -0.001 },
+        snug: { widthScale: 1, depthScale: 1, clearanceBiasCm: -0.006 },
+        regular: { widthScale: 1, depthScale: 1, heightScale: 1 },
+        relaxed: { widthScale: 1.004, depthScale: 1.003, clearanceBiasCm: 0.018 },
+        oversized: { widthScale: 1.008, depthScale: 1.006, clearanceBiasCm: 0.034, offsetY: 0.001 },
+      }),
+      fitProfile: { layer: "base", silhouette: "relaxed", structure: "soft", stretch: 0.018, drape: 0.15 },
+    },
+    runtime: createRuntime({
+      modelPath: "/assets/garments/mpfb/female/hair_studio_braid.glb",
+      modelPathByVariant: {
+        "female-base": "/assets/garments/mpfb/female/hair_studio_braid.glb",
+        "male-base": "/assets/garments/mpfb/male/hair_studio_braid.glb",
+      },
+      anchorBindings: [
+        { id: "headCenter", weight: 0.46 },
+        { id: "foreheadCenter", weight: 0.28 },
+        { id: "leftTemple", weight: 0.13 },
+        { id: "rightTemple", weight: 0.13 },
+      ],
+      collisionZones: [],
+      bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-long",
+        stiffness: 5.8,
+        damping: 0.82,
+        influence: 1.22,
+        maxYawDeg: 7.6,
+        maxPitchDeg: 6.4,
+        maxRollDeg: 4.8,
+        idleAmplitudeDeg: 1.18,
+        idleFrequencyHz: 0.86,
+        verticalBobCm: 0.28,
+        lateralSwingCm: 0.64,
+      }),
+      surfaceClearanceCm: 0.11,
+      renderPriority: 2,
+    }),
+    palette: ["#3a2d28", "#5d463d", "#927164"],
+  },
+  {
+    id: "starter-hair-volume-bob",
+    name: "Volume Bob",
+    imageSrc: createSwatchThumbnail("Volume Bob", "#4d3a31"),
+    category: "hair",
+    brand: "MakeHuman CC0",
+    source: "starter",
+    metadata: {
+      dominantColor: "#4d3a31",
+      measurements: { headCircumferenceCm: 57 },
+      measurementModes: { headCircumferenceCm: "body-circumference" },
+      sizeChart: [sizeSpec("One", { headCircumferenceCm: 57 }, { headCircumferenceCm: "body-circumference" })],
+      selectedSizeLabel: "One",
+      physicalProfile: {
+        materialStretchRatio: 0.012,
+        maxComfortStretchRatio: 0.007,
+        compressionToleranceCm: { headCircumferenceCm: 0.35 },
+      },
+      correctiveFit: correctiveFit({
+        compression: { widthScale: 0.998, depthScale: 0.998, clearanceBiasCm: -0.015 },
+        snug: { widthScale: 1, depthScale: 1, clearanceBiasCm: -0.005 },
+        regular: { widthScale: 1, depthScale: 1, heightScale: 1 },
+        relaxed: { widthScale: 1.004, depthScale: 1.003, clearanceBiasCm: 0.018 },
+        oversized: { widthScale: 1.008, depthScale: 1.006, clearanceBiasCm: 0.032 },
+      }),
+      fitProfile: { layer: "base", silhouette: "regular", structure: "soft", stretch: 0.02, drape: 0.12 },
+    },
+    runtime: createRuntime({
+      modelPath: "/assets/garments/mpfb/female/hair_volume_bob.glb",
+      modelPathByVariant: {
+        "female-base": "/assets/garments/mpfb/female/hair_volume_bob.glb",
+        "male-base": "/assets/garments/mpfb/male/hair_volume_bob.glb",
+      },
+      anchorBindings: [
+        { id: "headCenter", weight: 0.46 },
+        { id: "foreheadCenter", weight: 0.28 },
+        { id: "leftTemple", weight: 0.13 },
+        { id: "rightTemple", weight: 0.13 },
+      ],
+      collisionZones: [],
+      bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-bob",
+        stiffness: 8.4,
+        damping: 0.86,
+        influence: 0.84,
+        maxYawDeg: 4.4,
+        maxPitchDeg: 3.4,
+        maxRollDeg: 2.9,
+        idleAmplitudeDeg: 0.78,
+        idleFrequencyHz: 0.92,
+        verticalBobCm: 0.18,
+        lateralSwingCm: 0.24,
+      }),
+      surfaceClearanceCm: 0.11,
+      renderPriority: 2,
+    }),
+    palette: ["#4d3a31", "#72574a", "#af8e7f"],
+  },
+  {
+    id: "starter-hair-clean-sweep",
+    name: "Clean Sweep",
+    imageSrc: createSwatchThumbnail("Clean Sweep", "#342924"),
+    category: "hair",
+    brand: "MakeHuman CC0",
+    source: "starter",
+    metadata: {
+      dominantColor: "#342924",
+      measurements: { headCircumferenceCm: 56.6 },
+      measurementModes: { headCircumferenceCm: "body-circumference" },
+      sizeChart: [sizeSpec("One", { headCircumferenceCm: 56.6 }, { headCircumferenceCm: "body-circumference" })],
+      selectedSizeLabel: "One",
+      physicalProfile: {
+        materialStretchRatio: 0.01,
+        maxComfortStretchRatio: 0.006,
+        compressionToleranceCm: { headCircumferenceCm: 0.35 },
+      },
+      correctiveFit: correctiveFit({
+        compression: { widthScale: 0.998, depthScale: 0.998, clearanceBiasCm: -0.014 },
+        snug: { widthScale: 1, depthScale: 1, clearanceBiasCm: -0.004 },
+        regular: { widthScale: 1, depthScale: 1, heightScale: 1 },
+        relaxed: { widthScale: 1.004, depthScale: 1.003, clearanceBiasCm: 0.016 },
+        oversized: { widthScale: 1.008, depthScale: 1.006, clearanceBiasCm: 0.028 },
+      }),
+      fitProfile: { layer: "base", silhouette: "regular", structure: "balanced", stretch: 0.014, drape: 0.05 },
+    },
+    runtime: createRuntime({
+      modelPath: "/assets/garments/mpfb/female/hair_clean_sweep.glb",
+      modelPathByVariant: {
+        "female-base": "/assets/garments/mpfb/female/hair_clean_sweep.glb",
+        "male-base": "/assets/garments/mpfb/male/hair_clean_sweep.glb",
+      },
+      anchorBindings: [
+        { id: "headCenter", weight: 0.46 },
+        { id: "foreheadCenter", weight: 0.28 },
+        { id: "leftTemple", weight: 0.13 },
+        { id: "rightTemple", weight: 0.13 },
+      ],
+      collisionZones: [],
+      bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-sway",
+        stiffness: 9.6,
+        damping: 0.9,
+        influence: 0.54,
+        maxYawDeg: 1.8,
+        maxPitchDeg: 1.2,
+        maxRollDeg: 1,
+        idleAmplitudeDeg: 0.22,
+        idleFrequencyHz: 1.08,
+        verticalBobCm: 0.06,
+        lateralSwingCm: 0.06,
+      }),
+      surfaceClearanceCm: 0.1,
+      renderPriority: 2,
+    }),
+    palette: ["#342924", "#57433a", "#85685c"],
+  },
+  {
+    id: "starter-hair-afro-cloud",
+    name: "Afro Cloud",
+    imageSrc: createSwatchThumbnail("Afro Cloud", "#29211e"),
+    category: "hair",
+    brand: "MakeHuman CC0",
+    source: "starter",
+    metadata: {
+      dominantColor: "#29211e",
+      measurements: { headCircumferenceCm: 57.4 },
+      measurementModes: { headCircumferenceCm: "body-circumference" },
+      sizeChart: [sizeSpec("One", { headCircumferenceCm: 57.4 }, { headCircumferenceCm: "body-circumference" })],
+      selectedSizeLabel: "One",
+      physicalProfile: {
+        materialStretchRatio: 0.012,
+        maxComfortStretchRatio: 0.007,
+        compressionToleranceCm: { headCircumferenceCm: 0.36 },
+      },
+      correctiveFit: correctiveFit({
+        compression: { widthScale: 0.998, depthScale: 0.998, clearanceBiasCm: -0.014 },
+        snug: { widthScale: 1, depthScale: 1, clearanceBiasCm: -0.004 },
+        regular: { widthScale: 1, depthScale: 1, heightScale: 1 },
+        relaxed: { widthScale: 1.004, depthScale: 1.003, clearanceBiasCm: 0.016 },
+        oversized: { widthScale: 1.008, depthScale: 1.006, clearanceBiasCm: 0.03 },
+      }),
+      fitProfile: { layer: "base", silhouette: "relaxed", structure: "soft", stretch: 0.015, drape: 0.08 },
+    },
+    runtime: createRuntime({
+      modelPath: "/assets/garments/mpfb/female/hair_afro_cloud.glb",
+      modelPathByVariant: {
+        "female-base": "/assets/garments/mpfb/female/hair_afro_cloud.glb",
+        "male-base": "/assets/garments/mpfb/male/hair_afro_cloud.glb",
+      },
+      anchorBindings: [
+        { id: "headCenter", weight: 0.46 },
+        { id: "foreheadCenter", weight: 0.28 },
+        { id: "leftTemple", weight: 0.13 },
+        { id: "rightTemple", weight: 0.13 },
+      ],
+      collisionZones: [],
+      bodyMaskZones: [],
+      secondaryMotion: secondaryMotion({
+        profileId: "hair-bob",
+        stiffness: 10.2,
+        damping: 0.92,
+        influence: 0.42,
+        maxYawDeg: 1.4,
+        maxPitchDeg: 1.1,
+        maxRollDeg: 0.9,
+        idleAmplitudeDeg: 0.16,
+        idleFrequencyHz: 1.02,
+        verticalBobCm: 0.04,
+        lateralSwingCm: 0.04,
+      }),
+      surfaceClearanceCm: 0.12,
+      renderPriority: 2,
+    }),
+    palette: ["#29211e", "#433531", "#6c574f"],
   },
 ];
 
@@ -1016,11 +1333,23 @@ export const createLocalPublishedGarmentRepository = (): PublishedGarmentReposit
   save: (items) => writeStoredJson(publishedGarmentStorageKey, items),
 });
 
-export const defaultEquippedItems: Partial<Record<GarmentCategory, string>> = {
-  tops: "starter-top-soft-casual",
-  bottoms: "starter-bottom-soft-wool",
-  shoes: "starter-shoe-soft-day",
+export const defaultHairItemIdsByVariant: Record<AvatarRenderVariantId, string> = {
+  "female-base": "starter-hair-soft-bob",
+  "male-base": "starter-hair-textured-crop",
 };
+
+export const defaultEquippedItems: Partial<Record<GarmentCategory, string>> = {
+  tops: "starter-top-city-relaxed",
+  bottoms: "starter-bottom-soft-wool",
+  shoes: "starter-shoe-sneaker",
+};
+
+export const resolveDefaultClosetLoadout = (
+  variantId: AvatarRenderVariantId,
+): Partial<Record<GarmentCategory, string>> => ({
+  ...defaultEquippedItems,
+  hair: defaultHairItemIdsByVariant[variantId],
+});
 
 const garmentMeasurementKeys: GarmentMeasurementKey[] = [
   "chestCm",
@@ -1392,6 +1721,12 @@ export const validateGarmentRuntimeBinding = (binding: GarmentRuntimeBinding) =>
   }
   if (binding.surfaceClearanceCm <= 0) {
     issues.push("surfaceClearanceCm must be greater than zero.");
+  }
+  if (binding.secondaryMotion) {
+    const motion = binding.secondaryMotion;
+    if (motion.stiffness <= 0 || motion.damping <= 0 || motion.influence <= 0) {
+      issues.push("secondaryMotion stiffness, damping, and influence must be greater than zero.");
+    }
   }
   return issues;
 };

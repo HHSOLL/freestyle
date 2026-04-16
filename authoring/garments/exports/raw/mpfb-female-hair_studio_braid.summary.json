@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "braid01",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.braid01",
+      "vertices": 4493,
+      "materials": [
+        "FS_Hair_braid01"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_studio_braid.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb"
+}

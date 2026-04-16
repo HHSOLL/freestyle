@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "bob02",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.bob02",
+      "vertices": 1653,
+      "materials": [
+        "FS_Hair_bob02"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_volume_bob.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb"
+}

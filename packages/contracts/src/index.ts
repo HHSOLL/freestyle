@@ -424,6 +424,22 @@ export const garmentRuntimeBindingSchema = z
       })
       .strict()
       .optional(),
+    secondaryMotion: z
+      .object({
+        profileId: z.enum(["hair-sway", "hair-long", "hair-bob", "garment-soft", "garment-loose"]),
+        stiffness: z.number().positive(),
+        damping: z.number().positive(),
+        influence: z.number().positive(),
+        maxYawDeg: z.number().nonnegative(),
+        maxPitchDeg: z.number().nonnegative(),
+        maxRollDeg: z.number().nonnegative(),
+        idleAmplitudeDeg: z.number().nonnegative().optional(),
+        idleFrequencyHz: z.number().positive().optional(),
+        verticalBobCm: z.number().nonnegative().optional(),
+        lateralSwingCm: z.number().nonnegative().optional(),
+      })
+      .strict()
+      .optional(),
     surfaceClearanceCm: z.number().positive(),
     renderPriority: z.number().int().positive(),
   })

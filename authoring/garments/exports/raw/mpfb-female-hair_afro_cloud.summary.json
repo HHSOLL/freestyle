@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "afro01",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.afro01",
+      "vertices": 2196,
+      "materials": [
+        "FS_Hair_afro01"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_afro_cloud.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb"
+}

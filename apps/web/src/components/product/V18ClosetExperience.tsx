@@ -1,15 +1,18 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   assessGarmentPhysicalFit,
-  defaultEquippedItems,
   formatGarmentFitSummary,
+  defaultHairItemIdsByVariant,
+  resolveDefaultClosetLoadout,
 } from "@freestyle/domain-garment";
+import { preloadRuntimeAssets } from "@freestyle/runtime-3d";
 import type {
   AvatarPoseId,
+  BodyFrame,
   BodyProfile,
   GarmentFitAssessment,
   GarmentFitDimensionAssessment,
@@ -52,53 +55,148 @@ const GENDER_BASE_MEASUREMENTS_CM = {
     height: 178,
     headCircumference: 57,
     shoulderWidth: 46,
+    chest: 100,
     waist: 80,
+    hip: 99,
     legLength: 85,
     armLength: 63,
+    torsoLength: 64,
+    thigh: 58,
+    calf: 38,
   },
   female: {
     height: 166,
     headCircumference: 55,
     shoulderWidth: 40,
+    chest: 88,
     waist: 70,
+    hip: 96,
     legLength: 79,
     armLength: 58,
+    torsoLength: 60,
+    thigh: 54,
+    calf: 35,
   },
 } as const;
+
+const BODY_FRAME_META: Record<BodyFrame, { label: string; subtitle: string }> = {
+  balanced: { label: "균형형", subtitle: "기본 비율" },
+  athletic: { label: "애슬레틱", subtitle: "어깨/근육 강조" },
+  soft: { label: "소프트", subtitle: "부드러운 볼륨" },
+  curvy: { label: "커비", subtitle: "가슴/힙 대비" },
+};
 
 const MEASUREMENT_PRESETS = {
   male: [
     {
       key: "male_standard",
       label: "남성 기본",
-      measurements: { height: 178, headCircumference: 57, shoulderWidth: 46, waist: 80, legLength: 85, armLength: 63 },
+      bodyFrame: "balanced" as const,
+      measurements: {
+        height: 178,
+        headCircumference: 57,
+        shoulderWidth: 46,
+        chest: 100,
+        waist: 80,
+        hip: 99,
+        legLength: 85,
+        armLength: 63,
+        torsoLength: 64,
+        thigh: 58,
+        calf: 38,
+      },
     },
     {
       key: "male_slim",
       label: "남성 슬림",
-      measurements: { height: 181, headCircumference: 56, shoulderWidth: 43.5, waist: 73, legLength: 88, armLength: 64 },
+      bodyFrame: "balanced" as const,
+      measurements: {
+        height: 181,
+        headCircumference: 56,
+        shoulderWidth: 43.5,
+        chest: 94,
+        waist: 73,
+        hip: 96,
+        legLength: 88,
+        armLength: 64,
+        torsoLength: 63,
+        thigh: 54,
+        calf: 35,
+      },
     },
     {
       key: "male_broad",
       label: "남성 와이드",
-      measurements: { height: 180, headCircumference: 58, shoulderWidth: 51, waist: 88, legLength: 85, armLength: 64 },
+      bodyFrame: "athletic" as const,
+      measurements: {
+        height: 180,
+        headCircumference: 58,
+        shoulderWidth: 51,
+        chest: 109,
+        waist: 88,
+        hip: 103,
+        legLength: 85,
+        armLength: 64,
+        torsoLength: 64,
+        thigh: 62,
+        calf: 40,
+      },
     },
   ],
   female: [
     {
       key: "female_standard",
       label: "여성 기본",
-      measurements: { height: 166, headCircumference: 55, shoulderWidth: 40, waist: 70, legLength: 79, armLength: 58 },
+      bodyFrame: "balanced" as const,
+      measurements: {
+        height: 166,
+        headCircumference: 55,
+        shoulderWidth: 40,
+        chest: 88,
+        waist: 70,
+        hip: 96,
+        legLength: 79,
+        armLength: 58,
+        torsoLength: 60,
+        thigh: 54,
+        calf: 35,
+      },
     },
     {
       key: "female_slim",
       label: "여성 슬림",
-      measurements: { height: 168, headCircumference: 54, shoulderWidth: 38.5, waist: 66, legLength: 81, armLength: 59 },
+      bodyFrame: "athletic" as const,
+      measurements: {
+        height: 168,
+        headCircumference: 54,
+        shoulderWidth: 38.5,
+        chest: 84,
+        waist: 66,
+        hip: 92,
+        legLength: 81,
+        armLength: 59,
+        torsoLength: 59,
+        thigh: 51,
+        calf: 33,
+      },
     },
     {
       key: "female_tall",
       label: "여성 장신",
-      measurements: { height: 173, headCircumference: 56, shoulderWidth: 41.5, waist: 72, legLength: 84, armLength: 60 },
+      bodyFrame: "curvy" as const,
+      measurements: {
+        height: 173,
+        headCircumference: 56,
+        shoulderWidth: 41.5,
+        chest: 96,
+        waist: 72,
+        hip: 103,
+        legLength: 84,
+        armLength: 60,
+        torsoLength: 63,
+        thigh: 59,
+        calf: 37,
+      },
     },
   ],
 } as const;
@@ -110,6 +208,7 @@ const MANNEQUIN_PRESETS = [
     name: "여성 기본",
     subtitle: "로컬 피팅 바디",
     gender: "female",
+    bodyFrame: MEASUREMENT_PRESETS.female[0].bodyFrame,
     measurements: MEASUREMENT_PRESETS.female[0].measurements,
   },
   {
@@ -118,6 +217,7 @@ const MANNEQUIN_PRESETS = [
     name: "여성 슬림",
     subtitle: "로컬 피팅 바디",
     gender: "female",
+    bodyFrame: MEASUREMENT_PRESETS.female[1].bodyFrame,
     measurements: MEASUREMENT_PRESETS.female[1].measurements,
   },
   {
@@ -126,6 +226,7 @@ const MANNEQUIN_PRESETS = [
     name: "여성 장신",
     subtitle: "로컬 피팅 바디",
     gender: "female",
+    bodyFrame: MEASUREMENT_PRESETS.female[2].bodyFrame,
     measurements: MEASUREMENT_PRESETS.female[2].measurements,
   },
   {
@@ -134,6 +235,7 @@ const MANNEQUIN_PRESETS = [
     name: "남성 기본",
     subtitle: "로컬 피팅 바디",
     gender: "male",
+    bodyFrame: MEASUREMENT_PRESETS.male[0].bodyFrame,
     measurements: MEASUREMENT_PRESETS.male[0].measurements,
   },
   {
@@ -142,6 +244,7 @@ const MANNEQUIN_PRESETS = [
     name: "남성 슬림",
     subtitle: "로컬 피팅 바디",
     gender: "male",
+    bodyFrame: MEASUREMENT_PRESETS.male[1].bodyFrame,
     measurements: MEASUREMENT_PRESETS.male[1].measurements,
   },
   {
@@ -150,6 +253,7 @@ const MANNEQUIN_PRESETS = [
     name: "남성 와이드",
     subtitle: "로컬 피팅 바디",
     gender: "male",
+    bodyFrame: MEASUREMENT_PRESETS.male[2].bodyFrame,
     measurements: MEASUREMENT_PRESETS.male[2].measurements,
   },
 ] as const;
@@ -167,9 +271,14 @@ const FIELD_DEFS = [
   { key: "height", label: "키", unit: "cm", unitInch: "in", min: 140, max: 220, step: 0.5 },
   { key: "headCircumference", label: "머리둘레", unit: "cm", unitInch: "in", min: 48, max: 68, step: 0.1 },
   { key: "shoulderWidth", label: "어깨너비", unit: "cm", unitInch: "in", min: 34, max: 64, step: 0.1 },
+  { key: "chest", label: "가슴둘레", unit: "cm", unitInch: "in", min: 74, max: 132, step: 0.1 },
   { key: "waist", label: "허리둘레", unit: "cm", unitInch: "in", min: 54, max: 130, step: 0.1 },
+  { key: "hip", label: "힙둘레", unit: "cm", unitInch: "in", min: 78, max: 136, step: 0.1 },
   { key: "legLength", label: "다리길이", unit: "cm", unitInch: "in", min: 65, max: 110, step: 0.1 },
   { key: "armLength", label: "팔길이", unit: "cm", unitInch: "in", min: 48, max: 84, step: 0.1 },
+  { key: "torsoLength", label: "상체길이", unit: "cm", unitInch: "in", min: 50, max: 78, step: 0.1 },
+  { key: "thigh", label: "허벅지", unit: "cm", unitInch: "in", min: 42, max: 76, step: 0.1 },
+  { key: "calf", label: "종아리", unit: "cm", unitInch: "in", min: 28, max: 52, step: 0.1 },
 ] as const;
 
 const CATEGORY_BY_TAB = {
@@ -204,9 +313,14 @@ type MeasurementState = {
   height: number;
   headCircumference: number;
   shoulderWidth: number;
+  chest: number;
   waist: number;
+  hip: number;
   legLength: number;
   armLength: number;
+  torsoLength: number;
+  thigh: number;
+  calf: number;
 };
 
 type DisplayItem = {
@@ -216,6 +330,7 @@ type DisplayItem = {
   subtitle: string;
   thumbUrl?: string;
   gender?: GenderValue;
+  bodyFrame?: BodyFrame;
   measurements?: MeasurementState;
   filterTags?: string[];
   assessment?: GarmentFitAssessment | null;
@@ -387,27 +502,43 @@ function toMeasurementState(profile: BodyProfile, gender: GenderValue): Measurem
     height: profile.simple.heightCm,
     headCircumference: profile.detailed?.headCircumferenceCm ?? base.headCircumference,
     shoulderWidth: profile.simple.shoulderCm,
+    chest: profile.simple.chestCm,
     waist: profile.simple.waistCm,
+    hip: profile.simple.hipCm,
     legLength: profile.simple.inseamCm,
     armLength: profile.detailed?.armLengthCm ?? base.armLength,
+    torsoLength: profile.detailed?.torsoLengthCm ?? base.torsoLength,
+    thigh: profile.detailed?.thighCm ?? base.thigh,
+    calf: profile.detailed?.calfCm ?? base.calf,
   };
 }
 
-function applyMeasurementsToProfile(profile: BodyProfile, measurements: MeasurementState, gender: GenderValue): BodyProfile {
+function applyMeasurementsToProfile(
+  profile: BodyProfile,
+  measurements: MeasurementState,
+  gender: GenderValue,
+  bodyFrame: BodyFrame,
+): BodyProfile {
   return {
     ...profile,
     gender,
+    bodyFrame,
     simple: {
       ...profile.simple,
       heightCm: measurements.height,
       shoulderCm: measurements.shoulderWidth,
+      chestCm: measurements.chest,
       waistCm: measurements.waist,
+      hipCm: measurements.hip,
       inseamCm: measurements.legLength,
     },
     detailed: {
       ...(profile.detailed ?? {}),
       headCircumferenceCm: measurements.headCircumference,
       armLengthCm: measurements.armLength,
+      torsoLengthCm: measurements.torsoLength,
+      thighCm: measurements.thigh,
+      calfCm: measurements.calf,
     },
   };
 }
@@ -684,6 +815,8 @@ function MeasurementModal({
   setUnit,
   gender,
   setGender,
+  bodyFrame,
+  setBodyFrame,
   measurements,
   setMeasurements,
   selectedPoseId,
@@ -695,6 +828,8 @@ function MeasurementModal({
   setUnit: (value: "cm" | "inch") => void;
   gender: GenderValue;
   setGender: (gender: GenderValue) => void;
+  bodyFrame: BodyFrame;
+  setBodyFrame: (bodyFrame: BodyFrame) => void;
   measurements: MeasurementState;
   setMeasurements: (next: MeasurementState) => void;
   selectedPoseId: string;
@@ -721,10 +856,18 @@ function MeasurementModal({
 
         <div className={`${styles["modal-toolbar"]} ${styles.split}`}>
           <div className={styles["segmented-switch"]}>
-            <button type="button" className={gender === "female" ? styles.active : ""} onClick={() => { setGender("female"); setMeasurements(MEASUREMENT_PRESETS.female[0].measurements); }}>
+            <button
+              type="button"
+              className={gender === "female" ? styles.active : ""}
+              onClick={() => setGender("female")}
+            >
               여성
             </button>
-            <button type="button" className={gender === "male" ? styles.active : ""} onClick={() => { setGender("male"); setMeasurements(MEASUREMENT_PRESETS.male[0].measurements); }}>
+            <button
+              type="button"
+              className={gender === "male" ? styles.active : ""}
+              onClick={() => setGender("male")}
+            >
               남성
             </button>
           </div>
@@ -740,11 +883,35 @@ function MeasurementModal({
 
         <div className={styles["preset-grid"]}>
           {MEASUREMENT_PRESETS[gender].map((preset) => (
-            <button key={preset.key} type="button" className={styles["preset-card"]} onClick={() => applyPreset(preset)}>
+            <button
+              key={preset.key}
+              type="button"
+              className={styles["preset-card"]}
+              onClick={() => {
+                setBodyFrame(preset.bodyFrame);
+                applyPreset(preset);
+              }}
+            >
               <strong>{preset.label}</strong>
-              <span>키 {preset.measurements.height} · 어깨 {preset.measurements.shoulderWidth} · 허리 {preset.measurements.waist}</span>
+              <span>키 {preset.measurements.height} · 가슴 {preset.measurements.chest} · 힙 {preset.measurements.hip}</span>
             </button>
           ))}
+        </div>
+
+        <div className={styles["modal-toolbar"]}>
+          <div className={styles["pose-strip"]}>
+            {(Object.keys(BODY_FRAME_META) as BodyFrame[]).map((frame) => (
+              <button
+                key={frame}
+                type="button"
+                className={`${styles["ghost-pill"]} ${bodyFrame === frame ? styles.active : ""}`}
+                onClick={() => setBodyFrame(frame)}
+                title={BODY_FRAME_META[frame].subtitle}
+              >
+                {BODY_FRAME_META[frame].label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles["modal-toolbar"]}>
@@ -1006,15 +1173,18 @@ export function V18ClosetExperience() {
   const [selectedPreviewMannequinId, setSelectedPreviewMannequinId] = useState("female_standard");
   const deferredProfile = useDeferredValue(profile);
   const genderState: GenderValue = (profile.gender as GenderValue | undefined) === "male" ? "male" : "female";
+  const bodyFrameState: BodyFrame = profile.bodyFrame ?? "balanced";
   const selectedPoseId = V18_POSE_FROM_PRODUCT[scene.poseId];
   const measurements = useMemo(() => toMeasurementState(profile, genderState), [profile, genderState]);
+  const variantDefaults = useMemo(() => resolveDefaultClosetLoadout(avatarVariantId), [avatarVariantId]);
+  const defaultHairIds = useMemo(() => new Set(Object.values(defaultHairItemIdsByVariant)), []);
 
   const setMeasurements = (next: MeasurementState) => {
-    setProfile((current) => applyMeasurementsToProfile(current, next, genderState));
+    setProfile((current) => applyMeasurementsToProfile(current, next, genderState, current.bodyFrame ?? bodyFrameState));
   };
 
-  const applyGenderAndMeasurements = (nextGender: GenderValue, next: MeasurementState) => {
-    setProfile((current) => applyMeasurementsToProfile(current, next, nextGender));
+  const applyGenderAndMeasurements = (nextGender: GenderValue, next: MeasurementState, nextBodyFrame: BodyFrame) => {
+    setProfile((current) => applyMeasurementsToProfile(current, next, nextGender, nextBodyFrame));
   };
 
   const itemSets = useMemo(() => {
@@ -1056,6 +1226,50 @@ export function V18ClosetExperience() {
     };
   }, [equippedGarments]);
 
+  const preloadCandidates = useMemo(() => {
+    const next = new Map<string, RuntimeGarmentAsset>();
+    equippedGarments.forEach((item) => next.set(item.id, item));
+    if (activeTab in CATEGORY_BY_TAB) {
+      const category = CATEGORY_BY_TAB[activeTab as keyof typeof CATEGORY_BY_TAB];
+      closetRuntimeAssets
+        .filter((item) => item.category === category)
+        .slice(0, 6)
+        .forEach((item) => next.set(item.id, item));
+    }
+    return Array.from(next.values());
+  }, [activeTab, closetRuntimeAssets, equippedGarments]);
+
+  useEffect(() => {
+    preloadRuntimeAssets({
+      avatarVariantIds: [avatarVariantId],
+      garmentAssets: preloadCandidates,
+      garmentVariantId: avatarVariantId,
+    });
+  }, [avatarVariantId, preloadCandidates]);
+
+  useEffect(() => {
+    if (variantDefaults.hair && (!selection.hair.id || defaultHairIds.has(selection.hair.id)) && selection.hair.id !== variantDefaults.hair) {
+      equipItem("hair", variantDefaults.hair);
+    }
+    if (variantDefaults.tops && !selection.top.id) {
+      equipItem("tops", variantDefaults.tops);
+    }
+    if (variantDefaults.bottoms && !selection.bottom.id) {
+      equipItem("bottoms", variantDefaults.bottoms);
+    }
+    if (variantDefaults.shoes && !selection.shoes.id) {
+      equipItem("shoes", variantDefaults.shoes);
+    }
+  }, [
+    defaultHairIds,
+    equipItem,
+    selection.bottom.id,
+    selection.hair.id,
+    selection.shoes.id,
+    selection.top.id,
+    variantDefaults,
+  ]);
+
   const theme = useMemo(() => buildTheme(backgroundColor), [backgroundColor]);
   const mannequinCards = useMemo<DisplayItem[]>(
     () => MANNEQUIN_PRESETS.map((item) => ({ ...item })),
@@ -1073,7 +1287,14 @@ export function V18ClosetExperience() {
 
   const handleApplyMannequinPreset = (item: DisplayItem) => {
     if (!item.measurements || !item.gender) return;
-    applyGenderAndMeasurements(item.gender, item.measurements);
+    applyGenderAndMeasurements(item.gender, item.measurements, item.bodyFrame ?? "balanced");
+    if (item.gender === "male") {
+      setSelectedPreviewMannequinId("male_standard");
+      equipItem("hair", defaultHairItemIdsByVariant["male-base"]);
+      return;
+    }
+    setSelectedPreviewMannequinId("female_standard");
+    equipItem("hair", defaultHairItemIdsByVariant["female-base"]);
   };
 
   const handleSave = () => {
@@ -1083,33 +1304,37 @@ export function V18ClosetExperience() {
 
   const handleResetAll = () => {
     const next = MEASUREMENT_PRESETS.female[0].measurements;
-    applyGenderAndMeasurements("female", next);
+    const defaultLoadout = resolveDefaultClosetLoadout("female-base");
+    applyGenderAndMeasurements("female", next, MEASUREMENT_PRESETS.female[0].bodyFrame);
     clearCategory("tops");
     clearCategory("outerwear");
     clearCategory("bottoms");
     clearCategory("shoes");
     clearCategory("accessories");
     clearCategory("hair");
-    if (defaultEquippedItems.shoes) {
-      equipItem("shoes", defaultEquippedItems.shoes);
+    if (defaultLoadout.hair) {
+      equipItem("hair", defaultLoadout.hair);
     }
-    if (defaultEquippedItems.tops) {
-      equipItem("tops", defaultEquippedItems.tops);
+    if (defaultLoadout.shoes) {
+      equipItem("shoes", defaultLoadout.shoes);
     }
-    if (defaultEquippedItems.bottoms) {
-      equipItem("bottoms", defaultEquippedItems.bottoms);
+    if (defaultLoadout.tops) {
+      equipItem("tops", defaultLoadout.tops);
+    }
+    if (defaultLoadout.bottoms) {
+      equipItem("bottoms", defaultLoadout.bottoms);
     }
     setUnit("cm");
     setActiveTab("상의");
     setBackgroundColor(DEFAULT_BG);
     setIsModalOpen(false);
     setSelectedPreviewMannequinId("female_standard");
-    setPose("relaxed");
+    setPose("neutral");
   };
 
   const selectedSummary = {
     title: selectedMannequin.name,
-    detail: `${selection.hair.name} / ${selection.top.name} / ${selection.outerwear.name} / ${selection.bottom.name} / ${selection.shoes.name} / ${selection.accessory.name} · ${POSE_TEMPLATES.find((pose) => pose.id === selectedPoseId)?.name ?? "릴랙스"}`,
+    detail: `${BODY_FRAME_META[bodyFrameState].label} / ${selection.hair.name} / ${selection.top.name} / ${selection.outerwear.name} / ${selection.bottom.name} / ${selection.shoes.name} / ${selection.accessory.name} · ${POSE_TEMPLATES.find((pose) => pose.id === selectedPoseId)?.name ?? "뉴트럴"}`,
   };
 
   const fitDetails = useMemo(
@@ -1232,7 +1457,19 @@ export function V18ClosetExperience() {
           unit={unit}
           setUnit={setUnit}
           gender={genderState}
-          setGender={(nextGender) => applyGenderAndMeasurements(nextGender, toMeasurementState(profile, nextGender))}
+          setGender={(nextGender) => {
+            const preset = MEASUREMENT_PRESETS[nextGender][0];
+            setSelectedPreviewMannequinId(nextGender === "male" ? "male_standard" : "female_standard");
+            applyGenderAndMeasurements(nextGender, preset.measurements, preset.bodyFrame);
+            equipItem("hair", defaultHairItemIdsByVariant[nextGender === "male" ? "male-base" : "female-base"]);
+          }}
+          bodyFrame={bodyFrameState}
+          setBodyFrame={(nextBodyFrame) =>
+            setProfile((current) => ({
+              ...current,
+              bodyFrame: nextBodyFrame,
+            }))
+          }
           measurements={measurements}
           setMeasurements={setMeasurements}
           selectedPoseId={selectedPoseId}

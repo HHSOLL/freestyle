@@ -1,0 +1,16 @@
+{
+  "variantId": "female-base",
+  "hairStyle": "short04",
+  "armature": "mpfb-female-base",
+  "objects": [
+    {
+      "name": "FS.Hair.short04",
+      "vertices": 865,
+      "materials": [
+        "FS_Hair_short04"
+      ]
+    }
+  ],
+  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_clean_sweep.blend",
+  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb"
+}

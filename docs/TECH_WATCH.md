@@ -17,9 +17,56 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-14
+- 2026-04-16
 
 ## 점검 로그
+### 2026-04-16
+- 확인 소스:
+  - npm registry latest stable (`next`, `react`, `react-dom`, `typescript`, `tailwindcss`, `eslint-config-next`, `three`, `@react-three/fiber`, `@react-three/drei`)
+  - MakeHuman / MPFB official docs:
+    - `https://static.makehumancommunity.org/about/license.html`
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/creating_clothes.html`
+    - `https://static.makehumancommunity.org/assets/creatingassets/makeclothes/introduction.html`
+  - Blender official manual:
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/shrinkwrap.html`
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/corrective_smooth.html`
+    - `https://docs.blender.org/manual/en/latest/modeling/modifiers/modify/data_transfer.html`
+    - `https://docs.blender.org/manual/en/latest/physics/cloth/introduction.html`
+  - runtime motion candidates / license checks:
+    - `https://pixiv.github.io/three-vrm/docs/`
+    - `https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/package.json`
+    - `https://raw.githubusercontent.com/dimforge/rapier/master/LICENSE`
+  - runtime/web optimization references:
+    - `https://r3f.docs.pmnd.rs/advanced/scaling-performance`
+    - `https://threejs.org/docs/#examples/en/loaders/GLTFLoader`
+    - `https://gltf-transform.dev/cli.html`
+    - `https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API`
+- 신규 변화 요약:
+  - npm latest stable은 `next 16.2.4`, `react/react-dom 19.2.5`, `typescript 6.0.2`, `tailwindcss 4.2.2`, `eslint-config-next 16.2.4`, `three 0.183.2`, `@react-three/fiber 9.6.0`, `@react-three/drei 10.7.7`이다.
+  - MPFB / MakeClothes 공식 문서는 여전히 같은 basemesh와 helper-group 중심의 clothes authoring 흐름을 권장한다.
+  - Blender 공식 문서 기준으로도 현재 제품에 맞는 안전한 순서는 `Shrinkwrap -> Data Transfer -> Corrective Smooth -> selective Cloth reference pass`다.
+  - `@pixiv/three-vrm`는 current package metadata 기준 `MIT`다. spring-bone 쪽 구조는 참고 가치가 높다.
+  - Rapier는 Apache-2.0이며 coarse collider/runtime constraint layer 후보로 계속 유지 가능하다.
+  - R3F 공식 문서는 `frameloop="demand"`와 선택적 invalidate가 정적인 3D surface 최적화의 핵심이라고 안내한다.
+  - Three.js / drei는 meshopt-compressed glTF를 직접 로드할 수 있으므로, shipped GLB는 오프라인에서 meshopt + texture recompress를 먼저 거는 편이 안전하다.
+  - MDN 기준 WebGPU는 여전히 limited availability라서, 기본 경로는 WebGL 최적화가 맞고 WebGPU는 hero-only future tier로 남기는 편이 타당하다.
+- 우리 프로젝트 영향:
+  - 지금 단계에서 전체 runtime을 외부 spring-bone/physics dependency로 갈아엎기보다, 현재 `packages/runtime-3d` 안에 lightweight secondary-motion layer를 넣는 편이 리스크가 낮다.
+  - 제품 규칙은 `실측 기반 fit assessment + corrective authoring`이 1차, `long hair / loose garment secondary motion`이 2차다.
+  - 헤어 다양성은 MPFB upstream hair asset을 그대로 확장해도 라이선스/authoring 경로가 깔끔하다.
+  - 현재 단계에서 가장 가치가 큰 최적화는 `whole-catalog eager preload 제거`, `meshopt + texture recompress`, `quality-tier별 shadow/DPR/frameloop 조정`이다.
+- 적용 여부:
+  - 문서 반영 완료:
+    - 본 문서 업데이트
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/avatar-pipeline.md`
+    - `docs/garment-fitting-contract.md`
+    - `docs/physical-fit-system.md`
+    - `docs/PERFECT_FITTING_EXECUTION_PLAN.md`
+    - `docs/OPEN_ASSET_CREDITS.md`
+
 ### 2026-04-14
 - 확인 소스:
   - npm registry latest stable (`npm view next version`, `npm view react version`, `npm view react-dom version`, `npm view typescript version`, `npm view tailwindcss version`, `npm view eslint-config-next version`, `npm view three version`, `npm view @react-three/fiber version`, `npm view @react-three/drei version`)

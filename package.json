@@ -31,6 +31,7 @@
     "authoring:garments:mpfb:build": "node scripts/build-mpfb-starter-garments.mjs",
     "authoring:garments:mpfb:accessories": "node scripts/build-mpfb-accessory-assets.mjs",
     "authoring:hair:mpfb:build": "node scripts/build-mpfb-hair-assets.mjs",
+    "optimize:runtime:assets": "node scripts/optimize-runtime-assets.mjs",
     "bench:cloth4a": "node scripts/bench-cloth-spike.mjs",
     "start": "npm --prefix apps/web run start",
     "lint": "eslint",
@@ -57,6 +58,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.3.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

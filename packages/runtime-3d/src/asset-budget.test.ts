@@ -13,8 +13,19 @@ test("avatar runtime assets stay within declared size budget", () => {
   const garment = fs.statSync(
     path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb"),
   ).size;
+  const hair = fs.statSync(
+    path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb"),
+  ).size;
+  const defaultClosetScene =
+    female +
+    fs.statSync(path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb")).size +
+    fs.statSync(path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb")).size +
+    fs.statSync(path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb")).size +
+    fs.statSync(path.join(repoRoot, "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb")).size;
 
   assert.ok(female <= runtimeAssetBudget.avatarGlbBytes);
   assert.ok(male <= runtimeAssetBudget.avatarGlbBytes);
   assert.ok(garment <= runtimeAssetBudget.garmentGlbBytes);
+  assert.ok(hair <= runtimeAssetBudget.hairGlbBytes);
+  assert.ok(defaultClosetScene <= runtimeAssetBudget.defaultClosetSceneBytes);
 });

@@ -53,6 +53,8 @@ The shipped runtime now uses:
 - MPFB shape-key morph targets plus rig-target transforms driven by measurements
 - garment runtime bindings with anchors, collision zones, body masks, and render order
 - pose control and quality tiers
+- meshopt-compressed runtime GLBs with WebP-compressed textures for shipped browser assets
+- selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
 
 Preferred authoring policy is:
 
@@ -61,7 +63,7 @@ Preferred authoring policy is:
 - Blender only as offline authoring/export tooling
 - web runtime output as `glb` or `gltf`
 
-Important: the repo now ships MPFB2-authored base avatar GLBs with exported body morph targets, MPFB starter garment GLBs generated from the official `shirts01 / pants01 / shoes01` packs, runtime accessories, and selectable runtime hair GLBs. The remaining gap is no longer “missing mannequin assets”; it is quality tuning: measurement-to-morph calibration still needs tighter fit against the real MPFB shape-key space, and the starter catalog still needs corrective refinement to consistently read as a high-end try-on experience. That state is documented explicitly in [docs/avatar-pipeline.md](docs/avatar-pipeline.md).
+Important: the repo now ships MPFB2-authored base avatar GLBs with exported body morph targets, MPFB starter garment GLBs generated from the official `shirts01 / pants01 / shoes01` packs, runtime accessories, and eight selectable runtime hair GLBs. The current runtime also includes a lightweight secondary-motion layer for long hair and loose hero garments, so `Closet` can communicate sway and drape without paying the cost of full browser cloth simulation. The remaining gap is no longer “missing mannequin assets”; it is quality tuning: measurement-to-morph calibration still needs tighter fit against the real MPFB shape-key space, and the hero catalog still needs deeper corrective refinement to consistently read as a high-end try-on experience. That state is documented explicitly in [docs/avatar-pipeline.md](docs/avatar-pipeline.md).
 The repo now also ships a representative archetype review layer for partner publishing: `apps/admin` previews fit across multiple body archetypes before save, and `npm run validate:fit-calibration` writes a starter-catalog fit matrix report to `output/fit-calibration/latest.json`.
 
 ## Monorepo Structure
@@ -128,6 +130,7 @@ Useful commands:
 - `npm run dev:admin`
 - `npm run dev:api`
 - `npm run dev:worker`
+- `npm run optimize:runtime:assets`
 - `npm run check`
 - `npm run validate:garment3d`
 

@@ -126,6 +126,7 @@ Required runtime fields:
 - `collisionZones`
 - `bodyMaskZones`
 - `poseTuning` for pose-specific clearance and mask overrides on clipping-prone garments
+- `secondaryMotion` for long hair and loose garments that need a lightweight spring response in runtime
 - `surfaceClearanceCm`
 - `renderPriority`
 - `metadata.measurements`
@@ -156,6 +157,7 @@ Current source-of-truth files:
 - `packages/runtime-3d/src/avatar-manifest.ts`
 - `packages/runtime-3d/src/index.tsx`
 - `packages/runtime-3d/src/closet-stage.tsx`
+- `packages/runtime-3d/src/preload-runtime-assets.ts`
 
 Rules:
 
@@ -165,8 +167,15 @@ Rules:
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
 - keep body masking and render-order rules aligned with garment bindings
+- keep `secondaryMotion` selective: long hair, loose tops, and loose outerwear only
+- use meshopt-aware glTF loading for shipped runtime assets
+- preload only the active avatar, equipped garments, and near-term closet candidates
+- avoid whole-catalog eager preload on module import
+- prefer `frameloop="demand"` whenever the active stage has no continuous motion
+- do not treat `secondaryMotion` as a replacement for measured fit, corrective authoring, or collision tuning
 - validate promoted avatar assets with `npm run validate:avatar3d`
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
+- rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules
 
@@ -235,6 +244,7 @@ Every substantial change must consider:
 - route-level code splitting
 - lazy loading for non-critical surfaces
 - runtime asset preloading
+- runtime asset optimization with mesh/texture compression before shipping GLBs
 - 3D asset and texture budgets
 - selector and derived-state cleanup
 - avoiding unnecessary rerenders

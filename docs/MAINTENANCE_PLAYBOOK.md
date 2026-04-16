@@ -13,6 +13,7 @@
 9. Run `npm run validate:garment3d` when asset metadata changed.
 10. Run `npm run validate:avatar3d` when avatar assets or morph mapping changed.
 11. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
+12. Run `npm run optimize:runtime:assets` when promoted runtime GLBs changed.
 
 ## 2. Product Smoke Checklist
 
@@ -83,8 +84,12 @@ Verify these after any mannequin or asset change:
 - pose-aware body masks expand correctly in `stride` and `tailored`
 - garments respect render order and clearance
 - garments respect pose-aware clearance tuning
+- long hair pieces (`ponytail`, `braid`, `long fall`) still sway without clipping through the head or shoulders
+- loose hero garments (`City Relaxed`, `Tailored Layer`) still show secondary drape without jitter or exploding transforms
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
+- active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
+- optimized runtime GLBs stay within explicit avatar / garment / hair / default-loadout budgets
 
 If any of the above regress, stop the release.
 
@@ -103,6 +108,7 @@ If any of the above regress, stop the release.
 - confirm `surfaceClearanceCm` is still sensible
 - confirm the skeleton profile is valid
 - confirm the rig alias map still matches the active avatar asset
+- confirm `secondaryMotion` is not amplifying a fit problem that should be fixed in authoring or corrective metadata first
 
 ### Route leak from legacy into product
 

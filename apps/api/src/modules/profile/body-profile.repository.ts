@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   bodyProfileRecordSchema,
   bodyProfileUpsertInputSchema,
-} from "@freestyle/shared";
+} from "@freestyle/contracts";
 
 const getBodyProfileStorePath = () =>
   process.env.BODY_PROFILE_STORE_PATH?.trim() || path.join(process.cwd(), ".data", "body-profiles.json");
@@ -49,7 +49,7 @@ export const upsertBodyProfileRecordForUser = async (userId: string, input: Body
   const store = await readStore();
   const nextRecord: BodyProfileRecord = {
     profile: parsed.profile,
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
   };
 

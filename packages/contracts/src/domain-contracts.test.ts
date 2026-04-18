@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   assetMetadataSchema,
+  bodyProfileGetResponseSchema,
+  bodyProfilePutResponseSchema,
   bodyProfileSchema,
   bodyProfileRecordSchema,
   bodyProfileSimpleSchema,
@@ -54,6 +56,26 @@ test('bodyProfileSchema accepts detailed optional extension fields inside envelo
   assert.equal(parsed.detailed?.headCircumferenceCm, 56);
 });
 
+test('bodyProfileSchema accepts current product metadata fields inside the envelope', () => {
+  const parsed = bodyProfileSchema.parse({
+    version: 2,
+    gender: 'female',
+    bodyFrame: 'balanced',
+    simple: {
+      heightCm: 170,
+      shoulderCm: 43,
+      chestCm: 92,
+      waistCm: 76,
+      hipCm: 93,
+      inseamCm: 78,
+    },
+  });
+
+  assert.equal(parsed.version, 2);
+  assert.equal(parsed.gender, 'female');
+  assert.equal(parsed.bodyFrame, 'balanced');
+});
+
 test('legacyBodyProfileFlatSchema accepts legacy flat payloads and normalizes to canonical shape', () => {
   const parsed = legacyBodyProfileFlatSchema.parse({
     heightCm: 170,
@@ -77,9 +99,12 @@ test('legacyBodyProfileFlatSchema accepts legacy flat payloads and normalizes to
   assert.equal(normalized.detailed?.headCircumferenceCm, 56);
 });
 
-test('body profile reservation schemas parse reserved payloads', () => {
+test('body profile product schemas accept current web payloads and normalize stored records', () => {
   const upsert = bodyProfileUpsertInputSchema.parse({
     profile: {
+      version: 2,
+      gender: 'female',
+      bodyFrame: 'balanced',
       simple: {
         heightCm: 172,
         shoulderCm: 44,
@@ -95,9 +120,37 @@ test('body profile reservation schemas parse reserved payloads', () => {
     version: 1,
     updatedAt: new Date().toISOString(),
   });
+  const getResponse = bodyProfileGetResponseSchema.parse({
+    bodyProfile: record,
+  });
+  const putResponse = bodyProfilePutResponseSchema.parse({
+    bodyProfile: record,
+  });
 
-  assert.equal(record.version, 1);
+  assert.equal(record.version, 2);
   assert.equal(record.profile.simple.waistCm, 78);
+  assert.equal(record.profile.gender, 'female');
+  assert.equal(record.profile.bodyFrame, 'balanced');
+  assert.equal(getResponse.bodyProfile?.version, 2);
+  assert.equal(putResponse.bodyProfile.version, 2);
+});
+
+test('body profile upsert schema accepts legacy flat payloads and normalizes them', () => {
+  const parsed = bodyProfileUpsertInputSchema.parse({
+    profile: {
+      heightCm: 170,
+      shoulderCm: 43,
+      chestCm: 92,
+      waistCm: 76,
+      hipCm: 93,
+      inseamCm: 78,
+      neckCm: 37,
+    },
+  });
+
+  assert.equal(parsed.profile.version, 2);
+  assert.equal(parsed.profile.simple.heightCm, 170);
+  assert.equal(parsed.profile.detailed?.neckCm, 37);
 });
 
 test('garment measurement + fit profile schemas stay backward-compatible', () => {

@@ -2,18 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  bodyProfileGetResponseSchema,
+  bodyProfileUpsertInputSchema,
+  type BodyFrame,
+  type BodyProfile,
+  type BodyProfileDetailedKey,
+  type BodyProfileSimpleKey,
+} from "@freestyle/contracts";
+import {
   bodyMeasurementFields,
   createLocalBodyProfileRepository,
   resolveAvatarVariantFromProfile,
   updateBodyProfileMeasurement,
 } from "@freestyle/domain-avatar";
-import type {
-  BodyFrame,
-  BodyProfile,
-  BodyProfileDetailedKey,
-  BodyProfileSimpleKey,
-} from "@freestyle/shared-types";
-import { normalizeBodyProfile } from "@freestyle/shared-types";
 import { apiFetchJson, isClientApiConfigured } from "@/lib/clientApi";
 
 const repository = createLocalBodyProfileRepository();
@@ -30,14 +31,13 @@ export function useBodyProfile() {
     let cancelled = false;
 
     const hydrate = async () => {
-      const { response, data } = await apiFetchJson<{ bodyProfile?: { profile?: BodyProfile } | null }>(
-        "/v1/profile/body-profile",
-      );
+      const { response, data } = await apiFetchJson<unknown>("/v1/profile/body-profile");
+      const parsed = bodyProfileGetResponseSchema.safeParse(data);
 
       if (cancelled) return;
 
-      if (response.ok && data?.bodyProfile?.profile) {
-        setProfile(normalizeBodyProfile(data.bodyProfile.profile));
+      if (response.ok && parsed.success && parsed.data.bodyProfile?.profile) {
+        setProfile(parsed.data.bodyProfile.profile);
       }
 
       setApiReady(true);
@@ -62,12 +62,13 @@ export function useBodyProfile() {
     if (!isClientApiConfigured || !apiReady) return;
 
     const timeout = window.setTimeout(() => {
+      const payload = bodyProfileUpsertInputSchema.parse({ profile });
       apiFetchJson("/v1/profile/body-profile", {
         method: "PUT",
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ profile }),
+        body: JSON.stringify(payload),
       }).catch(() => undefined);
     }, 180);
 

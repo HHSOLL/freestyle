@@ -10,9 +10,6 @@ import type {
   AvatarPoseId,
   AvatarRigTargets,
   AvatarRenderVariantId,
-  BodyProfile,
-  BodyProfileDetailedKey,
-  BodyProfileSimpleKey,
   ClosetSceneState,
 } from "@freestyle/shared-types";
 import {
@@ -21,7 +18,10 @@ import {
   normalizeBodyProfile,
   setDetailedBodyMeasurement,
   setSimpleBodyMeasurement,
-} from "@freestyle/shared-types";
+  type BodyProfile,
+  type BodyProfileDetailedKey,
+  type BodyProfileSimpleKey,
+} from "@freestyle/contracts";
 
 export const avatarStorageKeys = {
   bodyProfile: "freestyle:avatar-profile:v2",

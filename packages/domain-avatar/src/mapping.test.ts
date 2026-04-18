@@ -8,7 +8,7 @@ import {
   createLocalClosetSceneRepository,
   defaultClosetSceneState,
 } from "./index.js";
-import { normalizeBodyProfile } from "@freestyle/shared-types";
+import { normalizeBodyProfile } from "@freestyle/contracts";
 
 test("body profile mapping produces stable normalized avatar params", () => {
   const profile = normalizeBodyProfile({

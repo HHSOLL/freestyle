@@ -3,6 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+  bodyProfileGetResponseSchema,
+  bodyProfilePutResponseSchema,
+} from "@freestyle/contracts";
 import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-api-"));
@@ -39,11 +43,22 @@ test.after(() => {
 test("product surface persists body profile through the profile namespace", async () => {
   const app = buildServer();
 
+  const emptyGetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/profile/body-profile",
+  });
+
+  assert.equal(emptyGetResponse.statusCode, 200);
+  assert.equal(bodyProfileGetResponseSchema.parse(emptyGetResponse.json()).bodyProfile, null);
+
   const putResponse = await app.inject({
     method: "PUT",
     url: "/v1/profile/body-profile",
     payload: {
       profile: {
+        version: 2,
+        gender: "female",
+        bodyFrame: "balanced",
         simple: {
           heightCm: 172,
           shoulderCm: 44,
@@ -58,7 +73,10 @@ test("product surface persists body profile through the profile namespace", asyn
 
   assert.equal(putResponse.statusCode, 200);
   assert.equal(putResponse.headers["x-freestyle-surface"], "product");
-  assert.equal(putResponse.json().bodyProfile.version, 1);
+  const putPayload = bodyProfilePutResponseSchema.parse(putResponse.json());
+  assert.equal(putPayload.bodyProfile.version, 2);
+  assert.equal(putPayload.bodyProfile.profile.gender, "female");
+  assert.equal(putPayload.bodyProfile.profile.bodyFrame, "balanced");
 
   const getResponse = await app.inject({
     method: "GET",
@@ -66,7 +84,11 @@ test("product surface persists body profile through the profile namespace", asyn
   });
 
   assert.equal(getResponse.statusCode, 200);
-  assert.equal(getResponse.json().bodyProfile.profile.simple.heightCm, 172);
+  const getPayload = bodyProfileGetResponseSchema.parse(getResponse.json());
+  assert.equal(getPayload.bodyProfile?.profile.simple.heightCm, 172);
+  assert.equal(getPayload.bodyProfile?.profile.gender, "female");
+  assert.equal(getPayload.bodyProfile?.profile.bodyFrame, "balanced");
+  assert.equal(getPayload.bodyProfile?.version, 2);
 
   await app.close();
 });

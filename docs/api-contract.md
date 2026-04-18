@@ -36,11 +36,44 @@
 - The active product body profile route is `GET/PUT /v1/profile/body-profile`.
 - The older `GET/PUT /v1/body-profiles/me` note below is a historical reservation point only. Do not use it for new product callers.
 - canonical `BodyProfile` shape는 flat object가 아니라 envelope다: `{ simple, detailed? }`.
+- active product payloads may also include `version: 2`, `gender`, and `bodyFrame`; the current product route preserves those fields.
 - `simple`은 필수 numeric cm 필드 `heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`를 가진다.
 - `detailed`는 optional object이며 `neckCm`, `torsoLengthCm`, `armLengthCm`, `sleeveLengthCm`, `bicepCm`, `forearmCm`, `wristCm`, `riseCm`, `outseamCm`, `thighCm`, `kneeCm`, `calfCm`, `ankleCm`를 optional numeric cm 필드로 가진다.
 - 클라이언트 localStorage migration을 위해 legacy flat payload는 읽기 시 정규화할 수 있지만, canonical reserved contract는 envelope 기준으로 정의한다.
 - planned reservation: `GET /v1/body-profiles/me`, `PUT /v1/body-profiles/me`
 - historical status: reserved only, not implemented on the current mannequin-first product surface.
+
+#### `GET /v1/profile/body-profile`
+- auth: same as other `/v1/profile/*` routes
+- response:
+```json
+{
+  "bodyProfile": {
+    "profile": {
+      "version": 2,
+      "gender": "female",
+      "bodyFrame": "balanced",
+      "simple": {
+        "heightCm": 172,
+        "shoulderCm": 44,
+        "chestCm": 91,
+        "waistCm": 74,
+        "hipCm": 95,
+        "inseamCm": 79
+      }
+    },
+    "version": 2,
+    "updatedAt": "2026-04-19T10:00:00.000Z"
+  }
+}
+```
+- when no persisted record exists, `bodyProfile` is `null`
+
+#### `PUT /v1/profile/body-profile`
+- auth: same as other `/v1/profile/*` routes
+- request body must satisfy the active `BodyProfileUpsertInput` contract from `@freestyle/contracts`
+- current compatibility rule: both canonical envelope payloads and legacy flat body-profile payloads are normalized into the canonical envelope before persistence
+- response body satisfies the active `BodyProfileRecord` contract from `@freestyle/contracts`
 
 ### Admin garment publication boundary
 - garment generation itself should happen in a separate admin/publishing surface, not in `Closet`.

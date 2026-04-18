@@ -1,8 +1,8 @@
 import { z } from "zod";
+import { normalizeBodyProfile } from "./domain-types.js";
 export type {
-  BodyProfile,
-  BodyProfileRecord,
-  BodyProfileUpsertInput,
+  BodyProfileDetailedKey,
+  BodyProfileSimpleKey,
   FlattenedBodyProfile,
   GarmentPublicationRecord,
   GarmentFitAssessment,
@@ -28,6 +28,7 @@ export {
   isBodyProfile,
   isLegacyBodyProfileFlat,
   normalizeBodyProfile,
+  setDetailedBodyMeasurement,
   setSimpleBodyMeasurement,
 } from "./domain-types.js";
 
@@ -169,6 +170,9 @@ export const widgetErrorResponseSchema = z
 
 export const measurementCmSchema = z.number().min(0).max(400);
 
+export const avatarGenderSchema = z.enum(["female", "male", "neutral"]);
+export const bodyFrameSchema = z.enum(["balanced", "athletic", "soft", "curvy"]);
+
 export const bodyProfileSimpleSchema = z
   .object({
     heightCm: measurementCmSchema,
@@ -220,6 +224,9 @@ export const legacyBodyProfileFlatSchema = bodyProfileSimpleSchema
 
 export const bodyProfileSchema = z
   .object({
+    version: z.literal(2).optional(),
+    gender: avatarGenderSchema.optional(),
+    bodyFrame: bodyFrameSchema.optional(),
     simple: bodyProfileSimpleSchema,
     detailed: bodyProfileDetailedSchema.optional(),
   })
@@ -637,19 +644,42 @@ export const canvasLookRecordSchema = canvasLookSummarySchema
   })
   .strict();
 
-// Reserved for future `/v1/body-profiles/me` persistence endpoint (not implemented yet).
+const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProfileFlatSchema]).transform((profile) =>
+  normalizeBodyProfile(profile),
+);
+
+const bodyProfileRecordVersionSchema = z.union([z.literal(1), z.literal(2)]).default(2);
+
+// Active `/v1/profile/body-profile` product contract with read compatibility for older local records.
 export const bodyProfileRecordSchema = z
   .object({
-    profile: bodyProfileSchema,
-    version: z.literal(1).default(1),
+    profile: bodyProfileInputSchema,
+    version: bodyProfileRecordVersionSchema,
     updatedAt: z.iso.datetime().optional(),
+  })
+  .strict()
+  .transform(({ profile, updatedAt }) => ({
+    profile,
+    version: 2 as const,
+    updatedAt,
+  }));
+
+// Active request payload for `/v1/profile/body-profile`, with legacy flat-profile compatibility.
+export const bodyProfileUpsertInputSchema = z
+  .object({
+    profile: bodyProfileInputSchema,
   })
   .strict();
 
-// Reserved future request payload for body profile persistence.
-export const bodyProfileUpsertInputSchema = z
+export const bodyProfileGetResponseSchema = z
   .object({
-    profile: bodyProfileSchema,
+    bodyProfile: bodyProfileRecordSchema.nullable(),
+  })
+  .strict();
+
+export const bodyProfilePutResponseSchema = z
+  .object({
+    bodyProfile: bodyProfileRecordSchema,
   })
   .strict();
 
@@ -664,8 +694,15 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
+export type AvatarGender = z.infer<typeof avatarGenderSchema>;
+export type BodyFrame = z.infer<typeof bodyFrameSchema>;
+export type BodyProfile = z.infer<typeof bodyProfileSchema>;
 export type BodyProfileSimple = z.infer<typeof bodyProfileSimpleSchema>;
 export type BodyProfileDetailed = z.infer<typeof bodyProfileDetailedSchema>;
+export type BodyProfileRecord = z.infer<typeof bodyProfileRecordSchema>;
+export type BodyProfileUpsertInput = z.infer<typeof bodyProfileUpsertInputSchema>;
+export type BodyProfileGetResponse = z.infer<typeof bodyProfileGetResponseSchema>;
+export type BodyProfilePutResponse = z.infer<typeof bodyProfilePutResponseSchema>;
 export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;

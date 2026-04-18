@@ -8,6 +8,7 @@ import type {
   GarmentSizeSpec,
   PublishedGarmentAsset,
 } from "@freestyle/shared-types";
+import { defaultSkeletonProfileId, freestyleSkeletonProfiles } from "@freestyle/domain-garment";
 
 export const DRAFT_SELECTION_ID = "__draft__";
 
@@ -178,9 +179,17 @@ export const createDefaultSizeRow = (category: AssetCategory, label = "M"): Garm
   notes: "Entered from product-detail size chart.",
 });
 
+const normalizeSkeletonProfileId = (value: string | undefined) => {
+  if (!value) {
+    return defaultSkeletonProfileId;
+  }
+
+  return freestyleSkeletonProfiles[value] ? value : defaultSkeletonProfileId;
+};
+
 const createDefaultRuntime = (category: AssetCategory, id: string) => ({
   modelPath: `/assets/garments/partners/${id}.glb`,
-  skeletonProfileId: "freestyle-humanoid-v1",
+  skeletonProfileId: defaultSkeletonProfileId,
   anchorBindings: DEFAULT_ANCHOR_BINDINGS[category].map((anchorId) => ({ id: anchorId, weight: 0.25 })),
   collisionZones: DEFAULT_COLLISION_ZONES[category],
   bodyMaskZones: DEFAULT_BODY_MASK_ZONES[category],
@@ -267,7 +276,7 @@ export const normalizeDraftForCategory = (item: PublishedGarmentAsset, category:
     },
     runtime: {
       ...item.runtime,
-      skeletonProfileId: item.runtime.skeletonProfileId || "freestyle-humanoid-v1",
+      skeletonProfileId: normalizeSkeletonProfileId(item.runtime.skeletonProfileId),
       anchorBindings:
         item.runtime.anchorBindings?.length
           ? item.runtime.anchorBindings

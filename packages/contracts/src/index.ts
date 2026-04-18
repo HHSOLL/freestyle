@@ -671,6 +671,28 @@ export const publishedGarmentAssetSchema = runtimeGarmentAssetSchema
   })
   .strict();
 
+export const publishedRuntimeGarmentItemResponseSchema = z
+  .object({
+    item: publishedGarmentAssetSchema,
+  })
+  .strict();
+
+export const publishedRuntimeGarmentListResponseSchema = z
+  .object({
+    items: z.array(publishedGarmentAssetSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
+
 export const assetUpdateInputSchema = z
   .object({
     category: assetCategorySchema.optional(),
@@ -824,6 +846,8 @@ export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type Asset = z.infer<typeof assetSchema>;
+export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;
+export type PublishedRuntimeGarmentListResponse = z.infer<typeof publishedRuntimeGarmentListResponseSchema>;
 export type ClosetItem = z.infer<typeof closetItemSchema>;
 export type CanvasLookData = z.infer<typeof canvasLookDataSchema>;
 export type ClosetSceneState = z.infer<typeof closetSceneStateSchema>;

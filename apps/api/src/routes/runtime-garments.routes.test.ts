@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { PublishedGarmentAsset } from "@freestyle/shared";
+import {
+  publishedRuntimeGarmentItemResponseSchema,
+  publishedRuntimeGarmentListResponseSchema,
+  type PublishedGarmentAsset,
+} from "@freestyle/contracts";
 import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-runtime-garments-"));
@@ -131,7 +135,8 @@ test("published runtime garments can be upserted through admin routes and consum
 
   assert.equal(postResponse.statusCode, 201);
   assert.equal(postResponse.headers["x-freestyle-surface"], "product");
-  assert.equal(postResponse.json().item.id, publishedGarmentFixture.id);
+  const postPayload = publishedRuntimeGarmentItemResponseSchema.parse(postResponse.json());
+  assert.equal(postPayload.item.id, publishedGarmentFixture.id);
 
   const getAdminResponse = await app.inject({
     method: "GET",
@@ -140,7 +145,17 @@ test("published runtime garments can be upserted through admin routes and consum
 
   assert.equal(getAdminResponse.statusCode, 200);
   assert.equal(getAdminResponse.headers["x-freestyle-surface"], "product");
-  assert.equal(getAdminResponse.json().total, 1);
+  const adminListPayload = publishedRuntimeGarmentListResponseSchema.parse(getAdminResponse.json());
+  assert.equal(adminListPayload.total, 1);
+
+  const getAdminDetailResponse = await app.inject({
+    method: "GET",
+    url: `/v1/admin/garments/${publishedGarmentFixture.id}`,
+  });
+
+  assert.equal(getAdminDetailResponse.statusCode, 200);
+  const adminDetailPayload = publishedRuntimeGarmentItemResponseSchema.parse(getAdminDetailResponse.json());
+  assert.equal(adminDetailPayload.item.publication.sourceSystem, "admin-domain");
 
   const getClosetResponse = await app.inject({
     method: "GET",
@@ -149,8 +164,22 @@ test("published runtime garments can be upserted through admin routes and consum
 
   assert.equal(getClosetResponse.statusCode, 200);
   assert.equal(getClosetResponse.headers["x-freestyle-surface"], "product");
-  assert.equal(getClosetResponse.json().items[0]?.publication?.sourceSystem, "admin-domain");
-  assert.equal(getClosetResponse.json().items[0]?.metadata?.selectedSizeLabel, "L");
+  const closetPayload = publishedRuntimeGarmentListResponseSchema.parse(getClosetResponse.json());
+  assert.equal(closetPayload.items[0]?.publication.sourceSystem, "admin-domain");
+  assert.equal(closetPayload.items[0]?.metadata?.selectedSizeLabel, "L");
+
+  const putResponse = await app.inject({
+    method: "PUT",
+    url: `/v1/admin/garments/${publishedGarmentFixture.id}`,
+    payload: {
+      ...publishedGarmentFixture,
+      name: "Precision Tee Updated",
+    },
+  });
+
+  assert.equal(putResponse.statusCode, 200);
+  const putPayload = publishedRuntimeGarmentItemResponseSchema.parse(putResponse.json());
+  assert.equal(putPayload.item.name, "Precision Tee Updated");
 
   await app.close();
 });
@@ -200,7 +229,26 @@ test("admin create route rejects semantically invalid garment payloads without p
   });
 
   assert.equal(listResponse.statusCode, 200);
-  assert.equal(listResponse.json().total, 0);
+  assert.equal(publishedRuntimeGarmentListResponseSchema.parse(listResponse.json()).total, 0);
+
+  await app.close();
+});
+
+test("admin update route rejects route and payload id mismatches before writing", async () => {
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "PUT",
+    url: `/v1/admin/garments/${publishedGarmentFixture.id}`,
+    payload: {
+      ...publishedGarmentFixture,
+      id: "published-top-different-id",
+    },
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "VALIDATION_ERROR");
+  assert.match(response.json().message, /Body id must match route id/);
 
   await app.close();
 });

@@ -3,7 +3,9 @@ import { z } from "zod";
 import {
   assetCategorySchema,
   publishedGarmentAssetSchema,
-} from "@freestyle/shared";
+  publishedRuntimeGarmentItemResponseSchema,
+  publishedRuntimeGarmentListResponseSchema,
+} from "@freestyle/contracts";
 import { requireAuth } from "../modules/auth/auth.js";
 import {
   createPublishedRuntimeGarment,
@@ -37,7 +39,12 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       category: parsed.data.category,
       sourceSystem: parsed.data.source_system,
     });
-    return reply.send({ items, total: items.length });
+    return reply.send(
+      publishedRuntimeGarmentListResponseSchema.parse({
+        items,
+        total: items.length,
+      }),
+    );
   });
 
   app.get("/admin/garments", async (request, reply) => {
@@ -56,7 +63,12 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       category: parsed.data.category,
       sourceSystem: parsed.data.source_system,
     });
-    return reply.send({ items, total: items.length });
+    return reply.send(
+      publishedRuntimeGarmentListResponseSchema.parse({
+        items,
+        total: items.length,
+      }),
+    );
   });
 
   app.get("/admin/garments/:id", async (request, reply) => {
@@ -73,7 +85,11 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       return reply.code(404).send({ error: "NOT_FOUND", message: "Runtime garment not found." });
     }
 
-    return reply.send({ item });
+    return reply.send(
+      publishedRuntimeGarmentItemResponseSchema.parse({
+        item,
+      }),
+    );
   });
 
   app.post("/admin/garments", async (request, reply) => {
@@ -109,7 +125,11 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       });
     }
 
-    return reply.code(201).send({ item });
+    return reply.code(201).send(
+      publishedRuntimeGarmentItemResponseSchema.parse({
+        item,
+      }),
+    );
   });
 
   app.put("/admin/garments/:id", async (request, reply) => {
@@ -150,6 +170,10 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       throw error;
     }
 
-    return reply.code(200).send({ item });
+    return reply.code(200).send(
+      publishedRuntimeGarmentItemResponseSchema.parse({
+        item,
+      }),
+    );
   });
 };

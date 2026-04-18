@@ -21,6 +21,9 @@ import {
   garmentFitProfileSchema,
   garmentMeasurementsSchema,
   normalizeBodyProfile,
+  publishedGarmentAssetSchema,
+  publishedRuntimeGarmentItemResponseSchema,
+  publishedRuntimeGarmentListResponseSchema,
   runtimeGarmentAssetSchema,
 } from './index.js';
 
@@ -242,6 +245,56 @@ test('runtime garment binding schema accepts hair category with head measurement
   assert.equal(parsed.category, 'hair');
   assert.equal(parsed.metadata?.measurements?.headCircumferenceCm, 56.8);
   assert.equal(parsed.runtime.secondaryMotion?.profileId, 'hair-long');
+});
+
+test('published runtime garment response schemas accept canonical envelopes and reject total drift', () => {
+  const garment = publishedGarmentAssetSchema.parse({
+    id: 'published-top-precision-tee',
+    name: 'Precision Tee',
+    imageSrc: '/assets/demo/precision-tee.png',
+    category: 'tops',
+    source: 'inventory',
+    palette: ['#f5f5f5', '#10161f'],
+    runtime: {
+      modelPath: '/assets/garments/partner/precision-tee.glb',
+      skeletonProfileId: 'freestyle-rig-v2',
+      anchorBindings: [
+        { id: 'leftShoulder', weight: 0.3 },
+        { id: 'rightShoulder', weight: 0.3 },
+        { id: 'chestCenter', weight: 0.2 },
+        { id: 'waistCenter', weight: 0.2 },
+      ],
+      collisionZones: ['torso', 'arms'],
+      bodyMaskZones: [],
+      surfaceClearanceCm: 1.2,
+      renderPriority: 1,
+    },
+    publication: {
+      sourceSystem: 'admin-domain',
+      publishedAt: '2026-04-14T12:00:00.000Z',
+      assetVersion: 'precision-tee@1.0.0',
+      measurementStandard: 'body-garment-v1',
+    },
+  });
+
+  const itemResponse = publishedRuntimeGarmentItemResponseSchema.parse({
+    item: garment,
+  });
+  const listResponse = publishedRuntimeGarmentListResponseSchema.parse({
+    items: [garment],
+    total: 1,
+  });
+
+  assert.equal(itemResponse.item.id, garment.id);
+  assert.equal(listResponse.total, 1);
+  assert.throws(
+    () =>
+      publishedRuntimeGarmentListResponseSchema.parse({
+        items: [garment],
+        total: 2,
+      }),
+    /total must match items.length/,
+  );
 });
 
 test('asset metadata schema accepts garment-facing metadata payloads', () => {

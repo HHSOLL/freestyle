@@ -97,12 +97,13 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
     }
 
 
-ZONE_PRIORITY = {"feet": 4, "legs": 3, "hips": 2, "torso": 1, "exposed": 0}
+ZONE_PRIORITY = {"feet": 5, "legs": 4, "arms": 3, "hips": 2, "torso": 1, "exposed": 0}
 ZONE_GROUP_PATTERNS = {
     "feet": ("footl", "balll", "footr", "ballr"),
     "legs": ("thighl", "calfl", "thighr", "calfr"),
+    "arms": ("upperarml", "lowerarml", "upperarmr", "lowerarmr"),
     "hips": ("pelvis",),
-    "torso": ("spine01", "spine02"),
+    "torso": ("spine01", "spine02", "spine03", "claviclel", "clavicler", "neck01"),
 }
 
 
@@ -110,11 +111,26 @@ def _normalize_name(value):
     return "".join(ch for ch in str(value).lower() if ch.isalnum())
 
 
+HAIR_OBJECT_PATTERNS = (
+    "hair",
+    "short01",
+    "short02",
+    "short03",
+    "short04",
+    "long01",
+    "bob01",
+    "bob02",
+    "braid01",
+    "ponytail01",
+    "afro01",
+)
+
+
 def _classify_body_zone_from_groups(vertex, basemesh):
     if not vertex.groups:
         return None
 
-    zone_weights = {"feet": 0.0, "legs": 0.0, "hips": 0.0, "torso": 0.0}
+    zone_weights = {"feet": 0.0, "legs": 0.0, "arms": 0.0, "hips": 0.0, "torso": 0.0}
     total_weight = 0.0
     for group_ref in vertex.groups:
         group = basemesh.vertex_groups[group_ref.group]
@@ -138,14 +154,16 @@ def _classify_body_zone_from_groups(vertex, basemesh):
 def _classify_body_zone_fallback(co):
     x = abs(co.x)
     z = co.z
-    if z < 0.14:
+    if z < 0.12:
         return "feet"
-    if 0.14 <= z < 0.96 and x < 0.24:
+    if z < 0.82 and x < 0.34:
         return "legs"
-    if 0.4 <= z < 0.68 and x < 0.28:
+    if z < 1.02 and x < 0.33:
         return "hips"
-    if 0.48 <= z < 1.02 and x < 0.28:
+    if z < 1.34 and x < 0.29:
         return "torso"
+    if z < 1.42 and x < 0.62:
+        return "arms"
     return "exposed"
 
 
@@ -156,7 +174,7 @@ def _classify_body_zone(vertex, basemesh):
 def segment_body_mesh(basemesh):
     import bmesh
 
-    zone_vertices = {"torso": set(), "hips": set(), "legs": set(), "feet": set(), "exposed": set()}
+    zone_vertices = {"torso": set(), "arms": set(), "hips": set(), "legs": set(), "feet": set(), "exposed": set()}
     for vertex in basemesh.data.vertices:
         zone_vertices[_classify_body_zone(vertex, basemesh)].add(vertex.index)
 
@@ -266,15 +284,13 @@ def export_glb(output_glb: str):
 
 
 def prepare_runtime_export():
-    for obj in bpy.data.objects:
+    for obj in list(bpy.data.objects):
         if obj.type != "MESH":
             continue
         normalized = _normalize_name(obj.name)
-        if "body" in normalized:
-            for modifier in list(obj.modifiers):
-                if modifier.type != "MASK":
-                    continue
-                obj.modifiers.remove(modifier)
+        if any(pattern in normalized for pattern in HAIR_OBJECT_PATTERNS):
+            bpy.data.objects.remove(obj, do_unlink=True)
+            continue
         if "highpoly" in normalized:
             obj.hide_set(True)
             obj.hide_render = True

@@ -23,6 +23,13 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
       sleeveLengthCm: 21,
       lengthCm: 65.5,
     },
+    fitProfile: {
+      layer: "base",
+      silhouette: "regular",
+      structure: "soft",
+      stretch: 0.08,
+      drape: 0.18,
+    },
     measurementModes: {
       chestCm: "flat-half-circumference",
       shoulderCm: "linear-length",
@@ -59,7 +66,7 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
   },
   runtime: {
     modelPath: "/assets/garments/partner/precision-tee.glb",
-    skeletonProfileId: "freestyle-humanoid-v1",
+    skeletonProfileId: "freestyle-rig-v2",
     anchorBindings: [
       { id: "leftShoulder", weight: 0.3 },
       { id: "rightShoulder", weight: 0.3 },
@@ -78,6 +85,20 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
     assetVersion: "precision-tee@1.0.0",
     measurementStandard: "body-garment-v1",
     provenanceUrl: "https://partner.example.com/garments/precision-tee",
+  },
+};
+
+const semanticallyInvalidGarmentFixture: PublishedGarmentAsset = {
+  ...publishedGarmentFixture,
+  id: "published-top-invalid-rig",
+  name: "Precision Tee Invalid",
+  runtime: {
+    ...publishedGarmentFixture.runtime,
+    skeletonProfileId: "freestyle-humanoid-v1",
+  },
+  publication: {
+    ...publishedGarmentFixture.publication,
+    assetVersion: "precision-tee-invalid@1.0.0",
   },
 };
 
@@ -153,6 +174,33 @@ test("admin create route rejects duplicate garment ids", async () => {
 
   assert.equal(duplicateCreate.statusCode, 409);
   assert.equal(duplicateCreate.json().error, "CONFLICT");
+
+  await app.close();
+});
+
+test("admin create route rejects semantically invalid garment payloads without persisting them", async () => {
+  const app = buildServer();
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: semanticallyInvalidGarmentFixture,
+  });
+
+  assert.equal(createResponse.statusCode, 400);
+  assert.equal(createResponse.json().error, "VALIDATION_ERROR");
+  assert.match(createResponse.json().message, /unknown skeletonProfileId/);
+  assert.deepEqual(createResponse.json().issues, [
+    "unknown skeletonProfileId: freestyle-humanoid-v1",
+  ]);
+
+  const listResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+  });
+
+  assert.equal(listResponse.statusCode, 200);
+  assert.equal(listResponse.json().total, 0);
 
   await app.close();
 });

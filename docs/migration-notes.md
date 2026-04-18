@@ -2,8 +2,8 @@
 
 ## 2026-04-16
 
-- Bumped local closet scene persistence from `freestyle:closet-scene:v1` to `freestyle:closet-scene:v2`.
-- Reason: ship a cleaner evaluation baseline for deployed users with the new neutral default pose, hero default outfit loadout, and variant-aware default runtime hair.
+- Bumped local closet scene persistence from `freestyle:closet-scene:v2` through `v7`.
+- Reason: ship a cleaner try-on baseline for deployed users with a refreshed default avatar state, high-quality desktop default, base inner top layering fallback, a visible default female runtime hair (`Soft Bob`), preserved avatar helper masks, and the newer relaxed default pose after the asset/segmentation reset.
 - Impact: previously saved local closet scene selections are reset once so the upgraded baseline is actually visible in production.
 
 ## 1. Goal Of This Migration
@@ -109,7 +109,7 @@ The remaining important blocker is no longer "missing MPFB assets". Those now sh
 
 - measurement-to-morph calibration now reaches exported MPFB runtime shape keys, but it still uses heuristic weight mapping and needs tighter fit against the actual MPFB shape-key space
 - per-garment body mask coverage is not fully tuned across every starter silhouette, so non-default outfits can still reveal weak spots
-- the new size-chart / physical-fit layer is now in the domain contract, but only the first starter tee uses a product-detail style size chart so far
+- the starter catalog now carries sample size-chart data, but partner-grade garment publishing is still limited and the measured outerwear authoring path is not yet strong enough for a commercial-quality structured-layer claim
 
 This is a real gap. It is documented in `docs/avatar-pipeline.md` and should not be hidden.
 

@@ -17,9 +17,80 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-16
+- 2026-04-18
 
 ## 점검 로그
+### 2026-04-18
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - MPFB official docs:
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/basemesh_and_helpers.html`
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/creating_a_target.html`
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/concept_clothes_hair_bodyparts.html`
+  - `three-vrm` official docs:
+    - `https://pixiv.github.io/three-vrm/docs/documents/spring-bones-on-scaled-models.html`
+    - `https://pixiv.github.io/three-vrm/docs/classes/three-vrm-springbone.VRMSpringBoneCollider.html`
+  - glTF / mesh optimization refs:
+    - `https://gltf-transform.dev/`
+    - `https://meshoptimizer.org/gltf/`
+    - `https://threejs.org/docs/pages/WebGPURenderer.html`
+- 신규 변화 요약:
+  - `Pulse`는 현재 인증 환경에서 접근되지 않았다. 오늘 discovery는 공식 문서만 기준으로 진행했다.
+  - MPFB 공식 문서는 basemesh helper를 clothes authoring의 실제 기준으로 유지하라고 안내한다. helper를 가린 상태의 body만 shrinkwrap 타깃으로 쓰면 structured outerwear chest/arm fit가 왜곡될 수 있다.
+  - `three-vrm` 문서는 scaled avatar에서 spring collider/stiffness/radius를 같이 보정해야 한다고 본다. 현재 긴 헤어/loose garment secondary motion은 avatar scene scale 보정을 같이 넣는 편이 맞다.
+  - glTF 최적화 자료는 `meshopt`와 texture recompression을 유지하되, 런타임 loader가 `EXT_meshopt_compression`을 실제로 decode하도록 보장해야 한다는 점을 다시 확인시켜 준다.
+- 우리 프로젝트 영향:
+  - hero garment corrective는 helper-aware projection target을 써서 다시 authoring해야 한다.
+  - long hair / loose garment secondary motion은 idle render loop로 전체 scene을 계속 돌리기보다 demand rendering + settle-aware invalidate 구조가 더 적합하다.
+  - shipped optimized GLB는 `DRACO + meshopt`를 모두 처리할 수 있어야 하며, motion anchor는 garment subtree가 아니라 avatar anchor binding 기준으로 샘플링해야 한다.
+  - hair authoring pipeline도 특정 개발자 홈 경로에 묶이지 않고 MPFB data path를 명시적으로 받을 수 있어야 한다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `authoring/garments/mpfb/scripts/build_runtime_garment.py`
+    - `authoring/garments/mpfb/scripts/build_runtime_hair.py`
+    - `scripts/build-mpfb-hair-assets.mjs`
+    - `packages/runtime-3d/src/closet-stage.tsx`
+    - `scripts/optimize-runtime-assets.mjs`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/avatar-pipeline.md`
+    - `docs/physical-fit-system.md`
+
+### 2026-04-17
+- 확인 소스:
+  - MPFB official docs:
+    - `https://static.makehumancommunity.org/mpfb/docs/assets/basemesh_and_helpers.html`
+    - `https://static.makehumancommunity.org/mpfb/releases/release_2011.html`
+  - Three.js / R3F official docs:
+    - `https://threejs.org/docs/#examples/en/loaders/GLTFLoader`
+    - `https://r3f.docs.pmnd.rs/advanced/scaling-performance`
+- 신규 변화 요약:
+  - MPFB 공식 문서는 basemesh helper / mask geometry를 여전히 의도된 authoring 구성요소로 다룬다. helper-hiding mask를 export 파이프라인에서 보존하는 현재 방향이 맞다.
+  - MPFB 2.0.11 릴리즈 노트는 same-scale clothes 개선을 명시한다. 즉 avatar와 garment를 같은 body-space 기준으로 맞추는 corrective authoring이 계속 우선이다.
+  - R3F 공식 문서는 여전히 `frameloop="demand"`와 선택적 invalidation을 핵심 최적화로 본다. continuous motion이 없는 hair/garment는 idle render loop를 끄는 것이 맞다.
+  - Three.js 공식 loader 문서는 현재 repo가 쓰는 공식 addon 경로와 glTF 압축 자산 경로가 맞다는 점을 다시 확인해준다.
+- 우리 프로젝트 영향:
+  - helper-hiding mask와 segmented body는 유지해야 하고, `feet`까지 포함한 effective body-mask union이 runtime에 실제 적용돼야 한다.
+  - `Closet`의 continuous motion은 long hair / loose garments 위주로 제한하고, short hair는 가능하면 demand rendering으로 유지하는 편이 상용 성능에 유리하다.
+  - admin publish는 schema parse만으로 끝내지 말고 semantic garment validator까지 통과해야 한다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `packages/domain-garment/src/index.ts`
+    - `packages/domain-garment/src/validation.test.ts`
+    - `apps/api/src/modules/garments/runtime-garments.service.ts`
+    - `apps/api/src/routes/runtime-garments.routes.ts`
+    - `apps/api/src/routes/runtime-garments.routes.test.ts`
+    - `packages/runtime-3d/src/closet-stage.tsx`
+    - `apps/web/src/components/product/V18ClosetExperience.tsx`
+    - `scripts/validate-avatar-3d.mjs`
+    - `scripts/validate-fit-calibration.mjs`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/garment-fitting-contract.md`
+    - `docs/physical-fit-system.md`
+    - `docs/admin-asset-publishing.md`
+
 ### 2026-04-16
 - 확인 소스:
   - npm registry latest stable (`next`, `react`, `react-dom`, `typescript`, `tailwindcss`, `eslint-config-next`, `three`, `@react-three/fiber`, `@react-three/drei`)

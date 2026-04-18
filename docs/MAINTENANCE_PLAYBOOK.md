@@ -81,11 +81,15 @@ Verify these after any mannequin or asset change:
 - poses apply without broken limbs
 - measurement changes update multiple rig regions, not a single global scale
 - body masks hide covered mesh zones correctly
+- shoes with `feet` body-mask coverage still switch the avatar into segmented-body mode
 - pose-aware body masks expand correctly in `stride` and `tailored`
+- fit-driven adaptive body-mask expansion still widens pressure zones for tight shoulders / hips / inseam cases
 - garments respect render order and clearance
 - garments respect pose-aware clearance tuning
 - long hair pieces (`ponytail`, `braid`, `long fall`) still sway without clipping through the head or shoulders
 - loose hero garments (`City Relaxed`, `Tailored Layer`) still show secondary drape without jitter or exploding transforms
+- meshopt-compressed runtime GLBs still load in browser builds; a missing `MeshoptDecoder` is now a release blocker
+- secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
 - active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
@@ -108,6 +112,7 @@ If any of the above regress, stop the release.
 - confirm `surfaceClearanceCm` is still sensible
 - confirm the skeleton profile is valid
 - confirm the rig alias map still matches the active avatar asset
+- confirm runtime `anchorBindings` still resolve to avatar bones; secondary-motion drift is usually an anchor-resolution bug now, not a camera bug
 - confirm `secondaryMotion` is not amplifying a fit problem that should be fixed in authoring or corrective metadata first
 
 ### Route leak from legacy into product
@@ -133,6 +138,7 @@ If any of the above regress, stop the release.
 - verify accessory measurements (`headCircumferenceCm`, `frameWidthCm`) survive save/load
 - verify the archetype fit preview updates when size rows or measurement modes change
 - verify guided form edits still round-trip through the raw manifest inspector
+- verify `POST` and `PUT` reject schema-valid but semantically invalid garments before they reach persistence
 
 ## 6. Operational Rules
 

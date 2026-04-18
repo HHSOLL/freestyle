@@ -192,18 +192,19 @@ test("male mpfb morph calibration rewards athletic proportions", () => {
   );
 });
 
-test("default closet scene baseline uses the new neutral review pose", () => {
-  assert.equal(defaultClosetSceneState.version, 2);
-  assert.equal(defaultClosetSceneState.poseId, "neutral");
+test("default closet scene baseline uses the dressed review pose and high quality tier", () => {
+  assert.equal(defaultClosetSceneState.version, 7);
+  assert.equal(defaultClosetSceneState.poseId, "relaxed");
+  assert.equal(defaultClosetSceneState.qualityTier, "high");
 });
 
-test("closet scene repository resets stale v1 scene snapshots", () => {
+test("closet scene repository resets stale v3 scene snapshots", () => {
   const previousWindow = globalThis.window;
   const storage = new Map<string, string>();
   storage.set(
     avatarStorageKeys.closetScene,
     JSON.stringify({
-      version: 1,
+      version: 3,
       avatarVariantId: "female-base",
       poseId: "relaxed",
       activeCategory: "tops",

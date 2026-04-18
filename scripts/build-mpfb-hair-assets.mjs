@@ -7,6 +7,8 @@ import { spawnSync } from "node:child_process";
 const repoRoot = process.cwd();
 const blenderBin = process.env.BLENDER_BIN || "/Applications/Blender.app/Contents/MacOS/Blender";
 const builderScript = path.join(repoRoot, "authoring", "garments", "mpfb", "scripts", "build_runtime_hair.py");
+const mpfbDataDir =
+  process.env.MPFB_DATA_DIR || path.join(process.env.HOME || "", "Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data");
 
 const builds = [
   { styleId: "ponytail01", slug: "signature_ponytail", color: "#3d2f29" },
@@ -68,6 +70,8 @@ function runBuild(build) {
       build.variantId,
       "--hair-color",
       build.hairColor,
+      "--mpfb-data-dir",
+      mpfbDataDir,
     ],
     {
       cwd: repoRoot,

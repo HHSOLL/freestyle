@@ -167,14 +167,23 @@ Rules:
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
 - keep body masking and render-order rules aligned with garment bindings
+- treat effective body masking as the union of authored `bodyMaskZones`, pose-specific mask zones, and fit-driven adaptive expansion zones
+- `feet`-only masks must still activate segmented-body rendering so shoe assets can actually hide feet
+- preserve MPFB helper-hiding body mask modifiers during avatar export; removing them breaks the shipped `fullbody` silhouette even if the segmented zones still validate
+- keep torso segmentation broad enough to absorb clavicle and neck-base coverage for fitted tops before reaching for whole-arm body masking
 - keep `secondaryMotion` selective: long hair, loose tops, and loose outerwear only
+- keep layered outfit logic explicit: structured outerwear may auto-fallback to a base inner top, and bulky tops should not remain stacked under outerwear
 - use meshopt-aware glTF loading for shipped runtime assets
+- keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable
 - preload only the active avatar, equipped garments, and near-term closet candidates
 - avoid whole-catalog eager preload on module import
 - prefer `frameloop="demand"` whenever the active stage has no continuous motion
+- keep long hair / loose garment motion on settle-aware invalidation instead of switching the whole stage back to `frameloop="always"`
+- sample `secondaryMotion` anchors from avatar alias bindings or weighted anchor targets, not from the already-moving garment subtree
 - do not treat `secondaryMotion` as a replacement for measured fit, corrective authoring, or collision tuning
 - validate promoted avatar assets with `npm run validate:avatar3d`
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
+- validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules
@@ -207,6 +216,7 @@ Current product-fit specific routes:
 - public `Closet` runtime catalog: `/v1/closet/runtime-garments`
 - admin/publishing boundary: `/v1/admin/garments`
 - admin create path: `POST /v1/admin/garments`
+- admin publish routes must pass both schema validation and semantic runtime-garment validation before persistence
 
 Legacy and lab must remain isolated:
 

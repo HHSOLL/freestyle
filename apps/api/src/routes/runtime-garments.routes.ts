@@ -9,6 +9,7 @@ import {
   createPublishedRuntimeGarment,
   getPublishedRuntimeGarmentById,
   listPublishedRuntimeGarments,
+  RuntimeGarmentValidationError,
   upsertPublishedRuntimeGarment,
 } from "../modules/garments/runtime-garments.service.js";
 
@@ -87,7 +88,20 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       });
     }
 
-    const item = await createPublishedRuntimeGarment(parsed.data);
+    let item;
+    try {
+      item = await createPublishedRuntimeGarment(parsed.data);
+    } catch (error) {
+      if (error instanceof RuntimeGarmentValidationError) {
+        return reply.code(400).send({
+          error: "VALIDATION_ERROR",
+          message: error.issues[0] ?? "Invalid payload.",
+          issues: error.issues,
+        });
+      }
+      throw error;
+    }
+
     if (!item) {
       return reply.code(409).send({
         error: "CONFLICT",
@@ -122,7 +136,20 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       });
     }
 
-    const item = await upsertPublishedRuntimeGarment(parsed.data);
+    let item;
+    try {
+      item = await upsertPublishedRuntimeGarment(parsed.data);
+    } catch (error) {
+      if (error instanceof RuntimeGarmentValidationError) {
+        return reply.code(400).send({
+          error: "VALIDATION_ERROR",
+          message: error.issues[0] ?? "Invalid payload.",
+          issues: error.issues,
+        });
+      }
+      throw error;
+    }
+
     return reply.code(200).send({ item });
   });
 };

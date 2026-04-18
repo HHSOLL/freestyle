@@ -67,6 +67,7 @@ Supported anchor IDs:
 - `rightFoot`
 
 Garments do not free-float. They are expected to align to a shared body frame.
+At runtime, `anchorBindings` should resolve against avatar alias bones or weighted anchor targets. Sampling motion from the already animated garment subtree creates self-feedback and is not considered valid anymore.
 
 ## 5. Collision And Mask Zones
 
@@ -83,6 +84,8 @@ Usage:
 - `collisionZones` identify where fitting logic should respect avatar volume
 - `bodyMaskZones` identify which base-body mesh regions should be hidden to reduce poke-through
 - `poseTuning.extraBodyMaskZones` expands masking for poses such as `stride` or `tailored`, where static masks are usually insufficient
+- runtime effective masking should be treated as `bodyMaskZones + poseTuning.extraBodyMaskZones + fit-driven adaptive mask expansion`
+- `feet` is a first-class body mask zone; shoe-only coverage must still switch the avatar to segmented-body rendering
 
 ## 6. Fit Semantics
 
@@ -111,6 +114,7 @@ The current `Closet` surface now uses this output in two places:
 - catalog-card fit preview before equip
 - subtle stage cues on equipped garments so the active look does not read as a generic static GLB
 - garment-specific corrective transform so width, depth, and clearance react differently for `compression / snug / regular / relaxed / oversized`
+- layer-aware equip resolution so bulky tops do not stay under structured outerwear and break the silhouette
 
 ## 7. Size-Chart Measurement Modes
 
@@ -176,7 +180,20 @@ The runtime uses `computeGarmentCorrectiveTransform` to merge:
 
 This is intentionally lighter than full cloth simulation. The goal is to make size-driven fit visibly read on stage while keeping the browser runtime stable.
 
-## 10. Pose-Aware Runtime Tuning
+## 10. Layering Rules
+
+The current product runtime treats `tops` and `outerwear` as a compatibility pair, not just two independent GLBs.
+
+Rules:
+
+- `tops` with `fitProfile.layer = base` are valid under outerwear
+- bulky `mid` silhouettes are not kept under structured outerwear by default
+- equipping outerwear over an incompatible top falls back to the base tee layer
+- equipping a bulky top while outerwear is already active clears the outerwear instead of stacking a broken combination
+
+This is a product safeguard, not a final simulation answer. It exists to stop obviously invalid layered looks from reaching the stage.
+
+## 11. Pose-Aware Runtime Tuning
 
 `runtime.poseTuning` is keyed by avatar pose:
 
@@ -197,7 +214,7 @@ Each entry may provide:
 
 Use this when a garment is generally valid, but certain poses need extra room or more aggressive body hiding to stay believable.
 
-## 11. Secondary Motion Contract
+## 12. Secondary Motion Contract
 
 `runtime.secondaryMotion` is intentionally narrow. It exists for:
 
@@ -234,6 +251,8 @@ Current runtime behavior:
 - bob/crop styles use tighter, smaller motion envelopes
 - loose garments use smaller, slower drape response than hair
 - fit state still modulates amplitude, so `relaxed / oversized` pieces move more than `compression / snug`
+- avatar scene scale also modulates stiffness and swing range, so the same hair/garment profile behaves consistently across shorter and taller customized bodies
+- the stage stays on `frameloop="demand"` and only invalidates while spring energy remains above the settle threshold
 
 ## 12. Anti-Clipping Strategy
 
@@ -272,6 +291,7 @@ This does not equal full cloth simulation. It is a runtime fitting approximation
 - valid collision zones
 - valid body mask zones
 - valid pose-aware body mask zones
+- published garments must also pass semantic runtime validation before admin publish succeeds
 - positive clearance
 
 `validateStarterGarment` additionally enforces:

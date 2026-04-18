@@ -58,6 +58,7 @@ export type AvatarRenderManifestEntry = {
   meshZones: {
     fullBody: string[];
     torso: string[];
+    arms: string[];
     hips: string[];
     legs: string[];
     feet: string[];
@@ -72,11 +73,12 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
     modelPath: "/assets/avatars/mpfb-female-base.glb",
     authoringSource: "mpfb2",
     bodyMaskStrategy: "named-mesh-zones",
-    stageOffsetY: -0.02,
-    stageScale: 0.68,
+    stageOffsetY: -0.12,
+    stageScale: 0.6,
     meshZones: {
       fullBody: ["fullbody"],
       torso: ["torso"],
+      arms: ["arms"],
       hips: ["hips"],
       legs: ["legs"],
       feet: ["feet"],
@@ -111,11 +113,12 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
     modelPath: "/assets/avatars/mpfb-male-base.glb",
     authoringSource: "mpfb2",
     bodyMaskStrategy: "named-mesh-zones",
-    stageOffsetY: -0.02,
-    stageScale: 0.68,
+    stageOffsetY: -0.12,
+    stageScale: 0.6,
     meshZones: {
       fullBody: ["fullbody"],
       torso: ["torso"],
+      arms: ["arms"],
       hips: ["hips"],
       legs: ["legs"],
       feet: ["feet"],

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 
 
 def parse_args():
@@ -26,6 +27,7 @@ def parse_args():
     parser.add_argument("--summary-json", required=True)
     parser.add_argument("--variant-id", required=True, choices=["female-base", "male-base"])
     parser.add_argument("--hair-color", default="#3f2f28")
+    parser.add_argument("--mpfb-data-dir")
     return parser.parse_args(argv)
 
 
@@ -147,8 +149,66 @@ def assign_head_weight(obj, armature_obj, bone_name: str = "head"):
     obj.parent_type = "OBJECT"
 
 
-def build_hair(collection, armature_obj, hair_style: str, variant_id: str, hair_color: str):
-    mpfb_data = Path.home() / "Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+def apply_style_transform(obj, hair_style: str):
+    bbox = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box] if obj.bound_box else []
+    if not bbox:
+        return
+
+    min_x = min(corner.x for corner in bbox)
+    max_x = max(corner.x for corner in bbox)
+    min_z = min(corner.z for corner in bbox)
+    max_z = max(corner.z for corner in bbox)
+    center_x = (min_x + max_x) * 0.5
+    half_x = max((max_x - min_x) * 0.5, 0.0001)
+    range_z = max(max_z - min_z, 0.0001)
+
+    open_face_amount = {
+        "bob01": 0.12,
+        "bob02": 0.08,
+        "long01": 0.09,
+        "braid01": 0.05,
+        "short04": 0.04,
+    }.get(hair_style, 0.0)
+
+    if open_face_amount > 0:
+        for vertex in obj.data.vertices:
+            world_co = obj.matrix_world @ vertex.co
+            x_norm = (world_co.x - center_x) / half_x
+            z_norm = (world_co.z - min_z) / range_z
+            crown = max(0.0, min(1.0, (z_norm - 0.46) / 0.54))
+            center = max(0.0, 1.0 - min(1.0, abs(x_norm) / 0.32))
+            influence = (crown**1.35) * center
+            if influence <= 0:
+                continue
+            direction = 1.0 if x_norm > 0 else -1.0
+            if abs(x_norm) < 0.01:
+                direction = 1.0 if vertex.index % 2 == 0 else -1.0
+            vertex.co.x += direction * open_face_amount * influence * half_x
+            vertex.co.z += influence * range_z * 0.01
+
+    style_transforms = {
+        "bob01": {"location": (0.0, -0.018, 0.012), "scale": (1.05, 0.97, 1.03)},
+        "bob02": {"location": (0.0, -0.016, 0.014), "scale": (1.04, 0.98, 1.04)},
+        "long01": {"location": (0.0, -0.022, 0.01), "scale": (1.02, 0.98, 1.02)},
+        "braid01": {"location": (0.0, -0.012, 0.01), "scale": (1.02, 0.98, 1.02)},
+        "short04": {"location": (0.0, -0.01, 0.018), "scale": (1.03, 0.98, 1.02)},
+    }.get(hair_style)
+
+    if style_transforms:
+        obj.location.x += style_transforms["location"][0]
+        obj.location.y += style_transforms["location"][1]
+        obj.location.z += style_transforms["location"][2]
+        obj.scale.x *= style_transforms["scale"][0]
+        obj.scale.y *= style_transforms["scale"][1]
+        obj.scale.z *= style_transforms["scale"][2]
+
+
+def build_hair(collection, armature_obj, hair_style: str, variant_id: str, hair_color: str, mpfb_data_dir: Path | None):
+    mpfb_data = (
+        mpfb_data_dir.resolve()
+        if mpfb_data_dir
+        else Path.home() / "Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    )
     hair_dir = mpfb_data / "hair" / hair_style
     obj_path = hair_dir / f"{hair_style}.obj"
     mhmat_path = hair_dir / f"{hair_style}.mhmat"
@@ -167,6 +227,7 @@ def build_hair(collection, armature_obj, hair_style: str, variant_id: str, hair_
     )
     joined.rotation_euler = (0.0, 0.0, 0.0)
     joined.scale = (1.0, 1.0, 1.0)
+    apply_style_transform(joined, hair_style)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     bpy.ops.object.shade_smooth()
     if joined.name not in {obj.name for obj in collection.objects}:
@@ -224,7 +285,8 @@ def main():
     output_glb.parent.mkdir(parents=True, exist_ok=True)
     summary_json.parent.mkdir(parents=True, exist_ok=True)
 
-    hair_objects = build_hair(collection, armature_obj, args.hair_style, args.variant_id, args.hair_color)
+    mpfb_data_dir = Path(args.mpfb_data_dir) if args.mpfb_data_dir else None
+    hair_objects = build_hair(collection, armature_obj, args.hair_style, args.variant_id, args.hair_color, mpfb_data_dir)
 
     bpy.ops.wm.save_as_mainfile(filepath=str(output_blend))
     export_selected_glb(output_glb, armature_obj, hair_objects)

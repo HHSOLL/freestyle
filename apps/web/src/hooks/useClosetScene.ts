@@ -10,6 +10,7 @@ import {
   defaultEquippedItems,
   createRuntimeGarmentLookup,
   getCatalogByCategory,
+  resolveLayeredEquippedItemIds,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
 import type {
@@ -51,13 +52,19 @@ export function useClosetScene(catalog: RuntimeGarmentAsset[] = starterGarmentCa
         .map((id) => (id ? catalogLookup.get(id) ?? null : null))
         .filter((item): item is NonNullable<typeof item> => Boolean(item)),
       setAvatarVariantId: (avatarVariantId: AvatarRenderVariantId) =>
-        setScene((current) => ({ ...current, avatarVariantId })),
-      setPose: (poseId: AvatarPoseId) => setScene((current) => ({ ...current, poseId })),
-      setCategory: (activeCategory: GarmentCategory) => setScene((current) => ({ ...current, activeCategory })),
-      setSelectedItemId: (selectedItemId: string | null) => setScene((current) => ({ ...current, selectedItemId })),
-      setQualityTier: (qualityTier: QualityTier) => setScene((current) => ({ ...current, qualityTier })),
+        setScene((current) => (current.avatarVariantId === avatarVariantId ? current : { ...current, avatarVariantId })),
+      setPose: (poseId: AvatarPoseId) => setScene((current) => (current.poseId === poseId ? current : { ...current, poseId })),
+      setCategory: (activeCategory: GarmentCategory) =>
+        setScene((current) => (current.activeCategory === activeCategory ? current : { ...current, activeCategory })),
+      setSelectedItemId: (selectedItemId: string | null) =>
+        setScene((current) => (current.selectedItemId === selectedItemId ? current : { ...current, selectedItemId })),
+      setQualityTier: (qualityTier: QualityTier) =>
+        setScene((current) => (current.qualityTier === qualityTier ? current : { ...current, qualityTier })),
       clearCategory: (category: GarmentCategory) =>
         setScene((current) => {
+          if (!current.equippedItemIds[category] && current.activeCategory === category && current.selectedItemId === null) {
+            return current;
+          }
           const nextEquipped = { ...current.equippedItemIds };
           delete nextEquipped[category];
           return {
@@ -69,8 +76,19 @@ export function useClosetScene(catalog: RuntimeGarmentAsset[] = starterGarmentCa
         }),
       equipItem: (category: GarmentCategory, itemId: string) =>
         setScene((current) => {
-          const nextEquipped = { ...current.equippedItemIds };
-          nextEquipped[category] = itemId;
+          if (
+            current.equippedItemIds[category] === itemId &&
+            current.activeCategory === category &&
+            current.selectedItemId === itemId
+          ) {
+            return current;
+          }
+          const nextEquipped = resolveLayeredEquippedItemIds(
+            current.equippedItemIds,
+            category,
+            itemId,
+            catalogLookup,
+          );
           return {
             ...current,
             activeCategory: category,

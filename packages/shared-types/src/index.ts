@@ -404,7 +404,7 @@ export type PublishedGarmentAsset = RuntimeGarmentAsset & {
 };
 
 export type ClosetSceneState = {
-  version: 1 | 2;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   avatarVariantId: AvatarRenderVariantId;
   poseId: AvatarPoseId;
   activeCategory: GarmentCategory;

@@ -8,6 +8,9 @@ import zipfile
 from pathlib import Path
 
 import bpy
+import bmesh
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 
 def parse_args():
@@ -106,7 +109,103 @@ def resolve_clothes_path(module, asset_fragment: str):
     return str(Path(module.services.LocationService.get_user_data()) / asset_fragment)
 
 
-def collect_summary(clothes_obj, armature, output_blend, output_glb, preset_path, clothes_path, pack_state):
+def classify_proximity_zone(co, bounds_min, bounds_max):
+    span_x = max(bounds_max.x - bounds_min.x, 0.0001)
+    span_z = max(bounds_max.z - bounds_min.z, 0.0001)
+    x_norm = abs((co.x - (bounds_min.x + bounds_max.x) * 0.5) / (span_x * 0.5))
+    z_ratio = (co.z - bounds_min.z) / span_z
+
+    if z_ratio > 0.78 and x_norm > 0.24:
+        return "shoulders"
+    if 0.52 <= z_ratio <= 0.86 and x_norm > 0.58:
+        return "arms"
+    if z_ratio > 0.6:
+        return "chest"
+    if z_ratio > 0.48:
+        return "waist"
+    if z_ratio > 0.3:
+        return "hips"
+    if z_ratio > 0.14:
+        return "thighs"
+    return "calves"
+
+
+def collect_proximity_metrics(clothes_obj, body_obj):
+    if not body_obj:
+        return None
+
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    body_eval = body_obj.evaluated_get(depsgraph)
+    clothes_eval = clothes_obj.evaluated_get(depsgraph)
+    body_mesh = body_eval.to_mesh()
+    clothes_mesh = clothes_eval.to_mesh()
+    try:
+        body_bm = bmesh.new()
+        body_bm.from_mesh(body_mesh)
+        body_bm.transform(body_eval.matrix_world)
+        body_bm.normal_update()
+        bvh = BVHTree.FromBMesh(body_bm)
+
+        body_bounds = [body_eval.matrix_world @ Vector(corner) for corner in body_obj.bound_box]
+        bounds_min = Vector(
+            (
+                min(corner.x for corner in body_bounds),
+                min(corner.y for corner in body_bounds),
+                min(corner.z for corner in body_bounds),
+            )
+        )
+        bounds_max = Vector(
+            (
+                max(corner.x for corner in body_bounds),
+                max(corner.y for corner in body_bounds),
+                max(corner.z for corner in body_bounds),
+            )
+        )
+
+        thresholds = (0.001, 0.003, 0.005, 0.01)
+        penetration_distance_threshold = 0.003
+        counts = {threshold: 0 for threshold in thresholds}
+        zone_counts = {}
+        min_distance = None
+        penetrating = 0
+
+        for vert in clothes_mesh.vertices:
+            co = clothes_eval.matrix_world @ vert.co
+            hit = bvh.find_nearest(co)
+            if hit is None:
+                continue
+            nearest, normal, _, distance = hit
+            delta = co - nearest
+            if min_distance is None or distance < min_distance:
+                min_distance = distance
+            for threshold in thresholds:
+                if distance <= threshold:
+                    counts[threshold] += 1
+            if normal.dot(delta) < 0 and distance <= penetration_distance_threshold:
+                penetrating += 1
+            if distance <= 0.005:
+                zone = classify_proximity_zone(co, bounds_min, bounds_max)
+                zone_counts[zone] = zone_counts.get(zone, 0) + 1
+
+        hot_spots = [
+            {"zone": zone, "countWithin5mm": count}
+            for zone, count in sorted(zone_counts.items(), key=lambda item: item[1], reverse=True)[:4]
+        ]
+
+        return {
+            "minDistanceMeters": min_distance,
+            "penetratingVertexCount": penetrating,
+            "thresholdCounts": {str(threshold): counts[threshold] for threshold in thresholds},
+            "hotSpots": hot_spots,
+        }
+    finally:
+        body_eval.to_mesh_clear()
+        clothes_eval.to_mesh_clear()
+        if "body_bm" in locals():
+            body_bm.free()
+
+
+def collect_summary(clothes_obj, armature, body_obj, output_blend, output_glb, preset_path, clothes_path, pack_state):
     return {
         "garment": {
             "name": clothes_obj.name,
@@ -114,6 +213,7 @@ def collect_summary(clothes_obj, armature, output_blend, output_glb, preset_path
             "materialSlots": [slot.material.name if slot.material else None for slot in clothes_obj.material_slots],
             "vertexGroups": [group.name for group in clothes_obj.vertex_groups],
         },
+        "fitAudit": collect_proximity_metrics(clothes_obj, body_obj),
         "armature": {
             "name": armature.name if armature else None,
             "boneNames": [bone.name for bone in armature.data.bones] if armature else [],
@@ -141,6 +241,11 @@ def _activate_object(obj):
     bpy.context.view_layer.objects.active = obj
 
 
+def ensure_object_mode():
+    if bpy.context.object and bpy.context.object.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+
 def apply_body_projection_fit(clothes_obj, body_obj, offset_meters: float):
     if not body_obj or offset_meters <= 0:
         return
@@ -155,6 +260,29 @@ def apply_body_projection_fit(clothes_obj, body_obj, offset_meters: float):
     bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
+def create_helper_projection_target(body_obj, name: str = "FS.HelperProjectionTarget"):
+    ensure_object_mode()
+    temp_source = body_obj.copy()
+    temp_source.data = body_obj.data.copy()
+    bpy.context.scene.collection.objects.link(temp_source)
+
+    for modifier in list(temp_source.modifiers):
+        if modifier.type == "MASK":
+            temp_source.modifiers.remove(modifier)
+
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = temp_source.evaluated_get(depsgraph)
+    target_mesh = bpy.data.meshes.new_from_object(evaluated, preserve_all_data_layers=True, depsgraph=depsgraph)
+    target_obj = bpy.data.objects.new(name, target_mesh)
+    target_obj.matrix_world = temp_source.matrix_world.copy()
+    target_obj.hide_render = True
+    target_obj.hide_viewport = True
+    bpy.context.scene.collection.objects.link(target_obj)
+
+    bpy.data.objects.remove(temp_source, do_unlink=True)
+    return target_obj
+
+
 def apply_corrective_smooth(clothes_obj):
     _activate_object(clothes_obj)
     modifier = clothes_obj.modifiers.new(name="RuntimeCorrectiveSmooth", type="CORRECTIVE_SMOOTH")
@@ -164,8 +292,6 @@ def apply_corrective_smooth(clothes_obj):
 
 
 def apply_first_pass_fit(clothes_obj, clothes_path: Path, body_obj=None):
-    import bmesh
-
     normalized_path = str(clothes_path).lower()
     bm = bmesh.new()
     bm.from_mesh(clothes_obj.data)
@@ -226,65 +352,114 @@ def apply_first_pass_fit(clothes_obj, clothes_path: Path, body_obj=None):
         min_z = min(vert.co.z for vert in bm.verts)
         max_z = max(vert.co.z for vert in bm.verts)
         total = max(max_z - min_z, 0.0001)
+        max_abs_x = max(abs(vert.co.x) for vert in bm.verts) or 0.0001
         for vert in bm.verts:
+            x_norm = abs(vert.co.x) / max_abs_x
+            vertical_ratio = max(0.0, min(1.0, (vert.co.z - min_z) / total))
             lower_ratio = max(0.0, min(1.0, (max_z - vert.co.z) / total))
-            if lower_ratio < 0.35:
-                continue
-            falloff = ((lower_ratio - 0.35) / 0.65) ** 1.35
-            vert.co.z -= falloff * 0.035
-            vert.co.x *= 1.0 + falloff * 0.025
-            vert.co.y *= 1.0 + falloff * 0.012
+            hem_falloff = ((max(0.0, lower_ratio - 0.35) / 0.65) ** 1.35) if lower_ratio > 0.35 else 0.0
+            torso_band = max(0.0, 1.0 - abs(vertical_ratio - 0.56) / 0.28)
+            sleeve_band = max(0.0, min(1.0, (vertical_ratio - 0.52) / 0.28)) * max(0.0, min(1.0, (x_norm - 0.36) / 0.64))
+            shoulder_band = max(0.0, min(1.0, (vertical_ratio - 0.74) / 0.18)) * max(0.0, min(1.0, (x_norm - 0.18) / 0.82))
+            armhole_band = max(0.0, 1.0 - abs(vertical_ratio - 0.7) / 0.18) * max(0.0, min(1.0, (x_norm - 0.22) / 0.78))
+            top_lift = max(0.0, min(1.0, (vertical_ratio - 0.42) / 0.58)) ** 1.2
+            vert.co.z -= hem_falloff * 0.038
+            vert.co.z += shoulder_band * 0.028 + armhole_band * 0.012 + top_lift * 0.016
+            vert.co.x *= 1.0 + hem_falloff * 0.02 + torso_band * 0.018 + sleeve_band * 0.055 + shoulder_band * 0.115 + armhole_band * 0.05
+            vert.co.y *= 1.0 + hem_falloff * 0.012 + torso_band * 0.01 + sleeve_band * 0.026 + shoulder_band * 0.04 + armhole_band * 0.02
 
     if "toigo_wool_pants" in normalized_path:
         min_z = min(vert.co.z for vert in bm.verts)
         max_z = max(vert.co.z for vert in bm.verts)
         total = max(max_z - min_z, 0.0001)
+        max_abs_x = max(abs(vert.co.x) for vert in bm.verts) or 0.0001
         for vert in bm.verts:
+            vertical_ratio = max(0.0, min(1.0, (vert.co.z - min_z) / total))
             lower_ratio = max(0.0, min(1.0, (max_z - vert.co.z) / total))
-            if lower_ratio < 0.18:
-                continue
-            falloff = ((lower_ratio - 0.18) / 0.82) ** 1.25
-            vert.co.x *= 1.0 + falloff * 0.065
-            vert.co.y *= 1.0 + falloff * 0.03
+            x_norm = abs(vert.co.x) / max_abs_x
+            leg_falloff = ((max(0.0, lower_ratio - 0.16) / 0.84) ** 1.28) if lower_ratio > 0.16 else 0.0
+            waist_band = max(0.0, min(1.0, (vertical_ratio - 0.68) / 0.24))
+            hip_band = max(0.0, 1.0 - abs(vertical_ratio - 0.7) / 0.22)
+            thigh_band = max(0.0, 1.0 - abs(vertical_ratio - 0.46) / 0.26) * max(0.0, min(1.0, (x_norm - 0.12) / 0.88))
+            calf_band = max(0.0, min(1.0, (0.42 - vertical_ratio) / 0.42)) ** 1.15
+            width_boost = leg_falloff * 0.088 + waist_band * 0.018 + hip_band * 0.04 + thigh_band * 0.05 + calf_band * 0.018
+            depth_boost = leg_falloff * 0.042 + waist_band * 0.012 + hip_band * 0.024 + thigh_band * 0.026 + calf_band * 0.01
+            vert.co.x *= 1.0 + width_boost
+            vert.co.y *= 1.0 + depth_boost
+            if hip_band > 0:
+                vert.co.z += hip_band * 0.004
+            vert.co.z -= leg_falloff * 0.01 + calf_band * 0.004
 
     if "casualsuit02" in normalized_path:
         min_z = min(vert.co.z for vert in bm.verts)
         max_z = max(vert.co.z for vert in bm.verts)
         total = max(max_z - min_z, 0.0001)
+        max_abs_x = max(abs(vert.co.x) for vert in bm.verts) or 0.0001
         for vert in bm.verts:
             vertical_ratio = max(0.0, min(1.0, (vert.co.z - min_z) / total))
+            x_norm = abs(vert.co.x) / max_abs_x
             torso_band = max(0.0, 1.0 - abs(vertical_ratio - 0.58) / 0.32)
             hem_falloff = max(0.0, min(1.0, (0.46 - vertical_ratio) / 0.46)) ** 1.4
             shoulder_falloff = max(0.0, min(1.0, (vertical_ratio - 0.72) / 0.28)) ** 1.25
-            width_boost = torso_band * 0.024 + hem_falloff * 0.032 + shoulder_falloff * 0.014
-            depth_boost = torso_band * 0.016 + hem_falloff * 0.022 + shoulder_falloff * 0.008
+            sleeve_band = shoulder_falloff * max(0.0, min(1.0, (x_norm - 0.34) / 0.66))
+            armhole_band = max(0.0, 1.0 - abs(vertical_ratio - 0.68) / 0.18) * max(0.0, min(1.0, (x_norm - 0.18) / 0.82))
+            width_boost = torso_band * 0.04 + hem_falloff * 0.046 + shoulder_falloff * 0.036 + sleeve_band * 0.05 + armhole_band * 0.042
+            depth_boost = torso_band * 0.028 + hem_falloff * 0.032 + shoulder_falloff * 0.02 + sleeve_band * 0.024 + armhole_band * 0.024
             vert.co.x *= 1.0 + width_boost
             vert.co.y *= 1.0 + depth_boost
-            vert.co.z -= hem_falloff * 0.022
+            vert.co.z -= hem_falloff * 0.032
+            vert.co.z += shoulder_falloff * 0.018 + armhole_band * 0.01
 
     if "elegantsuit01" in normalized_path:
         min_z = min(vert.co.z for vert in bm.verts)
         max_z = max(vert.co.z for vert in bm.verts)
         total = max(max_z - min_z, 0.0001)
+        max_abs_x = max(abs(vert.co.x) for vert in bm.verts) or 0.0001
         for vert in bm.verts:
             vertical_ratio = max(0.0, min(1.0, (vert.co.z - min_z) / total))
+            x_norm = abs(vert.co.x) / max_abs_x
             shoulder_falloff = max(0.0, min(1.0, (vertical_ratio - 0.74) / 0.26)) ** 1.4
             torso_band = max(0.0, 1.0 - abs(vertical_ratio - 0.56) / 0.3)
             tail_falloff = max(0.0, min(1.0, (0.42 - vertical_ratio) / 0.42)) ** 1.35
-            width_boost = shoulder_falloff * 0.03 + torso_band * 0.018 + tail_falloff * 0.046
-            depth_boost = shoulder_falloff * 0.02 + torso_band * 0.014 + tail_falloff * 0.03
+            chest_band = max(0.0, 1.0 - abs(vertical_ratio - 0.66) / 0.18)
+            sleeve_band = shoulder_falloff * max(0.0, min(1.0, (x_norm - 0.34) / 0.66))
+            front_panel_band = max(0.0, min(1.0, (0.48 - x_norm) / 0.48)) * chest_band
+            armhole_band = max(0.0, 1.0 - abs(vertical_ratio - 0.69) / 0.18) * max(0.0, min(1.0, (x_norm - 0.24) / 0.76))
+            upper_arm_band = max(0.0, 1.0 - abs(vertical_ratio - 0.67) / 0.2) * max(0.0, min(1.0, (x_norm - 0.42) / 0.58))
+            clavicle_band = max(0.0, min(1.0, (vertical_ratio - 0.78) / 0.18)) * max(0.0, min(1.0, (x_norm - 0.12) / 0.88))
+            width_boost = (
+                shoulder_falloff * 0.082
+                + torso_band * 0.052
+                + tail_falloff * 0.084
+                + sleeve_band * 0.058
+                + chest_band * 0.044
+                + armhole_band * 0.042
+                + upper_arm_band * 0.036
+                + clavicle_band * 0.018
+            )
+            depth_boost = (
+                shoulder_falloff * 0.046
+                + torso_band * 0.034
+                + tail_falloff * 0.052
+                + sleeve_band * 0.03
+                + front_panel_band * 0.03
+                + armhole_band * 0.024
+                + upper_arm_band * 0.018
+                + clavicle_band * 0.008
+            )
             vert.co.x *= 1.0 + width_boost
             vert.co.y *= 1.0 + depth_boost
-            vert.co.z -= tail_falloff * 0.03
+            vert.co.z -= tail_falloff * 0.05
+            vert.co.z += shoulder_falloff * 0.016 + chest_band * 0.008 + armhole_band * 0.01 + upper_arm_band * 0.006
 
     if "shoes" in normalized_path:
         offset_meters = 0.0015
     elif "toigo_flats" in normalized_path:
         offset_meters = 0.0009
     elif "elegantsuit" in normalized_path:
-        offset_meters = 0.0062
+        offset_meters = 0.0092
     elif "casualsuit02" in normalized_path:
-        offset_meters = 0.0046
+        offset_meters = 0.0062
     elif "sportsuit" in normalized_path:
         offset_meters = 0.003
     else:
@@ -298,11 +473,13 @@ def apply_first_pass_fit(clothes_obj, clothes_path: Path, body_obj=None):
 
     if body_obj and "toigo_flats" not in normalized_path:
         if "elegantsuit01" in normalized_path:
-            projection_offset = 0.0019
+            projection_offset = 0.0044
         elif "casualsuit02" in normalized_path:
-            projection_offset = 0.0016
+            projection_offset = 0.0028
         elif "toigo_camisole_top" in normalized_path:
             projection_offset = 0.0008
+        elif "toigo_basictuckedtshirt" in normalized_path or "toigo_basic_tucked_t-shirt" in normalized_path:
+            projection_offset = 0.002
         else:
             projection_offset = 0.0012
         apply_body_projection_fit(clothes_obj, body_obj, projection_offset)
@@ -343,7 +520,7 @@ def prepare_runtime_export(clothes_obj, base_color=None, roughness=None, metalne
                 material.node_tree.links.remove(alpha_input.links[0])
             alpha_input.default_value = 1.0
             base_color_input = node.inputs.get("Base Color")
-            if base_color_input and base_color:
+            if base_color_input and base_color and not base_color_input.links:
                 while base_color_input.links:
                     material.node_tree.links.remove(base_color_input.links[0])
                 base_color_input.default_value = base_color
@@ -422,7 +599,9 @@ def main():
     roughness = max(0.0, min(args.roughness, 1.0)) if args.roughness is not None else None
     metalness = max(0.0, min(args.metalness, 1.0)) if args.metalness is not None else None
 
-    apply_first_pass_fit(clothes_obj, clothes_path, basemesh)
+    helper_projection_target = create_helper_projection_target(basemesh)
+    apply_first_pass_fit(clothes_obj, clothes_path, helper_projection_target)
+    bpy.data.objects.remove(helper_projection_target, do_unlink=True)
     prepare_runtime_export(clothes_obj, base_color=base_color, roughness=roughness, metalness=metalness)
 
     output_blend = Path(args.output_blend).resolve()
@@ -434,6 +613,7 @@ def main():
     summary = collect_summary(
         clothes_obj,
         armature,
+        basemesh,
         output_blend,
         Path(args.output_glb).resolve(),
         preset_path,

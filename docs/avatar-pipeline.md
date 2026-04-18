@@ -64,11 +64,14 @@ Current runtime behavior:
 - MPFB base avatars now ship with exported shape keys intact
 - runtime applies calibrated MPFB morph weights first, then a lighter rig-target pass
 - the current morph calibration derives lean, body-mass, soft-frame, curve, tall, long-leg, and proportion signals from the normalized body profile instead of relying on a single average-weight heuristic
-- segmented body meshes (`fullbody / torso / hips / legs / feet / exposed`) share the same morph space so covered zones can still follow the customized body
-- the promoted female preset now uses `ponytail01 + eyebrow001 + eyelashes01`, which better matches the current Closet art direction and the hero garment source blends
+- segmented body meshes (`fullbody / torso / arms / hips / legs / feet / exposed`) share the same morph space so covered zones can still follow the customized body
+- the segmented torso zone now explicitly absorbs `clavicle + neck-base` influence so fitted tops can hide the shoulder shelf without blanking the whole arm zone
+- helper-hiding body mask modifiers are preserved through avatar export, because stripping them makes the shipped fullbody mesh visibly collapse into a sheet-like silhouette
+- the promoted female preset now uses `short04 + eyebrow001 + eyelashes01` as the baked base so the face stays more readable in avatar-review mode and under runtime hair overrides
 - avatar rebuilds now use `--subdiv-levels 1` so the shipped base surface reads less faceted in `Remove All` review mode without breaking the current runtime asset budget
 - `Closet` can now override the baked base hair with shipped runtime hair GLBs, so hairstyle selection does not require regenerating the whole avatar base asset
 - `Closet` now ships eight swappable runtime hair styles and a lightweight spring-motion layer, so long hair and braids can read as live assets instead of static shells
+- the current default female runtime hair is `Soft Bob`, which keeps the face readable without the forehead-covering curtain effect the earlier `Clean Sweep` baseline produced in Closet
 
 ## 5. Runtime Registration
 
@@ -119,7 +122,7 @@ Current preset source-of-truth:
 
 Current remaining limitation:
 
-- the MPFB assets are now shipped as `fullbody + segmented runtime bodies` (`torso / legs / feet / exposed`) so garment body masks can hide covered regions without blanking the full avatar
+- the MPFB assets are now shipped as `fullbody + segmented runtime bodies` (`torso / arms / legs / feet / exposed`) so garment body masks can hide covered regions without blanking the full avatar
 - the runtime now also ships MPFB-authored starter garment GLBs for both base variants
 - the runtime now also ships MPFB-authored starter accessory GLBs for both base variants, including a bucket hat and oval sunglasses built directly against the exported MPFB base blends
 - the runtime now also ships MPFB-authored starter hair GLBs for both base variants, including `Signature Ponytail`, `Soft Bob`, `Long Fall`, `Textured Crop`, `Studio Braid`, `Volume Bob`, `Clean Sweep`, and `Afro Cloud`
@@ -130,9 +133,21 @@ Current remaining limitation:
 - starter hair assets now declare `secondaryMotion` profiles so long hair and braid silhouettes can sway with a lightweight spring wrapper in runtime
 - promoted runtime GLBs now ship through an explicit browser optimization pass (`meshopt + texture recompress + selective preload policy`) so the product no longer eagerly downloads the entire starter catalog on stage import
 - the `Remove All` review path now uses a warmer camera/light/material setup in runtime so the base avatar can be reviewed with more product-like fidelity before dressing
-- the current promoted female base preset uses `ponytail01` hair with `eyebrow001` and `eyelashes01`, while the promoted male base preset uses `short02`
+- the current promoted female base preset uses `short04` hair with `eyebrow001` and `eyelashes01`, while the promoted male base preset uses `short02`
 - the current default starter direction is `Soft Tucked Tee + Soft Wool Trousers + Soft Day Shoe`, built from the official MakeHuman Community `shirts01`, `pants01`, and `shoes01` packs
-- the current hero-garment authoring pass widened and dropped the `City Relaxed` top and `Tailored Layer` outerwear directly in Blender before export, which reduced ultra-close body proximity in the female source blends from `448 -> 341` and `803 -> 553` vertices at `<= 1mm`, respectively
+- the current hero-garment authoring pass widened and dropped the `Soft Casual` top and `Tailored Layer` outerwear directly in Blender before export
+- the current hero-garment pass now also creates a helper-aware projection target before shrinkwrap/corrective fit, so structured tops and outerwear are conformed against the same helper-inclusive body space that MPFB uses during authoring
+- garment build summaries now include `fitAudit` with Blender-side distance buckets and coarse hot-spot hints, and `validate:garment3d` treats those summaries as regression gates for hero pieces plus the default equipped `Soft Casual` top
+- `fitAudit.penetratingVertexCount` now counts only close negative-normal hits (`<= 3mm`) so the summary remains useful as a near-body intersection signal instead of inflating on distant normal inversions
+- measured female-source proximity is now:
+  - `Soft Casual` top: current guarded default-loadout proximity is female `90 / 134 / 495` and male `67 / 92 / 281` for `<= 3mm / <= 5mm / <= 10mm`
+  - `City Relaxed` top: `<= 3mm` from `408 -> 336`, `<= 5mm` from `411 -> 347`, `<= 10mm` from `539 -> 394`
+  - `Soft Wool` trousers: `<= 3mm` from `38 -> 35`, `<= 5mm` from `78 -> 76`, `<= 10mm` from `340 -> 244`
+- `Tailored Layer` outerwear: `<= 3mm` from `958 -> 700`, but chest/arm contact still remains too high for a commercial-quality claim
+- after the helper-aware corrective update, the current guarded `Tailored Layer` summaries are:
+  - female: `0 / 54 / 65` for `<= 3mm / <= 5mm / <= 10mm`
+  - male: `0 / 172 / 245` for `<= 3mm / <= 5mm / <= 10mm`
+  - both now report `penetratingVertexCount: 0` under the close-contact penetration metric
 
 This is materially better than the old fallback state, but it is not yet the final avatar-fidelity endpoint.
 

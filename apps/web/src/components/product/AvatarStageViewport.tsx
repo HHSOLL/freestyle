@@ -23,6 +23,12 @@ function detectQualityTier(): "low" | "balanced" | "high" {
   return "balanced";
 }
 
+const qualityTierRank = {
+  low: 0,
+  balanced: 1,
+  high: 2,
+} as const;
+
 export function AvatarStageViewport({
   bodyProfile,
   avatarVariantId,
@@ -38,7 +44,11 @@ export function AvatarStageViewport({
   selectedItemId: string | null;
   qualityTier?: "low" | "balanced" | "high";
 }) {
-  const resolvedQualityTier = useMemo(() => qualityTier ?? detectQualityTier(), [qualityTier]);
+  const resolvedQualityTier = useMemo(() => {
+    const detected = detectQualityTier();
+    if (!qualityTier) return detected;
+    return qualityTierRank[qualityTier] <= qualityTierRank[detected] ? qualityTier : detected;
+  }, [qualityTier]);
 
   return (
     <DynamicAvatarStage

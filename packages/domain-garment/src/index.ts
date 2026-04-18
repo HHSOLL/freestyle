@@ -106,6 +106,11 @@ const sizeSpec = (
   notes,
 });
 
+const normalizeMeasurementForComparison = (
+  value: number,
+  mode: GarmentMeasurementMode | undefined,
+) => (mode === "flat-half-circumference" ? value * 2 : value);
+
 export const collectGarmentRuntimeModelPaths = (binding: GarmentRuntimeBinding) => {
   const paths = new Set<string>();
   if (binding.modelPath) {
@@ -144,7 +149,81 @@ export const getGarmentPoseRuntimeTuning = (
 export const getGarmentEffectiveBodyMaskZones = (
   binding: Pick<GarmentRuntimeBinding, "bodyMaskZones" | "poseTuning">,
   poseId: AvatarPoseId,
-) => Array.from(new Set([...binding.bodyMaskZones, ...getGarmentPoseRuntimeTuning(binding, poseId).extraBodyMaskZones]));
+  adaptiveZones: readonly GarmentCollisionZone[] = [],
+) =>
+  Array.from(
+    new Set([
+      ...binding.bodyMaskZones,
+      ...getGarmentPoseRuntimeTuning(binding, poseId).extraBodyMaskZones,
+      ...adaptiveZones,
+    ]),
+  );
+
+export const deriveAdaptiveBodyMaskZonesFromAssessment = (
+  category: GarmentCategory,
+  assessment: Pick<GarmentFitAssessment, "limitingKeys">,
+) => {
+  const zones = new Set<GarmentCollisionZone>();
+
+  assessment.limitingKeys.forEach((key) => {
+    switch (key) {
+      case "chestCm":
+      case "waistCm":
+        zones.add("torso");
+        if (category === "tops" || category === "outerwear") {
+          zones.add("hips");
+        }
+        break;
+      case "shoulderCm":
+      case "sleeveLengthCm":
+        zones.add("arms");
+        if (category === "tops" || category === "outerwear") {
+          zones.add("torso");
+        }
+        break;
+      case "hipCm":
+      case "riseCm":
+        zones.add("hips");
+        if (category === "outerwear") {
+          zones.add("torso");
+        }
+        break;
+      case "inseamCm":
+        zones.add(category === "shoes" ? "feet" : "legs");
+        break;
+      case "hemCm":
+        zones.add(category === "shoes" ? "feet" : "legs");
+        if (category === "bottoms") {
+          zones.add("hips");
+        }
+        break;
+      case "lengthCm":
+        if (category === "shoes") {
+          zones.add("feet");
+        } else if (category === "bottoms") {
+          zones.add("legs");
+        } else if (category === "tops" || category === "outerwear") {
+          zones.add("torso");
+        }
+        break;
+      default:
+        break;
+    }
+  });
+
+  return Array.from(zones);
+};
+
+export const getGarmentAdaptiveBodyMaskZones = (
+  garment: Pick<Asset | StarterGarment, "category" | "metadata">,
+  profile: BodyProfile,
+) => {
+  const assessment = assessGarmentPhysicalFit(garment, profile);
+  if (!assessment) {
+    return [] as GarmentCollisionZone[];
+  }
+  return deriveAdaptiveBodyMaskZonesFromAssessment(garment.category, assessment);
+};
 
 export const starterGarmentCatalog: StarterGarment[] = [
   {
@@ -156,7 +235,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
     source: "starter",
     metadata: {
       dominantColor: "#eef0f4",
-      measurements: { chestCm: 96, waistCm: 82, shoulderCm: 40, sleeveLengthCm: 16, lengthCm: 64 },
+      measurements: { chestCm: 117, waistCm: 112, shoulderCm: 52.5, sleeveLengthCm: 21, lengthCm: 65.5 },
       measurementModes: {
         chestCm: "body-circumference",
         waistCm: "body-circumference",
@@ -222,7 +301,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "male-base": "/assets/garments/mpfb/male/top_soft_casual_v4.glb",
       },
       collisionZones: ["torso", "arms", "hips"],
-      bodyMaskZones: ["torso"],
+      bodyMaskZones: ["torso", "arms"],
       poseTuning: poseTuning({
         stride: {
           clearanceMultiplier: 1.02,
@@ -250,7 +329,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
     source: "starter",
     metadata: {
       dominantColor: "#3a4048",
-      measurements: { waistCm: 84, hipCm: 100, inseamCm: 78, hemCm: 28, lengthCm: 102 },
+      measurements: { waistCm: 95, hipCm: 124, inseamCm: 87, riseCm: 38, hemCm: 59, lengthCm: 112 },
       measurementModes: {
         waistCm: "body-circumference",
         hipCm: "body-circumference",
@@ -273,7 +352,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
           },
           "Reference trouser size chart: waist/hip/hem flat width with rise, inseam, and out length.",
         ),
-        sizeSpec("L", { waistCm: 42, hipCm: 55, riseCm: 34, inseamCm: 78, lengthCm: 102, hemCm: 27 }, {
+        sizeSpec("L", { waistCm: 47.5, hipCm: 62, riseCm: 38, inseamCm: 87, lengthCm: 112, hemCm: 29.5 }, {
           waistCm: "flat-half-circumference",
           hipCm: "flat-half-circumference",
           riseCm: "linear-length",
@@ -281,7 +360,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
           lengthCm: "linear-length",
           hemCm: "flat-half-circumference",
         }),
-        sizeSpec("XL", { waistCm: 44.5, hipCm: 58, riseCm: 35, inseamCm: 80, lengthCm: 104, hemCm: 28 }, {
+        sizeSpec("XL", { waistCm: 49, hipCm: 64, riseCm: 39, inseamCm: 88, lengthCm: 114, hemCm: 30.5 }, {
           waistCm: "flat-half-circumference",
           hipCm: "flat-half-circumference",
           riseCm: "linear-length",
@@ -340,7 +419,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
     source: "starter",
     metadata: {
       dominantColor: "#c8ccd3",
-      measurements: { chestCm: 108, waistCm: 96, shoulderCm: 45, sleeveLengthCm: 60, lengthCm: 88 },
+      measurements: { chestCm: 134, waistCm: 130, shoulderCm: 56, sleeveLengthCm: 62, lengthCm: 89 },
       measurementModes: {
         chestCm: "body-circumference",
         waistCm: "body-circumference",
@@ -361,14 +440,14 @@ export const starterGarmentCatalog: StarterGarment[] = [
           },
           "Relaxed city top chart: shoulder/chest flat width, sleeve, and body length.",
         ),
-        sizeSpec("L", { shoulderCm: 53, chestCm: 63, waistCm: 61, sleeveLengthCm: 58, lengthCm: 85 }, {
+        sizeSpec("L", { shoulderCm: 56, chestCm: 67, waistCm: 65, sleeveLengthCm: 62, lengthCm: 89 }, {
           shoulderCm: "linear-length",
           chestCm: "flat-half-circumference",
           waistCm: "flat-half-circumference",
           sleeveLengthCm: "linear-length",
           lengthCm: "linear-length",
         }),
-        sizeSpec("XL", { shoulderCm: 55, chestCm: 66, waistCm: 64, sleeveLengthCm: 60, lengthCm: 88 }, {
+        sizeSpec("XL", { shoulderCm: 57.5, chestCm: 69.5, waistCm: 67.5, sleeveLengthCm: 63.5, lengthCm: 90.5 }, {
           shoulderCm: "linear-length",
           chestCm: "flat-half-circumference",
           waistCm: "flat-half-circumference",
@@ -376,10 +455,10 @@ export const starterGarmentCatalog: StarterGarment[] = [
           lengthCm: "linear-length",
         }),
       ],
-      selectedSizeLabel: "M",
+      selectedSizeLabel: "L",
       physicalProfile: {
         materialStretchRatio: 0.08,
-        maxComfortStretchRatio: 0.04,
+        maxComfortStretchRatio: 0.05,
         compressionToleranceCm: { chestCm: 2.2, waistCm: 1.7, shoulderCm: 1.1 },
       },
       correctiveFit: correctiveFit({
@@ -398,7 +477,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "male-base": "/assets/garments/mpfb/male/top_city_relaxed.glb",
       },
       collisionZones: ["torso", "arms", "hips", "legs"],
-      bodyMaskZones: ["torso"],
+      bodyMaskZones: ["torso", "arms"],
       poseTuning: poseTuning({
         stride: {
           clearanceMultiplier: 1.048,
@@ -431,7 +510,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         lateralSwingCm: 0.22,
       }),
       renderPriority: 2,
-      surfaceClearanceCm: 1.9,
+      surfaceClearanceCm: 2.05,
     }),
     palette: ["#c8ccd3", "#81858e", "#f1f2f4"],
   },
@@ -444,7 +523,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
     source: "starter",
     metadata: {
       dominantColor: "#6c6867",
-      measurements: { chestCm: 114, waistCm: 104, shoulderCm: 46, sleeveLengthCm: 62, lengthCm: 92 },
+      measurements: { chestCm: 128, waistCm: 118, shoulderCm: 51, sleeveLengthCm: 65, lengthCm: 95 },
       measurementModes: {
         chestCm: "body-circumference",
         waistCm: "body-circumference",
@@ -465,14 +544,14 @@ export const starterGarmentCatalog: StarterGarment[] = [
           },
           "Tailored outer layer chart: shoulder/chest/waist flat width plus sleeve and length.",
         ),
-        sizeSpec("L", { shoulderCm: 48, chestCm: 59, waistCm: 55, sleeveLengthCm: 62, lengthCm: 91 }, {
+        sizeSpec("L", { shoulderCm: 51, chestCm: 64, waistCm: 59, sleeveLengthCm: 65, lengthCm: 95 }, {
           shoulderCm: "linear-length",
           chestCm: "flat-half-circumference",
           waistCm: "flat-half-circumference",
           sleeveLengthCm: "linear-length",
           lengthCm: "linear-length",
         }),
-        sizeSpec("XL", { shoulderCm: 50, chestCm: 62, waistCm: 58, sleeveLengthCm: 64, lengthCm: 94 }, {
+        sizeSpec("XL", { shoulderCm: 52.5, chestCm: 66, waistCm: 61, sleeveLengthCm: 66, lengthCm: 96.5 }, {
           shoulderCm: "linear-length",
           chestCm: "flat-half-circumference",
           waistCm: "flat-half-circumference",
@@ -1333,23 +1412,85 @@ export const createLocalPublishedGarmentRepository = (): PublishedGarmentReposit
   save: (items) => writeStoredJson(publishedGarmentStorageKey, items),
 });
 
-export const defaultHairItemIdsByVariant: Record<AvatarRenderVariantId, string> = {
+export const defaultHairItemIdsByVariant: Record<AvatarRenderVariantId, string | null> = {
   "female-base": "starter-hair-soft-bob",
   "male-base": "starter-hair-textured-crop",
 };
 
 export const defaultEquippedItems: Partial<Record<GarmentCategory, string>> = {
-  tops: "starter-top-city-relaxed",
+  tops: "starter-top-soft-casual",
   bottoms: "starter-bottom-soft-wool",
   shoes: "starter-shoe-sneaker",
 };
 
+const defaultLayeredTopId = "starter-top-soft-casual";
+
 export const resolveDefaultClosetLoadout = (
   variantId: AvatarRenderVariantId,
-): Partial<Record<GarmentCategory, string>> => ({
-  ...defaultEquippedItems,
-  hair: defaultHairItemIdsByVariant[variantId],
-});
+): Partial<Record<GarmentCategory, string>> => {
+  const defaultHair = defaultHairItemIdsByVariant[variantId];
+  return {
+    ...defaultEquippedItems,
+    ...(defaultHair ? { hair: defaultHair } : {}),
+  };
+};
+
+export const isTopCompatibleWithOuterwear = (top: RuntimeGarmentAsset | null | undefined) => {
+  if (!top || top.category !== "tops") return true;
+  const profile = top.metadata?.fitProfile;
+  const layer = profile?.layer ?? "mid";
+  const silhouette = profile?.silhouette ?? "regular";
+  const drape = profile?.drape ?? 0;
+  return layer === "base" || (layer === "mid" && silhouette === "regular" && drape <= 0.18);
+};
+
+export const resolveLayeredTopFallback = (
+  catalogLookup: Map<string, RuntimeGarmentAsset>,
+): RuntimeGarmentAsset | null => {
+  const explicit = catalogLookup.get(defaultLayeredTopId);
+  if (explicit && isTopCompatibleWithOuterwear(explicit)) {
+    return explicit;
+  }
+
+  for (const item of catalogLookup.values()) {
+    if (item.category === "tops" && isTopCompatibleWithOuterwear(item)) {
+      return item;
+    }
+  }
+
+  return null;
+};
+
+export const resolveLayeredEquippedItemIds = (
+  currentEquippedItemIds: Partial<Record<GarmentCategory, string>>,
+  category: GarmentCategory,
+  itemId: string,
+  catalogLookup: Map<string, RuntimeGarmentAsset>,
+) => {
+  const nextEquipped = { ...currentEquippedItemIds, [category]: itemId };
+  const nextTop = nextEquipped.tops ? catalogLookup.get(nextEquipped.tops) ?? null : null;
+  const nextOuterwear = nextEquipped.outerwear ? catalogLookup.get(nextEquipped.outerwear) ?? null : null;
+
+  if (!nextOuterwear) {
+    return nextEquipped;
+  }
+
+  if (category === "tops" && nextTop && !isTopCompatibleWithOuterwear(nextTop)) {
+    delete nextEquipped.outerwear;
+    return nextEquipped;
+  }
+
+  if (!nextTop || !isTopCompatibleWithOuterwear(nextTop)) {
+    const fallbackTop = resolveLayeredTopFallback(catalogLookup);
+    if (fallbackTop) {
+      nextEquipped.tops = fallbackTop.id;
+    } else {
+      delete nextEquipped.outerwear;
+    }
+  }
+
+  return nextEquipped;
+};
 
 const garmentMeasurementKeys: GarmentMeasurementKey[] = [
   "chestCm",
@@ -1525,6 +1666,26 @@ const resolveFitState = (key: GarmentMeasurementKey, easeCm: number, compression
   return "oversized";
 };
 
+const shouldSkipMeasurementForFit = (
+  garment: Pick<Asset | StarterGarment, "metadata" | "category">,
+  key: GarmentMeasurementKey,
+  bodyCm: number,
+  garmentCm: number,
+  measurementMode: GarmentMeasurementMode,
+) => {
+  if (key !== "sleeveLengthCm" || garment.category !== "tops") {
+    return false;
+  }
+
+  if (measurementMode !== "linear-length") {
+    return false;
+  }
+
+  const fitLayer = garment.metadata?.fitProfile?.layer ?? "mid";
+  const ratio = garmentCm / Math.max(bodyCm, 1);
+  return fitLayer === "base" && ratio <= 0.62;
+};
+
 const fitRiskFromLoad = (stretchLoad: number): "low" | "medium" | "high" => {
   if (stretchLoad >= 1.1) {
     return "high";
@@ -1597,6 +1758,9 @@ export const assessGarmentPhysicalFit = (
       }
       const measurementMode = resolveGarmentMeasurementMode(key, measurementModes);
       const normalizedGarmentCm = normalizeGarmentMeasurementValue(garmentValue, measurementMode);
+      if (shouldSkipMeasurementForFit(garment, key, bodyValue, normalizedGarmentCm, measurementMode)) {
+        return null;
+      }
       return buildDimensionAssessment(
         key,
         bodyValue,
@@ -1778,6 +1942,54 @@ export const validateRuntimeGarmentAsset = (item: RuntimeGarmentAsset) => {
       !item.metadata.sizeChart.some((entry) => entry.label === item.metadata?.selectedSizeLabel)
     ) {
       issues.push(`${item.id}: selectedSizeLabel must exist in sizeChart.`);
+    }
+
+    const rowByLabel = new Map(item.metadata.sizeChart.map((entry) => [entry.label, entry] as const));
+    const monotonicRows = ["M", "L", "XL"]
+      .map((label) => rowByLabel.get(label))
+      .filter((entry): entry is GarmentSizeSpec => Boolean(entry));
+    if (monotonicRows.length === 3) {
+      const [mRow, lRow, xlRow] = monotonicRows;
+      const keys = new Set([
+        ...Object.keys(mRow.measurements),
+        ...Object.keys(lRow.measurements),
+        ...Object.keys(xlRow.measurements),
+      ]);
+      for (const key of keys) {
+        const mValue = mRow.measurements[key as GarmentMeasurementKey];
+        const lValue = lRow.measurements[key as GarmentMeasurementKey];
+        const xlValue = xlRow.measurements[key as GarmentMeasurementKey];
+        if (typeof mValue !== "number" || typeof lValue !== "number" || typeof xlValue !== "number") {
+          continue;
+        }
+        if (mValue > lValue || lValue > xlValue) {
+          issues.push(`${item.id}: sizeChart must stay monotonic for ${key} across M/L/XL.`);
+        }
+      }
+    }
+
+    if (item.metadata.selectedSizeLabel && ["tops", "bottoms", "outerwear"].includes(item.category)) {
+      const selected = rowByLabel.get(item.metadata.selectedSizeLabel);
+      if (selected) {
+        for (const [key, selectedValue] of Object.entries(selected.measurements)) {
+          const metadataValue = item.metadata.measurements?.[key as GarmentMeasurementKey];
+          if (typeof selectedValue !== "number" || typeof metadataValue !== "number") {
+            continue;
+          }
+          const metadataMode = item.metadata.measurementModes?.[key as GarmentMeasurementKey];
+          if (!metadataMode) {
+            continue;
+          }
+          const selectedMode = selected.measurementModes?.[key as GarmentMeasurementKey];
+          const normalizedSelected = normalizeMeasurementForComparison(selectedValue, selectedMode);
+          const normalizedMetadata = normalizeMeasurementForComparison(metadataValue, metadataMode);
+          if (Math.abs(normalizedSelected - normalizedMetadata) > 0.01) {
+            issues.push(
+              `${item.id}: metadata.measurements.${key} must align with selected size row ${item.metadata.selectedSizeLabel}.`,
+            );
+          }
+        }
+      }
     }
   }
   return issues;

@@ -30,6 +30,30 @@
       "foot_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.0025948546826839447,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 32,
+      "0.005": 36,
+      "0.01": 54
+    },
+    "hotSpots": [
+      {
+        "zone": "arms",
+        "countWithin5mm": 22
+      },
+      {
+        "zone": "calves",
+        "countWithin5mm": 11
+      },
+      {
+        "zone": "chest",
+        "countWithin5mm": 3
+      }
+    ]
+  },
   "armature": {
     "name": "mpfb-male-base",
     "boneNames": [

@@ -14,6 +14,22 @@
       "ball_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.004761124029755592,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 0,
+      "0.005": 1,
+      "0.01": 56
+    },
+    "hotSpots": [
+      {
+        "zone": "calves",
+        "countWithin5mm": 1
+      }
+    ]
+  },
   "armature": {
     "name": "mpfb-male-base",
     "boneNames": [

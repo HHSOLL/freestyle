@@ -9,19 +9,22 @@
       "$md-$ca-$fe-$yn",
       "$md-$af-$fe-$ch",
       "$md-$af-$fe-$yn",
-      "$md-universal-$fe-$ch-min$mu-$av$wg",
-      "$md-universal-$fe-$ch-$av$mu-min$wg",
       "$md-universal-$fe-$ch-$av$mu-$av$wg",
+      "$md-universal-$fe-$yn-min$mu-min$wg",
       "$md-universal-$fe-$yn-min$mu-$av$wg",
       "$md-universal-$fe-$yn-$av$mu-min$wg",
       "$md-universal-$fe-$yn-$av$mu-$av$wg",
+      "$md-$fe-$yn-min$mu-$av$wg-max$hg",
+      "$md-$fe-$yn-$av$mu-min$wg-max$hg",
       "$md-$fe-$yn-$av$mu-$av$wg-max$hg",
-      "$md-$fe-$ch-$av$mu-$av$wg-$avcup-max$fi",
-      "$md-$fe-$ch-$av$mu-$av$wg-maxcup-$av$fi",
-      "$md-$fe-$yn-min$mu-$av$wg-maxcup-$av$fi",
+      "$md-$fe-$yn-min$mu-$av$wg-$avcup-max$fi",
+      "$md-$fe-$yn-$av$mu-min$wg-$avcup-max$fi",
       "$md-$fe-$yn-$av$mu-$av$wg-$avcup-max$fi",
       "$md-$fe-$yn-$av$mu-$av$wg-maxcup-$av$fi",
-      "$md-$fe-$yn-$av$mu-$av$wg-maxcup-max$fi"
+      "$md-$fe-$yn-$av$mu-$av$wg-maxcup-max$fi",
+      "$md-$fe-$yn-min$mu-$av$wg-$id$pr",
+      "$md-$fe-$yn-$av$mu-min$wg-$id$pr",
+      "$md-$fe-$yn-$av$mu-$av$wg-$id$pr"
     ],
     "materialSlots": [
       "mpfb-female-base.body"
@@ -30,6 +33,7 @@
   "proxy": null,
   "bodySegments": [
     "mpfb-female-base.body.torso",
+    "mpfb-female-base.body.arms",
     "mpfb-female-base.body.hips",
     "mpfb-female-base.body.legs",
     "mpfb-female-base.body.feet",
@@ -101,10 +105,16 @@
       "vertexCount": null
     },
     {
+      "name": "mpfb-female-base.body.arms",
+      "type": "MESH",
+      "parent": "mpfb-female-base",
+      "vertexCount": 5098
+    },
+    {
       "name": "mpfb-female-base.body.exposed",
       "type": "MESH",
       "parent": "mpfb-female-base",
-      "vertexCount": 12145
+      "vertexCount": 5086
     },
     {
       "name": "mpfb-female-base.body.feet",
@@ -122,7 +132,7 @@
       "name": "mpfb-female-base.body.hips",
       "type": "MESH",
       "parent": "mpfb-female-base",
-      "vertexCount": 668
+      "vertexCount": 666
     },
     {
       "name": "mpfb-female-base.body.legs",
@@ -134,7 +144,7 @@
       "name": "mpfb-female-base.body.torso",
       "type": "MESH",
       "parent": "mpfb-female-base",
-      "vertexCount": 935
+      "vertexCount": 2898
     },
     {
       "name": "mpfb-female-base.eyebrow001",
@@ -153,20 +163,15 @@
       "type": "MESH",
       "parent": "mpfb-female-base",
       "vertexCount": 1064
-    },
-    {
-      "name": "mpfb-female-base.ponytail01",
-      "type": "MESH",
-      "parent": "mpfb-female-base",
-      "vertexCount": 3718
     }
   ],
   "segmentation": {
-    "torso": 935,
-    "hips": 668,
+    "torso": 2898,
+    "arms": 5098,
+    "hips": 666,
     "legs": 2546,
     "feet": 2864,
-    "exposed": 12145
+    "exposed": 5086
   },
   "fullBody": "mpfb-female-base.body.fullbody",
   "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/female-base.json",

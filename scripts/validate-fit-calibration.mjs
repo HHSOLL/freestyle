@@ -4,6 +4,7 @@ import { fitReviewArchetypes } from "@freestyle/domain-avatar";
 import {
   assessGarmentPhysicalFit,
   formatGarmentFitSummary,
+  getGarmentAdaptiveBodyMaskZones,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
 
@@ -61,6 +62,18 @@ const monotonicExpectations = [
 ];
 
 const issues = [];
+const adaptiveMaskExpectations = [
+  {
+    garmentId: "starter-outer-tailored-layer",
+    archetypeId: "female-curvy",
+    expectedZones: ["arms", "hips", "torso"],
+  },
+  {
+    garmentId: "starter-shoe-night-runner",
+    archetypeId: "male-athletic-tall",
+    expectedZones: ["feet"],
+  },
+];
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -118,6 +131,23 @@ for (const expectation of monotonicExpectations) {
   if (looserRank < tighterRank) {
     issues.push(
       `${expectation.garmentId}: ${expectation.reason} (${expectation.looserArchetypeId}=${looserAssessment.overallState}, ${expectation.tighterArchetypeId}=${tighterAssessment.overallState})`,
+    );
+  }
+}
+
+for (const expectation of adaptiveMaskExpectations) {
+  const garment = starterGarmentCatalog.find((entry) => entry.id === expectation.garmentId);
+  const archetype = fitReviewArchetypes.find((entry) => entry.id === expectation.archetypeId);
+
+  if (!garment || !archetype) {
+    issues.push(`missing adaptive-mask fixture: ${expectation.garmentId}/${expectation.archetypeId}`);
+    continue;
+  }
+
+  const zones = getGarmentAdaptiveBodyMaskZones(garment, archetype.profile).sort();
+  if (JSON.stringify(zones) !== JSON.stringify(expectation.expectedZones)) {
+    issues.push(
+      `${expectation.garmentId}: expected adaptive mask zones ${expectation.expectedZones.join(", ")} for ${expectation.archetypeId}, got ${zones.join(", ") || "none"}`,
     );
   }
 }

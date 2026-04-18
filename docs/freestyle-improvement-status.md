@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `81%`
+- Working overall completion estimate: `83%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -197,9 +197,34 @@ Outcome:
 - the remote canvas look path now shares one canonical write contract source with the local canvas composition model
 - the next canvas issue is consumer behavior, not an undocumented or unvalidated API envelope
 
+### `Phase 2 / Batch 4`
+
+Status: `completed`
+
+Completed work:
+
+1. aligned the product-side published garment hydration path with the canonical `PublishedGarmentAsset` contract instead of the old snake_case asset adapter
+2. added a focused runtime-garment parser that filters malformed or semantically invalid published garments without dropping valid entries
+3. added a web-side regression test so `/v1/closet/runtime-garments` contract drift is now caught from the product consumer side
+4. documented that the published runtime garment route is a camelCase canonical contract, not a legacy asset payload
+
+Evidence:
+
+- `apps/web/src/hooks/publishedRuntimeGarment.ts`
+- `apps/web/src/hooks/publishedRuntimeGarment.test.ts`
+- `apps/web/src/hooks/useWardrobeAssets.ts`
+- `docs/api-contract.md`
+- `docs/admin-asset-publishing.md`
+
+Outcome:
+
+- a successfully published garment can now hydrate into `Closet` through the implemented product read path instead of silently falling back to local cache
+- product-side regression coverage now exists for the admin publish -> runtime catalog seam
+- the next garment issue is admin draft default drift, not published garment hydration
+
 ### Next Batch
 
-`Phase 2 / Batch 4` should move to the garment publication/runtime contract boundary. Keep the batch narrow to one path group and do not reopen canvas UI or persistence model changes in the same PR.
+`Phase 2 / Batch 5` should fix admin draft/default contract drift, starting with the invalid default skeleton profile in `apps/admin`, and keep the batch out of runtime-stage or persistence replacement work.
 
 ## Phase 0 Closeout
 

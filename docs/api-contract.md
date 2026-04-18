@@ -97,6 +97,9 @@
 
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes
+- product consumer rule:
+  - `items` are consumed as canonical camelCase `PublishedGarmentAsset` payloads
+  - legacy snake_case asset rows are not a supported shape for this route
 - response:
 ```json
 {

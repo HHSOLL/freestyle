@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `71%`
+- Working overall completion estimate: `73%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -59,9 +59,36 @@ Outcome:
 - product navigation no longer treats the lab page as a primary product surface
 - the first boundary hardening batch closed with code-backed fixes instead of docs-only assumptions
 
+### `Phase 1 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. made `apps/web/route-map.mjs` the canonical route inventory consumed by `product-routes`
+2. expanded route parity tests so every compatibility redirect resolves to the same surface as its declared destination
+3. widened API boundary smoke coverage across product, admin, legacy, lab, and unscoped health routes
+4. corrected the active maintenance docs to point at the implemented lab smoke path
+
+Evidence:
+
+- `apps/web/src/lib/product-routes.ts`
+- `apps/web/src/lib/product-routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `docs/product-boundaries.md`
+- `docs/quality-gates.md`
+- `docs/MAINTENANCE_PLAYBOOK.md`
+
+Outcome:
+
+- route parity drift is now guarded by tests instead of spot checks
+- admin namespace smoke is explicitly covered as part of the product surface
+- health routes are guarded against accidentally inheriting a product/legacy/lab namespace header
+- the active smoke docs now match the implemented lab route shape
+
 ### Next Batch
 
-`Phase 1 / Batch 2` should focus on route-map and product-route parity hardening plus namespace smoke coverage.
+`Phase 1 / Batch 3` should focus on boundary doc drift outside the active tracker, especially historical rollout references and any remaining product shell assumptions that still point at deprecated route language.
 
 ## Phase 0 Closeout
 

@@ -17,6 +17,7 @@ test("route smoke maps app URLs to the expected product surfaces", () => {
   assert.equal(resolveSurfaceFromPath("/app/community"), "community");
   assert.equal(resolveSurfaceFromPath("/app/discover"), "community");
   assert.equal(resolveSurfaceFromPath("/app/profile"), "profile");
+  assert.equal(resolveSurfaceFromPath("/app/lab"), null);
 });
 
 test("legacy routes are isolated away from the main product IA", () => {

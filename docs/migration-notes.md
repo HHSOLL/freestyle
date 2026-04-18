@@ -69,6 +69,7 @@ Result:
 - import/assets/outfits/widget remain available only as deprecated or supporting flows
 - AI evaluation and try-on moved behind lab isolation
 - main product routes expose body profile, closet, canvas, and community
+- the public web root layout no longer boots the historical widget canary telemetry path
 
 ## 5. State Migration
 

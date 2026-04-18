@@ -18,7 +18,8 @@ export const quarantinedLegacyRoutes = [
   { from: "/app/journal", to: "/app/profile" },
 ] as const;
 
-export const resolveSurfaceFromPath = (pathname: string): ProductSurfaceId => {
+export const resolveSurfaceFromPath = (pathname: string): ProductSurfaceId | null => {
+  if (pathname.startsWith("/app/lab")) return null;
   if (pathname.startsWith("/app/fitting")) return "closet";
   if (pathname.startsWith("/app/canvas")) return "canvas";
   if (pathname.startsWith("/app/community") || pathname.startsWith("/app/discover")) return "community";

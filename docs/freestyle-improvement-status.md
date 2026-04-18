@@ -12,9 +12,9 @@ It is separate from `docs/replatform-v2/**`.
 
 ## As Of
 
-- Date: `2026-04-18`
+- Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `69%`
+- Working overall completion estimate: `71%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -34,23 +34,34 @@ The completion estimate is a planning number, not a release gate. It reflects th
 
 ### `Phase 1 / Batch 1`
 
-Goal:
+Status: `completed`
 
-1. audit actual Product / Legacy / Lab dependency leaks in code
-2. document or remove any remaining direct product dependence on legacy or lab paths
-3. close the first `Phase 1` hardening batch with code-backed evidence
+Completed work:
 
-Deliverables:
+1. removed stale product-side fallback reads to non-product asset endpoints
+2. made lab surface resolution explicit so `/app/lab` no longer inherits product navigation state
+3. removed the historical widget canary bootstrap from the public web root layout
+4. tightened boundary docs so historical widget/canary code is not treated as product shell behavior
 
-- leak audit notes or fix PRs for affected paths
-- updated docs when a boundary or dependency assumption changes
-- validation evidence tied to actual code paths
+Evidence:
 
-Exit criteria:
+- `apps/web/src/hooks/useWardrobeAssets.ts`
+- `apps/web/src/lib/product-routes.ts`
+- `apps/web/src/lib/product-routes.test.ts`
+- `apps/web/src/components/layout/AppTopBar.tsx`
+- `apps/web/src/components/layout/ProductAppShell.tsx`
+- `apps/web/src/app/layout.tsx`
+- `docs/product-boundaries.md`
 
-- direct product dependence on legacy or lab paths is either removed or explicitly documented
-- affected route or API boundaries stay aligned with `docs/product-boundaries.md`
-- validation evidence exists for every touched path
+Outcome:
+
+- the main product shell no longer boots the historical widget canary path
+- product navigation no longer treats the lab page as a primary product surface
+- the first boundary hardening batch closed with code-backed fixes instead of docs-only assumptions
+
+### Next Batch
+
+`Phase 1 / Batch 2` should focus on route-map and product-route parity hardening plus namespace smoke coverage.
 
 ## Phase 0 Closeout
 

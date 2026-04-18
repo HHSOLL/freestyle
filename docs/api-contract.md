@@ -1,5 +1,11 @@
 # API Contract (`/v1`)
 
+## Scope Note
+- This document mixes current product/admin contracts with historical compatibility contracts.
+- The active boundary source of truth is `docs/product-boundaries.md`.
+- Current product/admin routes live under `/v1/profile/*`, `/v1/closet/*`, `/v1/canvas/*`, `/v1/community/*`, and `/v1/admin/*`.
+- Widget, legacy asset, and old `/v1/jobs/*` sections in this document should be read as historical compatibility context unless the task explicitly targets `Legacy` or `Lab`.
+
 ## Auth
 - 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
 - `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.
@@ -26,13 +32,15 @@
 - canonical schema source는 `@freestyle/contracts`다. `@freestyle/shared`는 동일 contract를 소비/re-export하지만 shape를 별도로 정의하지 않는다.
 - 기존 shape assumption은 유지한다. `measurements`는 기존 cm 필드(`chestCm`, `waistCm`, `hipCm`, `shoulderCm`, `sleeveLengthCm`, `lengthCm`, `inseamCm`, `riseCm`, `hemCm`)를 그대로 사용한다.
 
-### Reserved body profile persistence extension point
+### Historical body profile reservation note
+- The active product body profile route is `GET/PUT /v1/profile/body-profile`.
+- The older `GET/PUT /v1/body-profiles/me` note below is a historical reservation point only. Do not use it for new product callers.
 - canonical `BodyProfile` shape는 flat object가 아니라 envelope다: `{ simple, detailed? }`.
 - `simple`은 필수 numeric cm 필드 `heightCm`, `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inseamCm`를 가진다.
 - `detailed`는 optional object이며 `neckCm`, `torsoLengthCm`, `armLengthCm`, `sleeveLengthCm`, `bicepCm`, `forearmCm`, `wristCm`, `riseCm`, `outseamCm`, `thighCm`, `kneeCm`, `calfCm`, `ankleCm`를 optional numeric cm 필드로 가진다.
 - 클라이언트 localStorage migration을 위해 legacy flat payload는 읽기 시 정규화할 수 있지만, canonical reserved contract는 envelope 기준으로 정의한다.
 - planned reservation: `GET /v1/body-profiles/me`, `PUT /v1/body-profiles/me`
-- 상태: reserved only, not implemented. 현재 body profile은 Studio/Closet 클라이언트 로컬 상태에서만 사용되며 `/v1` persistence endpoint는 아직 없다.
+- historical status: reserved only, not implemented on the current mannequin-first product surface.
 
 ### Admin garment publication boundary
 - garment generation itself should happen in a separate admin/publishing surface, not in `Closet`.
@@ -114,7 +122,14 @@
 }
 ```
 
+## Historical Compatibility Appendices
+
+The sections below are kept for `Legacy` and `Lab` maintenance. Do not treat them as the default product surface contract unless the task explicitly targets those namespaces.
+
 ## Widget
+
+- Historical rollout-time path: `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
+- Current namespace location: `GET /v1/legacy/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
 
 ### `GET /v1/widget/config?tenant_id=<tenant>&product_id=<product>&widget_id=<optional>`
 Notes
@@ -166,6 +181,7 @@ Response
 ```
 
 ### `POST /v1/widget/events`
+- Historical rollout-time path. Current namespace location: `POST /v1/legacy/widget/events`.
 Request
 ```json
 {
@@ -236,6 +252,8 @@ Notes
 - the bootstrap frame posts its `widget.ready` message with `targetOrigin="*"`; host trust still depends on the parent SDK validating runtime `event.origin` and `event.source`
 
 ## Jobs Import
+
+- Historical compatibility namespace. Current routes are mounted under `/v1/legacy/jobs/*` or `/v1/lab/*` depending on the feature.
 
 ### `POST /v1/jobs/import/product`
 Request
@@ -336,6 +354,8 @@ Response
 
 ## Assets
 
+- Historical compatibility namespace. Current asset maintenance work should default to `Legacy`, not the product surface.
+
 ### `GET /v1/assets?status=ready&category=jacket&page=1&page_size=20`
 Response
 ```json
@@ -386,9 +406,11 @@ Response
 
 Notes
 - 이 endpoint는 Studio/Closet fitting lab에서 의류 측정치와 fit profile을 저장하는 주 경로다.
-- `BodyProfile`은 이 endpoint에서 저장하지 않는다. body profile persistence는 reserved `GET/PUT /v1/body-profiles/me` 확장 포인트로만 남겨두고, 현재는 미구현 상태다.
+- `BodyProfile`은 이 endpoint에서 저장하지 않는다. Product persistence는 `GET/PUT /v1/profile/body-profile`을 기준으로 보며, `GET/PUT /v1/body-profiles/me`는 historical reservation note로만 남아 있다.
 
 ## Outfits
+
+- Historical compatibility namespace. Check `docs/product-boundaries.md` before wiring new callers here.
 
 ### `POST /v1/outfits`
 Request
@@ -440,6 +462,8 @@ Notes
 
 ## Evaluations
 
+- Lab-only compatibility namespace. Do not treat these as current product routes.
+
 ### `POST /v1/jobs/evaluations`
 Request
 ```json
@@ -476,6 +500,8 @@ Notes
 
 ## Try-ons
 
+- Lab-only compatibility namespace. Do not treat these as current product routes.
+
 ### `POST /v1/jobs/tryons`
 Request
 ```json
@@ -497,7 +523,7 @@ Notes
 - 이 endpoint는 여전히 포토 AI try-on 용도다.
 - 실시간 3D 마네킹 피팅은 `GET/PATCH /v1/assets`로 읽어온 asset metadata와 Studio 클라이언트 body profile 계산을 사용한다.
 - 현재 계약은 metadata 기반 preview를 위한 것이며, 패턴/원단 물성 기반 cloth simulation API는 아직 없다.
-- body profile persistence endpoint(`GET/PUT /v1/body-profiles/me`)는 계획만 예약되어 있고 현재 try-on/runtime 경로에는 연결되어 있지 않다.
+- body profile persistence endpoint(`GET/PUT /v1/body-profiles/me`)는 historical reservation note이며 현재 try-on/runtime 경로에는 연결되어 있지 않다.
 
 ### `GET /v1/tryons/:id`
 - user-owned tryon row 반환

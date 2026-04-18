@@ -1,4 +1,10 @@
 # Project Health Report
+
+## Historical Status
+- This report predates the current monorepo boundary reset and still references deleted root `src/` paths and older route names.
+- Keep it as a historical quality snapshot only.
+- Do not use it as the current file ownership or route structure source of truth.
+
 Date: 2026-02-11
 Scope: codebase-wide quality hardening + feature-structured refactor
 

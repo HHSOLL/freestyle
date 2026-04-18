@@ -1,5 +1,10 @@
 # Replatform v2 Ownership Map
 
+## Historical Status
+- This file belongs to the historical widget/canary rollout coordination model.
+- It should not override the current ownership or route boundary model for the mannequin-first product.
+- For current work, use `README.md`, `docs/freestyle-improvement-status.md`, `docs/product-boundaries.md`, and `docs/SUBAGENT_TEAM.md`.
+
 ## Purpose
 - Defines one write owner per path group for parallel delivery.
 - Prevents merge conflicts and contract drift during Phase `0.5` to `5`.

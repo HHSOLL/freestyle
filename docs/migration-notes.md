@@ -1,5 +1,10 @@
 # Migration Notes
 
+## Scope Note
+- This file is the deletion, quarantine, and migration change log for the mannequin-first reset.
+- It is not the active execution tracker or boundary decision document.
+- For current route ownership and boundary decisions, use `docs/freestyle-improvement-status.md` and `docs/product-boundaries.md`.
+
 ## 2026-04-16
 
 - Bumped local closet scene persistence from `freestyle:closet-scene:v2` through `v7`.

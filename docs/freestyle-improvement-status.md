@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `73%`
+- Working overall completion estimate: `75%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -23,7 +23,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
-| `Phase 1` | Product / Legacy / Lab separation hardening | `partial` | Core structure exists, but historical docs and residual flows still create ambiguity |
+| `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `partial` | `packages/contracts`, `domain-avatar`, `domain-garment`, and `domain-canvas` exist, but ownership and single-source policy need tightening |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
@@ -86,9 +86,36 @@ Outcome:
 - health routes are guarded against accidentally inheriting a product/legacy/lab namespace header
 - the active smoke docs now match the implemented lab route shape
 
+### `Phase 1 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. marked pre-mannequin renewal and widget rollout docs as historical where they could be mistaken for active route guidance
+2. added current-source-of-truth links from those historical docs back to the active tracker and boundary docs
+3. clarified in active docs that older role and route labels should not override the current product boundary model
+4. added an explicit scope note to the mixed `api-contract` reference so legacy sections are not mistaken for active product routes
+
+Evidence:
+
+- `docs/SUBAGENT_TEAM.md`
+- `docs/replatform-v2/execution-status.md`
+- `docs/replatform-v2/contracts-freeze.md`
+- `docs/RENEWAL_APP_ARCHITECTURE.md`
+- `docs/RENEWAL_INFORMATION_ARCHITECTURE.md`
+- `docs/PROJECT_HEALTH_2026-02-11.md`
+- `docs/api-contract.md`
+
+Outcome:
+
+- historical rollout and renewal docs are less likely to be mistaken for current route ownership or IA guidance
+- active maintainers now have a clearer path back to the current boundary source of truth
+- Phase 1 ambiguity from doc drift is reduced enough to move into contract and domain hardening work
+
 ### Next Batch
 
-`Phase 1 / Batch 3` should focus on boundary doc drift outside the active tracker, especially historical rollout references and any remaining product shell assumptions that still point at deprecated route language.
+`Phase 2 / Batch 1` should focus on contracts and domain-core ownership hardening, starting with the highest-risk shared schemas and their real consumers.
 
 ## Phase 0 Closeout
 

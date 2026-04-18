@@ -1,5 +1,10 @@
 # Replatform v2 Execution Status
 
+## Historical Status
+- This file belongs to the historical widget/canary rollout program.
+- Use `README.md`, `docs/freestyle-improvement-status.md`, `docs/product-boundaries.md`, `docs/architecture-overview.md`, and `docs/migration-notes.md` as the current source of truth for the mannequin-first product.
+- Keep this file for historical reference unless the task is explicitly about the old widget rollout.
+
 ## As of 2026-04-07
 
 ## Phase Matrix

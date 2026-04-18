@@ -1,5 +1,11 @@
 # API Contract (`/v1`)
 
+## Scope Note
+- This document mixes current product/admin contracts with historical compatibility contracts.
+- The active boundary source of truth is `docs/product-boundaries.md`.
+- Current product/admin routes live under `/v1/profile/*`, `/v1/closet/*`, `/v1/canvas/*`, `/v1/community/*`, and `/v1/admin/*`.
+- Widget, legacy asset, and old `/v1/jobs/*` sections in this document should be read as historical compatibility context unless the task explicitly targets `Legacy` or `Lab`.
+
 ## Auth
 - 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
 - `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.

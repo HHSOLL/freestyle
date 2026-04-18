@@ -1,5 +1,10 @@
 # Renewal App Architecture
 
+## Historical Planning Status
+- This document captures a pre-mannequin renewal plan that still uses deprecated route and domain language such as `looks`, `discover`, `decision`, and `journal`.
+- It should not be used as the current route or ownership source of truth.
+- For current product boundaries, use `README.md`, `docs/product-boundaries.md`, `docs/architecture-overview.md`, and `docs/migration-notes.md`.
+
 ## 1. 목적
 이 문서는 리뉴얼 후 FreeStyle의 앱 구조, 라우트 체계, feature 모듈 경계, API/worker 영향 범위, 그리고 점진적 이행 전략을 정의한다.
 

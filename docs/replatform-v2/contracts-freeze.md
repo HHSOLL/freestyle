@@ -1,5 +1,10 @@
 # Replatform v2 Contracts Freeze
 
+## Historical Status
+- This file freezes contracts for the historical widget/canary rollout track.
+- It is not the current product boundary source of truth.
+- For current mannequin-first boundaries and active routes, use `docs/product-boundaries.md`, `docs/freestyle-improvement-status.md`, and `README.md`.
+
 ## Purpose
 - This document freezes the cross-team contracts for Phase `0.5`.
 - Any change to the contracts below requires explicit coordinator approval.

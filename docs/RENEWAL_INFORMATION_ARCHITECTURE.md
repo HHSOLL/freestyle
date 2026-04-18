@@ -1,5 +1,10 @@
 # Renewal Information Architecture
 
+## Historical Planning Status
+- This document captures an earlier IA proposal before the current mannequin-first boundary reset.
+- Routes such as `looks`, `decide`, and `journal` are historical planning terms here, not the active product IA.
+- For the current route map, use `README.md`, `docs/product-boundaries.md`, and `docs/migration-notes.md`.
+
 ## 1. 목적
 이 문서는 리뉴얼 후 FreeStyle의 sitemap, navigation model, 주요 화면 목록, 그리고 low-fidelity wireframe 수준의 화면 구조를 정의한다.
 

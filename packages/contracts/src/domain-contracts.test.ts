@@ -3,6 +3,13 @@ import test from 'node:test';
 import {
   assetMetadataSchema,
   canvasCompositionSchema,
+  canvasLookCreateResponseSchema,
+  canvasLookDataSchema,
+  canvasLookDeleteResponseSchema,
+  canvasLookGetResponseSchema,
+  canvasLookInputSchema,
+  canvasLookListResponseSchema,
+  canvasLookRecordSchema,
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
   bodyProfileSchema,
@@ -483,4 +490,162 @@ test('closet scene state schema rejects invalid quality tiers', () => {
       qualityTier: 'ultra',
     }),
   );
+});
+
+test('canvas look input schema accepts canonical canvas composition payloads', () => {
+  const parsed = canvasLookInputSchema.parse({
+    title: 'Studio composition',
+    previewImage: 'data:image/png;base64,abc123',
+    data: {
+      version: 1,
+      id: 'composition-1',
+      title: 'Studio composition',
+      stageColor: '#eef1f4',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      bodyProfile: {
+        version: 2,
+        simple: {
+          heightCm: 171,
+          shoulderCm: 43,
+          chestCm: 94,
+          waistCm: 76,
+          hipCm: 99,
+          inseamCm: 80,
+        },
+      },
+      closetState: {
+        version: 1,
+        avatarVariantId: 'female-base',
+        poseId: 'neutral',
+        activeCategory: 'tops',
+        selectedItemId: 'starter-top-ivory-tee',
+        equippedItemIds: {
+          tops: 'starter-top-ivory-tee',
+        },
+        qualityTier: 'balanced',
+      },
+      items: [],
+    },
+  });
+
+  assert.equal(parsed.data.version, 1);
+});
+
+test('canvas look data schema rejects unrecognized generic blobs', () => {
+  assert.throws(() =>
+    canvasLookDataSchema.parse({
+      unexpected: 'shape',
+    }),
+  );
+});
+
+test('canvas look input schema rejects title drift between envelope and composition', () => {
+  assert.throws(() =>
+    canvasLookInputSchema.parse({
+      title: 'Mismatched title',
+      previewImage: 'data:image/png;base64,abc123',
+      data: {
+        version: 1,
+        id: 'composition-1',
+        title: 'Studio composition',
+        stageColor: '#eef1f4',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        bodyProfile: {
+          version: 2,
+          simple: {
+            heightCm: 171,
+            shoulderCm: 43,
+            chestCm: 94,
+            waistCm: 76,
+            hipCm: 99,
+            inseamCm: 80,
+          },
+        },
+        closetState: {
+          version: 1,
+          avatarVariantId: 'female-base',
+          poseId: 'neutral',
+          activeCategory: 'tops',
+          selectedItemId: 'starter-top-ivory-tee',
+          equippedItemIds: {
+            tops: 'starter-top-ivory-tee',
+          },
+          qualityTier: 'balanced',
+        },
+        items: [],
+      },
+    }),
+  );
+});
+
+test('canvas look response schemas accept implemented envelope shapes', () => {
+  const createResponse = canvasLookCreateResponseSchema.parse({
+    id: 'look-1',
+    shareSlug: 'share-1',
+  });
+  const listResponse = canvasLookListResponseSchema.parse({
+    looks: [
+      {
+        id: 'look-1',
+        shareSlug: 'share-1',
+        title: 'Studio composition',
+        previewImage: 'data:image/png;base64,abc123',
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  });
+  const lookRecord = canvasLookRecordSchema.parse({
+    id: 'look-1',
+    shareSlug: 'share-1',
+    title: 'Studio composition',
+    description: null,
+    previewImage: 'data:image/png;base64,abc123',
+    data: {
+      version: 1,
+      id: 'composition-1',
+      title: 'Studio composition',
+      stageColor: '#eef1f4',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      bodyProfile: {
+        version: 2,
+        simple: {
+          heightCm: 171,
+          shoulderCm: 43,
+          chestCm: 94,
+          waistCm: 76,
+          hipCm: 99,
+          inseamCm: 80,
+        },
+      },
+      closetState: {
+        version: 1,
+        avatarVariantId: 'female-base',
+        poseId: 'neutral',
+        activeCategory: 'tops',
+        selectedItemId: 'starter-top-ivory-tee',
+        equippedItemIds: {
+          tops: 'starter-top-ivory-tee',
+        },
+        qualityTier: 'balanced',
+      },
+      items: [],
+    },
+    isPublic: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  const getResponse = canvasLookGetResponseSchema.parse({
+    look: lookRecord,
+  });
+  const deleteResponse = canvasLookDeleteResponseSchema.parse({
+    status: 'deleted',
+  });
+
+  assert.equal(createResponse.id, 'look-1');
+  assert.equal(listResponse.looks[0]?.shareSlug, 'share-1');
+  assert.equal(getResponse.look.id, 'look-1');
+  assert.equal(deleteResponse.status, 'deleted');
 });

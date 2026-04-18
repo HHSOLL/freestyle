@@ -9,43 +9,61 @@ import {
   type OutfitListItem,
   type OutfitRow,
 } from "@freestyle/db";
+import {
+  canvasLookDataSchema,
+  canvasLookInputSchema,
+  canvasLookRecordSchema,
+  canvasLookSummarySchema,
+} from "@freestyle/contracts";
 import type {
   CanvasLookInput,
   CanvasLookRecord,
   CanvasLookSummary,
-} from "@freestyle/shared";
+} from "@freestyle/contracts";
 
 const createShareSlug = () => crypto.randomBytes(6).toString("base64url");
 
-export const mapOutfitSummary = (outfit: OutfitListItem): CanvasLookSummary => ({
-  id: outfit.id,
-  shareSlug: outfit.share_slug,
-  title: outfit.title,
-  previewImage: outfit.preview_image,
-  createdAt: outfit.created_at,
-});
+const normalizeCanvasLookData = (data: OutfitRow["data"]) => {
+  if (data === null) {
+    return null;
+  }
 
-export const mapOutfitRecord = (outfit: OutfitRow): CanvasLookRecord => ({
-  id: outfit.id,
-  shareSlug: outfit.share_slug,
-  title: outfit.title,
-  description: outfit.description,
-  previewImage: outfit.preview_image,
-  data: outfit.data,
-  isPublic: outfit.is_public,
-  createdAt: outfit.created_at,
-  updatedAt: outfit.updated_at,
-});
+  const parsed = canvasLookDataSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
+};
+
+export const mapOutfitSummary = (outfit: OutfitListItem): CanvasLookSummary =>
+  canvasLookSummarySchema.parse({
+    id: outfit.id,
+    shareSlug: outfit.share_slug,
+    title: outfit.title,
+    previewImage: outfit.preview_image,
+    createdAt: outfit.created_at,
+  });
+
+export const mapOutfitRecord = (outfit: OutfitRow): CanvasLookRecord =>
+  canvasLookRecordSchema.parse({
+    id: outfit.id,
+    shareSlug: outfit.share_slug,
+    title: outfit.title,
+    description: outfit.description,
+    previewImage: outfit.preview_image,
+    data: normalizeCanvasLookData(outfit.data),
+    isPublic: outfit.is_public,
+    createdAt: outfit.created_at,
+    updatedAt: outfit.updated_at,
+  });
 
 export const createCanvasLook = async (userId: string, input: CanvasLookInput) => {
+  const parsed = canvasLookInputSchema.parse(input);
   const saved = await createOutfit({
     userId,
     shareSlug: createShareSlug(),
-    title: input.title,
-    description: input.description ?? null,
-    previewImage: input.previewImage,
-    data: input.data,
-    isPublic: input.isPublic ?? true,
+    title: parsed.title,
+    description: parsed.description ?? null,
+    previewImage: parsed.previewImage,
+    data: parsed.data,
+    isPublic: parsed.isPublic ?? true,
   });
 
   return saved;

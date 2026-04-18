@@ -106,6 +106,10 @@ const semanticallyInvalidGarmentFixture: PublishedGarmentAsset = {
   },
 };
 
+const writeRuntimeGarmentStore = (value: unknown) => {
+  fs.writeFileSync(runtimeGarmentStorePath, JSON.stringify(value, null, 2), "utf8");
+};
+
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
@@ -249,6 +253,77 @@ test("admin update route rejects route and payload id mismatches before writing"
   assert.equal(response.statusCode, 400);
   assert.equal(response.json().error, "VALIDATION_ERROR");
   assert.match(response.json().message, /Body id must match route id/);
+
+  await app.close();
+});
+
+test("persisted mixed runtime garment rows keep valid entries while filtering malformed and semantically invalid rows", async () => {
+  writeRuntimeGarmentStore({
+    version: 1,
+    items: [
+      publishedGarmentFixture,
+      { id: "broken-row", name: "Broken Row" },
+      semanticallyInvalidGarmentFixture,
+    ],
+  });
+
+  const app = buildServer();
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 200);
+  const closetPayload = publishedRuntimeGarmentListResponseSchema.parse(closetResponse.json());
+  assert.equal(closetPayload.total, 1);
+  assert.deepEqual(
+    closetPayload.items.map((item) => item.id),
+    [publishedGarmentFixture.id],
+  );
+
+  const adminResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+  });
+
+  assert.equal(adminResponse.statusCode, 200);
+  const adminPayload = publishedRuntimeGarmentListResponseSchema.parse(adminResponse.json());
+  assert.equal(adminPayload.total, 1);
+  assert.deepEqual(
+    adminPayload.items.map((item) => item.id),
+    [publishedGarmentFixture.id],
+  );
+
+  await app.close();
+});
+
+test("admin detail route treats semantically invalid persisted garments as missing", async () => {
+  writeRuntimeGarmentStore({
+    version: 1,
+    items: [publishedGarmentFixture, semanticallyInvalidGarmentFixture],
+  });
+
+  const app = buildServer();
+
+  const invalidDetailResponse = await app.inject({
+    method: "GET",
+    url: `/v1/admin/garments/${semanticallyInvalidGarmentFixture.id}`,
+  });
+
+  assert.equal(invalidDetailResponse.statusCode, 404);
+  assert.equal(invalidDetailResponse.json().error, "NOT_FOUND");
+
+  const validDetailResponse = await app.inject({
+    method: "GET",
+    url: `/v1/admin/garments/${publishedGarmentFixture.id}`,
+  });
+
+  assert.equal(validDetailResponse.statusCode, 200);
+  assert.equal(
+    publishedRuntimeGarmentItemResponseSchema.parse(validDetailResponse.json()).item.id,
+    publishedGarmentFixture.id,
+  );
 
   await app.close();
 });

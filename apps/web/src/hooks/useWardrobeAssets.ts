@@ -93,17 +93,10 @@ export function useWardrobeAssets() {
         setPublishedAssets(publishedRepository.load());
       }
 
-      const candidates = [
+      const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
         "/v1/closet/items?page=1&page_size=60",
-        "/v1/profile/closet/items?page=1&page_size=60",
-        "/v1/assets?page=1&page_size=60",
-      ];
-
-      for (const endpoint of candidates) {
-        const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(endpoint);
-        if (!response.ok) {
-          continue;
-        }
+      );
+      if (response.ok) {
         const items = Array.isArray(data?.items) ? data.items : Array.isArray(data?.assets) ? data.assets : [];
         setRemoteAssets(items.map(toAsset).filter((item): item is Asset => Boolean(item)));
         return;

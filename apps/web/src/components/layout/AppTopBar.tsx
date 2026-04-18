@@ -53,6 +53,7 @@ const topBarCopy = {
 export function AppTopBar({ activeSurface, className }: AppTopBarProps) {
   const pathname = usePathname();
   const resolvedSurface = activeSurface === undefined ? resolveSurfaceFromPath(pathname) : activeSurface;
+  const showPrimaryNavigation = resolvedSurface !== null;
   const { language, setLanguage } = useLanguage();
   const { isConfigured, isLoading, user, socialAuth, requestMagicLink, signInWithProvider, signOut } = useAuth();
   const navigation = localizedNavigation(language);
@@ -136,24 +137,28 @@ export function AppTopBar({ activeSurface, className }: AppTopBarProps) {
             </div>
           </Link>
 
-          <nav className="mx-auto hidden min-w-0 items-center gap-1 md:flex">
-            {navigation.map((item) => {
-              const isActive = resolvedSurface === item.id;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="rounded-full px-4 py-2 text-[12px] font-semibold no-underline transition"
-                  style={{
-                    background: isActive ? wardrobeTokens.color.accent : "transparent",
-                    color: isActive ? "#ffffff" : wardrobeTokens.color.textMuted,
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          {showPrimaryNavigation ? (
+            <nav className="mx-auto hidden min-w-0 items-center gap-1 md:flex">
+              {navigation.map((item) => {
+                const isActive = resolvedSurface === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="rounded-full px-4 py-2 text-[12px] font-semibold no-underline transition"
+                    style={{
+                      background: isActive ? wardrobeTokens.color.accent : "transparent",
+                      color: isActive ? "#ffffff" : wardrobeTokens.color.textMuted,
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : (
+            <div className="mx-auto hidden min-w-0 items-center md:flex" />
+          )}
 
           <div className="ml-auto flex items-center gap-2">
             <SurfacePanel className="hidden items-center gap-1 rounded-full px-1 py-1 sm:flex">
@@ -197,26 +202,28 @@ export function AppTopBar({ activeSurface, className }: AppTopBarProps) {
           </div>
         </div>
 
-        <div className="border-t border-black/5 px-4 py-2 md:hidden">
-          <div className="mx-auto flex max-w-[1720px] items-center gap-2 overflow-x-auto">
-            {navigation.map((item) => {
-              const isActive = resolvedSurface === item.id;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold no-underline"
-                  style={{
-                    background: isActive ? wardrobeTokens.color.accent : "rgba(255,255,255,0.56)",
-                    color: isActive ? "#ffffff" : wardrobeTokens.color.textMuted,
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+        {showPrimaryNavigation ? (
+          <div className="border-t border-black/5 px-4 py-2 md:hidden">
+            <div className="mx-auto flex max-w-[1720px] items-center gap-2 overflow-x-auto">
+              {navigation.map((item) => {
+                const isActive = resolvedSurface === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold no-underline"
+                    style={{
+                      background: isActive ? wardrobeTokens.color.accent : "rgba(255,255,255,0.56)",
+                      color: isActive ? "#ffffff" : wardrobeTokens.color.textMuted,
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
       </header>
 
       {isAuthOpen ? (

@@ -151,6 +151,7 @@ These files are the current boundary source of truth:
 3. Admin publishing is operational infrastructure, not product navigation.
 4. Redirects are compatibility shims, not roadmap commitments.
 5. If a route changes boundary class, update this file together with the route code and the maintenance smoke list.
+6. Historical widget or canary telemetry may stay in the repository, but it must not be bootstrapped from the public product shell.
 
 ## Current Drift To Watch
 

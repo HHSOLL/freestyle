@@ -23,22 +23,46 @@ export class RuntimeGarmentValidationError extends Error {
   }
 }
 
-const parsePublishedRuntimeGarment = (input: PublishedGarmentAsset) => {
-  const parsed = publishedGarmentAssetSchema.parse(input);
-  const issues = validatePublishedGarmentAsset(parsed);
+const safeParsePublishedRuntimeGarment = (input: unknown) => {
+  const parsed = publishedGarmentAssetSchema.safeParse(input);
+  if (!parsed.success) {
+    return null;
+  }
+
+  return validatePublishedGarmentAsset(parsed.data).length === 0 ? parsed.data : null;
+};
+
+const parsePublishedRuntimeGarment = (input: unknown) => {
+  const parsed = publishedGarmentAssetSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new RuntimeGarmentValidationError(parsed.error.issues.map((issue) => issue.message));
+  }
+  const issues = validatePublishedGarmentAsset(parsed.data);
   if (issues.length > 0) {
     throw new RuntimeGarmentValidationError(issues);
   }
-  return parsed;
+  return parsed.data;
 };
 
 export const listPublishedRuntimeGarments = async (filters?: {
   category?: AssetCategory;
   sourceSystem?: GarmentPublicationRecord["sourceSystem"];
-}) => listPublishedRuntimeGarmentRecords(filters);
+}) => {
+  const items = await listPublishedRuntimeGarmentRecords(filters);
+  return items.flatMap((item) => {
+    const parsed = safeParsePublishedRuntimeGarment(item);
+    return parsed ? [parsed] : [];
+  });
+};
 
-export const getPublishedRuntimeGarmentById = async (id: string) =>
-  getPublishedRuntimeGarmentRecord(id);
+export const getPublishedRuntimeGarmentById = async (id: string) => {
+  const item = await getPublishedRuntimeGarmentRecord(id);
+  if (!item) {
+    return null;
+  }
+
+  return safeParsePublishedRuntimeGarment(item);
+};
 
 export const upsertPublishedRuntimeGarment = async (input: PublishedGarmentAsset) => {
   const parsed = parsePublishedRuntimeGarment(input);

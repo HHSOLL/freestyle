@@ -97,12 +97,16 @@
 - current persistence: local JSON repository behind the API boundary
 - intended future persistence: dedicated admin domain backing store
 - accessory-oriented size keys `headCircumferenceCm` and `frameWidthCm` are valid in the canonical garment measurement contract
+- current read compatibility rule:
+  - malformed persisted publication rows are filtered from list responses instead of zeroing the whole catalog
+  - semantically invalid persisted publication rows are filtered from list responses and treated as missing on detail reads
 
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes
 - product consumer rule:
   - `items` are consumed as canonical camelCase `PublishedGarmentAsset` payloads
   - legacy snake_case asset rows are not a supported shape for this route
+  - malformed or semantically invalid persisted publication rows are filtered before the response is emitted
 - response body satisfies `publishedRuntimeGarmentListResponseSchema`
 - example:
 ```json
@@ -137,6 +141,16 @@
   "total": 1
 }
 ```
+
+#### `GET /v1/admin/garments`
+- auth: same as other product routes for now; later admin-domain auth will replace this
+- response body satisfies `publishedRuntimeGarmentListResponseSchema`
+- malformed or semantically invalid persisted publication rows are filtered before the response is emitted
+
+#### `GET /v1/admin/garments/:id`
+- auth: same as other product routes for now; later admin-domain auth will replace this
+- response body satisfies `publishedRuntimeGarmentItemResponseSchema`
+- if the stored row for `:id` is malformed or fails semantic garment validation, the route returns `404 NOT_FOUND`
 
 #### `POST /v1/admin/garments`
 - auth: same as other product routes for now; later admin-domain auth will replace this

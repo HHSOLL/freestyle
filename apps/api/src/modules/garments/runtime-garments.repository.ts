@@ -12,14 +12,17 @@ const getRuntimeGarmentStorePath = () =>
   process.env.GARMENT_PUBLICATION_STORE_PATH?.trim() ||
   path.join(process.cwd(), ".data", "runtime-garments.json");
 
-const runtimeGarmentCatalogStoreSchema = z
+const runtimeGarmentCatalogEnvelopeSchema = z
   .object({
     version: z.literal(1).default(1),
-    items: z.array(publishedGarmentAssetSchema).default([]),
+    items: z.array(z.unknown()).default([]),
   })
-  .strict();
+  .passthrough();
 
-type RuntimeGarmentCatalogStore = z.infer<typeof runtimeGarmentCatalogStoreSchema>;
+type RuntimeGarmentCatalogStore = {
+  version: 1;
+  items: PublishedGarmentAsset[];
+};
 
 const dedupeAndSort = (items: PublishedGarmentAsset[]) => {
   const next = new Map<string, PublishedGarmentAsset>();
@@ -32,19 +35,25 @@ const dedupeAndSort = (items: PublishedGarmentAsset[]) => {
   );
 };
 
+const readPersistedItems = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    const result = publishedGarmentAssetSchema.safeParse(entry);
+    return result.success ? [result.data] : [];
+  });
+};
+
 const readLegacyArray = (value: unknown) => {
   if (!Array.isArray(value)) {
     return null;
   }
 
-  const parsed = value.flatMap((entry) => {
-    const result = publishedGarmentAssetSchema.safeParse(entry);
-    return result.success ? [result.data] : [];
-  });
-
   return {
     version: 1 as const,
-    items: dedupeAndSort(parsed),
+    items: dedupeAndSort(readPersistedItems(value)),
   } satisfies RuntimeGarmentCatalogStore;
 };
 
@@ -59,14 +68,14 @@ const readStore = async () => {
       return legacy;
     }
 
-    const parsed = runtimeGarmentCatalogStoreSchema.safeParse(parsedJson);
+    const parsed = runtimeGarmentCatalogEnvelopeSchema.safeParse(parsedJson);
     if (!parsed.success) {
       return { version: 1 as const, items: [] } satisfies RuntimeGarmentCatalogStore;
     }
 
     return {
       version: 1 as const,
-      items: dedupeAndSort(parsed.data.items),
+      items: dedupeAndSort(readPersistedItems(parsed.data.items)),
     } satisfies RuntimeGarmentCatalogStore;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {

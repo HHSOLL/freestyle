@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `87%`
+- Working overall completion estimate: `89%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, and runtime garment API envelopes are hardened; persisted-read validation and fit-domain contracts still remain |
+| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, and runtime garment API read/write seams are hardened; fit-domain contracts still remain |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -275,9 +275,35 @@ Outcome:
 - active API docs no longer advertise the invalid historical skeleton id or the stale id-only admin response example
 - the next garment seam is persisted-read validation, not the success envelope shape
 
+### `Phase 2 / Batch 7`
+
+Status: `completed`
+
+Completed work:
+
+1. replaced the runtime garment repository's all-or-nothing persisted read with item-level structural filtering so one malformed row no longer zeroes the whole catalog
+2. added semantic garment validation on persisted read paths, not just write paths, so API reads now agree with the product consumer's published-garment parser
+3. made single-item runtime garment reads degrade invalid persisted rows to `404` instead of re-emitting semantically broken data
+4. added regression coverage for mixed persisted stores containing valid, malformed, and semantically invalid rows
+5. documented the read-side filtering rules in the active API contract reference
+
+Evidence:
+
+- `apps/api/src/modules/garments/runtime-garments.repository.ts`
+- `apps/api/src/modules/garments/runtime-garments.service.ts`
+- `apps/api/src/routes/runtime-garments.routes.test.ts`
+- `docs/api-contract.md`
+
+Outcome:
+
+- malformed persisted runtime garment rows no longer blank out the entire API catalog
+- the admin/API read path and the product-side published-garment consumer now agree on which persisted garments are valid enough to surface
+- invalid persisted rows are degraded predictably: filtered from list responses and treated as missing on detail reads
+- the next Phase 2 gap is fit-domain contract hardening, not the runtime garment publication seam
+
 ### Next Batch
 
-`Phase 2 / Batch 7` should harden persisted runtime-garment read validation in `apps/api`, deciding explicitly how malformed or semantically invalid stored rows are filtered or failed and adding regression coverage for those read-path cases.
+`Phase 2 / Batch 8` should introduce the first explicit fit-domain contracts in `packages/contracts` and the current fit computation path, so `Closet` fit summaries stop depending on ad hoc shapes before any higher-fidelity simulation work starts.
 
 ## Phase 0 Closeout
 

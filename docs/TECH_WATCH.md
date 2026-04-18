@@ -17,9 +17,34 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-18
+- 2026-04-19
 
 ## 점검 로그
+### 2026-04-19
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Next.js official docs:
+    - `https://nextjs.org/docs/app/guides/redirecting`
+  - Fastify official docs:
+    - `https://fastify.dev/docs/latest/Reference/Routes/`
+- 신규 변화 요약:
+  - `Pulse`는 현재 인증 환경에서 여전히 접근되지 않았다.
+  - Next.js redirect 문서와 Fastify route 문서는 이번 배치의 route parity hardening이나 namespace smoke 방식에 영향을 줄 만한 새로운 지침을 추가로 주지 않았다.
+  - 현재 우선순위는 신규 최적화 도입이 아니라 기존 `route-map`과 boundary smoke를 active docs 기준으로 일치시키는 것이다.
+- 우리 프로젝트 영향:
+  - `Phase 1 / Batch 2`는 외부 신규 아이디어를 채택하지 않고, 문서에 이미 고정된 product/legacy/lab 경계를 코드와 테스트에 더 정확히 반영하는 것이 맞다.
+  - `route-map`을 canonical route inventory로 삼고, boundary smoke coverage를 maintenance docs와 맞추는 방향이 계속 안전하다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `apps/web/src/lib/product-routes.ts`
+    - `apps/web/src/lib/product-routes.test.ts`
+    - `apps/api/src/routes/product-boundary.routes.test.ts`
+    - `docs/product-boundaries.md`
+    - `docs/quality-gates.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/freestyle-improvement-status.md`
+
 ### 2026-04-18
 - 확인 소스:
   - `ChatGPT Pulse`

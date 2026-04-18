@@ -54,7 +54,7 @@
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/legacy/assets`
-- `/v1/lab/tryons`
+- `POST /v1/lab/jobs/tryons`
 
 Also confirm namespace headers:
 

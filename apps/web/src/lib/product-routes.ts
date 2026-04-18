@@ -1,30 +1,42 @@
 import type { PrimaryNavigationItem, ProductSurfaceId } from "@freestyle/shared-types";
+import { legacyRedirects, primaryNavItems } from "../../route-map.mjs";
 
-export const primaryNavigation: PrimaryNavigationItem[] = [
-  { id: "closet", href: "/app/closet", label: { ko: "Closet", en: "Closet" } },
-  { id: "canvas", href: "/app/canvas", label: { ko: "Canvas", en: "Canvas" } },
-  { id: "community", href: "/app/community", label: { ko: "Community", en: "Community" } },
-  { id: "profile", href: "/app/profile", label: { ko: "Profile", en: "Profile" } },
-];
+export const primaryNavigation: PrimaryNavigationItem[] = primaryNavItems.map((item) => ({
+  ...item,
+  id: item.id as ProductSurfaceId,
+}));
 
-export const quarantinedLegacyRoutes = [
-  { from: "/studio", to: "/app/closet" },
-  { from: "/trends", to: "/app/community" },
-  { from: "/examples", to: "/app/community" },
-  { from: "/how-it-works", to: "/app/community" },
-  { from: "/profile", to: "/app/profile" },
-  { from: "/app/looks", to: "/app/canvas" },
-  { from: "/app/decide", to: "/app/closet" },
-  { from: "/app/journal", to: "/app/profile" },
-] as const;
+const escapeRegExp = (value: string) => value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+
+const pathPatternToRegExp = (pattern: string) =>
+  new RegExp(`^${escapeRegExp(pattern).replace(/:([^/]+)/g, "[^/]+")}$`);
+
+const legacyRedirectMatchers = legacyRedirects.map((entry) => ({
+  ...entry,
+  matcher: pathPatternToRegExp(entry.source),
+}));
+
+const resolveSurfaceFromHref = (href: string): ProductSurfaceId | null => {
+  const match = primaryNavigation.find((item) => href === item.href || href.startsWith(`${item.href}/`));
+  return match?.id ?? null;
+};
 
 export const resolveSurfaceFromPath = (pathname: string): ProductSurfaceId | null => {
-  if (pathname.startsWith("/app/lab")) return null;
-  if (pathname.startsWith("/app/fitting")) return "closet";
-  if (pathname.startsWith("/app/canvas")) return "canvas";
-  if (pathname.startsWith("/app/community") || pathname.startsWith("/app/discover")) return "community";
-  if (pathname.startsWith("/app/profile")) return "profile";
-  return "closet";
+  if (pathname.startsWith("/app/lab")) {
+    return null;
+  }
+
+  const legacyRedirect = legacyRedirectMatchers.find((entry) => entry.matcher.test(pathname));
+  if (legacyRedirect) {
+    return resolveSurfaceFromHref(legacyRedirect.destination);
+  }
+
+  const directSurface = resolveSurfaceFromHref(pathname);
+  if (directSurface) {
+    return directSurface;
+  }
+
+  return null;
 };
 
 export const localizedNavigation = (language: "ko" | "en") =>

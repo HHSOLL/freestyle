@@ -149,9 +149,10 @@ These files are the current boundary source of truth:
 1. Main web surfaces may use product APIs only.
 2. Legacy and lab routes stay isolated and must be visibly secondary when surfaced at all.
 3. Admin publishing is operational infrastructure, not product navigation.
-4. Redirects are compatibility shims, not roadmap commitments.
-5. If a route changes boundary class, update this file together with the route code and the maintenance smoke list.
-6. Historical widget or canary telemetry may stay in the repository, but it must not be bootstrapped from the public product shell.
+4. `apps/web/route-map.mjs` is the canonical route inventory for product navigation and compatibility redirects; `apps/web/src/lib/product-routes.ts` should derive surface resolution from it instead of restating route data.
+5. Redirects are compatibility shims, not roadmap commitments.
+6. If a route changes boundary class, update this file together with the route code and the maintenance smoke list.
+7. Historical widget or canary telemetry may stay in the repository, but it must not be bootstrapped from the public product shell.
 
 ## Current Drift To Watch
 

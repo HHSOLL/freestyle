@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { garmentFitAssessmentSchema } from "@freestyle/contracts";
 import {
   assessGarmentPhysicalFit,
   computeGarmentCorrectiveTransform,
@@ -204,6 +205,7 @@ test("physical fit assessment converts flat-width size charts into body-facing f
 
   const assessment = assessGarmentPhysicalFit(tee, defaultBodyProfile);
   assert.ok(assessment);
+  assert.deepEqual(garmentFitAssessmentSchema.parse(assessment), assessment);
   assert.equal(assessment.sizeLabel, "L");
 
   const chest = assessment.dimensions.find((entry) => entry.key === "chestCm");
@@ -211,6 +213,18 @@ test("physical fit assessment converts flat-width size charts into body-facing f
   assert.equal(chest.measurementMode, "flat-half-circumference");
   assert.equal(chest.garmentCm, 117);
   assert.equal(chest.state, "oversized");
+});
+
+test("physical fit assessment stays contract-valid for head-measured assets", () => {
+  const accessory = starterGarmentCatalog.find((item) => item.id === "starter-accessory-city-bucket-hat");
+  assert.ok(accessory);
+
+  const assessment = assessGarmentPhysicalFit(accessory, defaultBodyProfile);
+  assert.ok(assessment);
+
+  const parsed = garmentFitAssessmentSchema.parse(assessment);
+  assert.equal(parsed.dimensions.some((entry) => entry.key === "headCircumferenceCm"), true);
+  assert.equal(parsed.limitingKeys.every((key) => parsed.dimensions.some((entry) => entry.key === key)), true);
 });
 
 test("soft casual metadata mirrors the selected size row for fallback consumers", () => {

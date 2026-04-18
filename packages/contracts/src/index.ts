@@ -5,8 +5,6 @@ export type {
   BodyProfileSimpleKey,
   FlattenedBodyProfile,
   GarmentPublicationRecord,
-  GarmentFitAssessment,
-  GarmentFitDimensionAssessment,
   GarmentFitProfile,
   GarmentMeasurementMode,
   GarmentMeasurementModeMap,
@@ -324,6 +322,22 @@ export const assetCategorySchema = z.enum([
 
 export const assetSourceSchema = z.enum(["inventory", "upload", "url", "import"]);
 
+const garmentMeasurementKeys = [
+  "chestCm",
+  "waistCm",
+  "hipCm",
+  "headCircumferenceCm",
+  "frameWidthCm",
+  "shoulderCm",
+  "sleeveLengthCm",
+  "lengthCm",
+  "inseamCm",
+  "riseCm",
+  "hemCm",
+] as const;
+
+export const garmentMeasurementKeySchema = z.enum(garmentMeasurementKeys);
+
 export const garmentMeasurementsSchema = z
   .object({
     chestCm: measurementCmSchema.optional(),
@@ -410,6 +424,53 @@ export const garmentFitProfileSchema = z
     drape: z.number().min(0).max(1).optional(),
   })
   .strict();
+
+export const garmentFitStateSchema = z.enum([
+  "compression",
+  "snug",
+  "regular",
+  "relaxed",
+  "oversized",
+]);
+
+export const garmentFitRiskSchema = z.enum(["low", "medium", "high"]);
+
+export const garmentFitDimensionAssessmentSchema = z
+  .object({
+    key: garmentMeasurementKeySchema,
+    measurementMode: garmentMeasurementModeSchema,
+    garmentCm: z.number().finite().nonnegative(),
+    bodyCm: z.number().finite().nonnegative(),
+    effectiveGarmentCm: z.number().finite().nonnegative(),
+    easeCm: z.number().finite(),
+    requiredStretchRatio: z.number().finite().nonnegative(),
+    state: garmentFitStateSchema,
+  })
+  .strict();
+
+export const garmentFitAssessmentSchema = z
+  .object({
+    sizeLabel: z.string().trim().min(1).max(64).nullable(),
+    overallState: garmentFitStateSchema,
+    tensionRisk: garmentFitRiskSchema,
+    clippingRisk: garmentFitRiskSchema,
+    stretchLoad: z.number().finite().nonnegative(),
+    limitingKeys: z.array(garmentMeasurementKeySchema).min(1).max(3),
+    dimensions: z.array(garmentFitDimensionAssessmentSchema).min(1),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const dimensionKeys = new Set(value.dimensions.map((entry) => entry.key));
+    value.limitingKeys.forEach((key, index) => {
+      if (!dimensionKeys.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: ["limitingKeys", index],
+          message: "limitingKeys entries must exist in dimensions",
+        });
+      }
+    });
+  });
 
 export const garmentRuntimeBindingSchema = z
   .object({
@@ -843,9 +904,14 @@ export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
 export type QualityTier = z.infer<typeof qualityTierSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
+export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;
 export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type Asset = z.infer<typeof assetSchema>;
+export type GarmentFitState = z.infer<typeof garmentFitStateSchema>;
+export type GarmentFitRisk = z.infer<typeof garmentFitRiskSchema>;
+export type GarmentFitDimensionAssessment = z.infer<typeof garmentFitDimensionAssessmentSchema>;
+export type GarmentFitAssessment = z.infer<typeof garmentFitAssessmentSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;
 export type PublishedRuntimeGarmentListResponse = z.infer<typeof publishedRuntimeGarmentListResponseSchema>;
 export type ClosetItem = z.infer<typeof closetItemSchema>;

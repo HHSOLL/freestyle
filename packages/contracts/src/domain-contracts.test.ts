@@ -18,7 +18,9 @@ import {
   closetSceneStateSchema,
   legacyBodyProfileFlatSchema,
   bodyProfileUpsertInputSchema,
+  garmentFitAssessmentSchema,
   garmentFitProfileSchema,
+  garmentFitStateSchema,
   garmentMeasurementsSchema,
   normalizeBodyProfile,
   publishedGarmentAssetSchema,
@@ -181,6 +183,69 @@ test('garment measurement + fit profile schemas stay backward-compatible', () =>
 
   assert.equal(measurements.chestCm, 112);
   assert.equal(fitProfile.layer, 'mid');
+});
+
+test('garment fit schemas accept canonical physical-fit payloads', () => {
+  const state = garmentFitStateSchema.parse('regular');
+  const assessment = garmentFitAssessmentSchema.parse({
+    sizeLabel: 'L',
+    overallState: state,
+    tensionRisk: 'low',
+    clippingRisk: 'medium',
+    stretchLoad: 0.42,
+    limitingKeys: ['chestCm', 'waistCm'],
+    dimensions: [
+      {
+        key: 'chestCm',
+        measurementMode: 'flat-half-circumference',
+        garmentCm: 108,
+        bodyCm: 92,
+        effectiveGarmentCm: 111.2,
+        easeCm: 19.2,
+        requiredStretchRatio: 0,
+        state: 'relaxed',
+      },
+      {
+        key: 'waistCm',
+        measurementMode: 'body-circumference',
+        garmentCm: 84,
+        bodyCm: 76,
+        effectiveGarmentCm: 85.5,
+        easeCm: 9.5,
+        requiredStretchRatio: 0,
+        state: 'regular',
+      },
+    ],
+  });
+
+  assert.equal(assessment.overallState, 'regular');
+  assert.deepEqual(assessment.limitingKeys, ['chestCm', 'waistCm']);
+  assert.equal(assessment.dimensions[0]?.measurementMode, 'flat-half-circumference');
+});
+
+test('garment fit assessment schema rejects limiting keys that are missing from dimensions', () => {
+  assert.throws(() =>
+    garmentFitAssessmentSchema.parse({
+      sizeLabel: null,
+      overallState: 'snug',
+      tensionRisk: 'medium',
+      clippingRisk: 'medium',
+      stretchLoad: 0.78,
+      limitingKeys: ['hipCm'],
+      dimensions: [
+        {
+          key: 'waistCm',
+          measurementMode: 'body-circumference',
+          garmentCm: 80,
+          bodyCm: 76,
+          effectiveGarmentCm: 82,
+          easeCm: 6,
+          requiredStretchRatio: 0,
+          state: 'regular',
+        },
+      ],
+    }),
+  /limitingKeys entries must exist in dimensions/);
 });
 
 test('garment measurement schema accepts accessory-facing keys', () => {

@@ -1,4 +1,5 @@
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
+import { garmentFitAssessmentSchema } from "@freestyle/contracts";
 import type {
   Asset,
   AvatarPoseId,
@@ -1793,7 +1794,7 @@ export const assessGarmentPhysicalFit = (
     .map((entry) => entry.key);
   const overallState = worstFitState(dimensions.map((entry) => entry.state));
 
-  return {
+  return garmentFitAssessmentSchema.parse({
     sizeLabel: sizeSpec?.label ?? garment.metadata?.selectedSizeLabel ?? null,
     overallState,
     tensionRisk: fitRiskFromLoad(stretchLoad),
@@ -1801,7 +1802,7 @@ export const assessGarmentPhysicalFit = (
     stretchLoad,
     limitingKeys: limitingDimensions,
     dimensions,
-  };
+  });
 };
 
 export const formatGarmentFitSummary = (

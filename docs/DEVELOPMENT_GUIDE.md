@@ -15,6 +15,19 @@ Before changing the product, read these in order:
 9. `docs/migration-notes.md`
 10. `docs/TECH_WATCH.md`
 
+## 1.1 Git Workflow
+
+For every non-read-only task:
+
+- start from `main` and create a fresh task branch, normally `codex/<task-slug>`
+- do all edits and commits on that branch only
+- push the branch to the remote before closing the task
+- open a PR targeting `main`
+- merge only after checks/review are acceptable
+- switch back to `main`, sync it with the remote, and delete the merged task branch locally and remotely
+
+Do not leave stale working branches around after the task is done.
+
 ## 2. Product Boundary
 
 The main product is the public Home plus four app surfaces:

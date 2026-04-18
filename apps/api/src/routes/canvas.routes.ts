@@ -1,5 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { canvasLookInputSchema } from "@freestyle/shared";
+import {
+  canvasLookCreateResponseSchema,
+  canvasLookDeleteResponseSchema,
+  canvasLookGetResponseSchema,
+  canvasLookInputSchema,
+  canvasLookListResponseSchema,
+} from "@freestyle/contracts";
 import { requireAuth } from "../modules/auth/auth.js";
 import {
   createCanvasLook,
@@ -22,10 +28,12 @@ export const registerCanvasRoutes = (app: FastifyInstance) => {
     }
 
     const saved = await createCanvasLook(userId, parsed.data);
-    return reply.code(201).send({
-      id: saved.id,
-      shareSlug: saved.share_slug,
-    });
+    return reply.code(201).send(
+      canvasLookCreateResponseSchema.parse({
+        id: saved.id,
+        shareSlug: saved.share_slug,
+      }),
+    );
   });
 
   app.get("/canvas/looks", async (request, reply) => {
@@ -33,7 +41,7 @@ export const registerCanvasRoutes = (app: FastifyInstance) => {
     if (!userId) return;
 
     const looks = await listCanvasLooksForUser(userId);
-    return reply.send({ looks });
+    return reply.send(canvasLookListResponseSchema.parse({ looks }));
   });
 
   app.get("/canvas/looks/:id", async (request, reply) => {
@@ -50,7 +58,7 @@ export const registerCanvasRoutes = (app: FastifyInstance) => {
       return reply.code(404).send({ error: "NOT_FOUND", message: "Canvas look not found." });
     }
 
-    return reply.send({ look });
+    return reply.send(canvasLookGetResponseSchema.parse({ look }));
   });
 
   app.delete("/canvas/looks/:id", async (request, reply) => {
@@ -63,6 +71,6 @@ export const registerCanvasRoutes = (app: FastifyInstance) => {
     }
 
     await deleteCanvasLookForUser(userId, id);
-    return reply.send({ status: "deleted" });
+    return reply.send(canvasLookDeleteResponseSchema.parse({ status: "deleted" }));
   });
 };

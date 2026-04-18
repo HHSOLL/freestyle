@@ -130,6 +130,28 @@ test("product namespace smoke keeps representative routes and admin under the pr
   await app.close();
 });
 
+test("canvas look route rejects invalid payloads before touching persistence", async () => {
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/v1/canvas/looks",
+    payload: {
+      title: "Broken look",
+      previewImage: "data:image/png;base64,abc123",
+      data: {
+        unexpected: "shape",
+      },
+    },
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.headers["x-freestyle-surface"], "product");
+  assert.equal(response.json().error, "VALIDATION_ERROR");
+
+  await app.close();
+});
+
 test("legacy and lab namespaces stay isolated from the main product surface", async () => {
   delete process.env.DEV_BYPASS_USER_ID;
   const app = buildServer();

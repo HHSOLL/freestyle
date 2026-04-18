@@ -695,15 +695,26 @@ export const closetItemSchema = z
   })
   .strict();
 
+export const canvasLookDataSchema = canvasCompositionSchema;
+
 export const canvasLookInputSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
     description: z.string().trim().max(280).optional().nullable(),
     previewImage: z.string().trim().min(1),
-    data: z.record(z.string(), z.unknown()),
+    data: canvasLookDataSchema,
     isPublic: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.title !== value.data.title) {
+      context.addIssue({
+        code: "custom",
+        path: ["title"],
+        message: "title must match data.title",
+      });
+    }
+  });
 
 export const canvasLookSummarySchema = z
   .object({
@@ -718,9 +729,34 @@ export const canvasLookSummarySchema = z
 export const canvasLookRecordSchema = canvasLookSummarySchema
   .extend({
     description: z.string().trim().max(280).nullable(),
-    data: z.record(z.string(), z.unknown()).nullable(),
+    data: canvasLookDataSchema.nullable(),
     isPublic: z.boolean(),
     updatedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export const canvasLookCreateResponseSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    shareSlug: z.string().trim().min(1),
+  })
+  .strict();
+
+export const canvasLookListResponseSchema = z
+  .object({
+    looks: z.array(canvasLookSummarySchema),
+  })
+  .strict();
+
+export const canvasLookGetResponseSchema = z
+  .object({
+    look: canvasLookRecordSchema,
+  })
+  .strict();
+
+export const canvasLookDeleteResponseSchema = z
+  .object({
+    status: z.literal("deleted"),
   })
   .strict();
 
@@ -789,9 +825,14 @@ export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type Asset = z.infer<typeof assetSchema>;
 export type ClosetItem = z.infer<typeof closetItemSchema>;
+export type CanvasLookData = z.infer<typeof canvasLookDataSchema>;
 export type ClosetSceneState = z.infer<typeof closetSceneStateSchema>;
 export type CanvasItem = z.infer<typeof canvasItemSchema>;
 export type CanvasComposition = z.infer<typeof canvasCompositionSchema>;
 export type CanvasLookInput = z.infer<typeof canvasLookInputSchema>;
 export type CanvasLookSummary = z.infer<typeof canvasLookSummarySchema>;
 export type CanvasLookRecord = z.infer<typeof canvasLookRecordSchema>;
+export type CanvasLookCreateResponse = z.infer<typeof canvasLookCreateResponseSchema>;
+export type CanvasLookListResponse = z.infer<typeof canvasLookListResponseSchema>;
+export type CanvasLookGetResponse = z.infer<typeof canvasLookGetResponseSchema>;
+export type CanvasLookDeleteResponse = z.infer<typeof canvasLookDeleteResponseSchema>;

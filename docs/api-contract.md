@@ -155,6 +155,117 @@
 }
 ```
 
+### Canvas look boundary
+- implemented product endpoints:
+  - `POST /v1/canvas/looks`
+  - `GET /v1/canvas/looks`
+  - `GET /v1/canvas/looks/:id`
+  - `DELETE /v1/canvas/looks/:id`
+- auth: same as other `/v1/canvas/*` product routes
+- canonical schema source: `@freestyle/contracts`
+- request body for `POST /v1/canvas/looks` must satisfy `CanvasLookInput`
+- current rule for `CanvasLookInput.data`:
+  - must be the canonical `CanvasComposition` snapshot
+  - top-level `title` must match `data.title`
+- current read compatibility rule:
+  - stored legacy or malformed `outfits.data` rows are degraded to `data: null` on detail read instead of being re-emitted as arbitrary JSON
+
+#### `POST /v1/canvas/looks`
+Request
+```json
+{
+  "title": "Studio composition",
+  "description": null,
+  "previewImage": "data:image/png;base64,...",
+  "data": {
+    "version": 1,
+    "id": "composition-1",
+    "title": "Studio composition",
+    "stageColor": "#eef1f4",
+    "createdAt": "2026-04-19T12:00:00.000Z",
+    "updatedAt": "2026-04-19T12:00:00.000Z",
+    "bodyProfile": {
+      "version": 2,
+      "simple": {
+        "heightCm": 171,
+        "shoulderCm": 43,
+        "chestCm": 94,
+        "waistCm": 76,
+        "hipCm": 99,
+        "inseamCm": 80
+      }
+    },
+    "closetState": {
+      "version": 1,
+      "avatarVariantId": "female-base",
+      "poseId": "neutral",
+      "activeCategory": "tops",
+      "selectedItemId": "starter-top-ivory-tee",
+      "equippedItemIds": {
+        "tops": "starter-top-ivory-tee"
+      },
+      "qualityTier": "balanced"
+    },
+    "items": []
+  },
+  "isPublic": true
+}
+```
+Response
+```json
+{
+  "id": "uuid",
+  "shareSlug": "abc123xyz"
+}
+```
+
+#### `GET /v1/canvas/looks`
+Response
+```json
+{
+  "looks": [
+    {
+      "id": "uuid",
+      "shareSlug": "abc123xyz",
+      "title": "Studio composition",
+      "previewImage": "data:image/png;base64,...",
+      "createdAt": "2026-04-19T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### `GET /v1/canvas/looks/:id`
+Response
+```json
+{
+  "look": {
+    "id": "uuid",
+    "shareSlug": "abc123xyz",
+    "title": "Studio composition",
+    "description": null,
+    "previewImage": "data:image/png;base64,...",
+    "data": null,
+    "isPublic": true,
+    "createdAt": "2026-04-19T12:00:00.000Z",
+    "updatedAt": "2026-04-19T12:00:00.000Z"
+  }
+}
+```
+
+#### `DELETE /v1/canvas/looks/:id`
+Response
+```json
+{
+  "status": "deleted"
+}
+```
+
+Notes
+- `previewImage`는 현재 canvas export 결과(`data:image/...`)를 그대로 저장한다.
+- route success payloads are emitted through canonical response envelope schemas, not ad hoc objects.
+- historical outfit-style blobs remain documented under `POST /v1/outfits`; they are not valid create payloads for the active `/v1/canvas/looks` route.
+
 ## Historical Compatibility Appendices
 
 The sections below are kept for `Legacy` and `Lab` maintenance. Do not treat them as the default product surface contract unless the task explicitly targets those namespaces.

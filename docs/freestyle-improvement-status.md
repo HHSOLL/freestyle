@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `79%`
+- Working overall completion estimate: `81%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile` contract round-trip and local canvas composition hydration are hardened; garment and API-side canvas adapter tightening still remain |
+| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, and `/v1/canvas/looks` adapter envelopes are hardened; garment publication/runtime tightening still remains |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -171,9 +171,35 @@ Outcome:
 - canvas saved-look hydration now shares the same legacy body-profile compatibility behavior as the active profile boundary
 - the remaining canvas gap is now the remote `/v1/canvas/looks` adapter contract, not unchecked local hydration
 
+### `Phase 2 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. added canonical request and response envelope coverage for the implemented `/v1/canvas/looks` product routes
+2. tightened `CanvasLookInput.data` so the route now accepts only canonical `CanvasComposition` payloads, with title drift rejected at the contract boundary
+3. normalized the canvas API read-model through contract parsing before route responses are emitted, degrading malformed stored blobs to `data: null`
+4. documented the active `/v1/canvas/looks` contract in the product API reference and added a narrow invalid-payload route test
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/routes/canvas.routes.ts`
+- `apps/api/src/modules/canvas/canvas.service.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `docs/api-contract.md`
+
+Outcome:
+
+- `/v1/canvas/looks` no longer relies on ad hoc success payload shapes
+- the remote canvas look path now shares one canonical write contract source with the local canvas composition model
+- the next canvas issue is consumer behavior, not an undocumented or unvalidated API envelope
+
 ### Next Batch
 
-`Phase 2 / Batch 3` should continue contracts and domain-core hardening with one narrow boundary only: either the garment publication/runtime contract or the API-side `/v1/canvas/looks` adapter shape. Do not combine both in the same batch.
+`Phase 2 / Batch 4` should move to the garment publication/runtime contract boundary. Keep the batch narrow to one path group and do not reopen canvas UI or persistence model changes in the same PR.
 
 ## Phase 0 Closeout
 

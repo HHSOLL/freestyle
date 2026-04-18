@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `83%`
+- Working overall completion estimate: `85%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -222,9 +222,34 @@ Outcome:
 - product-side regression coverage now exists for the admin publish -> runtime catalog seam
 - the next garment issue is admin draft default drift, not published garment hydration
 
+### `Phase 2 / Batch 5`
+
+Status: `completed`
+
+Completed work:
+
+1. replaced the invalid admin draft skeleton fallback with the canonical runtime default from the garment domain
+2. normalized legacy invalid draft skeleton ids back onto the current registry during category-based draft normalization
+3. regenerated category-owned runtime defaults for unsaved guided drafts so category changes do not keep stale model paths, anchors, collision zones, or body-mask zones
+4. added admin-side regression coverage proving a brand-new guided draft is semantically publishable without raw JSON edits and that `tops -> shoes` draft normalization stays coherent
+5. documented the guided draft baseline in the admin publishing notes
+
+Evidence:
+
+- `apps/admin/src/lib/publishedGarmentDraft.ts`
+- `apps/admin/src/lib/publishedGarmentDraft.test.ts`
+- `docs/admin-asset-publishing.md`
+
+Outcome:
+
+- the guided admin create flow no longer starts from a validator-rejected skeleton profile
+- legacy draft state that still carries the old invalid skeleton id is automatically repaired during guided normalization
+- unsaved guided drafts no longer keep tops-derived runtime defaults after a category change
+- the next garment contract gap is API envelope hardening, not the default admin draft baseline
+
 ### Next Batch
 
-`Phase 2 / Batch 5` should fix admin draft/default contract drift, starting with the invalid default skeleton profile in `apps/admin`, and keep the batch out of runtime-stage or persistence replacement work.
+`Phase 2 / Batch 6` should harden the admin/runtime garment API envelopes in `apps/api` and `packages/contracts`, while keeping the batch out of admin UI expansion and storage-backend replacement work.
 
 ## Phase 0 Closeout
 

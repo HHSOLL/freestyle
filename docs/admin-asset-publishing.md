@@ -109,6 +109,7 @@ Without this, `Closet` cannot compute fit honestly.
 - `closetRuntimeAssets`
 
 `useClosetScene(catalog)` can now resolve equipped garments against a passed-in runtime catalog instead of the old starter-only map.
+The product-side published garment hydration path now expects the canonical camelCase `PublishedGarmentAsset` payload directly from `GET /v1/closet/runtime-garments`; it no longer relies on legacy snake_case asset remapping for published garments.
 
 This is the first step toward a real admin-domain publication pipeline.
 

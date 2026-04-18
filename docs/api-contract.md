@@ -91,6 +91,9 @@
   - `palette`
   - `publication`
   - garment measurement and size-chart metadata
+- canonical success response envelopes are defined in `@freestyle/contracts`:
+  - `publishedRuntimeGarmentListResponseSchema`
+  - `publishedRuntimeGarmentItemResponseSchema`
 - current persistence: local JSON repository behind the API boundary
 - intended future persistence: dedicated admin domain backing store
 - accessory-oriented size keys `headCircumferenceCm` and `frameWidthCm` are valid in the canonical garment measurement contract
@@ -100,18 +103,20 @@
 - product consumer rule:
   - `items` are consumed as canonical camelCase `PublishedGarmentAsset` payloads
   - legacy snake_case asset rows are not a supported shape for this route
-- response:
+- response body satisfies `publishedRuntimeGarmentListResponseSchema`
+- example:
 ```json
 {
   "items": [
     {
       "id": "published-top-precision-tee",
       "name": "Precision Tee",
+      "imageSrc": "/assets/demo/precision-tee.png",
       "category": "tops",
       "source": "inventory",
       "runtime": {
         "modelPath": "/assets/garments/partner/precision-tee.glb",
-        "skeletonProfileId": "freestyle-humanoid-v1",
+        "skeletonProfileId": "freestyle-rig-v2",
         "anchorBindings": [
           { "id": "leftShoulder", "weight": 0.3 }
         ],
@@ -120,6 +125,7 @@
         "surfaceClearanceCm": 1.2,
         "renderPriority": 1
       },
+      "palette": ["#f5f5f5", "#10161f"],
       "publication": {
         "sourceSystem": "admin-domain",
         "publishedAt": "2026-04-14T12:00:00.000Z",
@@ -136,11 +142,34 @@
 - auth: same as other product routes for now; later admin-domain auth will replace this
 - request body must satisfy `PublishedGarmentAsset`
 - duplicate `id` returns `409 CONFLICT`
-- response:
+- response body satisfies `publishedRuntimeGarmentItemResponseSchema`
+- example:
 ```json
 {
   "item": {
-    "id": "published-top-precision-tee"
+    "id": "published-top-precision-tee",
+    "name": "Precision Tee",
+    "imageSrc": "/assets/demo/precision-tee.png",
+    "category": "tops",
+    "source": "inventory",
+    "runtime": {
+      "modelPath": "/assets/garments/partner/precision-tee.glb",
+      "skeletonProfileId": "freestyle-rig-v2",
+      "anchorBindings": [
+        { "id": "leftShoulder", "weight": 0.3 }
+      ],
+      "collisionZones": ["torso", "arms"],
+      "bodyMaskZones": [],
+      "surfaceClearanceCm": 1.2,
+      "renderPriority": 1
+    },
+    "palette": ["#f5f5f5", "#10161f"],
+    "publication": {
+      "sourceSystem": "admin-domain",
+      "publishedAt": "2026-04-14T12:00:00.000Z",
+      "assetVersion": "precision-tee@1.0.0",
+      "measurementStandard": "body-garment-v1"
+    }
   }
 }
 ```
@@ -148,15 +177,8 @@
 #### `PUT /v1/admin/garments/:id`
 - auth: same as other product routes for now; later admin-domain auth will replace this
 - request body must satisfy `PublishedGarmentAsset`
-- route `:id` must match `body.id`
-- response:
-```json
-{
-  "item": {
-    "id": "published-top-precision-tee"
-  }
-}
-```
+- route `:id` must match `request body.id`
+- response body satisfies `publishedRuntimeGarmentItemResponseSchema`
 
 ### Canvas look boundary
 - implemented product endpoints:

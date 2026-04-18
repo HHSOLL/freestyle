@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `85%`
+- Working overall completion estimate: `87%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, and `/v1/canvas/looks` adapter envelopes are hardened; garment publication/runtime tightening still remains |
+| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, and runtime garment API envelopes are hardened; persisted-read validation and fit-domain contracts still remain |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -247,9 +247,37 @@ Outcome:
 - unsaved guided drafts no longer keep tops-derived runtime defaults after a category change
 - the next garment contract gap is API envelope hardening, not the default admin draft baseline
 
+### `Phase 2 / Batch 6`
+
+Status: `completed`
+
+Completed work:
+
+1. added canonical runtime-garment success envelope schemas in `@freestyle/contracts` for list and item responses
+2. wrapped the implemented `/v1/closet/runtime-garments` and `/v1/admin/garments*` success paths in those contract parses instead of returning ad hoc objects
+3. expanded garment route coverage to parse real create, list, detail, and update responses through the shared schemas
+4. tightened product namespace smoke to parse representative garment list responses, not just status codes
+5. corrected garment API docs so the live response shape and current valid skeleton profile match the implementation
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/routes/runtime-garments.routes.ts`
+- `apps/api/src/routes/runtime-garments.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `docs/api-contract.md`
+
+Outcome:
+
+- runtime-garment routes now share the same envelope-hardening pattern already used by the profile and canvas boundaries
+- create, detail, update, and list success responses are guarded by canonical contract tests instead of field spot checks
+- active API docs no longer advertise the invalid historical skeleton id or the stale id-only admin response example
+- the next garment seam is persisted-read validation, not the success envelope shape
+
 ### Next Batch
 
-`Phase 2 / Batch 6` should harden the admin/runtime garment API envelopes in `apps/api` and `packages/contracts`, while keeping the batch out of admin UI expansion and storage-backend replacement work.
+`Phase 2 / Batch 7` should harden persisted runtime-garment read validation in `apps/api`, deciding explicitly how malformed or semantically invalid stored rows are filtered or failed and adding regression coverage for those read-path cases.
 
 ## Phase 0 Closeout
 

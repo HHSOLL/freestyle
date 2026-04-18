@@ -134,6 +134,8 @@ Source-of-truth files:
 - normalized body profile snapshot
 - closet scene snapshot
 - positioned garment items
+- contract source: `packages/contracts`
+- repository boundary: `packages/domain-canvas`
 
 ## 7. Avatar Runtime Contract
 

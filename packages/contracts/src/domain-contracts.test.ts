@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   assetMetadataSchema,
+  canvasCompositionSchema,
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
   bodyProfileSchema,
   bodyProfileRecordSchema,
   bodyProfileSimpleSchema,
+  closetSceneStateSchema,
   legacyBodyProfileFlatSchema,
   bodyProfileUpsertInputSchema,
   garmentFitProfileSchema,
@@ -379,4 +381,106 @@ test('runtime garment binding schema accepts pose-aware collision and body-mask 
 
   assert.equal(parsed.runtime.poseTuning?.stride?.clearanceMultiplier, 1.06);
   assert.deepEqual(parsed.runtime.poseTuning?.tailored?.extraBodyMaskZones, ['arms']);
+});
+
+test('canvas composition schema accepts canonical snapshots', () => {
+  const parsed = canvasCompositionSchema.parse({
+    version: 1,
+    id: 'composition-1',
+    title: 'Studio composition',
+    stageColor: '#eef1f4',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    bodyProfile: {
+      version: 2,
+      gender: 'female',
+      bodyFrame: 'balanced',
+      simple: {
+        heightCm: 171,
+        shoulderCm: 43,
+        chestCm: 94,
+        waistCm: 76,
+        hipCm: 99,
+        inseamCm: 80,
+      },
+    },
+    closetState: {
+      version: 1,
+      avatarVariantId: 'female-base',
+      poseId: 'neutral',
+      activeCategory: 'tops',
+      selectedItemId: 'starter-top-ivory-tee',
+      equippedItemIds: {
+        tops: 'starter-top-ivory-tee',
+      },
+      qualityTier: 'balanced',
+    },
+    items: [
+      {
+        id: 'canvas-item-1',
+        assetId: 'starter-top-ivory-tee',
+        kind: 'garment',
+        x: 120,
+        y: 110,
+        scale: 1,
+        rotation: 0,
+        zIndex: 0,
+      },
+    ],
+  });
+
+  assert.equal(parsed.closetState.poseId, 'neutral');
+  assert.equal(parsed.items[0]?.assetId, 'starter-top-ivory-tee');
+});
+
+test('canvas composition schema normalizes legacy flat body-profile snapshots', () => {
+  const parsed = canvasCompositionSchema.parse({
+    version: 1,
+    id: 'composition-legacy',
+    title: 'Legacy composition',
+    stageColor: '#eef1f4',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    bodyProfile: {
+      heightCm: 171,
+      shoulderCm: 43,
+      chestCm: 94,
+      waistCm: 76,
+      hipCm: 99,
+      inseamCm: 80,
+      neckCm: 36,
+    },
+    closetState: {
+      version: 1,
+      avatarVariantId: 'female-base',
+      poseId: 'neutral',
+      activeCategory: 'tops',
+      selectedItemId: 'starter-top-ivory-tee',
+      equippedItemIds: {
+        tops: 'starter-top-ivory-tee',
+      },
+      qualityTier: 'balanced',
+    },
+    items: [],
+  });
+
+  assert.equal(parsed.bodyProfile.version, 2);
+  assert.equal(parsed.bodyProfile.simple.heightCm, 171);
+  assert.equal(parsed.bodyProfile.detailed?.neckCm, 36);
+});
+
+test('closet scene state schema rejects invalid quality tiers', () => {
+  assert.throws(() =>
+    closetSceneStateSchema.parse({
+      version: 1,
+      avatarVariantId: 'female-base',
+      poseId: 'neutral',
+      activeCategory: 'tops',
+      selectedItemId: 'starter-top-ivory-tee',
+      equippedItemIds: {
+        tops: 'starter-top-ivory-tee',
+      },
+      qualityTier: 'ultra',
+    }),
+  );
 });

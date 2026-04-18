@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `77%`
+- Working overall completion estimate: `79%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile` contract round-trip is hardened; garment and canvas ownership tightening still remains |
+| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile` contract round-trip and local canvas composition hydration are hardened; garment and API-side canvas adapter tightening still remain |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -146,9 +146,34 @@ Outcome:
 - `BodyProfile` contract ownership is more concrete because request, response, repository, and consumer code now share the same schema surface
 - Phase 2 can move next to garment or canvas contract hardening without carrying a broken body-profile path
 
+### `Phase 2 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added canonical `CanvasComposition` and `ClosetSceneState` schemas in `packages/contracts`
+2. normalized legacy flat body-profile snapshots during canvas deserialization to keep older saved looks readable
+3. tightened `packages/domain-canvas` repository load and save paths so invalid compositions are dropped or rejected before the hook rehydrates them
+4. expanded contract and canvas serialization coverage from a single happy path to malformed snapshot and repository filtering cases
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/domain-canvas/src/index.ts`
+- `packages/domain-canvas/src/serialization.test.ts`
+- `docs/architecture-overview.md`
+
+Outcome:
+
+- local canvas state no longer trusts raw JSON from storage, and the persisted shape now has an explicit schema source of truth
+- canvas saved-look hydration now shares the same legacy body-profile compatibility behavior as the active profile boundary
+- the remaining canvas gap is now the remote `/v1/canvas/looks` adapter contract, not unchecked local hydration
+
 ### Next Batch
 
-`Phase 2 / Batch 2` should continue contracts and domain-core hardening with either the garment publication/runtime contract or canvas composition schema validation, but it should stay narrow to one boundary.
+`Phase 2 / Batch 3` should continue contracts and domain-core hardening with one narrow boundary only: either the garment publication/runtime contract or the API-side `/v1/canvas/looks` adapter shape. Do not combine both in the same batch.
 
 ## Phase 0 Closeout
 

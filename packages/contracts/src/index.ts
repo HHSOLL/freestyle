@@ -232,6 +232,86 @@ export const bodyProfileSchema = z
   })
   .strict();
 
+export const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProfileFlatSchema]).transform((profile) =>
+  normalizeBodyProfile(profile),
+);
+
+export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
+export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
+export const qualityTierSchema = z.enum(["low", "balanced", "high"]);
+
+const closetCategorySchema = z.enum([
+  "tops",
+  "bottoms",
+  "outerwear",
+  "shoes",
+  "accessories",
+  "hair",
+  "custom",
+]);
+
+const equippedItemIdsSchema = z
+  .object({
+    tops: z.string().trim().min(1).optional(),
+    bottoms: z.string().trim().min(1).optional(),
+    outerwear: z.string().trim().min(1).optional(),
+    shoes: z.string().trim().min(1).optional(),
+    accessories: z.string().trim().min(1).optional(),
+    hair: z.string().trim().min(1).optional(),
+    custom: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const closetSceneStateSchema = z
+  .object({
+    version: z.union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(4),
+      z.literal(5),
+      z.literal(6),
+      z.literal(7),
+    ]),
+    avatarVariantId: avatarRenderVariantIdSchema,
+    poseId: avatarPoseIdSchema,
+    activeCategory: closetCategorySchema,
+    selectedItemId: z.string().trim().min(1).nullable(),
+    equippedItemIds: equippedItemIdsSchema,
+    qualityTier: qualityTierSchema,
+  })
+  .strict();
+
+export const canvasItemSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    assetId: z.string().trim().min(1),
+    kind: z.enum(["garment", "note"]),
+    x: z.number().finite(),
+    y: z.number().finite(),
+    scale: z.number().finite(),
+    rotation: z.number().finite(),
+    zIndex: z.number().finite(),
+  })
+  .strict();
+
+export const canvasCompositionSchema = z
+  .object({
+    version: z.literal(1),
+    id: z.string().trim().min(1),
+    title: z.string().trim().min(1).max(120),
+    stageColor: z.string().trim().min(1).max(64),
+    notes: z.string().max(2000).optional(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    bodyProfile: bodyProfileInputSchema,
+    closetState: closetSceneStateSchema,
+    items: z.array(canvasItemSchema),
+  })
+  .strict();
+
+export const canvasCompositionListSchema = z.array(canvasCompositionSchema);
+
 export const assetCategorySchema = z.enum([
   "tops",
   "bottoms",
@@ -644,10 +724,6 @@ export const canvasLookRecordSchema = canvasLookSummarySchema
   })
   .strict();
 
-const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProfileFlatSchema]).transform((profile) =>
-  normalizeBodyProfile(profile),
-);
-
 const bodyProfileRecordVersionSchema = z.union([z.literal(1), z.literal(2)]).default(2);
 
 // Active `/v1/profile/body-profile` product contract with read compatibility for older local records.
@@ -704,12 +780,18 @@ export type BodyProfileUpsertInput = z.infer<typeof bodyProfileUpsertInputSchema
 export type BodyProfileGetResponse = z.infer<typeof bodyProfileGetResponseSchema>;
 export type BodyProfilePutResponse = z.infer<typeof bodyProfilePutResponseSchema>;
 export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
+export type AvatarRenderVariantId = z.infer<typeof avatarRenderVariantIdSchema>;
+export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
+export type QualityTier = z.infer<typeof qualityTierSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type AssetMetadata = z.infer<typeof assetMetadataSchema>;
 export type AssetUpdateInput = z.infer<typeof assetUpdateInputSchema>;
 export type Asset = z.infer<typeof assetSchema>;
 export type ClosetItem = z.infer<typeof closetItemSchema>;
+export type ClosetSceneState = z.infer<typeof closetSceneStateSchema>;
+export type CanvasItem = z.infer<typeof canvasItemSchema>;
+export type CanvasComposition = z.infer<typeof canvasCompositionSchema>;
 export type CanvasLookInput = z.infer<typeof canvasLookInputSchema>;
 export type CanvasLookSummary = z.infer<typeof canvasLookSummarySchema>;
 export type CanvasLookRecord = z.infer<typeof canvasLookRecordSchema>;

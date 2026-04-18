@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `89%`
+- Working overall completion estimate: `91%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, and runtime garment API read/write seams are hardened; fit-domain contracts still remain |
+| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, runtime garment API seams, and physical-fit assessment contracts are hardened; the remaining drift sits in the legacy shared-3d fit summary helper path |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -301,9 +301,36 @@ Outcome:
 - invalid persisted rows are degraded predictably: filtered from list responses and treated as missing on detail reads
 - the next Phase 2 gap is fit-domain contract hardening, not the runtime garment publication seam
 
+### `Phase 2 / Batch 8`
+
+Status: `completed`
+
+Completed work:
+
+1. added the first explicit runtime schemas for `GarmentFitState`, `GarmentFitRisk`, `GarmentFitDimensionAssessment`, and `GarmentFitAssessment` in `@freestyle/contracts`
+2. tightened the shared contract tests so malformed fit payloads are rejected when `limitingKeys` drift away from the assessed dimensions
+3. wrapped `assessGarmentPhysicalFit` in the shared fit assessment parser so the canonical domain path now emits contract-valid payloads instead of raw objects
+4. added domain regression coverage for both standard garment rows and head-measured accessories against the new fit assessment contract
+5. updated the active fit-system docs to point at the contract-backed physical-fit payload instead of treating it as a type-only convention
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/domain-garment/src/index.ts`
+- `packages/domain-garment/src/validation.test.ts`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+
+Outcome:
+
+- the active physical-fit payload is now a parsed contract instead of a type-only shape
+- `Closet` and admin consumers that already rely on `assessGarmentPhysicalFit` now inherit the same runtime validation guarantees
+- the remaining fit-domain drift is isolated to the legacy shared-3d `fitSummary` helper path rather than the product's canonical fit assessment route
+
 ### Next Batch
 
-`Phase 2 / Batch 8` should introduce the first explicit fit-domain contracts in `packages/contracts` and the current fit computation path, so `Closet` fit summaries stop depending on ad hoc shapes before any higher-fidelity simulation work starts.
+`Phase 2 / Batch 9` should either remove or hard-adapt the legacy shared-3d `fitSummary` helper in `apps/web/src/features/shared-3d/fittingCore.ts` so non-product mannequin/studio helper paths stop carrying a second, incompatible fit vocabulary.
 
 ## Phase 0 Closeout
 

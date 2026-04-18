@@ -204,6 +204,10 @@ As of `2026-04-17`:
   - `selectedSizeLabel`
   - `physicalProfile`
   - `GarmentFitAssessment`
+- the contracts package now ships runtime parse schemas for:
+  - `GarmentFitState`
+  - `GarmentFitDimensionAssessment`
+  - `GarmentFitAssessment`
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

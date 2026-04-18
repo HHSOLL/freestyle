@@ -152,6 +152,13 @@ Accessory examples now follow the same rule:
 - overall fit state
 - tension/clipping risk hints
 
+The active runtime contract for this payload is now:
+
+- `garmentFitStateSchema`
+- `garmentFitRiskSchema`
+- `garmentFitDimensionAssessmentSchema`
+- `garmentFitAssessmentSchema`
+
 This is the layer that turns “a size table exists” into “the user can see whether this size will compress, stretch, or sit relaxed on the current body”.
 
 ## 9. Corrective Fit Contract

@@ -14,6 +14,9 @@ Before changing the product, read these in order:
 8. `docs/admin-asset-publishing.md`
 9. `docs/migration-notes.md`
 10. `docs/TECH_WATCH.md`
+11. `docs/freestyle-improvement-status.md`
+12. `docs/repo-inventory.md`
+13. `docs/product-boundaries.md`
 
 ## 1.1 Git Workflow
 

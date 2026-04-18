@@ -160,8 +160,11 @@ CI requires all of the following:
 
 ## Core Documents
 
+- [docs/freestyle-improvement-status.md](docs/freestyle-improvement-status.md)
 - [docs/PERFECT_FITTING_EXECUTION_PLAN.md](docs/PERFECT_FITTING_EXECUTION_PLAN.md)
 - [docs/architecture-overview.md](docs/architecture-overview.md)
+- [docs/repo-inventory.md](docs/repo-inventory.md)
+- [docs/product-boundaries.md](docs/product-boundaries.md)
 - [docs/avatar-pipeline.md](docs/avatar-pipeline.md)
 - [docs/garment-fitting-contract.md](docs/garment-fitting-contract.md)
 - [docs/physical-fit-system.md](docs/physical-fit-system.md)

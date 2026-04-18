@@ -79,8 +79,12 @@ The minimum domain structure is fixed:
   - garment starter catalog
   - skeleton profile registry
   - runtime binding validation
+- `packages/contracts`
+  - shared runtime and persistence schemas
+  - canonical product payload validation
 - `packages/domain-canvas`
-  - canvas composition schema and serialization
+  - canvas composition serialization
+  - local repository adapters over the shared contract
 - `packages/runtime-3d`
   - avatar render manifest
   - runtime asset budget

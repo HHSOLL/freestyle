@@ -336,6 +336,17 @@ type DisplayItem = {
   assessment?: GarmentFitAssessment | null;
 };
 
+type ItemSetKey = "hair" | "top" | "outerwear" | "bottom" | "shoes" | "accessory";
+
+const ITEM_SET_KEY_BY_TAB = {
+  헤어: "hair",
+  상의: "top",
+  외투: "outerwear",
+  하의: "bottom",
+  신발: "shoes",
+  액세서리: "accessory",
+} as const satisfies Partial<Record<TabValue, ItemSetKey>>;
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
@@ -1177,7 +1188,14 @@ export function V18ClosetExperience() {
   const selectedPoseId = V18_POSE_FROM_PRODUCT[scene.poseId];
   const measurements = useMemo(() => toMeasurementState(profile, genderState), [profile, genderState]);
   const variantDefaults = useMemo(() => resolveDefaultClosetLoadout(avatarVariantId), [avatarVariantId]);
-  const defaultHairIds = useMemo(() => new Set(Object.values(defaultHairItemIdsByVariant)), []);
+  const runtimeAssetById = useMemo(
+    () => new Map(closetRuntimeAssets.map((item) => [item.id, item] as const)),
+    [closetRuntimeAssets],
+  );
+  const defaultHairIds = useMemo(
+    () => new Set(Object.values(defaultHairItemIdsByVariant).filter((value): value is string => Boolean(value))),
+    [],
+  );
 
   const setMeasurements = (next: MeasurementState) => {
     setProfile((current) => applyMeasurementsToProfile(current, next, genderState, current.bodyFrame ?? bodyFrameState));
@@ -1187,7 +1205,7 @@ export function V18ClosetExperience() {
     setProfile((current) => applyMeasurementsToProfile(current, next, nextGender, nextBodyFrame));
   };
 
-  const itemSets = useMemo(() => {
+  const baseItemSets = useMemo<Record<ItemSetKey, DisplayItem[]>>(() => {
     const toDisplayItem = (item: RuntimeGarmentAsset): DisplayItem => ({
       id: item.id,
       category: item.category,
@@ -1195,7 +1213,6 @@ export function V18ClosetExperience() {
       subtitle: item.publication?.sourceSystem === "admin-domain" ? "관리자 발행 에셋" : item.brand ?? "분리형 GLB",
       thumbUrl: item.imageSrc,
       filterTags: classifyStarter(item),
-      assessment: assessGarmentPhysicalFit(item, profile),
     });
 
     return {
@@ -1206,7 +1223,49 @@ export function V18ClosetExperience() {
       accessory: closetRuntimeAssets.filter((item) => item.category === "accessories").map(toDisplayItem),
       hair: closetRuntimeAssets.filter((item) => item.category === "hair").map(toDisplayItem),
     };
-  }, [closetRuntimeAssets, profile]);
+  }, [closetRuntimeAssets]);
+
+  const fitAssessments = useMemo(() => {
+    const next = new Map<string, GarmentFitAssessment | null>();
+    const activeSetKey =
+      activeTab in ITEM_SET_KEY_BY_TAB
+        ? ITEM_SET_KEY_BY_TAB[activeTab as keyof typeof ITEM_SET_KEY_BY_TAB]
+        : null;
+
+    if (activeSetKey) {
+      baseItemSets[activeSetKey].forEach((item) => {
+        const runtimeItem = runtimeAssetById.get(item.id);
+        if (!runtimeItem) return;
+        next.set(item.id, assessGarmentPhysicalFit(runtimeItem, deferredProfile));
+      });
+    }
+
+    equippedGarments.forEach((item) => {
+      if (!next.has(item.id)) {
+        next.set(item.id, assessGarmentPhysicalFit(item, deferredProfile));
+      }
+    });
+
+    return next;
+  }, [activeTab, baseItemSets, deferredProfile, equippedGarments, runtimeAssetById]);
+
+  const itemSets = useMemo<Record<ItemSetKey, DisplayItem[]>>(() => {
+    const activeSetKey =
+      activeTab in ITEM_SET_KEY_BY_TAB
+        ? ITEM_SET_KEY_BY_TAB[activeTab as keyof typeof ITEM_SET_KEY_BY_TAB]
+        : null;
+    if (!activeSetKey) {
+      return baseItemSets;
+    }
+
+    return {
+      ...baseItemSets,
+      [activeSetKey]: baseItemSets[activeSetKey].map((item: DisplayItem) => {
+        const assessment = fitAssessments.get(item.id);
+        return assessment === undefined ? item : { ...item, assessment };
+      }),
+    };
+  }, [activeTab, baseItemSets, fitAssessments]);
 
   const selection = useMemo(() => {
     const top = equippedGarments.find((item) => item.category === "tops") ?? null;
@@ -1231,9 +1290,15 @@ export function V18ClosetExperience() {
     equippedGarments.forEach((item) => next.set(item.id, item));
     if (activeTab in CATEGORY_BY_TAB) {
       const category = CATEGORY_BY_TAB[activeTab as keyof typeof CATEGORY_BY_TAB];
+      const preloadLimit =
+        category === "hair" || category === "outerwear"
+          ? 3
+          : category === "accessories"
+            ? 4
+            : 6;
       closetRuntimeAssets
         .filter((item) => item.category === category)
-        .slice(0, 6)
+        .slice(0, preloadLimit)
         .forEach((item) => next.set(item.id, item));
     }
     return Array.from(next.values());
@@ -1290,11 +1355,21 @@ export function V18ClosetExperience() {
     applyGenderAndMeasurements(item.gender, item.measurements, item.bodyFrame ?? "balanced");
     if (item.gender === "male") {
       setSelectedPreviewMannequinId("male_standard");
-      equipItem("hair", defaultHairItemIdsByVariant["male-base"]);
+      const nextHair = defaultHairItemIdsByVariant["male-base"];
+      if (nextHair) {
+        equipItem("hair", nextHair);
+      } else {
+        clearCategory("hair");
+      }
       return;
     }
     setSelectedPreviewMannequinId("female_standard");
-    equipItem("hair", defaultHairItemIdsByVariant["female-base"]);
+    const nextHair = defaultHairItemIdsByVariant["female-base"];
+    if (nextHair) {
+      equipItem("hair", nextHair);
+    } else {
+      clearCategory("hair");
+    }
   };
 
   const handleSave = () => {
@@ -1329,7 +1404,7 @@ export function V18ClosetExperience() {
     setBackgroundColor(DEFAULT_BG);
     setIsModalOpen(false);
     setSelectedPreviewMannequinId("female_standard");
-    setPose("neutral");
+    setPose("relaxed");
   };
 
   const selectedSummary = {
@@ -1352,9 +1427,9 @@ export function V18ClosetExperience() {
                   : item.category === "shoes"
                     ? "신발"
                     : "액세서리",
-        assessment: assessGarmentPhysicalFit(item, profile),
+        assessment: fitAssessments.get(item.id) ?? null,
       })),
-    [equippedGarments, profile],
+    [equippedGarments, fitAssessments],
   );
 
   const handlePoseChange = (poseId: string) => {
@@ -1368,7 +1443,7 @@ export function V18ClosetExperience() {
 
   const handleRemoveActiveCategory = (tab: TabValue) => {
     if (tab === "포즈") {
-      handlePoseChange("apose");
+      handlePoseChange("relaxed");
       return;
     }
     if (tab === "마네킹") {
@@ -1461,7 +1536,12 @@ export function V18ClosetExperience() {
             const preset = MEASUREMENT_PRESETS[nextGender][0];
             setSelectedPreviewMannequinId(nextGender === "male" ? "male_standard" : "female_standard");
             applyGenderAndMeasurements(nextGender, preset.measurements, preset.bodyFrame);
-            equipItem("hair", defaultHairItemIdsByVariant[nextGender === "male" ? "male-base" : "female-base"]);
+            const nextHair = defaultHairItemIdsByVariant[nextGender === "male" ? "male-base" : "female-base"];
+            if (nextHair) {
+              equipItem("hair", nextHair);
+            } else {
+              clearCategory("hair");
+            }
           }}
           bodyFrame={bodyFrameState}
           setBodyFrame={(nextBodyFrame) =>

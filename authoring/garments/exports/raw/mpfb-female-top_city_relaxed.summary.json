@@ -22,6 +22,22 @@
       "thigh_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.0027886549942195415,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 40,
+      "0.005": 45,
+      "0.01": 98
+    },
+    "hotSpots": [
+      {
+        "zone": "chest",
+        "countWithin5mm": 45
+      }
+    ]
+  },
   "armature": {
     "name": "mpfb-female-base",
     "boneNames": [

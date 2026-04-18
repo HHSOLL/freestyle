@@ -1,12 +1,21 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { resolveGarmentRuntimeModelPath } from "@freestyle/domain-garment";
 import type { AvatarRenderVariantId, RuntimeGarmentAsset } from "@freestyle/shared-types";
 import { avatarRenderManifest } from "./avatar-manifest.js";
 
+const DRACO_DECODER_PATH = "/draco/gltf/";
+
+const configureRuntimeLoader = (loader: unknown) => {
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
+  (loader as { setDRACOLoader: (dracoLoader: DRACOLoader) => unknown }).setDRACOLoader(dracoLoader);
+};
+
 const preloadRuntimeModelPath = (modelPath: string) => {
-  useGLTF.preload(modelPath, false, true);
+  useGLTF.preload(modelPath, false, true, configureRuntimeLoader);
 };
 
 export const preloadRuntimeAssets = ({

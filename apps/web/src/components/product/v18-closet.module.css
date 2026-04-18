@@ -22,6 +22,13 @@
   --scene-halo: rgba(86,118,182,0.12);
   --modal-backdrop: rgba(10,14,20,0.26);
   --thumb-bg: rgba(235, 240, 245, 0.92);
+  --left-panel-width: clamp(250px, 25vw, 360px);
+  --right-panel-width: clamp(300px, 29vw, 430px);
+  --rail-width: 64px;
+  --subcategory-width: 104px;
+  --asset-grid-columns: 3;
+  --asset-tile-size: 88px;
+  --asset-orb-size: 78px;
   width: 100%;
   min-height: 100svh;
   background:
@@ -106,7 +113,8 @@
 
 .left-panel {
   left: 0;
-  width: min(360px, 30vw);
+  width: var(--left-panel-width);
+  max-width: 34vw;
   padding: 40px 24px 28px 24px;
   display: flex;
   flex-direction: column;
@@ -124,8 +132,13 @@
 
 .right-panel {
   right: 0;
-  width: min(430px, 31vw);
+  width: var(--right-panel-width);
+  max-width: 38vw;
   padding: 34px 24px 28px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: linear-gradient(270deg, var(--panel-glass-outer) 0%, var(--panel-glass-inner) 54%, rgba(255,255,255,0) 100%);
   mask-image: linear-gradient(270deg, #000 0%, #000 72%, rgba(0,0,0,0.84) 86%, rgba(0,0,0,0) 100%);
   -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 72%, rgba(0,0,0,0.84) 86%, rgba(0,0,0,0) 100%);
@@ -411,10 +424,12 @@
 
 .reference-browser {
   display: grid;
-  grid-template-columns: 72px max-content 1fr;
+  grid-template-columns: var(--rail-width) minmax(0, var(--subcategory-width)) minmax(0, 1fr);
   gap: 12px;
-  height: calc(100% - 92px);
+  flex: 1;
+  height: auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .vertical-rail {
@@ -467,6 +482,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
 }
 
 .subcategory-title {
@@ -478,8 +494,8 @@
 
 .subcategory-pill {
   height: 42px;
-  min-width: 88px;
-  width: fit-content;
+  min-width: 0;
+  width: 100%;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.08);
   background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03));
@@ -501,6 +517,7 @@
   gap: 12px;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .asset-toolbar {
@@ -555,10 +572,12 @@
 
 .asset-grid {
   display: grid;
-  grid-template-columns: repeat(3, 88px);
-  justify-content: start;
+  grid-template-columns: repeat(var(--asset-grid-columns), minmax(0, 1fr));
+  justify-content: stretch;
   gap: 18px 10px;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 4px;
   align-content: start;
@@ -576,7 +595,7 @@
 }
 
 .asset-tile {
-  width: 88px;
+  width: 100%;
   border: 0;
   background: transparent;
   padding: 0;
@@ -589,16 +608,17 @@
 
 .asset-orb-wrap {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: min(100%, var(--asset-tile-size));
+  height: min(100%, var(--asset-tile-size));
   border-radius: 999px;
   display: grid;
   place-items: center;
+  margin: 0 auto;
 }
 
 .asset-orb {
-  width: 78px;
-  height: 78px;
+  width: min(100%, var(--asset-orb-size));
+  height: min(100%, var(--asset-orb-size));
   border-radius: 999px;
   background:
     radial-gradient(circle at 50% 24%, rgba(255,255,255,0.92), rgba(255,255,255,0.22) 56%, rgba(255,255,255,0.06) 100%),
@@ -620,7 +640,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: 88px;
+  width: 100%;
 }
 
 .reference-copy {
@@ -861,26 +881,74 @@
 }
 
 @media (max-width: 1280px) {
-  .left-panel { width: min(320px, 32vw); }
-  .right-panel { width: min(392px, 35vw); }
-  .reference-browser { grid-template-columns: 64px max-content 1fr; gap: 10px; }
-  .asset-grid { grid-template-columns: repeat(3, 82px); }
-  .asset-tile, .asset-copy { width: 82px; }
-  .asset-orb-wrap { width: 82px; height: 82px; }
-  .asset-orb { width: 72px; height: 72px; }
+  .app-shell {
+    --left-panel-width: clamp(232px, 25vw, 320px);
+    --right-panel-width: clamp(284px, 32vw, 392px);
+    --subcategory-width: 96px;
+    --asset-tile-size: 82px;
+    --asset-orb-size: 72px;
+  }
 }
 
 @media (max-width: 980px) {
+  .app-shell {
+    --left-panel-width: 276px;
+    --right-panel-width: 332px;
+    --asset-grid-columns: 2;
+    --asset-tile-size: 76px;
+    --asset-orb-size: 66px;
+    --subcategory-width: 88px;
+  }
   .top-controls { top: 16px; left: 16px; right: 16px; }
   .top-button { min-width: 82px; height: 42px; padding: 0 16px; }
-  .left-panel { width: 290px; padding: 30px 16px 20px; }
-  .right-panel { width: 360px; padding: 28px 16px 20px 8px; }
+  .left-panel { padding: 30px 16px 20px; }
+  .right-panel { padding: 28px 16px 20px 8px; }
   .left-panel h1,
   .outfit-title { font-size: 34px; }
   .outfit-topline,
   .outfit-title { margin-left: 68px; }
-  .asset-grid { grid-template-columns: repeat(3, 76px); gap: 14px 8px; }
-  .asset-tile, .asset-copy { width: 76px; }
-  .asset-orb-wrap { width: 76px; height: 76px; }
-  .asset-orb { width: 66px; height: 66px; }
+  .asset-grid { gap: 14px 8px; }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    --left-panel-width: 248px;
+    --right-panel-width: 296px;
+    --rail-width: 58px;
+    --subcategory-width: 82px;
+    --asset-tile-size: 72px;
+    --asset-orb-size: 62px;
+  }
+  .left-panel,
+  .right-panel {
+    top: 82px;
+    padding-top: 24px;
+  }
+  .left-section,
+  .status-panel,
+  .hero-button {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    --left-panel-width: 224px;
+    --right-panel-width: 272px;
+    --asset-grid-columns: 2;
+    --rail-width: 52px;
+    --subcategory-width: 74px;
+    --asset-tile-size: 68px;
+    --asset-orb-size: 58px;
+  }
+  .reference-browser {
+    gap: 8px;
+  }
+  .rail-label {
+    font-size: 11px;
+  }
+  .subcategory-pill {
+    padding: 0 12px;
+    font-size: 12px;
+  }
 }

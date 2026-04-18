@@ -38,7 +38,7 @@ const validateAssetPath = (label, assetPath) => {
   }
 };
 
-const validateMpfbSummary = (variantId) => {
+const validateMpfbSummary = (variantId, entry) => {
   const summaryPath = mpfbSummaryPaths[variantId];
   if (!summaryPath) return;
   if (!fs.existsSync(summaryPath)) {
@@ -54,7 +54,11 @@ const validateMpfbSummary = (variantId) => {
   }
 
   const segmentation = summary?.segmentation ?? {};
-  for (const zone of ["torso", "hips", "legs", "feet", "exposed"]) {
+  const requiredSegmentationZones = [
+    ...Object.keys(entry.meshZones).filter((zone) => zone !== "fullBody"),
+    "exposed",
+  ];
+  for (const zone of requiredSegmentationZones) {
     if (typeof segmentation[zone] !== "number" || segmentation[zone] <= 0) {
       issues.push(`${variantId}: segmentation.${zone} must be a positive number`);
     }
@@ -80,7 +84,7 @@ for (const [variantId, entry] of Object.entries(avatarRenderManifest)) {
   validateAssetPath(variantId, entry.modelPath);
   validateAliasMap(variantId, entry.aliasPatterns);
   if (entry.authoringSource === "mpfb2") {
-    validateMpfbSummary(variantId);
+    validateMpfbSummary(variantId, entry);
   }
 
   for (const [zone, meshNames] of Object.entries(entry.meshZones)) {

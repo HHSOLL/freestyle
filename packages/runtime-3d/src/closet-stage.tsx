@@ -4,11 +4,14 @@ import { Suspense, useLayoutEffect, useMemo, useRef, type ComponentRef, type Ref
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { bodyProfileToAvatarMorphPlan } from "@freestyle/domain-avatar";
 import {
   assessGarmentPhysicalFit,
   computeGarmentCorrectiveTransform,
+  getGarmentAdaptiveBodyMaskZones,
   getGarmentEffectiveBodyMaskZones,
   getGarmentPoseRuntimeTuning,
   resolveGarmentRuntimeModelPath,
@@ -19,6 +22,7 @@ import type {
   AvatarRenderVariantId,
   BodyProfile,
   GarmentCollisionZone,
+  GarmentFitAssessment,
   GarmentMeasurementKey,
   QualityTier,
   RuntimeGarmentAsset,
@@ -44,6 +48,11 @@ type AdaptiveGarmentAdjustment = {
   offsetY: number;
 };
 
+type GarmentLayerContext = {
+  layeredUnderOuterwear: boolean;
+  hasTopUnderneath: boolean;
+};
+
 type SecondaryMotionState = {
   initialized: boolean;
   lastAnchorWorld: THREE.Vector3;
@@ -53,7 +62,18 @@ type SecondaryMotionState = {
   positionVelocity: THREE.Vector3;
 };
 
-const useRuntimeGLTF = (modelPath: string) => useGLTF(modelPath, false, true);
+const DRACO_DECODER_PATH = "/draco/gltf/";
+
+const configureRuntimeLoader = (loader: unknown) => {
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
+  (loader as { setDRACOLoader: (dracoLoader: DRACOLoader) => unknown }).setDRACOLoader(dracoLoader);
+  if ("setMeshoptDecoder" in (loader as object)) {
+    (loader as { setMeshoptDecoder: (decoder: typeof MeshoptDecoder) => unknown }).setMeshoptDecoder(MeshoptDecoder);
+  }
+};
+
+const useRuntimeGLTF = (modelPath: string) => useGLTF(modelPath, false, true, configureRuntimeLoader);
 
 function normalizeBoneName(name: string) {
   return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -217,32 +237,11 @@ function applyRigTargets(
   const rightShoulder = aliasMap.rightShoulder;
 
   const applyMpfbLiteRigTargets = () => {
-    const setScaleXZ = (key: AliasKey, factor: number, damp = 0.16) => {
-      const bone = aliasMap[key];
-      const state = initialState[key];
-      if (!bone || !state) return;
-      const applied = 1 + (factor - 1) * damp;
-      bone.scale.set(state.scale.x * applied, state.scale.y, state.scale.z * applied);
-    };
-
     if (leftShoulder && initialState.leftShoulder) {
-      leftShoulder.position.x = initialState.leftShoulder.position.x + rigTargets.shoulderOffset * 0.18;
+      leftShoulder.position.x = initialState.leftShoulder.position.x + rigTargets.shoulderOffset * 0.12;
     }
     if (rightShoulder && initialState.rightShoulder) {
-      rightShoulder.position.x = initialState.rightShoulder.position.x - rigTargets.shoulderOffset * 0.18;
-    }
-
-    setScaleXZ("chest", rigTargets.chestScale, avatarVariantId === "female-base" ? 0.18 : 0.14);
-    setScaleXZ("spine", (rigTargets.chestScale + rigTargets.waistScale) * 0.5, 0.1);
-    setScaleXZ("torso", rigTargets.waistScale, 0.12);
-    setScaleXZ("hips", rigTargets.hipScale, avatarVariantId === "female-base" ? 0.2 : 0.15);
-    setScaleXZ("leftUpperLeg", rigTargets.legVolumeScale, 0.18);
-    setScaleXZ("rightUpperLeg", rigTargets.legVolumeScale, 0.18);
-    setScaleXZ("leftLowerLeg", rigTargets.legVolumeScale, 0.12);
-    setScaleXZ("rightLowerLeg", rigTargets.legVolumeScale, 0.12);
-
-    if (head && initialState.head) {
-      head.scale.setScalar(initialState.head.scale.x * (1 + (headScale - 1) * 0.22));
+      rightShoulder.position.x = initialState.rightShoulder.position.x - rigTargets.shoulderOffset * 0.12;
     }
 
     const stretchBones = (keys: AliasKey[], factor: number, damp = 1) => {
@@ -254,10 +253,10 @@ function applyRigTargets(
       });
     };
 
-    stretchBones(["leftUpperArm", "rightUpperArm"], rigTargets.armLengthScale, 0.08);
-    stretchBones(["leftLowerArm", "rightLowerArm", "leftHand", "rightHand"], rigTargets.armLengthScale, 0.12);
-    stretchBones(["leftUpperLeg", "rightUpperLeg"], rigTargets.legLengthScale, 0.1);
-    stretchBones(["leftLowerLeg", "rightLowerLeg", "leftFoot", "rightFoot"], rigTargets.legLengthScale, 0.14);
+    stretchBones(["leftUpperArm", "rightUpperArm"], rigTargets.armLengthScale, 0.03);
+    stretchBones(["leftLowerArm", "rightLowerArm", "leftHand", "rightHand"], rigTargets.armLengthScale, 0.06);
+    stretchBones(["leftUpperLeg", "rightUpperLeg"], rigTargets.legLengthScale, 0.05);
+    stretchBones(["leftLowerLeg", "rightLowerLeg", "leftFoot", "rightFoot"], rigTargets.legLengthScale, 0.08);
   };
 
   if (authoringSource === "mpfb2") {
@@ -309,6 +308,50 @@ function applyRigTargets(
   });
 }
 
+function applyGarmentRigTargets(
+  aliasMap: AliasMap,
+  initialState: InitialStateMap,
+  rigTargets: RigTargetPlan,
+  category: RuntimeGarmentAsset["category"],
+) {
+  if (!initialState) return;
+  restoreInitialState(aliasMap, initialState);
+
+  const leftShoulder = aliasMap.leftShoulder;
+  const rightShoulder = aliasMap.rightShoulder;
+  if (leftShoulder && initialState.leftShoulder) {
+    leftShoulder.position.x = initialState.leftShoulder.position.x + rigTargets.shoulderOffset * 0.08;
+  }
+  if (rightShoulder && initialState.rightShoulder) {
+    rightShoulder.position.x = initialState.rightShoulder.position.x - rigTargets.shoulderOffset * 0.08;
+  }
+
+  const stretchBones = (keys: AliasKey[], factor: number, damp = 1) => {
+    keys.forEach((key) => {
+      const bone = aliasMap[key];
+      const state = initialState[key];
+      if (!bone || !state) return;
+      bone.position.copy(state.position.clone().multiplyScalar(1 + (factor - 1) * damp));
+    });
+  };
+
+  if (category === "tops" || category === "outerwear") {
+    stretchBones(["leftUpperArm", "rightUpperArm"], rigTargets.armLengthScale, 0.04);
+    stretchBones(["leftLowerArm", "rightLowerArm", "leftHand", "rightHand"], rigTargets.armLengthScale, 0.07);
+    return;
+  }
+
+  if (category === "bottoms" || category === "shoes") {
+    stretchBones(["leftUpperLeg", "rightUpperLeg"], rigTargets.legLengthScale, 0.05);
+    stretchBones(["leftLowerLeg", "rightLowerLeg", "leftFoot", "rightFoot"], rigTargets.legLengthScale, 0.08);
+    return;
+  }
+
+  if (category === "hair" || category === "accessories") {
+    return;
+  }
+}
+
 function applyPose(
   aliasMap: AliasMap,
   initialState: InitialStateMap,
@@ -338,37 +381,57 @@ function applyPose(
 
   if (authoringSource === "mpfb2") {
     switch (poseId) {
-      case "relaxed":
-        setZ("leftUpperArm", 8);
-        setZ("rightUpperArm", -8);
-        setZ("leftLowerArm", 2);
-        setZ("rightLowerArm", -2);
-        setY("hips", 2);
+      case "neutral":
+        setZ("leftUpperArm", -36);
+        setZ("rightUpperArm", 36);
+        setZ("leftLowerArm", -8);
+        setZ("rightLowerArm", 8);
+        setY("hips", 1.5);
         setY("head", -2);
         break;
-      case "contrapposto":
-        setZ("leftUpperArm", 10);
-        setZ("rightUpperArm", -6);
-        setY("hips", 4);
-        setY("chest", -3);
+      case "relaxed":
+        setZ("leftUpperArm", -44);
+        setZ("rightUpperArm", 44);
+        setY("leftUpperArm", -4);
+        setY("rightUpperArm", 4);
+        setZ("leftLowerArm", -10);
+        setZ("rightLowerArm", 10);
+        setY("hips", 2.5);
         setY("head", -3);
+        setX("leftUpperLeg", -1.2);
+        setX("rightUpperLeg", 0.9);
+        break;
+      case "contrapposto":
+        setZ("leftUpperArm", -40);
+        setZ("rightUpperArm", 24);
+        setY("leftUpperArm", -6);
+        setZ("leftLowerArm", -12);
+        setZ("rightLowerArm", 4);
+        setY("hips", 6.5);
+        setY("chest", -4.5);
+        setY("head", -4.5);
+        setX("leftUpperLeg", -1.8);
+        setX("rightUpperLeg", 1.2);
         break;
       case "stride":
         setX("leftUpperLeg", 4);
         setX("rightUpperLeg", -4);
         setX("leftLowerLeg", -3);
         setX("rightLowerLeg", 3);
-        setZ("leftUpperArm", 6);
-        setZ("rightUpperArm", -6);
+        setZ("leftUpperArm", -26);
+        setZ("rightUpperArm", 26);
+        setZ("leftLowerArm", -6);
+        setZ("rightLowerArm", 6);
         break;
       case "tailored":
-        setZ("leftUpperArm", 12);
-        setZ("rightUpperArm", -12);
-        setZ("leftLowerArm", 18);
-        setZ("rightLowerArm", -18);
-        setY("hips", 2);
+        setZ("leftUpperArm", -48);
+        setZ("rightUpperArm", 48);
+        setY("leftUpperArm", -14);
+        setY("rightUpperArm", 14);
+        setZ("leftLowerArm", -20);
+        setZ("rightLowerArm", 20);
+        setY("hips", 3);
         break;
-      case "neutral":
       default:
         break;
     }
@@ -529,18 +592,18 @@ function fitCamera(
   const aspect = size.width / Math.max(size.height, 1);
   const distance = avatarOnly
     ? aspect < 1.0
-      ? 6.55
+      ? 6.45
       : aspect < 1.3
-        ? 5.9
-        : 5.25
+        ? 5.8
+        : 5.15
     : aspect < 1.0
-      ? 6.8
+      ? 6.85
       : aspect < 1.3
-        ? 6.1
-        : 5.45;
-  const fov = avatarOnly ? (aspect < 1.0 ? 27 : aspect < 1.3 ? 23 : 21) : aspect < 1.0 ? 28 : aspect < 1.3 ? 24 : 22;
-  const targetY = avatarOnly ? 0.98 : 0.94;
-  const cameraY = avatarOnly ? 1.22 : 1.18;
+        ? 6.05
+        : 5.35;
+  const fov = avatarOnly ? (aspect < 1.0 ? 29 : aspect < 1.3 ? 25 : 23) : aspect < 1.0 ? 32 : aspect < 1.3 ? 28 : 25;
+  const targetY = avatarOnly ? 0.94 : 0.84;
+  const cameraY = avatarOnly ? 1.14 : 1.08;
 
   camera.fov = fov;
   camera.position.set(0, cameraY, distance);
@@ -650,6 +713,99 @@ function getFitLoosenessMultiplier(item: RuntimeGarmentAsset, bodyProfile: BodyP
   return fitStateMultiplier * (0.74 + drape * 0.92);
 }
 
+function getAdaptiveBodyMaskExpansionZones(
+  item: RuntimeGarmentAsset,
+  bodyProfile: BodyProfile,
+) {
+  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
+  if (!assessment) {
+    return new Set<GarmentCollisionZone>();
+  }
+
+  const shouldExpand =
+    assessment.overallState === "compression" ||
+    assessment.overallState === "snug" ||
+    assessment.clippingRisk === "medium" ||
+    assessment.clippingRisk === "high" ||
+    assessment.tensionRisk === "high";
+
+  if (!shouldExpand) {
+    return new Set<GarmentCollisionZone>();
+  }
+
+  const zones = new Set<GarmentCollisionZone>(getGarmentAdaptiveBodyMaskZones(item, bodyProfile));
+
+  if (
+    (assessment.clippingRisk === "high" || assessment.tensionRisk === "high") &&
+    (item.category === "tops" || item.category === "outerwear")
+  ) {
+    zones.add("torso");
+    zones.add("arms");
+  }
+
+  if (
+    (assessment.clippingRisk !== "low" || assessment.overallState === "compression") &&
+    (item.category === "bottoms" || item.category === "outerwear")
+  ) {
+    if (assessment.limitingKeys.includes("hipCm") || assessment.limitingKeys.includes("riseCm")) {
+      zones.add("hips");
+    }
+    if (
+      assessment.limitingKeys.includes("inseamCm") ||
+      assessment.limitingKeys.includes("hemCm") ||
+      assessment.limitingKeys.includes("lengthCm")
+    ) {
+      zones.add("legs");
+    }
+  }
+
+  if (
+    item.category === "shoes" &&
+    (assessment.limitingKeys.includes("inseamCm") ||
+      assessment.limitingKeys.includes("hemCm") ||
+      assessment.limitingKeys.includes("lengthCm") ||
+      assessment.clippingRisk !== "low" ||
+      assessment.overallState === "compression")
+  ) {
+    zones.add("feet");
+  }
+
+  return zones;
+}
+
+function hasSignificantContinuousMotion(
+  item: RuntimeGarmentAsset,
+  bodyProfile: BodyProfile,
+  poseId: AvatarPoseId,
+  qualityTier: QualityTier,
+) {
+  if (qualityTier === "low") {
+    return false;
+  }
+
+  const binding = item.runtime.secondaryMotion;
+  if (!binding) {
+    return false;
+  }
+
+  const looseness = getFitLoosenessMultiplier(item, bodyProfile);
+  const poseMultiplier =
+    poseId === "stride" ? 1.22 : poseId === "contrapposto" ? 1.1 : poseId === "tailored" ? 0.94 : 1;
+  const motionScale = looseness * poseMultiplier;
+  const idleEnergy = (binding.idleAmplitudeDeg ?? 0.4) * motionScale;
+  const travelEnergy = Math.max(binding.lateralSwingCm ?? 0, binding.verticalBobCm ?? 0) * motionScale;
+
+  if (binding.profileId === "hair-long" || binding.profileId === "garment-loose") {
+    return true;
+  }
+
+  if (item.category === "hair") {
+    return idleEnergy >= 0.85 || travelEnergy >= 0.7;
+  }
+
+  return idleEnergy >= 0.75 || travelEnergy >= 0.55;
+}
+
 function resolveMotionAnchorBone(aliasMap: AliasMap, category: RuntimeGarmentAsset["category"]) {
   if (category === "hair" || category === "accessories") {
     return aliasMap.head ?? aliasMap.chest ?? aliasMap.spine ?? null;
@@ -664,6 +820,63 @@ function resolveMotionAnchorBone(aliasMap: AliasMap, category: RuntimeGarmentAss
     return aliasMap.hips ?? aliasMap.spine ?? null;
   }
   return aliasMap.chest ?? aliasMap.spine ?? aliasMap.head ?? null;
+}
+
+type WeightedAnchorTarget = {
+  bone: THREE.Bone;
+  weight: number;
+};
+
+function resolveRuntimeAnchorTargets(
+  aliasMap: AliasMap,
+  anchorBindings: RuntimeGarmentAsset["runtime"]["anchorBindings"] | undefined,
+  category: RuntimeGarmentAsset["category"],
+) {
+  const anchorMap: Partial<Record<string, AliasKey[]>> = {
+    neckBase: ["head", "chest"],
+    headCenter: ["head"],
+    foreheadCenter: ["head"],
+    leftTemple: ["head"],
+    rightTemple: ["head"],
+    leftShoulder: ["leftShoulder"],
+    rightShoulder: ["rightShoulder"],
+    chestCenter: ["chest", "spine"],
+    waistCenter: ["torso", "spine"],
+    hipCenter: ["hips"],
+    leftKnee: ["leftLowerLeg", "leftUpperLeg"],
+    rightKnee: ["rightLowerLeg", "rightUpperLeg"],
+    leftAnkle: ["leftFoot", "leftLowerLeg"],
+    rightAnkle: ["rightFoot", "rightLowerLeg"],
+    leftFoot: ["leftFoot"],
+    rightFoot: ["rightFoot"],
+  };
+
+  const resolved =
+    anchorBindings
+      ?.map((binding) => {
+        const keys = anchorMap[binding.id] ?? [];
+        const bone = keys.map((key) => aliasMap[key]).find(Boolean) ?? null;
+        return bone ? { bone, weight: binding.weight } : null;
+      })
+      .filter((entry): entry is WeightedAnchorTarget => Boolean(entry)) ?? [];
+
+  if (resolved.length > 0) {
+    const totalWeight = resolved.reduce((sum, entry) => sum + entry.weight, 0) || 1;
+    return resolved.map((entry) => ({ bone: entry.bone, weight: entry.weight / totalWeight }));
+  }
+
+  const fallback = resolveMotionAnchorBone(aliasMap, category);
+  return fallback ? [{ bone: fallback, weight: 1 }] : [];
+}
+
+function sampleWeightedAnchorWorld(targets: WeightedAnchorTarget[], out: THREE.Vector3) {
+  out.set(0, 0, 0);
+  const scratch = new THREE.Vector3();
+  for (const target of targets) {
+    target.bone.getWorldPosition(scratch);
+    out.addScaledVector(scratch, target.weight);
+  }
+  return out;
 }
 
 function springAxis(current: number, velocity: number, target: number, stiffness: number, damping: number, dt: number) {
@@ -745,66 +958,10 @@ function collisionZonesFromLimitingKeys(
   return zones;
 }
 
-function getAdaptiveCollisionZones(
-  item: RuntimeGarmentAsset,
-  bodyProfile: BodyProfile,
-  poseId: AvatarPoseId,
-) {
-  const zones = new Set(getGarmentEffectiveBodyMaskZones(item.runtime, poseId));
-  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
-  if (!assessment) {
-    return zones;
-  }
-
-  collisionZonesFromLimitingKeys(item.category, assessment.limitingKeys).forEach((zone) => zones.add(zone));
-
-  const highClip = assessment.clippingRisk === "high";
-  const mediumClip = assessment.clippingRisk === "medium";
-  const highTension = assessment.tensionRisk === "high";
-  const mediumTension = assessment.tensionRisk === "medium";
-  const compressionLike =
-    assessment.overallState === "compression" || assessment.overallState === "snug";
-
-  if (item.category === "tops") {
-    if (mediumClip || highTension || mediumTension) {
-      zones.add("torso");
-    }
-    if (highClip || compressionLike) {
-      zones.add("arms");
-      zones.add("hips");
-    }
-  }
-
-  if (item.category === "outerwear") {
-    zones.add("torso");
-    if (mediumClip || compressionLike) {
-      zones.add("arms");
-      zones.add("hips");
-    }
-    if (highClip) {
-      zones.add("legs");
-    }
-  }
-
-  if (item.category === "bottoms") {
-    zones.add("hips");
-    if (mediumClip || highTension || mediumTension) {
-      zones.add("legs");
-    }
-  }
-
-  if (item.category === "shoes" && (mediumClip || highClip || highTension)) {
-    zones.add("feet");
-  }
-
-  return zones;
-}
-
 function getAdaptiveCollisionClearanceMultiplier(
   item: RuntimeGarmentAsset,
-  bodyProfile: BodyProfile,
+  assessment: GarmentFitAssessment | null,
 ) {
-  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
   if (!assessment) {
     return 1;
   }
@@ -854,11 +1011,9 @@ function fitToneColor(overallState: "compression" | "snug" | "regular" | "relaxe
 }
 
 function getFitVisualCue(
-  item: RuntimeGarmentAsset,
-  bodyProfile: BodyProfile,
+  assessment: GarmentFitAssessment | null,
   isSelected: boolean,
 ): FitVisualCue {
-  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
   if (!assessment) {
     return {
       scaleMultiplier: isSelected ? 1.008 : 1,
@@ -900,10 +1055,10 @@ function getFitVisualCue(
 
 function getAdaptiveGarmentAdjustment(
   item: RuntimeGarmentAsset,
-  bodyProfile: BodyProfile,
+  assessment: GarmentFitAssessment | null,
   poseId: AvatarPoseId,
+  layerContext: GarmentLayerContext,
 ): AdaptiveGarmentAdjustment {
-  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
   if (!assessment) {
     return { widthScale: 1, depthScale: 1, heightScale: 1, offsetY: 0 };
   }
@@ -920,6 +1075,12 @@ function getAdaptiveGarmentAdjustment(
       next.widthScale += compressionLike ? 0.012 : mediumClip || highTension ? 0.007 : 0.004;
       next.depthScale += highClip || has("chestCm") ? 0.014 : 0.008;
     }
+    if (layerContext.hasTopUnderneath) {
+      next.widthScale += 0.018;
+      next.depthScale += 0.02;
+      next.heightScale += 0.006;
+      next.offsetY += 0.004;
+    }
     if (poseId === "stride") {
       next.heightScale += 0.008;
       next.offsetY += 0.004;
@@ -934,6 +1095,12 @@ function getAdaptiveGarmentAdjustment(
     if (has("shoulderCm") || has("chestCm")) {
       next.widthScale += compressionLike ? 0.008 : 0.004;
       next.depthScale += highClip ? 0.01 : 0.005;
+    }
+    if (layerContext.layeredUnderOuterwear) {
+      next.widthScale -= 0.012;
+      next.depthScale -= 0.014;
+      next.heightScale -= 0.008;
+      next.offsetY -= 0.004;
     }
     if (poseId === "stride") {
       next.heightScale += 0.004;
@@ -984,13 +1151,17 @@ function matchesMeshPattern(objectName: string, patterns: string[]) {
 function applyVisibleAvatarVisibility(
   root: THREE.Object3D,
   avatarVariantId: AvatarRenderVariantId,
-  coveredZones: Set<string>,
+  coveredZones: Set<GarmentCollisionZone>,
   opacity: number,
-  hideBaseHair: boolean,
   qualityTier: QualityTier,
 ) {
   const manifest = avatarRenderManifest[avatarVariantId];
-  const useSegmentedBody = coveredZones.has("torso") || coveredZones.has("hips") || coveredZones.has("legs");
+  const useSegmentedBody =
+    coveredZones.has("torso") ||
+    coveredZones.has("arms") ||
+    coveredZones.has("hips") ||
+    coveredZones.has("legs") ||
+    coveredZones.has("feet");
 
   root.traverse((object) => {
     if (!isRenderableMesh(object)) return;
@@ -998,7 +1169,7 @@ function applyVisibleAvatarVisibility(
       object.visible = false;
       return;
     }
-    if (hideBaseHair && isHairLikeName(object.name)) {
+    if (isHairLikeName(object.name)) {
       object.visible = false;
       return;
     }
@@ -1009,12 +1180,14 @@ function applyVisibleAvatarVisibility(
     const isSegmentMesh =
       manifest.bodyMaskStrategy === "named-mesh-zones" &&
       (matchesMeshPattern(object.name, manifest.meshZones.torso) ||
+        matchesMeshPattern(object.name, manifest.meshZones.arms) ||
         matchesMeshPattern(object.name, manifest.meshZones.hips) ||
         matchesMeshPattern(object.name, manifest.meshZones.legs) ||
         matchesMeshPattern(object.name, manifest.meshZones.feet));
     const isCovered =
       manifest.bodyMaskStrategy === "named-mesh-zones"
         ? (coveredZones.has("torso") && matchesMeshPattern(object.name, manifest.meshZones.torso)) ||
+          (coveredZones.has("arms") && matchesMeshPattern(object.name, manifest.meshZones.arms)) ||
           (coveredZones.has("hips") && matchesMeshPattern(object.name, manifest.meshZones.hips)) ||
           (coveredZones.has("legs") && matchesMeshPattern(object.name, manifest.meshZones.legs)) ||
           (coveredZones.has("feet") && matchesMeshPattern(object.name, manifest.meshZones.feet))
@@ -1049,21 +1222,30 @@ function applyVisibleAvatarVisibility(
 function BoundGarment({
   item,
   bodyProfile,
+  morphPlan,
   avatarVariantId,
   poseId,
   selected,
   qualityTier,
+  layerContext,
+  avatarAliasMap,
+  avatarSceneScale,
 }: {
   item: RuntimeGarmentAsset;
   bodyProfile: BodyProfile;
+  morphPlan: AvatarMorphPlan;
   avatarVariantId: AvatarRenderVariantId;
   poseId: AvatarPoseId;
   selected: boolean;
   qualityTier: QualityTier;
+  layerContext: GarmentLayerContext;
+  avatarAliasMap: AliasMap;
+  avatarSceneScale: number;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
   const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId);
   const gltf = useRuntimeGLTF(modelPath);
+  const invalidate = useThree((state) => state.invalidate);
   const fitRef = useRef<THREE.Group>(null);
   const motionRef = useRef<THREE.Group>(null);
   const motionStateRef = useRef<SecondaryMotionState>(createSecondaryMotionState());
@@ -1074,29 +1256,26 @@ function BoundGarment({
     [garmentScene, manifest.aliasPatterns],
   );
   const initialState = useMemo(() => captureInitialState(aliasMap), [aliasMap]);
-  const morphPlan = useMemo(
-    () => bodyProfileToAvatarMorphPlan(bodyProfile, avatarVariantId),
-    [avatarVariantId, bodyProfile],
-  );
+  const fitAssessment = useMemo(() => assessGarmentPhysicalFit(item, bodyProfile), [bodyProfile, item]);
   const fitVisualCue = useMemo(
-    () => getFitVisualCue(item, bodyProfile, selected),
-    [bodyProfile, item, selected],
+    () => getFitVisualCue(fitAssessment, selected),
+    [fitAssessment, selected],
   );
   const correctiveTransform = useMemo(
     () => computeGarmentCorrectiveTransform(item, bodyProfile),
     [bodyProfile, item],
   );
   const adaptiveCollisionMultiplier = useMemo(
-    () => getAdaptiveCollisionClearanceMultiplier(item, bodyProfile),
-    [bodyProfile, item],
+    () => getAdaptiveCollisionClearanceMultiplier(item, fitAssessment),
+    [fitAssessment, item],
   );
   const poseRuntimeTuning = useMemo(
     () => getGarmentPoseRuntimeTuning(item.runtime, poseId),
     [item.runtime, poseId],
   );
   const adaptiveAdjustment = useMemo(
-    () => getAdaptiveGarmentAdjustment(item, bodyProfile, poseId),
-    [bodyProfile, item, poseId],
+    () => getAdaptiveGarmentAdjustment(item, fitAssessment, poseId, layerContext),
+    [fitAssessment, item, layerContext, poseId],
   );
   const secondaryMotionConfig = useMemo(() => {
     if (qualityTier === "low") return null;
@@ -1115,14 +1294,19 @@ function BoundGarment({
             : binding.profileId === "hair-sway"
               ? 0.62
               : 0.92;
+    const scaleCompensation = THREE.MathUtils.clamp(avatarSceneScale, 0.82, 1.24);
     return {
       ...binding,
+      stiffness: binding.stiffness * scaleCompensation,
+      lateralSwingCm: (binding.lateralSwingCm ?? 0) * scaleCompensation,
+      verticalBobCm: (binding.verticalBobCm ?? 0) * scaleCompensation,
       looseness: looseness * poseMultiplier * profileMultiplier,
+      scaleCompensation,
     };
-  }, [bodyProfile, item, poseId, qualityTier]);
-  const motionAnchorBone = useMemo(
-    () => resolveMotionAnchorBone(aliasMap, item.category),
-    [aliasMap, item.category],
+  }, [avatarSceneScale, bodyProfile, item, poseId, qualityTier]);
+  const motionAnchorTargets = useMemo(
+    () => resolveRuntimeAnchorTargets(avatarAliasMap, item.runtime.anchorBindings, item.category),
+    [avatarAliasMap, item.category, item.runtime.anchorBindings],
   );
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
 
@@ -1182,9 +1366,10 @@ function BoundGarment({
           texturedMaterial.emissive = new THREE.Color(fitVisualCue.emissiveColor);
           texturedMaterial.emissiveIntensity = fitVisualCue.emissiveIntensity;
         }
-        material.transparent = false;
-        material.opacity = 1;
-        material.depthWrite = true;
+        const underOuterwearOpacity = layerContext.layeredUnderOuterwear ? 0.86 : 1;
+        material.transparent = underOuterwearOpacity < 0.98;
+        material.opacity = underOuterwearOpacity;
+        material.depthWrite = underOuterwearOpacity > 0.4;
         material.depthTest = true;
         if ("alphaTest" in material) {
           material.alphaTest = alphaCard ? 0.42 : 0;
@@ -1193,10 +1378,13 @@ function BoundGarment({
       });
     });
     applyMorphTargets(garmentScene, morphPlan.targetWeights);
-    applyRigTargets(aliasMap, initialState, morphPlan.rigTargets, avatarVariantId, manifest.authoringSource);
+    applyGarmentRigTargets(aliasMap, initialState, morphPlan.rigTargets, item.category);
     applyPose(aliasMap, initialState, poseId, manifest.authoringSource);
     garmentSkinned?.skeleton?.update();
     motionStateRef.current = createSecondaryMotionState();
+    if (secondaryMotionConfig) {
+      invalidate();
+    }
   }, [
     aliasMap,
     avatarVariantId,
@@ -1212,6 +1400,7 @@ function BoundGarment({
     adaptiveAdjustment.heightScale,
     adaptiveAdjustment.offsetY,
     adaptiveAdjustment.widthScale,
+    layerContext.layeredUnderOuterwear,
     fitVisualCue.emissiveColor,
     fitVisualCue.emissiveIntensity,
     fitVisualCue.scaleMultiplier,
@@ -1232,10 +1421,12 @@ function BoundGarment({
     poseRuntimeTuning.widthScale,
     qualityTier,
     selected,
+    secondaryMotionConfig,
+    invalidate,
   ]);
 
   useFrame((frameState, delta) => {
-    if (!motionRef.current || !secondaryMotionConfig || !motionAnchorBone) {
+    if (!motionRef.current || !secondaryMotionConfig || motionAnchorTargets.length === 0) {
       return;
     }
 
@@ -1244,7 +1435,7 @@ function BoundGarment({
     const state = motionStateRef.current;
     const dt = Math.min(1 / 24, Math.max(1 / 240, delta || 1 / 60));
     const time = frameState.clock.getElapsedTime();
-    const anchorWorld = motionAnchorBone.getWorldPosition(new THREE.Vector3());
+    const anchorWorld = sampleWeightedAnchorWorld(motionAnchorTargets, new THREE.Vector3());
     if (!state.initialized) {
       state.initialized = true;
       state.lastAnchorWorld.copy(anchorWorld);
@@ -1307,16 +1498,16 @@ function BoundGarment({
         ((secondaryMotionConfig.lateralSwingCm ?? 0) / 100) *
         looseness *
         (secondaryMotionConfig.profileId.startsWith("hair") ? 1 : 0.74),
-      -0.06,
-      0.06,
+      -0.06 * secondaryMotionConfig.scaleCompensation,
+      0.06 * secondaryMotionConfig.scaleCompensation,
     );
     const targetPosY = THREE.MathUtils.clamp(
       Math.abs(idleCos) *
         ((secondaryMotionConfig.verticalBobCm ?? 0) / 100) *
         looseness +
-        Math.max(velocityY, 0) * 0.0025,
+      Math.max(velocityY, 0) * 0.0025,
       0,
-      0.08,
+      0.08 * secondaryMotionConfig.scaleCompensation,
     );
     const posXAxis = springAxis(
       state.position.x,
@@ -1339,6 +1530,22 @@ function BoundGarment({
 
     motionRef.current.rotation.copy(state.rotation);
     motionRef.current.position.set(state.position.x, baseMotionOffsetY + state.position.y, 0);
+
+    const angularEnergy =
+      Math.abs(state.rotationVelocity.x) + Math.abs(state.rotationVelocity.y) + Math.abs(state.rotationVelocity.z);
+    const positionalEnergy = Math.abs(state.positionVelocity.x) + Math.abs(state.positionVelocity.y);
+    const anchorEnergy = Math.abs(velocityX) + Math.abs(velocityY) + Math.abs(velocityZ);
+    const shouldContinue =
+      angularEnergy > 0.02 ||
+      positionalEnergy > 0.006 ||
+      anchorEnergy > 0.02 ||
+      Math.abs(targetYaw - state.rotation.y) > 0.002 ||
+      Math.abs(targetPitch - state.rotation.x) > 0.002 ||
+      Math.abs(targetRoll - state.rotation.z) > 0.002;
+
+    if (shouldContinue) {
+      invalidate();
+    }
   });
 
   return (
@@ -1391,11 +1598,16 @@ function AvatarRig({
     );
     return computeBodyFitInfo(measurementScene);
   }, [avatarGltf.scene, avatarVariantId, manifest.aliasPatterns, manifest.authoringSource, morphPlan]);
+  const avatarSceneScale = useMemo(
+    () => ((bodyProfile.simple.heightCm / 100) / fitInfo.height) * manifest.stageScale,
+    [bodyProfile.simple.heightCm, fitInfo.height, manifest.stageScale],
+  );
   const avatarSkinned = useMemo(() => findSkinnedMeshes(avatarScene)[0], [avatarScene]);
   const coveredZones = useMemo(() => {
-    const zones = new Set<string>();
+    const zones = new Set<GarmentCollisionZone>();
     equippedGarments.forEach((item) => {
-      getAdaptiveCollisionZones(item, bodyProfile, poseId).forEach((zone) => zones.add(zone));
+      getGarmentEffectiveBodyMaskZones(item.runtime, poseId).forEach((zone) => zones.add(zone));
+      getAdaptiveBodyMaskExpansionZones(item, bodyProfile).forEach((zone) => zones.add(zone));
     });
     return zones;
   }, [bodyProfile, equippedGarments, poseId]);
@@ -1404,7 +1616,8 @@ function AvatarRig({
     [avatarScene, manifest.aliasPatterns],
   );
   const initialState = useMemo(() => captureInitialState(aliasMap), [aliasMap]);
-  const hasEquippedHair = equippedGarments.some((item) => item.category === "hair");
+  const topGarment = equippedGarments.find((item) => item.category === "tops") ?? null;
+  const outerwearGarment = equippedGarments.find((item) => item.category === "outerwear") ?? null;
   const structuralGarments = equippedGarments.filter((item) => item.category !== "accessories" && item.category !== "hair");
   const bodyOpacity = structuralGarments.length === 0 ? 1 : 0.985;
   const avatarOnly = structuralGarments.length === 0;
@@ -1412,7 +1625,7 @@ function AvatarRig({
   useLayoutEffect(() => {
     configureMaterials(avatarScene, { avatarOnly, qualityTier });
     applyMorphTargets(avatarScene, morphPlan.targetWeights);
-    applyVisibleAvatarVisibility(avatarScene, avatarVariantId, coveredZones, bodyOpacity, hasEquippedHair, qualityTier);
+    applyVisibleAvatarVisibility(avatarScene, avatarVariantId, coveredZones, bodyOpacity, qualityTier);
     applyRigTargets(aliasMap, initialState, morphPlan.rigTargets, avatarVariantId, manifest.authoringSource);
     applyPose(aliasMap, initialState, poseId, manifest.authoringSource);
     avatarSkinned?.skeleton?.update();
@@ -1430,7 +1643,6 @@ function AvatarRig({
     bodyProfile.simple.heightCm,
     coveredZones,
     fitInfo,
-    hasEquippedHair,
     initialState,
     manifest.authoringSource,
     manifest.stageOffsetY,
@@ -1452,10 +1664,17 @@ function AvatarRig({
             key={`${avatarVariantId}:${item.id}`}
             item={item}
             bodyProfile={bodyProfile}
+            morphPlan={morphPlan}
             avatarVariantId={avatarVariantId}
             poseId={poseId}
             selected={selectedItemId === item.id}
             qualityTier={qualityTier}
+            layerContext={{
+              layeredUnderOuterwear: item.category === "tops" && Boolean(outerwearGarment),
+              hasTopUnderneath: item.category === "outerwear" && Boolean(topGarment),
+            }}
+            avatarAliasMap={aliasMap}
+            avatarSceneScale={avatarSceneScale}
           />
         ))}
     </group>
@@ -1522,16 +1741,21 @@ export function ReferenceClosetStageCanvas({
   const dpr: [number, number] =
     qualityTier === "low" ? [0.85, 1] : qualityTier === "high" ? [1, 1.5] : [0.95, 1.25];
   const avatarOnly = equippedGarments.length === 0;
-  const hasContinuousMotion =
-    qualityTier !== "low" && equippedGarments.some((item) => Boolean(item.runtime.secondaryMotion));
-  const backgroundColor = avatarOnly ? "#ddd4cc" : "#d4d8de";
-  const fogColor = avatarOnly ? "#ddd4cc" : "#d4d8de";
+  const hasContinuousMotion = useMemo(
+    () =>
+      equippedGarments.some((item) =>
+        hasSignificantContinuousMotion(item, bodyProfile, poseId, qualityTier),
+      ),
+    [bodyProfile, equippedGarments, poseId, qualityTier],
+  );
+  const backgroundColor = avatarOnly ? "#d7cec6" : "#d0d4db";
+  const fogColor = avatarOnly ? "#d7cec6" : "#d0d4db";
 
   return (
     <Canvas
       shadows={qualityTier !== "low"}
       camera={{ position: [0, 1.18, 5.45], fov: 22, near: 0.1, far: 100 }}
-      frameloop={hasContinuousMotion ? "always" : "demand"}
+      frameloop="demand"
       gl={{ antialias: qualityTier !== "low", alpha: true, powerPreference: "high-performance" }}
       dpr={dpr}
       style={{ height: "100%", width: "100%" }}
@@ -1539,13 +1763,13 @@ export function ReferenceClosetStageCanvas({
       <color attach="background" args={[backgroundColor]} />
       <fog attach="fog" args={[fogColor, 5.4, 13.8]} />
 
-      <ambientLight intensity={avatarOnly ? 0.68 : 0.76} />
+      <ambientLight intensity={avatarOnly ? 0.48 : 0.42} />
       <hemisphereLight
-        args={[avatarOnly ? "#fff8f1" : "#f6f8fb", avatarOnly ? "#cfc4ba" : "#cfd7e2", avatarOnly ? 1.02 : 0.92]}
+        args={[avatarOnly ? "#fff7ef" : "#f3f6fb", avatarOnly ? "#c8bcaf" : "#c7cfdb", avatarOnly ? 0.7 : 0.62]}
       />
       <directionalLight
         position={[3.8, 5.9, 4.4]}
-        intensity={avatarOnly ? 1.74 : 1.58}
+        intensity={avatarOnly ? 1.28 : 1.18}
         color={avatarOnly ? "#fff8ef" : "#ffffff"}
         castShadow={qualityTier !== "low"}
         shadow-mapSize-width={qualityTier === "high" ? 1536 : 1024}
@@ -1561,17 +1785,17 @@ export function ReferenceClosetStageCanvas({
         position={[-3.4, 5.0, 3.4]}
         angle={0.48}
         penumbra={0.94}
-        intensity={avatarOnly ? 0.74 : 0.68}
+        intensity={avatarOnly ? 0.46 : 0.4}
         color={avatarOnly ? "#f3e6d8" : "#e0e8f7"}
       />
       <spotLight
         position={[3.3, 4.7, 2.8]}
         angle={0.44}
         penumbra={0.94}
-        intensity={avatarOnly ? 0.82 : 0.76}
+        intensity={avatarOnly ? 0.5 : 0.44}
         color={avatarOnly ? "#efe2d6" : "#dbe3f5"}
       />
-      <pointLight position={[0, 4.8, -2.6]} intensity={avatarOnly ? 0.2 : 0.14} distance={14} color={avatarOnly ? "#eedfd1" : "#d9e2f0"} />
+      <pointLight position={[0, 4.8, -2.6]} intensity={avatarOnly ? 0.1 : 0.08} distance={14} color={avatarOnly ? "#eedfd1" : "#d9e2f0"} />
       {avatarOnly ? (
         <>
           <directionalLight position={[-2.6, 2.4, 4.6]} intensity={0.42} color="#fff2e6" />

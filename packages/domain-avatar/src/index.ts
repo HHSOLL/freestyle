@@ -25,7 +25,7 @@ import {
 
 export const avatarStorageKeys = {
   bodyProfile: "freestyle:avatar-profile:v2",
-  closetScene: "freestyle:closet-scene:v2",
+  closetScene: "freestyle:closet-scene:v7",
 } as const;
 
 export const bodyMeasurementFields: Array<{
@@ -200,13 +200,13 @@ export const fitReviewArchetypes = [
 ] as const;
 
 export const defaultClosetSceneState: ClosetSceneState = {
-  version: 2,
+  version: 7,
   avatarVariantId: "female-base",
-  poseId: "neutral",
+  poseId: "relaxed",
   activeCategory: "tops",
   selectedItemId: null,
   equippedItemIds: {},
-  qualityTier: "balanced",
+  qualityTier: "high",
 };
 
 const baseMeasurementsByVariant: Record<AvatarRenderVariantId, Record<string, number>> = {

@@ -4,11 +4,15 @@ import {
   assessGarmentPhysicalFit,
   computeGarmentCorrectiveTransform,
   defaultHairItemIdsByVariant,
+  deriveAdaptiveBodyMaskZonesFromAssessment,
   mergeRuntimeGarmentCatalogs,
   formatGarmentFitSummary,
   defaultSkeletonProfileId,
+  getGarmentAdaptiveBodyMaskZones,
   getGarmentEffectiveBodyMaskZones,
   getGarmentPoseRuntimeTuning,
+  isTopCompatibleWithOuterwear,
+  resolveLayeredEquippedItemIds,
   resolveDefaultClosetLoadout,
   starterGarmentCatalog,
   validateGarmentRuntimeBinding,
@@ -28,6 +32,35 @@ test("starter garment catalog carries publication-ready physical fit metadata", 
     assert.ok(item.metadata?.selectedSizeLabel, `${item.id} is missing selectedSizeLabel`);
     assert.ok(item.metadata?.physicalProfile, `${item.id} is missing physicalProfile`);
     assert.ok(assessGarmentPhysicalFit(item, defaultBodyProfile), `${item.id} does not produce a fit assessment`);
+  }
+});
+
+test("hero garment size charts stay monotonic across M/L/XL ladders", () => {
+  const heroIds = [
+    "starter-bottom-soft-wool",
+    "starter-top-city-relaxed",
+    "starter-outer-tailored-layer",
+  ];
+
+  for (const id of heroIds) {
+    const item = starterGarmentCatalog.find((entry) => entry.id === id);
+    assert.ok(item);
+    const sizeChart = item.metadata?.sizeChart ?? [];
+    const m = sizeChart.find((entry) => entry.label === "M");
+    const l = sizeChart.find((entry) => entry.label === "L");
+    const xl = sizeChart.find((entry) => entry.label === "XL");
+    assert.ok(m && l && xl, `${id} must expose M/L/XL rows`);
+
+    for (const [key, lValue] of Object.entries(l.measurements)) {
+      const measurementKey = key as keyof typeof l.measurements;
+      const mValue = m.measurements[measurementKey];
+      const xlValue = xl.measurements[measurementKey];
+      if (typeof mValue !== "number" || typeof lValue !== "number" || typeof xlValue !== "number") {
+        continue;
+      }
+      assert.ok(mValue <= lValue, `${id} ${key} regressed: M > L`);
+      assert.ok(lValue <= xlValue, `${id} ${key} regressed: L > XL`);
+    }
   }
 });
 
@@ -81,11 +114,41 @@ test("default closet loadout promotes hero starter pieces and variant-aware hair
   const femaleLoadout = resolveDefaultClosetLoadout("female-base");
   const maleLoadout = resolveDefaultClosetLoadout("male-base");
 
-  assert.equal(femaleLoadout.tops, "starter-top-city-relaxed");
+  assert.equal(femaleLoadout.tops, "starter-top-soft-casual");
+  assert.equal(maleLoadout.tops, "starter-top-soft-casual");
   assert.equal(femaleLoadout.shoes, "starter-shoe-sneaker");
   assert.equal(femaleLoadout.hair, defaultHairItemIdsByVariant["female-base"]);
   assert.equal(maleLoadout.hair, defaultHairItemIdsByVariant["male-base"]);
-  assert.notEqual(femaleLoadout.hair, maleLoadout.hair);
+  assert.notEqual(femaleLoadout.hair ?? null, maleLoadout.hair ?? null);
+});
+
+test("outerwear layering uses base inner tops and clears incompatible bulky tops", () => {
+  const topBase = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  const topMid = starterGarmentCatalog.find((item) => item.id === "starter-top-city-relaxed");
+
+  assert.ok(topBase);
+  assert.ok(topMid);
+  assert.equal(isTopCompatibleWithOuterwear(topBase), true);
+  assert.equal(isTopCompatibleWithOuterwear(topMid), false);
+
+  const lookup = new Map(starterGarmentCatalog.map((item) => [item.id, item] as const));
+  const layeredFromOuterwear = resolveLayeredEquippedItemIds(
+    { tops: "starter-top-city-relaxed" },
+    "outerwear",
+    "starter-outer-tailored-layer",
+    lookup,
+  );
+  assert.equal(layeredFromOuterwear.tops, "starter-top-soft-casual");
+  assert.equal(layeredFromOuterwear.outerwear, "starter-outer-tailored-layer");
+
+  const bulkyTopSelection = resolveLayeredEquippedItemIds(
+    { tops: "starter-top-soft-casual", outerwear: "starter-outer-tailored-layer" },
+    "tops",
+    "starter-top-city-relaxed",
+    lookup,
+  );
+  assert.equal(bulkyTopSelection.tops, "starter-top-city-relaxed");
+  assert.equal(bulkyTopSelection.outerwear, undefined);
 });
 
 test("hero hair and drape pieces declare secondary motion bindings", () => {
@@ -148,6 +211,30 @@ test("physical fit assessment converts flat-width size charts into body-facing f
   assert.equal(chest.measurementMode, "flat-half-circumference");
   assert.equal(chest.garmentCm, 117);
   assert.equal(chest.state, "oversized");
+});
+
+test("soft casual metadata mirrors the selected size row for fallback consumers", () => {
+  const tee = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(tee);
+  assert.equal(tee.metadata?.selectedSizeLabel, "L");
+  assert.ok(tee.metadata?.measurements);
+
+  const sizeRow = tee.metadata?.sizeChart?.find((entry) => entry.label === tee.metadata?.selectedSizeLabel);
+  assert.ok(sizeRow);
+  assert.equal(tee.metadata.measurements.chestCm, Number(sizeRow.measurements.chestCm) * 2);
+  assert.equal(tee.metadata.measurements.shoulderCm, sizeRow.measurements.shoulderCm);
+  assert.equal(tee.metadata.measurements.sleeveLengthCm, sizeRow.measurements.sleeveLengthCm);
+  assert.equal(tee.metadata.measurements.lengthCm, sizeRow.measurements.lengthCm);
+});
+
+test("short-sleeve base tops do not treat sleeve length as a compression limiter", () => {
+  const tee = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(tee);
+
+  const assessment = assessGarmentPhysicalFit(tee, defaultBodyProfile);
+  assert.ok(assessment);
+  assert.equal(assessment.dimensions.some((entry) => entry.key === "sleeveLengthCm"), false);
+  assert.notEqual(assessment.limitingKeys[0], "sleeveLengthCm");
 });
 
 test("physical fit assessment flags compression when the body exceeds garment + stretch budget", () => {
@@ -259,4 +346,50 @@ test("pose tuning exposes per-pose clearance and scale overrides", () => {
   assert.ok(strideTuning.clearanceMultiplier > neutralTuning.clearanceMultiplier);
   assert.ok(strideTuning.depthScale > 1);
   assert.deepEqual(strideTuning.extraBodyMaskZones, ["hips"]);
+});
+
+test("adaptive body-mask zones expand based on fit-limiting dimensions", () => {
+  const outerwear = starterGarmentCatalog.find((item) => item.id === "starter-outer-tailored-layer");
+  assert.ok(outerwear);
+
+  const broaderProfile = {
+    ...defaultBodyProfile,
+    simple: {
+      ...defaultBodyProfile.simple,
+      chestCm: 128,
+      waistCm: 106,
+      hipCm: 116,
+    },
+  };
+
+  const adaptiveZones = getGarmentAdaptiveBodyMaskZones(outerwear, broaderProfile).sort();
+  const effectiveZones = getGarmentEffectiveBodyMaskZones(outerwear.runtime, "neutral", adaptiveZones).sort();
+
+  assert.deepEqual(adaptiveZones, ["arms", "hips", "torso"]);
+  assert.deepEqual(effectiveZones, ["arms", "hips", "torso"]);
+});
+
+test("adaptive body-mask derivation covers shoes through feet zones", () => {
+  const shoes = starterGarmentCatalog.find((item) => item.id === "starter-shoe-night-runner");
+  assert.ok(shoes);
+
+  const longerFootProfile = {
+    ...defaultBodyProfile,
+    simple: {
+      ...defaultBodyProfile.simple,
+      heightCm: 184,
+      inseamCm: 87,
+    },
+    detailed: {
+      ...defaultBodyProfile.detailed,
+      calfCm: 39,
+    },
+  };
+
+  const adaptiveZones = getGarmentAdaptiveBodyMaskZones(shoes, longerFootProfile);
+  assert.deepEqual(adaptiveZones, ["feet"]);
+
+  const assessment = assessGarmentPhysicalFit(shoes, longerFootProfile);
+  assert.ok(assessment);
+  assert.deepEqual(deriveAdaptiveBodyMaskZonesFromAssessment(shoes.category, assessment), ["feet"]);
 });

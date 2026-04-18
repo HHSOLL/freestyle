@@ -14,6 +14,17 @@
       "ball_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.0055613149888813496,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 0,
+      "0.005": 0,
+      "0.01": 55
+    },
+    "hotSpots": []
+  },
   "armature": {
     "name": "mpfb-female-base",
     "boneNames": [

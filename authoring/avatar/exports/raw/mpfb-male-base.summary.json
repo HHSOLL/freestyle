@@ -3,15 +3,19 @@
     "name": "mpfb-male-base.body.fullbody",
     "shapeKeys": [
       "Basis",
+      "$md-$as-$ma-$ch",
       "$md-$as-$ma-$yn",
+      "$md-$ca-$ma-$ch",
       "$md-$ca-$ma-$yn",
+      "$md-$af-$ma-$ch",
       "$md-$af-$ma-$yn",
+      "$md-universal-$ma-$ch-$av$mu-$av$wg",
+      "$md-universal-$ma-$yn-$av$mu-min$wg",
       "$md-universal-$ma-$yn-$av$mu-$av$wg",
-      "$md-universal-$ma-$yn-$av$mu-max$wg",
       "$md-universal-$ma-$yn-max$mu-$av$wg",
       "$md-$ma-$yn-$av$mu-$av$wg-max$hg",
-      "$md-$ma-$yn-$av$mu-$av$wg-$id$pr",
-      "$md-$ma-$yn-max$mu-$av$wg-$id$pr"
+      "$md-$ma-$ch-$av$mu-$av$wg-$id$pr",
+      "$md-$ma-$yn-$av$mu-$av$wg-$id$pr"
     ],
     "materialSlots": [
       "mpfb-male-base.body"
@@ -20,6 +24,7 @@
   "proxy": null,
   "bodySegments": [
     "mpfb-male-base.body.torso",
+    "mpfb-male-base.body.arms",
     "mpfb-male-base.body.hips",
     "mpfb-male-base.body.legs",
     "mpfb-male-base.body.feet",
@@ -91,10 +96,16 @@
       "vertexCount": null
     },
     {
+      "name": "mpfb-male-base.body.arms",
+      "type": "MESH",
+      "parent": "mpfb-male-base",
+      "vertexCount": 5098
+    },
+    {
       "name": "mpfb-male-base.body.exposed",
       "type": "MESH",
       "parent": "mpfb-male-base",
-      "vertexCount": 12145
+      "vertexCount": 5086
     },
     {
       "name": "mpfb-male-base.body.feet",
@@ -112,7 +123,7 @@
       "name": "mpfb-male-base.body.hips",
       "type": "MESH",
       "parent": "mpfb-male-base",
-      "vertexCount": 668
+      "vertexCount": 666
     },
     {
       "name": "mpfb-male-base.body.legs",
@@ -124,7 +135,7 @@
       "name": "mpfb-male-base.body.torso",
       "type": "MESH",
       "parent": "mpfb-male-base",
-      "vertexCount": 935
+      "vertexCount": 2898
     },
     {
       "name": "mpfb-male-base.eyebrow001",
@@ -143,20 +154,15 @@
       "type": "MESH",
       "parent": "mpfb-male-base",
       "vertexCount": 1064
-    },
-    {
-      "name": "mpfb-male-base.short02",
-      "type": "MESH",
-      "parent": "mpfb-male-base",
-      "vertexCount": 1755
     }
   ],
   "segmentation": {
-    "torso": 935,
-    "hips": 668,
+    "torso": 2898,
+    "arms": 5098,
+    "hips": 666,
     "legs": 2546,
     "feet": 2864,
-    "exposed": 12145
+    "exposed": 5086
   },
   "fullBody": "mpfb-male-base.body.fullbody",
   "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/male-base.json",

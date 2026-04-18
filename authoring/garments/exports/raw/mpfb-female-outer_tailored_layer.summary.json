@@ -28,6 +28,26 @@
       "calf_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.0035461741499602795,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 0,
+      "0.005": 54,
+      "0.01": 65
+    },
+    "hotSpots": [
+      {
+        "zone": "arms",
+        "countWithin5mm": 53
+      },
+      {
+        "zone": "chest",
+        "countWithin5mm": 1
+      }
+    ]
+  },
   "armature": {
     "name": "mpfb-female-base",
     "boneNames": [

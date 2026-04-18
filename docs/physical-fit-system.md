@@ -182,7 +182,7 @@ Companion document:
 
 ## 8. Current Implementation Status
 
-As of `2026-04-16`:
+As of `2026-04-17`:
 
 - the repo ships MPFB-authored avatar GLBs with runtime shape keys
 - the repo ships MPFB starter garments
@@ -210,22 +210,40 @@ As of `2026-04-16`:
 - `Closet` now also surfaces head-aware fit for accessories, so hats and eyewear can report pressure against `headCircumferenceCm` or `frameWidthCm`
 - `Closet` now also surfaces head-aware fit for selectable hair assets, so hairstyle shells can react to `headCircumferenceCm` rather than being treated as static cosmetics
 - `Closet` now also uses a lightweight spring layer for long hair and loose garments, so the product can show sway/drape without shipping full cloth simulation in the browser
+- the spring layer now samples weighted avatar anchor bindings and keeps the stage on `frameloop="demand"` with settle-aware invalidation instead of reverting the whole canvas to a permanent render loop
+- the avatar export now preserves MPFB helper-hiding mask modifiers, because stripping them caused the nude/fullbody runtime mesh to collapse into a skirt-like silhouette
+- the avatar segmentation pass now pulls clavicle and neck-base influence into the torso zone, so shoulder coverage for fitted tops can be hidden by the authored `bodyMaskZones` instead of over-hiding the whole arm zone
 - the stage runtime now applies subtle fit cues to equipped garments so `tight / regular / relaxed` states are visible beyond text alone
 - the runtime now also supports `metadata.correctiveFit`, so each garment can react with its own width/depth/height/clearance adjustments instead of relying on one generic fit-scale hint
 - the runtime now supports `poseTuning` in the garment binding, so `stride` and `tailored` can expand body masking and clearance without affecting the neutral pose
 - the runtime now supports `secondaryMotion` in the garment binding, so long hair and loose hero garments can move as product assets instead of reading as rigid shells
 - the runtime now expands collision and body-mask pressure zones from the garment's limiting dimensions, so chest, shoulder, hip, inseam, and hem bottlenecks influence protection zones instead of only category defaults
+- the runtime now keeps `bodyMaskZones` and adaptive collision escalation separate, so fit pressure can expand collision protection without accidentally zeroing unrelated body regions
+- the runtime now merges authored masks, pose masks, and fit-driven adaptive mask zones before applying avatar visibility, so tight shoulders, hips, inseams, and shoe pressure can hide the correct body regions
+- `feet`-only masks now force segmented-body visibility, so shoe assets can actually hide feet instead of leaving poke-through on the fullbody mesh
 - the runtime now adds an adaptive wrapper-adjustment pass for hero garments and accessories, so pose plus limiting dimensions can nudge width/depth/height even after the authored corrective profile is applied
 - the runtime now hides baked base-hair meshes when a runtime hair asset is equipped, allowing multiple hairstyles to be swapped without rebuilding the avatar base GLB
 - the MPFB mapping layer now derives lean / body-mass / soft-frame / curve / tall / long-leg / proportion signals from the normalized body profile, and uses those to drive the exported female and male shape keys more selectively
+- the current female baked base now uses a shorter `short04` haircut and the default equipped runtime hair is `Soft Bob`, which keeps the face open more reliably for fitting review
+- the current Blender hair pass now applies style-specific opening and offset adjustments for bob, long, braid, and sweep silhouettes before export instead of treating every hairstyle as a static scalp shell
+- the current hair authoring path can now take an explicit `MPFB_DATA_DIR`, so the pipeline no longer depends on one hardcoded local user path
 - shipped runtime GLBs now pass through a browser-delivery optimization step (`meshopt` geometry compression plus texture recompression), and `Closet` now preloads only the active avatar and near-term garment set instead of whole-catalog eager preload
 - the repo now has a representative fit-calibration harness, so starter garments are checked across multiple body archetypes instead of only one default profile
+- garment authoring summaries now emit `fitAudit` data from Blender itself:
+  - minimum body distance
+  - close-contact penetrating vertex count (`<= 3mm` negative-normal hits)
+  - `<= 1mm / 3mm / 5mm / 10mm` contact buckets
+  - top hot-spot zones as coarse authoring hints, not canonical anatomical truth
+- `validate:garment3d` now enforces regression budgets for the measured hero-garment summaries and the default equipped `Soft Casual` top so source corrective passes cannot silently drift backward
+- hero structured garments now use a helper-aware projection target during Blender corrective passes, so fitted tops and outerwear conform against MPFB's helper-inclusive body space instead of a stripped body shell
 - the stage now switches to a warmer avatar-review lighting pass when no garments are equipped so silhouette review is easier before dressing
 - the avatar-review mode now also uses tighter camera framing and warmer skin/hair material treatment so `Remove All` reads like a product avatar review state instead of a raw fallback scene
-- the current female MPFB preset was rebuilt around `ponytail01 + eyebrow001 + eyelashes01` with one subdivision level in export, improving the default human read of the Closet avatar review mode
+- the current female MPFB preset was rebuilt around `short04 + eyebrow001 + eyelashes01` with one subdivision level in export, improving face readability in the Closet avatar review mode
 - the current hero garments were retuned in Blender before export:
-  - `City Relaxed` reduced vertices within `<= 1mm` of the body from `448` to `341`
-  - `Tailored Layer` reduced vertices within `<= 1mm` of the body from `803` to `553`
+  - `Soft Casual` is now tracked as a guarded default-loadout top with current measured proximity of female `90 / 134 / 495` and male `67 / 92 / 281` for `<= 3mm / <= 5mm / <= 10mm`
+  - `City Relaxed` now reduces female `<= 3mm / <= 5mm / <= 10mm` contact from `408 / 411 / 539` to `336 / 347 / 394`
+  - `Soft Wool` now reduces female `<= 3mm / <= 5mm / <= 10mm` contact from `38 / 78 / 340` to `35 / 76 / 244`
+  - `Tailored Layer` helper-aware corrective now reports female `0 / 54 / 65` and male `0 / 172 / 245` for `<= 3mm / <= 5mm / <= 10mm`, with close-contact penetration back to `0` on both variants
 
 ## 9. Next Technical Steps
 
@@ -233,7 +251,7 @@ As of `2026-04-16`:
 2. expand `correctiveFit` and `poseTuning` from starter metadata into authoring-time partner/admin publish payloads
 3. calibrate the shape-signal layer against more partner garments and body-review captures so the MPFB mapping stops being heuristic-heavy
 4. add coarse collision volumes per garment category, including head-worn assets
-5. add selective offline cloth-bake references for hero garments
+5. keep re-measuring and re-labeling garment size charts so `fit-calibration` and fallback metadata track the post-corrective geometry instead of older size contracts
 6. keep all adopted external sources tracked in `docs/OPEN_ASSET_CREDITS.md`
 
 ## 10. Rules For Future Adoption

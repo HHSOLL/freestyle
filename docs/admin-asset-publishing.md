@@ -124,6 +124,7 @@ As of `2026-04-14`:
 - the admin surface now supports guided create/update editing for garment identity, size-chart rows, publication metadata, runtime binding, and raw manifest inspection
 - head-facing measurements such as `headCircumferenceCm` and `frameWidthCm` are now valid in the shared contract and admin workflow, covering accessories and runtime hair assets
 - the admin surface now includes an archetype fit preview so operators can see `compression / snug / regular / relaxed / oversized` states across representative bodies before publish
+- admin publish now runs the same semantic runtime-garment validator used by the product catalog, so schema-valid but semantically broken garments are rejected before persistence
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`
 - admin browser requests now require both `BACKEND_ORIGIN` and `NEXT_PUBLIC_API_BASE_URL` because the admin surface is on a separate origin from Railway
 

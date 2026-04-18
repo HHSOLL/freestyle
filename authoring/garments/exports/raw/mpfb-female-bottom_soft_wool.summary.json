@@ -18,6 +18,34 @@
       "foot_r"
     ]
   },
+  "fitAudit": {
+    "minDistanceMeters": 0.0011999817797914147,
+    "penetratingVertexCount": 0,
+    "thresholdCounts": {
+      "0.001": 0,
+      "0.003": 31,
+      "0.005": 45,
+      "0.01": 213
+    },
+    "hotSpots": [
+      {
+        "zone": "waist",
+        "countWithin5mm": 19
+      },
+      {
+        "zone": "calves",
+        "countWithin5mm": 18
+      },
+      {
+        "zone": "chest",
+        "countWithin5mm": 6
+      },
+      {
+        "zone": "thighs",
+        "countWithin5mm": 2
+      }
+    ]
+  },
   "armature": {
     "name": "mpfb-female-base",
     "boneNames": [

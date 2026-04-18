@@ -17,6 +17,9 @@ Before changing the product, read these in order:
 11. `docs/freestyle-improvement-status.md`
 12. `docs/repo-inventory.md`
 13. `docs/product-boundaries.md`
+14. `docs/contract-ownership.md`
+15. `docs/ai-agent-playbook.md`
+16. `docs/quality-gates.md`
 
 ## 1.1 Git Workflow
 

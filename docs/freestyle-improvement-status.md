@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-18`
 - Current branch baseline: `main`
-- Working overall completion estimate: `65%`
+- Working overall completion estimate: `69%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -22,7 +22,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
-| `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `in_progress` | Current batch is `Phase 0 / Batch 1` |
+| `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `partial` | Core structure exists, but historical docs and residual flows still create ambiguity |
 | `Phase 2` | contracts and domain core hardening | `partial` | `packages/contracts`, `domain-avatar`, `domain-garment`, and `domain-canvas` exist, but ownership and single-source policy need tightening |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
@@ -32,44 +32,35 @@ The completion estimate is a planning number, not a release gate. It reflects th
 
 ## Current Batch
 
-### `Phase 0 / Batch 1`
+### `Phase 1 / Batch 1`
 
 Goal:
 
-1. create an active improvement tracker for the new program
-2. document the current repo inventory from actual code structure
-3. freeze the current Product / Legacy / Lab boundaries from actual route files
+1. audit actual Product / Legacy / Lab dependency leaks in code
+2. document or remove any remaining direct product dependence on legacy or lab paths
+3. close the first `Phase 1` hardening batch with code-backed evidence
 
 Deliverables:
 
-- `docs/freestyle-improvement-status.md`
-- `docs/repo-inventory.md`
-- `docs/product-boundaries.md`
+- leak audit notes or fix PRs for affected paths
+- updated docs when a boundary or dependency assumption changes
+- validation evidence tied to actual code paths
 
 Exit criteria:
 
-- the active improvement program has a single visible tracker
-- the current repo structure is documented from code, not memory
-- the current route boundary rules are documented from `apps/web/route-map.mjs`, `apps/web/src/lib/product-routes.ts`, and `apps/api/src/main.ts`
+- direct product dependence on legacy or lab paths is either removed or explicitly documented
+- affected route or API boundaries stay aligned with `docs/product-boundaries.md`
+- validation evidence exists for every touched path
 
-## Next Batch
+## Phase 0 Closeout
 
-### `Phase 0 / Batch 2`
-
-Planned scope:
-
-1. add `docs/contract-ownership.md`
-2. add `docs/ai-agent-playbook.md`
-3. add `docs/quality-gates.md` as a concise execution-facing summary of required commands and route/runtime checks
-
-## Stop Conditions Before Phase 1
-
-Do not mark `Phase 0` complete until all of the following are true:
+`Phase 0` is complete when all of the following are true:
 
 - the active improvement tracker is present and linked from the core docs
 - repo inventory and route boundary docs reflect the current codebase
 - contract ownership is written down
 - AI agent operating rules for this improvement program are written down
+- quality gates are written down as an execution-facing summary
 - the current program no longer depends on ambiguous `Phase 0 / 0.5 / 1A / 1B` terminology from the historical rollout docs
 
 ## Notes

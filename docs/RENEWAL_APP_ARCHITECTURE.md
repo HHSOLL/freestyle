@@ -13,11 +13,11 @@
 - 웹은 `apps/web`의 Next.js App Router 기반이다.
 - API는 `apps/api`의 `/v1/*` Fastify 계약을 사용한다.
 - 무거운 작업은 Railway worker + Supabase jobs polling으로 비동기 처리한다.
-- 현재 핵심 표면은 `Studio`, `Trends`, `Profile`, `Try-on`, `Evaluation` 중심이다.
+- 이 계획 시점의 핵심 표면은 `Studio`, `Trends`, `Profile`, `Try-on`, `Evaluation` 중심이었다.
 
 이 구조는 유지 가능하다. 다만 제품 도메인과 화면 소유권을 새 중심축에 맞게 재조직해야 한다.
 
-## 3. Target Bounded Contexts
+## 3. Historical Target Bounded Contexts
 
 ### closet
 - garments / attributes / categories / source metadata
@@ -52,7 +52,7 @@
 - closet gaps
 - recommendation surfaces
 
-## 4. Target Route Structure
+## 4. Historical Target Route Structure
 
 ### Public
 - `app/(marketing)/page.tsx`
@@ -75,7 +75,7 @@
 - `app/(app)/app/journal/[entryId]/page.tsx`
 - `app/(app)/app/profile/page.tsx`
 
-## 5. Frontend Module Structure
+## 5. Historical Frontend Module Structure
 
 권장 구조:
 
@@ -103,7 +103,7 @@ apps/web/src/
     formatting/
 ```
 
-## 6. Component Ownership
+## 6. Historical Component Ownership
 
 ### layout
 - app shell

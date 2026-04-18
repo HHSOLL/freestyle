@@ -37,6 +37,7 @@
 - `2026-04-02`: `/app/closet` 마네킹 워크스페이스 UI를 레퍼런스 기준으로 재배치(쿨그레이 글래스 톤, 좌/중앙/우 패널, 상단 유틸리티 바, 하단 모드 탭).
 - `2026-04-02`: 품질 게이트(`lint`, `typecheck`, `build:services`, `build`)와 widget API/SDK 테스트를 다시 통과했다.
 - `2026-04-02`: `/v1/widget/config`가 `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` 기준으로 `phase_0_5_canary_enabled`를 deterministic sampling 하도록 연결되었다.
+- `2026-04-02`: 위 `/v1/widget/config` 표기는 rollout 당시 경로 기준이며, 현재 maintenance namespace에서는 `/v1/legacy/widget/config`로 관리한다.
 - `2026-04-02`: sampling key는 `x-anonymous-user-id` 우선, fallback은 `x-forwarded-for`/`request.ip` + origin이며, `phase_0_5_kill_switch`는 여전히 즉시 강제 disable 우선순위를 가진다.
 - `2026-04-02`: `studio` cart import 성공 시 `add_to_cart` telemetry event(`payload.source=studio_cart_import`)를 발행하도록 연결되었다.
 - `2026-04-02`: widget iframe mode가 API-origin `GET /widget/frame` bootstrap endpoint를 사용하도록 보강되어 JS asset 직접 탐색 오류를 제거했다.

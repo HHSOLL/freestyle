@@ -22,9 +22,9 @@ FreeStyle is now a mannequin-first wardrobe product. The main experience is no l
 `/app/discover` still resolves, but only as a compatibility redirect to `/app/community`.
 `/app/lab` still exists, but it is quarantined as experimental. It is not part of the main product flow.
 
-## Product, Legacy, Lab
+## Product, Admin, Legacy, Lab
 
-The repository is now split into three runtime surfaces:
+The repository is now split into four runtime surfaces:
 
 - `Product`: `/v1/*`
   - `/v1/profile/body-profile`
@@ -32,6 +32,7 @@ The repository is now split into three runtime surfaces:
   - `/v1/closet/runtime-garments`
   - `/v1/canvas/looks`
   - `/v1/community/looks`
+- `Admin`: `/v1/admin/*`
   - `POST /v1/admin/garments`
   - `/v1/admin/garments`
 - `Legacy`: `/v1/legacy/*`
@@ -42,7 +43,7 @@ The repository is now split into three runtime surfaces:
   - evaluation and try-on experiments
   - response header `x-freestyle-surface: lab`
 
-Main web surfaces should use product routes only. Legacy and lab are isolated on purpose.
+Main web surfaces should use product routes only. Admin is an operational publishing surface, not part of public product navigation. Legacy and lab are isolated on purpose.
 
 ## Current Runtime Status
 
@@ -159,6 +160,8 @@ CI requires all of the following:
 - `npm run build:admin`
 
 ## Core Documents
+
+If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health reports disagrees with the files below, use the files below as the current source of truth.
 
 - [docs/freestyle-improvement-status.md](docs/freestyle-improvement-status.md)
 - [docs/PERFECT_FITTING_EXECUTION_PLAN.md](docs/PERFECT_FITTING_EXECUTION_PLAN.md)

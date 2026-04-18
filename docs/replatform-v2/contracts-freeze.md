@@ -21,6 +21,7 @@
   - `apps/web/src/features/renewal-app/components/RouteTransitionShell.tsx`
 
 ## Frozen Widget API Contracts
+- Historical rollout-time paths only. The current backend mounts widget maintenance under `/v1/legacy/widget/*`.
 - `GET /v1/widget/config?tenant_id=<id>&product_id=<id>&widget_id=<optional>`
 - `POST /v1/widget/events`
 

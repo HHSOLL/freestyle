@@ -99,8 +99,11 @@ Completed work:
 
 Evidence:
 
+- `README.md`
 - `docs/SUBAGENT_TEAM.md`
+- `docs/migration-notes.md`
 - `docs/replatform-v2/execution-status.md`
+- `docs/replatform-v2/ownership-map.md`
 - `docs/replatform-v2/contracts-freeze.md`
 - `docs/RENEWAL_APP_ARCHITECTURE.md`
 - `docs/RENEWAL_INFORMATION_ARCHITECTURE.md`

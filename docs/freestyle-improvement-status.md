@@ -230,8 +230,9 @@ Completed work:
 
 1. replaced the invalid admin draft skeleton fallback with the canonical runtime default from the garment domain
 2. normalized legacy invalid draft skeleton ids back onto the current registry during category-based draft normalization
-3. added admin-side regression coverage proving a brand-new guided draft is semantically publishable without raw JSON edits
-4. documented the guided draft baseline in the admin publishing notes
+3. regenerated category-owned runtime defaults for unsaved guided drafts so category changes do not keep stale model paths, anchors, collision zones, or body-mask zones
+4. added admin-side regression coverage proving a brand-new guided draft is semantically publishable without raw JSON edits and that `tops -> shoes` draft normalization stays coherent
+5. documented the guided draft baseline in the admin publishing notes
 
 Evidence:
 
@@ -243,6 +244,7 @@ Outcome:
 
 - the guided admin create flow no longer starts from a validator-rejected skeleton profile
 - legacy draft state that still carries the old invalid skeleton id is automatically repaired during guided normalization
+- unsaved guided drafts no longer keep tops-derived runtime defaults after a category change
 - the next garment contract gap is API envelope hardening, not the default admin draft baseline
 
 ### Next Batch

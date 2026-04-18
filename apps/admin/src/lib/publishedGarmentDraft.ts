@@ -254,7 +254,11 @@ export const duplicateSizeRow = (row: GarmentSizeSpec | undefined, category: Ass
   };
 };
 
-export const normalizeDraftForCategory = (item: PublishedGarmentAsset, category: AssetCategory) => {
+export const normalizeDraftForCategory = (
+  item: PublishedGarmentAsset,
+  category: AssetCategory,
+  options?: { resetCategoryOwnedRuntime?: boolean },
+) => {
   const sizeChart = item.metadata?.sizeChart?.length
     ? item.metadata.sizeChart.map((row) => ({
         ...row,
@@ -263,6 +267,8 @@ export const normalizeDraftForCategory = (item: PublishedGarmentAsset, category:
     : [createDefaultSizeRow(category)];
   const selectedSizeLabel = item.metadata?.selectedSizeLabel ?? sizeChart[0]?.label ?? "M";
   const activeRow = sizeChart.find((row) => row.label === selectedSizeLabel) ?? sizeChart[0];
+  const nextRuntimeDefaults = createDefaultRuntime(category, item.id);
+  const resetCategoryOwnedRuntime = options?.resetCategoryOwnedRuntime ?? false;
 
   return {
     ...item,
@@ -277,18 +283,19 @@ export const normalizeDraftForCategory = (item: PublishedGarmentAsset, category:
     runtime: {
       ...item.runtime,
       skeletonProfileId: normalizeSkeletonProfileId(item.runtime.skeletonProfileId),
+      modelPath: resetCategoryOwnedRuntime ? nextRuntimeDefaults.modelPath : item.runtime.modelPath,
       anchorBindings:
-        item.runtime.anchorBindings?.length
+        !resetCategoryOwnedRuntime && item.runtime.anchorBindings?.length
           ? item.runtime.anchorBindings
-          : createDefaultRuntime(category, item.id).anchorBindings,
+          : nextRuntimeDefaults.anchorBindings,
       collisionZones:
-        item.runtime.collisionZones?.length
+        !resetCategoryOwnedRuntime && item.runtime.collisionZones?.length
           ? item.runtime.collisionZones
-          : createDefaultRuntime(category, item.id).collisionZones,
+          : nextRuntimeDefaults.collisionZones,
       bodyMaskZones:
-        item.runtime.bodyMaskZones?.length
+        !resetCategoryOwnedRuntime && item.runtime.bodyMaskZones?.length
           ? item.runtime.bodyMaskZones
-          : createDefaultRuntime(category, item.id).bodyMaskZones,
+          : nextRuntimeDefaults.bodyMaskZones,
     },
   };
 };

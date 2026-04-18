@@ -24,3 +24,18 @@ test("normalizeDraftForCategory rewrites legacy invalid skeleton ids to the cano
   assert.equal(normalized.runtime.skeletonProfileId, defaultSkeletonProfileId);
   assert.deepEqual(validatePublishedGarmentAsset(normalized), []);
 });
+
+test("normalizeDraftForCategory regenerates category-owned runtime defaults for drafts", () => {
+  const draft = buildBlankPublishedGarment("tops");
+  const normalized = normalizeDraftForCategory(draft, "shoes", { resetCategoryOwnedRuntime: true });
+
+  assert.equal(normalized.category, "shoes");
+  assert.equal(normalized.runtime.modelPath, `/assets/garments/partners/${draft.id}.glb`);
+  assert.deepEqual(
+    normalized.runtime.anchorBindings.map((entry) => entry.id),
+    ["leftFoot", "rightFoot", "leftAnkle", "rightAnkle"],
+  );
+  assert.deepEqual(normalized.runtime.collisionZones, ["feet"]);
+  assert.deepEqual(normalized.runtime.bodyMaskZones, ["feet"]);
+  assert.deepEqual(validatePublishedGarmentAsset(normalized), []);
+});

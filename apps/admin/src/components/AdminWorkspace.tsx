@@ -762,7 +762,11 @@ export function AdminWorkspace() {
                         value={workingItem.category}
                         options={EDITABLE_CATEGORY_OPTIONS}
                         onChange={(value) =>
-                          updateDraft((current) => normalizeDraftForCategory(current, value))
+                          updateDraft((current) =>
+                            normalizeDraftForCategory(current, value, {
+                              resetCategoryOwnedRuntime: isDraft,
+                            }),
+                          )
                         }
                       />
                       <SelectInputField

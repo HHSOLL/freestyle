@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `91%`
+- Working overall completion estimate: `93%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -24,7 +24,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
-| `Phase 2` | contracts and domain core hardening | `partial` | `BodyProfile`, local canvas hydration, canvas API envelopes, runtime garment API seams, and physical-fit assessment contracts are hardened; the remaining drift sits in the legacy shared-3d fit summary helper path |
+| `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
 | `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
@@ -328,9 +328,35 @@ Outcome:
 - `Closet` and admin consumers that already rely on `assessGarmentPhysicalFit` now inherit the same runtime validation guarantees
 - the remaining fit-domain drift is isolated to the legacy shared-3d `fitSummary` helper path rather than the product's canonical fit assessment route
 
+### `Phase 2 / Batch 9`
+
+Status: `completed`
+
+Completed work:
+
+1. removed the legacy `shared-3d/fittingCore` helper that still carried its own `tight / trim / regular / relaxed / oversized` fit vocabulary
+2. removed the mannequin and studio shim exports that only re-exported that helper path
+3. removed the helper-only mannequin and studio tests from `test:core` so the active core suite now tracks only canonical product and domain paths
+4. closed the last known Phase 2 drift without adding another adapter layer on top of the canonical fit assessment route
+
+Evidence:
+
+- `package.json`
+- `apps/web/src/features/shared-3d/fittingCore.ts`
+- `apps/web/src/features/mannequin/fitting.ts`
+- `apps/web/src/features/mannequin/fitting.test.ts`
+- `apps/web/src/features/studio/fitting.ts`
+- `apps/web/src/features/studio/fitting.test.ts`
+
+Outcome:
+
+- non-product helper paths no longer preserve a second incompatible fit vocabulary beside the canonical `assessGarmentPhysicalFit` path
+- `Phase 2` can now be treated as complete on the active mannequin-first hardening track
+- the next meaningful gap is no longer contracts drift; it is `Closet` and `runtime-3d` decomposition and regression hardening
+
 ### Next Batch
 
-`Phase 2 / Batch 9` should either remove or hard-adapt the legacy shared-3d `fitSummary` helper in `apps/web/src/features/shared-3d/fittingCore.ts` so non-product mannequin/studio helper paths stop carrying a second, incompatible fit vocabulary.
+`Phase 3 / Batch 1` should start `Closet` and `runtime-3d` stabilization by isolating stage composition, loader/disposal ownership, and low-level regression coverage instead of leaving those concerns spread across large mixed files.
 
 ## Phase 0 Closeout
 

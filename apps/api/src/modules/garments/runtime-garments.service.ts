@@ -69,11 +69,22 @@ export const upsertPublishedRuntimeGarment = async (input: PublishedGarmentAsset
   return upsertPublishedRuntimeGarmentRecord(parsed);
 };
 
-export const createPublishedRuntimeGarment = async (input: PublishedGarmentAsset) => {
+export const upsertPublishedRuntimeGarmentForActor = async (
+  input: PublishedGarmentAsset,
+  actorUserId?: string | null,
+) => {
+  const parsed = parsePublishedRuntimeGarment(input);
+  return upsertPublishedRuntimeGarmentRecord(parsed, actorUserId);
+};
+
+export const createPublishedRuntimeGarment = async (
+  input: PublishedGarmentAsset,
+  actorUserId?: string | null,
+) => {
   const parsed = parsePublishedRuntimeGarment(input);
   const existing = await getPublishedRuntimeGarmentRecord(parsed.id);
   if (existing) {
     return null;
   }
-  return upsertPublishedRuntimeGarmentRecord(parsed);
+  return upsertPublishedRuntimeGarmentRecord(parsed, actorUserId);
 };

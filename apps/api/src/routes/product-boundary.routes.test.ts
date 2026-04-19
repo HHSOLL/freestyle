@@ -18,6 +18,7 @@ test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
+  process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER = "file";
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
   try {
     fs.unlinkSync(bodyProfileStorePath);
@@ -39,6 +40,7 @@ test.after(() => {
   delete process.env.DEV_BYPASS_USER_ID;
   delete process.env.ADMIN_USER_IDS;
   delete process.env.BODY_PROFILE_STORE_PATH;
+  delete process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER;
   delete process.env.GARMENT_PUBLICATION_STORE_PATH;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });

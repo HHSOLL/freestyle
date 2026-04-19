@@ -7,6 +7,7 @@ import type { PublishedGarmentAsset } from "@freestyle/contracts";
 import {
   createFilePublishedRuntimeGarmentPersistencePort,
   createMemoryPublishedRuntimeGarmentPersistencePort,
+  createSupabasePublishedRuntimeGarmentPersistencePort,
 } from "./runtime-garments.repository.js";
 
 const createPublishedGarmentFixture = (
@@ -120,4 +121,38 @@ test("file runtime-garment persistence port writes a versioned envelope for futu
   assert.equal(raw.items?.[0]?.id, valid.id);
 
   fs.rmSync(tempDir, { recursive: true, force: true });
+});
+
+test("supabase runtime-garment persistence port filters malformed rows and forwards actor context", async () => {
+  const valid = createPublishedGarmentFixture();
+  let seenFilters: unknown = null;
+  let seenActorUserId: string | null = null;
+
+  const port = createSupabasePublishedRuntimeGarmentPersistencePort({
+    listPublishedRuntimeGarmentRecords: async (filters) => {
+      seenFilters = filters ?? null;
+      return [valid, { id: "broken-row" } as PublishedGarmentAsset];
+    },
+    getPublishedRuntimeGarmentRecord: async (id) => (id === valid.id ? valid : null),
+    upsertPublishedRuntimeGarmentRecord: async (item, actorUserId) => {
+      seenActorUserId = actorUserId ?? null;
+      return item;
+    },
+  });
+
+  const listItems = await port.listPublishedRuntimeGarmentRecords({
+    category: "tops",
+    sourceSystem: "admin-domain",
+  });
+  assert.deepEqual(seenFilters, { category: "tops", sourceSystem: "admin-domain" });
+  assert.deepEqual(
+    listItems.map((item) => item.id),
+    [valid.id],
+  );
+
+  assert.equal((await port.getPublishedRuntimeGarmentRecord(valid.id))?.id, valid.id);
+  assert.equal(await port.getPublishedRuntimeGarmentRecord("missing-id"), null);
+
+  await port.upsertPublishedRuntimeGarmentRecord(valid, "00000000-0000-4000-8000-000000000001");
+  assert.equal(seenActorUserId, "00000000-0000-4000-8000-000000000001");
 });

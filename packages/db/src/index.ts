@@ -1,4 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  publishedGarmentAssetSchema,
+  type GarmentPublicationRecord,
+  type PublishedGarmentAsset,
+} from "@freestyle/shared";
 import type {
   AssetMetadata,
   AssetRecord,
@@ -672,6 +677,110 @@ export type OutfitRow = OutfitListItem & {
   data: Record<string, unknown> | null;
   is_public: boolean;
   updated_at: string;
+};
+
+type PublishedRuntimeGarmentRow = {
+  id: string;
+  category: string;
+  source_system: GarmentPublicationRecord["sourceSystem"];
+  published_at: string;
+  payload: unknown;
+  created_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+const mapPublishedRuntimeGarmentRow = (row: PublishedRuntimeGarmentRow): PublishedGarmentAsset =>
+  publishedGarmentAssetSchema.parse(row.payload);
+
+export const listPublishedRuntimeGarmentRows = async (filters?: {
+  category?: PublishedGarmentAsset["category"];
+  sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+}) => {
+  const supabase = getAdminClient();
+  let query = supabase
+    .from("published_runtime_garments")
+    .select("id, category, source_system, published_at, payload, created_by, created_at, updated_at")
+    .order("published_at", { ascending: false });
+
+  if (filters?.category) {
+    query = query.eq("category", filters.category);
+  }
+
+  if (filters?.sourceSystem) {
+    query = query.eq("source_system", filters.sourceSystem);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return parseRows<PublishedRuntimeGarmentRow>(data).flatMap((row) => {
+    const parsed = publishedGarmentAssetSchema.safeParse(row.payload);
+    return parsed.success ? [parsed.data] : [];
+  });
+};
+
+export const getPublishedRuntimeGarmentRowById = async (id: string) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("published_runtime_garments")
+    .select("id, category, source_system, published_at, payload, created_by, created_at, updated_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapPublishedRuntimeGarmentRow(data as PublishedRuntimeGarmentRow);
+};
+
+export const upsertPublishedRuntimeGarmentRow = async (
+  item: PublishedGarmentAsset,
+  actorUserId?: string | null,
+) => {
+  const parsed = publishedGarmentAssetSchema.parse(item);
+  const supabase = getAdminClient();
+  const { data: existingRow, error: existingRowError } = await supabase
+    .from("published_runtime_garments")
+    .select("created_by")
+    .eq("id", parsed.id)
+    .maybeSingle();
+
+  if (existingRowError) {
+    throw new Error(existingRowError.message);
+  }
+
+  const { data, error } = await supabase
+    .from("published_runtime_garments")
+    .upsert(
+      {
+        id: parsed.id,
+        category: parsed.category,
+        source_system: parsed.publication.sourceSystem,
+        published_at: parsed.publication.publishedAt,
+        payload: parsed,
+        created_by:
+          typeof existingRow?.created_by === "string" && existingRow.created_by.trim()
+            ? existingRow.created_by
+            : actorUserId ?? null,
+      },
+      { onConflict: "id" },
+    )
+    .select("id, category, source_system, published_at, payload, created_by, created_at, updated_at")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to upsert published runtime garment.");
+  }
+
+  return mapPublishedRuntimeGarmentRow(data as PublishedRuntimeGarmentRow);
 };
 
 export const createOutfit = async (input: {

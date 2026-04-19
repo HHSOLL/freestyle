@@ -108,7 +108,7 @@ See [docs/migration-notes.md](docs/migration-notes.md) for the detailed deletion
 Current persistence is intentionally split by boundary:
 
 - local repositories for body profile, closet scene, and canvas compositions
-- local file-backed publication repository for admin-published runtime garments
+- admin-published runtime garments can use a file-backed local fallback or a Supabase-backed publication store behind the same API port
 - product API namespace ready for remote persistence adapters
 - normalized payloads that preserve compatibility with older flat `bodyProfile` storage
 
@@ -134,6 +134,10 @@ Useful commands:
 - `npm run optimize:runtime:assets`
 - `npm run check`
 - `npm run validate:garment3d`
+
+Codex desktop note:
+
+- when native modules such as `sharp`, `lightningcss`, or `@next/swc` fail under the bundled app Node, rerun build/test commands with `PATH=/opt/homebrew/bin:$PATH`
 
 Admin local setup:
 

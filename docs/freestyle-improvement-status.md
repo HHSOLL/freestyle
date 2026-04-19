@@ -26,7 +26,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
-| `Phase 4` | server persistence and admin publishing hardening | `partial` | `BodyProfile` server persistence now sits behind a replaceable API port, but remote backing stores, RLS coverage, and published-garment persistence hardening still need expansion |
+| `Phase 4` | server persistence and admin publishing hardening | `completed` | `BodyProfile` persistence is replaceable, and published runtime garments now have a remote Supabase backing store with RLS-ready coverage plus local fallback |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
 
@@ -553,9 +553,43 @@ Outcome:
 - published runtime-garment persistence now has the same replaceable-port seam as body profile without changing the public closet response contract
 - the next Phase 4 gap is remote backing-store / RLS expansion, not an undocumented local file seam or open admin publish boundary
 
+### `Phase 4 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. added a dedicated `published_runtime_garments` Supabase table plus authenticated-read RLS policy and trigger/index coverage for runtime publication rows
+2. wired the API-side published runtime-garment persistence port to a real Supabase-backed adapter while preserving the file fallback for isolated dev/test workflows
+3. propagated admin actor context through garment create/update writes and added focused repository coverage for the new remote adapter seam
+4. documented the new driver selection and native-module execution workaround so local validation remains reproducible under Codex desktop
+
+Evidence:
+
+- `supabase/migrations/007_published_runtime_garments.sql`
+- `supabase/schema.sql`
+- `packages/db/src/index.ts`
+- `apps/api/src/modules/garments/runtime-garments.repository.ts`
+- `apps/api/src/modules/garments/runtime-garments.repository.test.ts`
+- `apps/api/src/modules/garments/runtime-garments.service.ts`
+- `apps/api/src/routes/runtime-garments.routes.ts`
+- `apps/api/src/routes/runtime-garments.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `README.md`
+- `docs/api-contract.md`
+- `docs/admin-asset-publishing.md`
+- `docs/architecture-overview.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- admin garment publication now has a real remote backing-store seam instead of only a local JSON publication file
+- the public closet contract did not change while the admin publishing path gained an RLS-ready Supabase store
+- `Phase 4` is now closed at the current program scope, and the next highest-signal work moves to worker/job contracts instead of persistence plumbing
+
 ### Next Batch
 
-`Phase 4 / Batch 3` should keep server persistence hardening moving by replacing the remaining local runtime-garment backing store assumptions with a remote-store / RLS-ready seam, without widening into worker orchestration or release QA.
+`Phase 5 / Batch 1` should move into worker/job contract hardening by defining canonical payload/result schemas, idempotency keys, and trace propagation without reopening the now-closed persistence boundary.
 
 ## Phase 0 Closeout
 

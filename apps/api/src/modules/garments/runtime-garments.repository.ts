@@ -2,6 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
+  getPublishedRuntimeGarmentRowById as getPublishedRuntimeGarmentRowByIdFromDb,
+  listPublishedRuntimeGarmentRows as listPublishedRuntimeGarmentRowsFromDb,
+  upsertPublishedRuntimeGarmentRow as upsertPublishedRuntimeGarmentRowInDb,
+} from "@freestyle/db";
+import {
   publishedGarmentAssetSchema,
   type AssetCategory,
   type GarmentPublicationRecord,
@@ -11,6 +16,11 @@ import {
 const getRuntimeGarmentStorePath = () =>
   process.env.GARMENT_PUBLICATION_STORE_PATH?.trim() ||
   path.join(process.cwd(), ".data", "runtime-garments.json");
+
+const getRuntimeGarmentPersistenceDriver = () =>
+  process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER?.trim().toLowerCase() === "supabase"
+    ? "supabase"
+    : "file";
 
 const runtimeGarmentCatalogEnvelopeSchema = z
   .object({
@@ -30,7 +40,22 @@ export type PublishedRuntimeGarmentPersistencePort = {
     sourceSystem?: GarmentPublicationRecord["sourceSystem"];
   }) => Promise<PublishedGarmentAsset[]>;
   getPublishedRuntimeGarmentRecord: (id: string) => Promise<PublishedGarmentAsset | null>;
-  upsertPublishedRuntimeGarmentRecord: (item: PublishedGarmentAsset) => Promise<PublishedGarmentAsset>;
+  upsertPublishedRuntimeGarmentRecord: (
+    item: PublishedGarmentAsset,
+    actorUserId?: string | null,
+  ) => Promise<PublishedGarmentAsset>;
+};
+
+type PublishedRuntimeGarmentRemotePersistenceOptions = {
+  listPublishedRuntimeGarmentRecords?: (filters?: {
+    category?: AssetCategory;
+    sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+  }) => Promise<PublishedGarmentAsset[]>;
+  getPublishedRuntimeGarmentRecord?: (id: string) => Promise<PublishedGarmentAsset | null>;
+  upsertPublishedRuntimeGarmentRecord?: (
+    item: PublishedGarmentAsset,
+    actorUserId?: string | null,
+  ) => Promise<PublishedGarmentAsset>;
 };
 
 const dedupeAndSort = (items: PublishedGarmentAsset[]) => {
@@ -180,19 +205,61 @@ export const createMemoryPublishedRuntimeGarmentPersistencePort = (
   };
 };
 
-const defaultPublishedRuntimeGarmentPersistencePort = createFilePublishedRuntimeGarmentPersistencePort();
+export const createSupabasePublishedRuntimeGarmentPersistencePort = (
+  options?: PublishedRuntimeGarmentRemotePersistenceOptions,
+): PublishedRuntimeGarmentPersistencePort => {
+  const listRecords = options?.listPublishedRuntimeGarmentRecords ?? listPublishedRuntimeGarmentRowsFromDb;
+  const getRecord = options?.getPublishedRuntimeGarmentRecord ?? getPublishedRuntimeGarmentRowByIdFromDb;
+  const upsertRecord = options?.upsertPublishedRuntimeGarmentRecord ?? upsertPublishedRuntimeGarmentRowInDb;
+
+  return {
+    async listPublishedRuntimeGarmentRecords(filters) {
+      const items = await listRecords(filters);
+      return dedupeAndSort(
+        items.flatMap((item) => {
+          const parsed = publishedGarmentAssetSchema.safeParse(item);
+          return parsed.success ? [parsed.data] : [];
+        }),
+      );
+    },
+    async getPublishedRuntimeGarmentRecord(id) {
+      const item = await getRecord(id);
+      if (!item) {
+        return null;
+      }
+
+      return publishedGarmentAssetSchema.parse(item);
+    },
+    async upsertPublishedRuntimeGarmentRecord(item, actorUserId) {
+      const parsed = publishedGarmentAssetSchema.parse(item);
+      return publishedGarmentAssetSchema.parse(await upsertRecord(parsed, actorUserId));
+    },
+  };
+};
+
+const defaultFilePublishedRuntimeGarmentPersistencePort = createFilePublishedRuntimeGarmentPersistencePort();
+const defaultSupabasePublishedRuntimeGarmentPersistencePort =
+  createSupabasePublishedRuntimeGarmentPersistencePort();
+
+const getDefaultPublishedRuntimeGarmentPersistencePort = () =>
+  getRuntimeGarmentPersistenceDriver() === "supabase"
+    ? defaultSupabasePublishedRuntimeGarmentPersistencePort
+    : defaultFilePublishedRuntimeGarmentPersistencePort;
 
 export const listPublishedRuntimeGarmentRecords = async (filters?: {
   category?: AssetCategory;
   sourceSystem?: GarmentPublicationRecord["sourceSystem"];
 }) => {
-  return defaultPublishedRuntimeGarmentPersistencePort.listPublishedRuntimeGarmentRecords(filters);
+  return getDefaultPublishedRuntimeGarmentPersistencePort().listPublishedRuntimeGarmentRecords(filters);
 };
 
 export const getPublishedRuntimeGarmentRecord = async (id: string) => {
-  return defaultPublishedRuntimeGarmentPersistencePort.getPublishedRuntimeGarmentRecord(id);
+  return getDefaultPublishedRuntimeGarmentPersistencePort().getPublishedRuntimeGarmentRecord(id);
 };
 
-export const upsertPublishedRuntimeGarmentRecord = async (item: PublishedGarmentAsset) => {
-  return defaultPublishedRuntimeGarmentPersistencePort.upsertPublishedRuntimeGarmentRecord(item);
+export const upsertPublishedRuntimeGarmentRecord = async (
+  item: PublishedGarmentAsset,
+  actorUserId?: string | null,
+) => {
+  return getDefaultPublishedRuntimeGarmentPersistencePort().upsertPublishedRuntimeGarmentRecord(item, actorUserId);
 };

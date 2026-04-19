@@ -115,7 +115,7 @@ This is the first step toward a real admin-domain publication pipeline.
 
 ## 7. Current State
 
-As of `2026-04-14`:
+As of `2026-04-19`:
 
 - the codebase supports published runtime garments as a distinct concept
 - `Closet` can consume a merged runtime catalog
@@ -128,7 +128,7 @@ As of `2026-04-14`:
 - admin publish now runs the same semantic runtime-garment validator used by the product catalog, so schema-valid but semantically broken garments are rejected before persistence
 - a brand-new guided admin draft now starts from the canonical runtime skeleton profile, regenerates category-owned runtime defaults on guided category changes, and normalizes the legacy invalid fallback id before publish validation
 - `/v1/admin/garments*` now requires explicit admin auth and rejects anonymous-header fallback; local non-production bypass remains allowed only for the configured dev bypass user
-- published runtime-garment persistence now sits behind a replaceable API-side port even though the current adapter is still the local JSON store
+- published runtime-garment persistence now has a dedicated Supabase-backed table and RLS-ready adapter behind the same API-side port; the local JSON store remains only as the isolated fallback for dev/test workflows
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`
 - admin browser requests now require both `BACKEND_ORIGIN` and `NEXT_PUBLIC_API_BASE_URL` because the admin surface is on a separate origin from Railway
 
@@ -136,7 +136,7 @@ That means the public product and the admin publishing surface are now physicall
 
 ## 8. Next Steps
 
-1. replace the current local JSON publication repository with the real admin-domain backing store
+1. make the Supabase-backed publication store the deployed default and retire the JSON fallback once all environments are migrated
 2. make the admin domain emit package manifests directly from the authoring pipeline
 3. require fit validation before publication and store the calibration report with the asset revision
 4. add publish history, revision diffing, and asset preview on top of the current guided editor

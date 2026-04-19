@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildJobPayloadEnvelope,
   publishedGarmentAssetSchema,
   type GarmentPublicationRecord,
   type PublishedGarmentAsset,
@@ -181,15 +183,20 @@ export const createJob = async (input: {
   runAfter?: string;
   parentJobId?: string;
   idempotencyKey?: string;
+  traceId?: string;
 }) => {
   const supabase = getAdminClient();
+  const payload = buildJobPayloadEnvelope(input.jobType, input.payload, {
+    traceId: input.traceId ?? randomUUID(),
+    idempotencyKey: input.idempotencyKey ?? null,
+  });
   const { data, error } = await supabase
     .from("jobs")
     .insert({
       user_id: input.userId,
       job_type: input.jobType,
       status: "queued",
-      payload: input.payload,
+      payload,
       priority: input.priority ?? 100,
       max_attempts: input.maxAttempts ?? 5,
       run_after: input.runAfter ?? new Date().toISOString(),
@@ -204,6 +211,7 @@ export const createJob = async (input: {
       const { data: existing, error: existingError } = await supabase
         .from("jobs")
         .select("*")
+        .eq("user_id", input.userId)
         .eq("job_type", input.jobType)
         .eq("idempotency_key", input.idempotencyKey)
         .maybeSingle();

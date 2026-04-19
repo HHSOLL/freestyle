@@ -27,7 +27,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
 | `Phase 4` | server persistence and admin publishing hardening | `completed` | `BodyProfile` persistence is replaceable, and published runtime garments now have a remote Supabase backing store with RLS-ready coverage plus local fallback |
-| `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
+| `Phase 5` | worker, job contract, and observability hardening | `partial` | `Batch 1` is complete for the import chain; evaluator/tryon and broader route-level smoke are still open |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
 
 ## Current Batch
@@ -589,7 +589,44 @@ Outcome:
 
 ### Next Batch
 
-`Phase 5 / Batch 1` should move into worker/job contract hardening by defining canonical payload/result schemas, idempotency keys, and trace propagation without reopening the now-closed persistence boundary.
+### `Phase 5 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added canonical `job-payload.v1` and `job-result.v1` envelope contracts and wired the import-chain workers to normalize legacy rows before handling them
+2. moved `createJob` to user-scoped idempotency lookup and added a follow-up migration that changes the uniqueness boundary to `(user_id, job_type, idempotency_key)`
+3. wrapped worker success/failure results before persistence so status reads stop exposing arbitrary raw blobs as the primary contract
+4. normalized `GET /v1/jobs/:job_id` responses through a dedicated serializer with `trace_id` and canonical result envelopes
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/job-contracts.test.ts`
+- `packages/db/src/index.ts`
+- `packages/queue/src/index.ts`
+- `packages/queue/src/index.test.ts`
+- `apps/api/src/modules/jobs/jobs.service.ts`
+- `apps/api/src/modules/jobs/jobs.service.test.ts`
+- `workers/importer/src/worker.ts`
+- `workers/background_removal/src/worker.ts`
+- `workers/asset_processor/src/worker.ts`
+- `supabase/migrations/008_jobs_user_scoped_idempotency.sql`
+- `docs/api-contract.md`
+- `docs/worker-playbook.md`
+- `docs/quality-gates.md`
+
+Outcome:
+
+- the import-chain queue path now has a canonical payload/result contract instead of relying on ad hoc casts and raw result blobs
+- trace propagation survives import -> background removal -> asset processing fan-out
+- duplicate replay of the same idempotency key can no longer collide across different users
+
+### Next Batch
+
+`Phase 5 / Batch 2` should extend the same contract discipline to `evaluator.outfit` and `tryon.generate`, then add route-level jobs smoke before moving into `Phase 6 / Batch 1`.
 
 ## Phase 0 Closeout
 

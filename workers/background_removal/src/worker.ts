@@ -5,6 +5,8 @@ import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import {
   JOB_TYPES,
+  backgroundRemovalJobPayloadSchema,
+  normalizeQueuedJobPayload,
   type BackgroundRemovalJobPayload,
 } from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
@@ -141,7 +143,14 @@ export const backgroundRemovalWorkerDefinition: WorkerDefinition = {
   workerName: "worker_background_removal",
   jobTypes: [JOB_TYPES.BACKGROUND_REMOVAL_PROCESS],
   handler: async ({ job }) => {
-    const payload = job.payload as unknown as BackgroundRemovalJobPayload;
+    const payloadEnvelope = normalizeQueuedJobPayload({
+      jobType: JOB_TYPES.BACKGROUND_REMOVAL_PROCESS,
+      payload: job.payload,
+      schema: backgroundRemovalJobPayloadSchema,
+      fallbackTraceId: job.id,
+      idempotencyKey: job.idempotency_key,
+    });
+    const payload: BackgroundRemovalJobPayload = payloadEnvelope.data;
     if (!payload.asset_id || !payload.image_url) {
       throw new Error("Invalid background removal job payload.");
     }
@@ -231,6 +240,7 @@ export const backgroundRemovalWorkerDefinition: WorkerDefinition = {
           asset_id: payload.asset_id,
           category_hint: payload.category_hint,
         },
+        traceId: payloadEnvelope.trace_id,
       });
 
       return {

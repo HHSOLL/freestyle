@@ -2,9 +2,13 @@ import { createHash } from "node:crypto";
 import { createJob, getJobByIdForUser } from "@freestyle/db";
 import {
   JOB_TYPES,
+  jobStatusResponseSchema,
+  normalizeJobResultEnvelope,
+  readJobPayloadEnvelope,
   type ImportCartJobInput,
   type ImportProductBatchJobInput,
   type ImportProductJobInput,
+  type JobRecord,
 } from "@freestyle/shared";
 import { createImportedProduct } from "../products/products.service.js";
 
@@ -133,29 +137,37 @@ export const createUploadImportJob = async (input: {
   return { product, job };
 };
 
-export const getUserJob = async (userId: string, jobId: string) => {
-  const job = await getJobByIdForUser(jobId, userId);
-  if (!job) return null;
+export const buildUserJobResponse = (job: JobRecord) => {
+  const payloadTraceId = readJobPayloadEnvelope(job.payload)?.trace_id ?? job.id;
+  const result = normalizeJobResultEnvelope({
+    jobType: job.job_type,
+    result: job.result,
+    fallbackTraceId: payloadTraceId,
+  });
+  const traceId = result?.trace_id ?? payloadTraceId;
 
-  const progress =
-    typeof job.result === "object" && job.result && "progress" in job.result
-      ? Number((job.result as Record<string, unknown>).progress ?? 0)
-      : undefined;
-
-  return {
+  return jobStatusResponseSchema.parse({
     id: job.id,
     job_type: job.job_type,
     status: job.status,
-    progress,
-    result: job.result,
+    trace_id: traceId,
+    progress: result?.progress,
+    result,
     error: job.error_code
       ? {
           code: job.error_code,
-          message: job.error_message,
+          message: job.error_message ?? "Unknown job error.",
         }
       : null,
     created_at: job.created_at,
     updated_at: job.updated_at,
     completed_at: job.completed_at,
-  };
+  });
+};
+
+export const getUserJob = async (userId: string, jobId: string) => {
+  const job = await getJobByIdForUser(jobId, userId);
+  if (!job) return null;
+
+  return buildUserJobResponse(job);
 };

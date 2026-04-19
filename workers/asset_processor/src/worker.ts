@@ -4,7 +4,12 @@ import sharp from "sharp";
 import { getAssetById, updateAsset } from "@freestyle/db";
 import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
-import { JOB_TYPES, type AssetProcessorJobPayload } from "@freestyle/shared";
+import {
+  JOB_TYPES,
+  assetProcessorJobPayloadSchema,
+  normalizeQueuedJobPayload,
+  type AssetProcessorJobPayload,
+} from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
 import { buildGarmentProfile, inferAssetCategory } from "./garmentProfile.js";
 
@@ -54,7 +59,13 @@ export const assetProcessorWorkerDefinition: WorkerDefinition = {
   workerName: "worker_asset_processor",
   jobTypes: [JOB_TYPES.ASSET_PROCESSOR_PROCESS],
   handler: async ({ job }) => {
-    const payload = job.payload as unknown as AssetProcessorJobPayload;
+    const payload: AssetProcessorJobPayload = normalizeQueuedJobPayload({
+      jobType: JOB_TYPES.ASSET_PROCESSOR_PROCESS,
+      payload: job.payload,
+      schema: assetProcessorJobPayloadSchema,
+      fallbackTraceId: job.id,
+      idempotencyKey: job.idempotency_key,
+    }).data;
     if (!payload.asset_id) {
       throw new Error("Invalid asset processor payload.");
     }

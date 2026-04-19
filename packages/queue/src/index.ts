@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { claimJobs, completeJob, failJob, heartbeatJobs, requeueStaleJobs } from "@freestyle/db";
-import type { JobRecord, JobType } from "@freestyle/shared";
+import {
+  buildJobResultEnvelope,
+  normalizeJobResultEnvelope,
+  readJobPayloadEnvelope,
+  readJobResultEnvelope,
+  type CanonicalJobResultEnvelope,
+  type JobRecord,
+  type JobType,
+} from "@freestyle/shared";
 import { logger } from "@freestyle/observability";
 
 export type WorkerHandlerContext = {
@@ -29,6 +37,33 @@ export type WorkerLoopOptions = {
 export type WorkerRouterOptions = Omit<WorkerLoopOptions, "jobTypes" | "handler"> & {
   workers: WorkerDefinition[];
   jobTypes?: JobType[];
+};
+
+const toJobTraceContext = (job: Pick<JobRecord, "id" | "idempotency_key" | "payload" | "result">) => {
+  const resultEnvelope = readJobResultEnvelope(job.result);
+  const payloadEnvelope = readJobPayloadEnvelope(job.payload);
+
+  return {
+    traceId: resultEnvelope?.trace_id ?? payloadEnvelope?.trace_id ?? job.id,
+    idempotencyKey: payloadEnvelope?.idempotency_key ?? job.idempotency_key ?? null,
+  };
+};
+
+export const normalizeWorkerJobResult = (
+  job: Pick<JobRecord, "id" | "job_type" | "idempotency_key" | "payload" | "result">,
+  result: Record<string, unknown> | null | undefined,
+): CanonicalJobResultEnvelope => {
+  const { traceId } = toJobTraceContext(job);
+  return (
+    normalizeJobResultEnvelope({
+      jobType: job.job_type,
+      result: result ?? {},
+      fallbackTraceId: traceId,
+    }) ??
+    buildJobResultEnvelope(job.job_type, {}, {
+      traceId,
+    })
+  );
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,26 +124,34 @@ export const runWorkerLoop = async (options: WorkerLoopOptions) => {
 
           try {
             const result = await options.handler({ workerName, job });
-            await completeJob(job.id, workerName, result);
+            const jobContext = toJobTraceContext(job);
+            await completeJob(job.id, workerName, normalizeWorkerJobResult(job, result));
             logger.info("worker.job_succeeded", {
               workerName,
               jobId: job.id,
+              userId: job.user_id,
               jobType: job.job_type,
+              traceId: jobContext.traceId,
+              idempotencyKey: jobContext.idempotencyKey,
             });
           } catch (error) {
             const details = toError(error);
+            const jobContext = toJobTraceContext(job);
             await failJob(job.id, workerName, {
               code: details.code,
               message: details.message,
-              result: details.result,
+              result: normalizeWorkerJobResult(job, details.result ?? {}),
               forceTerminal: details.retryable === false,
             });
             logger.warn("worker.job_failed", {
               workerName,
               jobId: job.id,
+              userId: job.user_id,
               jobType: job.job_type,
               code: details.code,
               message: details.message,
+              traceId: jobContext.traceId,
+              idempotencyKey: jobContext.idempotencyKey,
             });
           } finally {
             clearInterval(heartbeatTimer);

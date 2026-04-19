@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 import {
   createAsset,
   createJob,
@@ -13,9 +14,10 @@ import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import {
   JOB_TYPES,
   type AssetMetadata,
-  type ImportCartJobPayload,
-  type ImportProductJobPayload,
-  type ImportUploadJobPayload,
+  importCartJobPayloadSchema,
+  importProductJobPayloadSchema,
+  importUploadJobPayloadSchema,
+  normalizeQueuedJobPayload,
 } from "@freestyle/shared";
 import { getStorageAdapter } from "@freestyle/storage";
 import {
@@ -108,7 +110,7 @@ const buildCandidatePool = (
 
 const selectCandidate = async (
   resolved: Awaited<ReturnType<typeof resolveProductImageCandidates>>,
-  payload: ImportProductJobPayload
+  payload: z.infer<typeof importProductJobPayloadSchema>
 ) => {
   const { isMusinsaImport, candidates } = buildCandidatePool(resolved, payload.selected_image_url);
   const previews = buildImportCandidatePreviews(candidates, resolved.pageUrl, isMusinsaImport ? 24 : 16);
@@ -162,7 +164,11 @@ const selectCandidate = async (
   };
 };
 
-const processProductImport = async (userId: string, payload: ImportProductJobPayload) => {
+const processProductImport = async (
+  userId: string,
+  payload: z.infer<typeof importProductJobPayloadSchema>,
+  traceId: string,
+) => {
   const resolved = await resolveProductImageCandidates(payload.source_url, {
     maxCandidatesCollected: isMusinsaProductPageUrl(payload.source_url) ? 320 : 200,
     maxCandidatesScored: isMusinsaProductPageUrl(payload.source_url) ? 160 : 48,
@@ -215,6 +221,7 @@ const processProductImport = async (userId: string, payload: ImportProductJobPay
       image_url: uploaded.url,
       category_hint: payload.category_hint,
     },
+    traceId,
   });
 
   await updateProductStatus(payload.product_id, "imported");
@@ -229,7 +236,11 @@ const processProductImport = async (userId: string, payload: ImportProductJobPay
   };
 };
 
-const processUploadImport = async (userId: string, payload: ImportUploadJobPayload) => {
+const processUploadImport = async (
+  userId: string,
+  payload: z.infer<typeof importUploadJobPayloadSchema>,
+  traceId: string,
+) => {
   const metadata: AssetMetadata = {
     sourceUrl: payload.image_url,
     sourceTitle: payload.item_name?.trim() || undefined,
@@ -255,6 +266,7 @@ const processUploadImport = async (userId: string, payload: ImportUploadJobPaylo
       image_url: payload.image_url,
       category_hint: payload.category_hint,
     },
+    traceId,
   });
 
   return {
@@ -264,7 +276,12 @@ const processUploadImport = async (userId: string, payload: ImportUploadJobPaylo
   };
 };
 
-const processCartImport = async (userId: string, parentJobId: string, payload: ImportCartJobPayload) => {
+const processCartImport = async (
+  userId: string,
+  parentJobId: string,
+  payload: z.infer<typeof importCartJobPayloadSchema>,
+  traceId: string,
+) => {
   const maxItems = Math.min(100, Math.max(1, Number(payload.max_items ?? 20)));
   const html = await fetchHtml(payload.cart_url);
   const productLinks = parseCartLinks(html, payload.cart_url, maxItems);
@@ -292,6 +309,7 @@ const processCartImport = async (userId: string, parentJobId: string, payload: I
       },
       parentJobId,
       idempotencyKey: `cart-${parentJobId}-${index}`,
+      traceId,
     });
 
     childJobIds.push(childJob.id);
@@ -311,15 +329,36 @@ export const importerWorkerDefinition: WorkerDefinition = {
     const userId = job.user_id;
 
     if (job.job_type === JOB_TYPES.IMPORT_PRODUCT_URL) {
-      return processProductImport(userId, job.payload as ImportProductJobPayload);
+      const payload = normalizeQueuedJobPayload({
+        jobType: JOB_TYPES.IMPORT_PRODUCT_URL,
+        payload: job.payload,
+        schema: importProductJobPayloadSchema,
+        fallbackTraceId: job.id,
+        idempotencyKey: job.idempotency_key,
+      });
+      return processProductImport(userId, payload.data, payload.trace_id);
     }
 
     if (job.job_type === JOB_TYPES.IMPORT_UPLOAD_IMAGE) {
-      return processUploadImport(userId, job.payload as ImportUploadJobPayload);
+      const payload = normalizeQueuedJobPayload({
+        jobType: JOB_TYPES.IMPORT_UPLOAD_IMAGE,
+        payload: job.payload,
+        schema: importUploadJobPayloadSchema,
+        fallbackTraceId: job.id,
+        idempotencyKey: job.idempotency_key,
+      });
+      return processUploadImport(userId, payload.data, payload.trace_id);
     }
 
     if (job.job_type === JOB_TYPES.IMPORT_CART_URL) {
-      return processCartImport(userId, job.id, job.payload as ImportCartJobPayload);
+      const payload = normalizeQueuedJobPayload({
+        jobType: JOB_TYPES.IMPORT_CART_URL,
+        payload: job.payload,
+        schema: importCartJobPayloadSchema,
+        fallbackTraceId: job.id,
+        idempotencyKey: job.idempotency_key,
+      });
+      return processCartImport(userId, job.id, payload.data, payload.trace_id);
     }
 
     throw new Error(`Unsupported importer job type: ${job.job_type}`);

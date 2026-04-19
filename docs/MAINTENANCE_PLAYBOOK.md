@@ -106,7 +106,8 @@ If any of the above regress, stop the release.
 - verify asset path and manifest entry
 - verify `preloadRuntimeAssets` still references the correct files
 - verify runtime clone cleanup did not dispose shared loader-cache resources
-- confirm the affected route shows a visible fallback instead of a blank stage
+- confirm `AvatarStageViewport` still shows a visible loading, error, or WebGL fallback instead of a blank route shell
+- confirm `closet-stage` still shows an in-canvas loading placeholder instead of backdrop-only emptiness while runtime assets suspend
 
 ### Garment clipping or body poke-through spike
 

@@ -116,6 +116,7 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - body masks still hide covered geometry correctly
 - low-quality mode still renders
 - load failure shows a fallback instead of a blank scene
+- host chunk/WebGL fallback and in-canvas asset-loading placeholder remain visible on the closet stage
 - preloading stays within explicit asset budgets
 
 Use `docs/MAINTENANCE_PLAYBOOK.md` for the full runtime regression checklist.

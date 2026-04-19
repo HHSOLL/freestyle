@@ -1,13 +1,21 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { startTransition, useEffect, useMemo, useState, type ComponentType } from "react";
 import type { BodyProfile, RuntimeGarmentAsset } from "@freestyle/shared-types";
+import { AvatarStageViewportFallback } from "./AvatarStageViewportFallback.js";
 
-const DynamicAvatarStage = dynamic(
-  () => import("@freestyle/runtime-3d").then((module) => module.ReferenceClosetStageCanvas),
-  { ssr: false },
-);
+type AvatarStageViewportProps = {
+  bodyProfile: BodyProfile;
+  avatarVariantId: "female-base" | "male-base";
+  poseId: "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
+  equippedGarments: RuntimeGarmentAsset[];
+  selectedItemId: string | null;
+  qualityTier?: "low" | "balanced" | "high";
+};
+
+type AvatarStageComponent = ComponentType<Omit<AvatarStageViewportProps, "qualityTier"> & { qualityTier: "low" | "balanced" | "high" }>;
+type StageLoadState = "loading" | "ready" | "error";
+type StageSupportState = "pending" | "supported" | "unsupported";
 
 function detectQualityTier(): "low" | "balanced" | "high" {
   if (typeof window === "undefined") return "balanced";
@@ -29,6 +37,16 @@ const qualityTierRank = {
   high: 2,
 } as const;
 
+function supportsWebGL() {
+  if (typeof document === "undefined") return true;
+  const canvas = document.createElement("canvas");
+  return Boolean(
+    canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl"),
+  );
+}
+
 export function AvatarStageViewport({
   bodyProfile,
   avatarVariantId,
@@ -36,22 +54,66 @@ export function AvatarStageViewport({
   equippedGarments,
   selectedItemId,
   qualityTier,
-}: {
-  bodyProfile: BodyProfile;
-  avatarVariantId: "female-base" | "male-base";
-  poseId: "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
-  equippedGarments: RuntimeGarmentAsset[];
-  selectedItemId: string | null;
-  qualityTier?: "low" | "balanced" | "high";
-}) {
+}: AvatarStageViewportProps) {
   const resolvedQualityTier = useMemo(() => {
     const detected = detectQualityTier();
     if (!qualityTier) return detected;
     return qualityTierRank[qualityTier] <= qualityTierRank[detected] ? qualityTier : detected;
   }, [qualityTier]);
+  const [supportState, setSupportState] = useState<StageSupportState>("pending");
+  const [stageAttempt, setStageAttempt] = useState(0);
+  const [stageLoadState, setStageLoadState] = useState<StageLoadState>("loading");
+  const [StageComponent, setStageComponent] = useState<AvatarStageComponent | null>(null);
+
+  useEffect(() => {
+    setSupportState(supportsWebGL() ? "supported" : "unsupported");
+  }, []);
+
+  useEffect(() => {
+    if (supportState !== "supported") return;
+
+    let cancelled = false;
+    setStageLoadState("loading");
+    setStageComponent(null);
+
+    void import("@freestyle/runtime-3d")
+      .then((module) => {
+        if (cancelled) return;
+        setStageComponent(() => module.ReferenceClosetStageCanvas as AvatarStageComponent);
+        setStageLoadState("ready");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to load runtime closet stage", error);
+        setStageComponent(null);
+        setStageLoadState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stageAttempt, supportState]);
+
+  const handleRetry = () => {
+    startTransition(() => {
+      setStageAttempt((attempt) => attempt + 1);
+    });
+  };
+
+  if (supportState === "unsupported") {
+    return <AvatarStageViewportFallback state="unsupported" />;
+  }
+
+  if (stageLoadState === "error") {
+    return <AvatarStageViewportFallback state="error" onRetry={handleRetry} />;
+  }
+
+  if (supportState !== "supported" || stageLoadState !== "ready" || !StageComponent) {
+    return <AvatarStageViewportFallback state="loading" />;
+  }
 
   return (
-    <DynamicAvatarStage
+    <StageComponent
       bodyProfile={bodyProfile}
       avatarVariantId={avatarVariantId}
       poseId={poseId}

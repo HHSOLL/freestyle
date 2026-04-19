@@ -26,6 +26,7 @@ import type {
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
+import { ClosetStageLoadingFallback } from "./closet-stage-fallback.js";
 import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
@@ -1793,7 +1794,7 @@ export function ReferenceClosetStageCanvas({
       ) : null}
 
       <StudioBackdrop avatarOnly={avatarOnly} />
-      <Suspense fallback={null}>
+      <Suspense fallback={<ClosetStageLoadingFallback />}>
         <SceneRig
           bodyProfile={bodyProfile}
           avatarVariantId={avatarVariantId}

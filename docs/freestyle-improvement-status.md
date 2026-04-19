@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `95%`
+- Working overall completion estimate: `97%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -25,7 +25,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
-| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader ownership is now centralized, while deeper decomposition, disposal policy, and broader regression coverage still need work |
+| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader and clone-material disposal ownership are now centralized, while deeper decomposition and broader regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
@@ -385,6 +385,36 @@ Outcome:
 ### Next Batch
 
 `Phase 3 / Batch 2` should keep `Closet` and `runtime-3d` stabilization moving by extracting stage composition or disposal ownership from `packages/runtime-3d/src/closet-stage.tsx` without widening the batch back into page-shell work.
+
+### `Phase 3 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted runtime clone-material ownership into a shared disposal helper instead of leaving clone/cleanup responsibility implicit inside `closet-stage.tsx`
+2. added scene-bound cleanup for cloned avatar and garment material instances so stage-owned resources are released when the cloned scene changes or unmounts
+3. added focused runtime disposal tests that lock “dispose only clone-owned materials” behavior for single and multi-material meshes
+4. updated active runtime docs so future batches keep cleanup explicit without accidentally disposing shared `useGLTF` cache resources
+
+Evidence:
+
+- `packages/runtime-3d/src/runtime-disposal.ts`
+- `packages/runtime-3d/src/runtime-disposal.test.ts`
+- `packages/runtime-3d/src/closet-stage.tsx`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/architecture-overview.md`
+- `docs/MAINTENANCE_PLAYBOOK.md`
+
+Outcome:
+
+- cloned runtime materials now have an explicit owner and cleanup path
+- `closet-stage.tsx` no longer hides clone-material lifecycle policy inside a local helper
+- the next Phase 3 batch can focus on stage composition or failure fallback ownership instead of material lifecycle ambiguity
+
+### Next Batch
+
+`Phase 3 / Batch 3` should keep `Closet` and `runtime-3d` stabilization moving by extracting stage composition or visible failure/fallback ownership from `packages/runtime-3d/src/closet-stage.tsx` without widening the batch into page-shell or domain-fit changes.
 
 ## Phase 0 Closeout
 

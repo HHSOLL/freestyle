@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo, useRef, type ComponentRef, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type RefObject } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -26,6 +26,7 @@ import type {
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
+import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
 type OrbitControlsImpl = ComponentRef<typeof OrbitControls>;
@@ -473,16 +474,6 @@ function applyPose(
   }
 }
 
-function ensureClonedMaterial(object: THREE.Mesh | THREE.SkinnedMesh) {
-  if (object.userData.freestyleMaterialPrepared) {
-    return;
-  }
-  object.material = Array.isArray(object.material)
-    ? object.material.map((material) => material?.clone())
-    : object.material?.clone();
-  object.userData.freestyleMaterialPrepared = true;
-}
-
 function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolean; qualityTier?: QualityTier } = {}) {
   const avatarOnly = options.avatarOnly ?? false;
   const qualityTier = options.qualityTier ?? "balanced";
@@ -493,7 +484,7 @@ function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolea
       return;
     }
 
-    ensureClonedMaterial(object);
+    ensureRuntimeOwnedMaterials(object);
 
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     materials.forEach((material) => {
@@ -1296,6 +1287,12 @@ function BoundGarment({
   );
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
 
+  useEffect(() => {
+    return () => {
+      disposeRuntimeOwnedMaterials(garmentScene);
+    };
+  }, [garmentScene]);
+
   useLayoutEffect(() => {
     configureMaterials(garmentScene, { qualityTier });
     const clearanceScale =
@@ -1607,6 +1604,12 @@ function AvatarRig({
   const structuralGarments = equippedGarments.filter((item) => item.category !== "accessories" && item.category !== "hair");
   const bodyOpacity = structuralGarments.length === 0 ? 1 : 0.985;
   const avatarOnly = structuralGarments.length === 0;
+
+  useEffect(() => {
+    return () => {
+      disposeRuntimeOwnedMaterials(avatarScene);
+    };
+  }, [avatarScene]);
 
   useLayoutEffect(() => {
     configureMaterials(avatarScene, { avatarOnly, qualityTier });

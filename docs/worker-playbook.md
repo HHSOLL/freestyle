@@ -34,10 +34,14 @@
 4. `worker_evaluator` handler
 - Job type: `evaluator.outfit`
 - Output: `outfit_evaluations.compatibility_score`, `explanation`
+- current runtime note: queued evaluator payloads are normalized through the canonical job envelope before handling
+- failure handling also marks `outfit_evaluations.status='failed'` so lab detail reads do not stay stuck in `processing`
 
 5. `worker_tryon` handler
 - Job type: `tryon.generate`
 - Output: `tryons.output_image_url`, `status='succeeded'`
+- current runtime note: queued try-on payloads are normalized through the canonical job envelope before handling
+- failure handling also marks `tryons.status='failed'` and writes `error_message`
 
 ## Recommended Railway Layout
 1. 최소 비용 운영

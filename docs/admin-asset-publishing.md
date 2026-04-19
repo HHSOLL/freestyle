@@ -127,6 +127,8 @@ As of `2026-04-14`:
 - the admin surface now includes an archetype fit preview so operators can see `compression / snug / regular / relaxed / oversized` states across representative bodies before publish
 - admin publish now runs the same semantic runtime-garment validator used by the product catalog, so schema-valid but semantically broken garments are rejected before persistence
 - a brand-new guided admin draft now starts from the canonical runtime skeleton profile, regenerates category-owned runtime defaults on guided category changes, and normalizes the legacy invalid fallback id before publish validation
+- `/v1/admin/garments*` now requires explicit admin auth and rejects anonymous-header fallback; local non-production bypass remains allowed only for the configured dev bypass user
+- published runtime-garment persistence now sits behind a replaceable API-side port even though the current adapter is still the local JSON store
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`
 - admin browser requests now require both `BACKEND_ORIGIN` and `NEXT_PUBLIC_API_BASE_URL` because the admin surface is on a separate origin from Railway
 

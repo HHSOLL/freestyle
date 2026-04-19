@@ -112,6 +112,8 @@ const writeRuntimeGarmentStore = (value: unknown) => {
 
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
+  process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
+  delete process.env.ALLOW_ANONYMOUS_USER;
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
   try {
     fs.unlinkSync(runtimeGarmentStorePath);
@@ -124,6 +126,8 @@ test.beforeEach(() => {
 
 test.after(() => {
   delete process.env.DEV_BYPASS_USER_ID;
+  delete process.env.ADMIN_USER_IDS;
+  delete process.env.ALLOW_ANONYMOUS_USER;
   delete process.env.GARMENT_PUBLICATION_STORE_PATH;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
@@ -253,6 +257,50 @@ test("admin update route rejects route and payload id mismatches before writing"
   assert.equal(response.statusCode, 400);
   assert.equal(response.json().error, "VALIDATION_ERROR");
   assert.match(response.json().message, /Body id must match route id/);
+
+  await app.close();
+});
+
+test("admin routes reject anonymous-header access even when anonymous product auth is enabled", async () => {
+  delete process.env.DEV_BYPASS_USER_ID;
+  process.env.ADMIN_USER_IDS = "00000000-0000-4000-8000-000000000099";
+  process.env.ALLOW_ANONYMOUS_USER = "true";
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+    headers: {
+      "x-anonymous-user-id": "00000000-0000-4000-8000-000000000123",
+    },
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.json().error, "UNAUTHORIZED");
+
+  await app.close();
+  delete process.env.ALLOW_ANONYMOUS_USER;
+});
+
+test("admin routes reject non-admin dev bypass users while closet runtime reads remain available", async () => {
+  process.env.ADMIN_USER_IDS = "00000000-0000-4000-8000-000000000099";
+  const app = buildServer();
+
+  const adminResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+  });
+
+  assert.equal(adminResponse.statusCode, 401);
+  assert.equal(adminResponse.json().error, "UNAUTHORIZED");
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 200);
+  assert.equal(publishedRuntimeGarmentListResponseSchema.parse(closetResponse.json()).total, 0);
 
   await app.close();
 });

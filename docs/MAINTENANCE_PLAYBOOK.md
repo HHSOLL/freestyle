@@ -61,6 +61,7 @@ Also confirm namespace headers:
 - product routes return `x-freestyle-surface: product`
 - legacy routes return `x-freestyle-surface: legacy` and `deprecation: true`
 - lab routes return `x-freestyle-surface: lab`
+- admin garment routes reject anonymous-header fallback and non-admin callers
 
 ## 3. Release Checklist
 

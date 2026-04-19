@@ -16,6 +16,7 @@ const runtimeGarmentStorePath = path.join(tempDir, "runtime-garments.json");
 
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
+  process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
   try {
@@ -36,6 +37,7 @@ test.beforeEach(() => {
 
 test.after(() => {
   delete process.env.DEV_BYPASS_USER_ID;
+  delete process.env.ADMIN_USER_IDS;
   delete process.env.BODY_PROFILE_STORE_PATH;
   delete process.env.GARMENT_PUBLICATION_STORE_PATH;
   fs.rmSync(tempDir, { recursive: true, force: true });
@@ -106,6 +108,31 @@ test("profile namespace returns 500 when the persistence backing store is unread
   assert.equal(response.statusCode, 500);
   assert.equal(response.headers["x-freestyle-surface"], "product");
   assert.equal(response.json().error, "INTERNAL_SERVER_ERROR");
+
+  await app.close();
+});
+
+test("runtime garment namespace returns 500 when the publication backing store is unreadable", async () => {
+  process.env.GARMENT_PUBLICATION_STORE_PATH = tempDir;
+  const app = buildServer();
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 500);
+  assert.equal(closetResponse.headers["x-freestyle-surface"], "product");
+  assert.equal(closetResponse.json().error, "INTERNAL_SERVER_ERROR");
+
+  const adminResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+  });
+
+  assert.equal(adminResponse.statusCode, 500);
+  assert.equal(adminResponse.headers["x-freestyle-surface"], "product");
+  assert.equal(adminResponse.json().error, "INTERNAL_SERVER_ERROR");
 
   await app.close();
 });

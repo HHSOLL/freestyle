@@ -30,6 +30,55 @@ const getAnonymousUserId = (request: FastifyRequest) => {
   return normalized;
 };
 
+const getAdminAllowlist = () => {
+  const raw = process.env.ADMIN_USER_IDS?.trim();
+  if (!raw) {
+    return new Set<string>();
+  }
+
+  return new Set(
+    raw
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => UUID_PATTERN.test(value)),
+  );
+};
+
+const collectClaimStrings = (value: unknown): string[] => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized ? [normalized] : [];
+  }
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => collectClaimStrings(entry));
+};
+
+const hasAdminRoleClaim = (user: {
+  app_metadata?: Record<string, unknown> | null;
+  user_metadata?: Record<string, unknown> | null;
+}) => {
+  const appMetadata = user.app_metadata ?? {};
+  const userMetadata = user.user_metadata ?? {};
+  const claims = [
+    ...collectClaimStrings(appMetadata.role),
+    ...collectClaimStrings(appMetadata.roles),
+    ...collectClaimStrings(appMetadata.freestyle_role),
+    ...collectClaimStrings(appMetadata.freestyle_roles),
+    ...collectClaimStrings(userMetadata.role),
+    ...collectClaimStrings(userMetadata.roles),
+    ...collectClaimStrings(userMetadata.freestyle_role),
+    ...collectClaimStrings(userMetadata.freestyle_roles),
+  ];
+
+  return claims.some((claim) =>
+    ["admin", "partner", "publisher", "operator", "internal-admin"].includes(claim),
+  );
+};
+
 export const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
   if (request.authUserId) return request.authUserId;
 
@@ -64,4 +113,52 @@ export const requireAuth = async (request: FastifyRequest, reply: FastifyReply) 
 
   request.authUserId = data.user.id;
   return data.user.id;
+};
+
+export const requireAdminAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+  const userId = await requireAuth(request, reply);
+  if (!userId) return null;
+
+  const token = getBearerToken(request);
+  const allowlist = getAdminAllowlist();
+  const devBypassUserId = process.env.DEV_BYPASS_USER_ID?.trim();
+
+  if (!token) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      devBypassUserId &&
+      userId === devBypassUserId &&
+      (allowlist.size === 0 || allowlist.has(userId))
+    ) {
+      return userId;
+    }
+
+    reply.code(401).send({
+      error: "UNAUTHORIZED",
+      message: "Admin bearer token is required.",
+    });
+    return null;
+  }
+
+  const supabase = getAdminClient();
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    reply.code(401).send({ error: "UNAUTHORIZED", message: "Invalid or expired token." });
+    return null;
+  }
+
+  if (data.user.id !== userId) {
+    reply.code(401).send({ error: "UNAUTHORIZED", message: "Authenticated user mismatch." });
+    return null;
+  }
+
+  if (allowlist.has(userId) || hasAdminRoleClaim(data.user)) {
+    return userId;
+  }
+
+  reply.code(403).send({
+    error: "FORBIDDEN",
+    message: "Admin access is required.",
+  });
+  return null;
 };

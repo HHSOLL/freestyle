@@ -96,6 +96,7 @@
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
 - current persistence: local JSON repository behind the API boundary
+- current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with a versioned file adapter
 - intended future persistence: dedicated admin domain backing store
 - accessory-oriented size keys `headCircumferenceCm` and `frameWidthCm` are valid in the canonical garment measurement contract
 - current read compatibility rule:
@@ -144,17 +145,20 @@
 ```
 
 #### `GET /v1/admin/garments`
-- auth: same as other product routes for now; later admin-domain auth will replace this
+- auth:
+  - bearer-token backed admin access only
+  - anonymous `x-anonymous-user-id` fallback is rejected
+  - local non-production `DEV_BYPASS_USER_ID` can still reach the route only when it is also allowlisted through `ADMIN_USER_IDS` (or when the allowlist is unset)
 - response body satisfies `publishedRuntimeGarmentListResponseSchema`
 - malformed or semantically invalid persisted publication rows are filtered before the response is emitted
 
 #### `GET /v1/admin/garments/:id`
-- auth: same as other product routes for now; later admin-domain auth will replace this
+- auth: same admin-only rule as `GET /v1/admin/garments`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`
 - if the stored row for `:id` is malformed or fails semantic garment validation, the route returns `404 NOT_FOUND`
 
 #### `POST /v1/admin/garments`
-- auth: same as other product routes for now; later admin-domain auth will replace this
+- auth: same admin-only rule as `GET /v1/admin/garments`
 - request body must satisfy `PublishedGarmentAsset`
 - duplicate `id` returns `409 CONFLICT`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`
@@ -190,7 +194,7 @@
 ```
 
 #### `PUT /v1/admin/garments/:id`
-- auth: same as other product routes for now; later admin-domain auth will replace this
+- auth: same admin-only rule as `GET /v1/admin/garments`
 - request body must satisfy `PublishedGarmentAsset`
 - route `:id` must match `request body.id`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`

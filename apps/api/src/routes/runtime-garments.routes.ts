@@ -6,7 +6,7 @@ import {
   publishedRuntimeGarmentItemResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
 } from "@freestyle/contracts";
-import { requireAuth } from "../modules/auth/auth.js";
+import { requireAdminAuth, requireAuth } from "../modules/auth/auth.js";
 import {
   createPublishedRuntimeGarment,
   getPublishedRuntimeGarmentById,
@@ -48,7 +48,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/admin/garments", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireAdminAuth(request, reply);
     if (!userId) return;
 
     const parsed = runtimeGarmentQuerySchema.safeParse(request.query ?? {});
@@ -72,7 +72,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/admin/garments/:id", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireAdminAuth(request, reply);
     if (!userId) return;
 
     const { id } = request.params as { id?: string };
@@ -93,7 +93,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
   });
 
   app.post("/admin/garments", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireAdminAuth(request, reply);
     if (!userId) return;
 
     const parsed = publishedGarmentAssetSchema.safeParse(request.body);
@@ -133,7 +133,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
   });
 
   app.put("/admin/garments/:id", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireAdminAuth(request, reply);
     if (!userId) return;
 
     const { id } = request.params as { id?: string };

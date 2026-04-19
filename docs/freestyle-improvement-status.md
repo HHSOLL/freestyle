@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `93%`
+- Working overall completion estimate: `95%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -25,7 +25,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
-| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; decomposition, disposal policy, and regression coverage still need work |
+| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader ownership is now centralized, while deeper decomposition, disposal policy, and broader regression coverage still need work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
@@ -354,9 +354,37 @@ Outcome:
 - `Phase 2` can now be treated as complete on the active mannequin-first hardening track
 - the next meaningful gap is no longer contracts drift; it is `Closet` and `runtime-3d` decomposition and regression hardening
 
+### `Phase 3 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted a shared runtime glTF loader so live stage loads and preloads now share one `DRACOLoader` + `MeshoptDecoder` configuration
+2. moved runtime preload model-path collection into a pure helper instead of duplicating avatar and garment path selection inline
+3. added focused runtime regression tests that lock shared decoder parity plus deduped avatar/garment preload behavior and default-model fallback semantics
+4. updated the active runtime rules so future changes know the loader configuration is a single-source concern inside `packages/runtime-3d`
+
+Evidence:
+
+- `packages/runtime-3d/src/runtime-gltf-loader.ts`
+- `packages/runtime-3d/src/runtime-gltf-loader.test.ts`
+- `packages/runtime-3d/src/runtime-model-paths.ts`
+- `packages/runtime-3d/src/runtime-model-paths.test.ts`
+- `packages/runtime-3d/src/preload-runtime-assets.ts`
+- `packages/runtime-3d/src/closet-stage.tsx`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/architecture-overview.md`
+
+Outcome:
+
+- runtime preloads no longer drift behind the live stage loader configuration
+- meshopt-capable runtime GLBs now take the same decode path whether they are preloaded or opened on demand
+- the next Phase 3 batch can focus on scene decomposition or disposal policy instead of another duplicated loader seam
+
 ### Next Batch
 
-`Phase 3 / Batch 1` should start `Closet` and `runtime-3d` stabilization by isolating stage composition, loader/disposal ownership, and low-level regression coverage instead of leaving those concerns spread across large mixed files.
+`Phase 3 / Batch 2` should keep `Closet` and `runtime-3d` stabilization moving by extracting stage composition or disposal ownership from `packages/runtime-3d/src/closet-stage.tsx` without widening the batch back into page-shell work.
 
 ## Phase 0 Closeout
 

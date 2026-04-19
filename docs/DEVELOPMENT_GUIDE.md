@@ -182,6 +182,7 @@ Current source-of-truth files:
 - `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/runtime-3d/src/preload-runtime-assets.ts`
 - `packages/runtime-3d/src/runtime-gltf-loader.ts`
+- `packages/runtime-3d/src/runtime-disposal.ts`
 - `packages/runtime-3d/src/runtime-model-paths.ts`
 
 Rules:
@@ -201,6 +202,7 @@ Rules:
 - use meshopt-aware glTF loading for shipped runtime assets
 - keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable
 - keep runtime stage loads and runtime preloads on the same shared loader configuration; do not duplicate glTF decoder setup across files
+- keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - preload only the active avatar, equipped garments, and near-term closet candidates
 - avoid whole-catalog eager preload on module import
 - prefer `frameloop="demand"` whenever the active stage has no continuous motion

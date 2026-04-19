@@ -89,6 +89,7 @@ Verify these after any mannequin or asset change:
 - long hair pieces (`ponytail`, `braid`, `long fall`) still sway without clipping through the head or shoulders
 - loose hero garments (`City Relaxed`, `Tailored Layer`) still show secondary drape without jitter or exploding transforms
 - meshopt-compressed runtime GLBs still load in browser builds; a missing `MeshoptDecoder` is now a release blocker
+- repeated avatar / garment swaps should not leave clone-owned runtime materials without cleanup; cleanup must target only stage-owned material clones
 - secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
@@ -104,6 +105,7 @@ If any of the above regress, stop the release.
 - check runtime console errors first
 - verify asset path and manifest entry
 - verify `preloadRuntimeAssets` still references the correct files
+- verify runtime clone cleanup did not dispose shared loader-cache resources
 - confirm the affected route shows a visible fallback instead of a blank stage
 
 ### Garment clipping or body poke-through spike

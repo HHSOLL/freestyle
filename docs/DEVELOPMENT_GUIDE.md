@@ -234,6 +234,7 @@ Compatibility rules:
 - old flat body profile payloads must normalize into the current envelope shape
 - storage keys must stay versioned
 - API-side body-profile persistence must stay behind a replaceable port so the file adapter can be swapped for a remote store without rewriting routes
+- API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move to a dedicated backing store without changing route contracts
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules
@@ -251,6 +252,7 @@ Current product-fit specific routes:
 - admin/publishing boundary: `/v1/admin/garments`
 - admin create path: `POST /v1/admin/garments`
 - admin publish routes must pass both schema validation and semantic runtime-garment validation before persistence
+- admin publish routes must use explicit admin auth; anonymous-header fallback is not valid for `/v1/admin/garments*`
 
 Legacy and lab must remain isolated:
 

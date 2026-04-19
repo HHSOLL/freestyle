@@ -168,6 +168,7 @@ Current state:
 - local-first repositories exist for body profile, closet scene, and canvas compositions
 - API namespace and service boundaries are in place for remote persistence
 - the `BodyProfile` API path now also uses an explicit persistence port with a file-backed adapter so the route can move to a remote store without changing its contract
+- published runtime-garment persistence now uses the same replaceable-port pattern, still backed by a versioned local JSON adapter for the current batch
 
 This is intentional. The UI and scene runtime are already separated from persistence so remote adapters can replace local storage without rewriting pages.
 
@@ -178,7 +179,7 @@ The first admin publishing boundary is now active through:
 - `/v1/admin/garments`
 - `/v1/closet/runtime-garments`
 
-`apps/admin` is now the dedicated admin surface, with a guided create/update workflow for garment identity, exact size-chart rows, runtime binding, and raw manifest inspection. The API endpoints still use a local JSON repository so the public `Closet` surface can consume published runtime garments without being coupled to garment authoring logic.
+`apps/admin` is now the dedicated admin surface, with a guided create/update workflow for garment identity, exact size-chart rows, runtime binding, and raw manifest inspection. The API endpoints still use a local JSON repository behind a replaceable persistence port so the public `Closet` surface can consume published runtime garments without being coupled to garment authoring logic. The `/v1/admin/garments*` boundary now also uses explicit admin auth instead of sharing the anonymous-capable product auth fallback.
 
 ## 9. Implementation Status
 

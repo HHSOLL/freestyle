@@ -521,9 +521,41 @@ Outcome:
 - body-profile local file persistence is versioned instead of being an unstructured user-id map only
 - the next Phase 4 gap is published runtime-garment persistence/auth hardening, not the unscoped profile backing store
 
+### `Phase 4 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. split `/v1/admin/garments*` away from anonymous-capable product auth by introducing explicit admin auth for the publication boundary
+2. moved published runtime-garment file persistence behind a replaceable API-side port with file and memory adapters
+3. added focused repository coverage for runtime-garment persistence adapters and route coverage for anonymous rejection, unreadable backing stores, and admin-boundary failures
+4. kept `/v1/closet/runtime-garments` on the existing product read contract while hardening only the admin publication seam
+
+Evidence:
+
+- `apps/api/src/modules/auth/auth.ts`
+- `apps/api/src/modules/garments/runtime-garments.repository.ts`
+- `apps/api/src/modules/garments/runtime-garments.repository.test.ts`
+- `apps/api/src/routes/runtime-garments.routes.ts`
+- `apps/api/src/routes/runtime-garments.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `package.json`
+- `docs/api-contract.md`
+- `docs/admin-asset-publishing.md`
+- `docs/architecture-overview.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/MAINTENANCE_PLAYBOOK.md`
+
+Outcome:
+
+- admin garment publication is no longer reachable through anonymous-header fallback
+- published runtime-garment persistence now has the same replaceable-port seam as body profile without changing the public closet response contract
+- the next Phase 4 gap is remote backing-store / RLS expansion, not an undocumented local file seam or open admin publish boundary
+
 ### Next Batch
 
-`Phase 4 / Batch 2` should keep server persistence hardening moving by tightening the published runtime-garment persistence and authz seam without widening into worker orchestration or release QA.
+`Phase 4 / Batch 3` should keep server persistence hardening moving by replacing the remaining local runtime-garment backing store assumptions with a remote-store / RLS-ready seam, without widening into worker orchestration or release QA.
 
 ## Phase 0 Closeout
 

@@ -24,6 +24,15 @@ type RuntimeGarmentCatalogStore = {
   items: PublishedGarmentAsset[];
 };
 
+export type PublishedRuntimeGarmentPersistencePort = {
+  listPublishedRuntimeGarmentRecords: (filters?: {
+    category?: AssetCategory;
+    sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+  }) => Promise<PublishedGarmentAsset[]>;
+  getPublishedRuntimeGarmentRecord: (id: string) => Promise<PublishedGarmentAsset | null>;
+  upsertPublishedRuntimeGarmentRecord: (item: PublishedGarmentAsset) => Promise<PublishedGarmentAsset>;
+};
+
 const dedupeAndSort = (items: PublishedGarmentAsset[]) => {
   const next = new Map<string, PublishedGarmentAsset>();
   items.forEach((item) => {
@@ -57,58 +66,14 @@ const readLegacyArray = (value: unknown) => {
   } satisfies RuntimeGarmentCatalogStore;
 };
 
-const readStore = async () => {
-  const runtimeGarmentStorePath = getRuntimeGarmentStorePath();
-
-  try {
-    const raw = await fs.readFile(runtimeGarmentStorePath, "utf8");
-    const parsedJson = JSON.parse(raw) as unknown;
-    const legacy = readLegacyArray(parsedJson);
-    if (legacy) {
-      return legacy;
-    }
-
-    const parsed = runtimeGarmentCatalogEnvelopeSchema.safeParse(parsedJson);
-    if (!parsed.success) {
-      return { version: 1 as const, items: [] } satisfies RuntimeGarmentCatalogStore;
-    }
-
-    return {
-      version: 1 as const,
-      items: dedupeAndSort(readPersistedItems(parsed.data.items)),
-    } satisfies RuntimeGarmentCatalogStore;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return { version: 1 as const, items: [] } satisfies RuntimeGarmentCatalogStore;
-    }
-
-    throw error;
-  }
-};
-
-const writeStore = async (store: RuntimeGarmentCatalogStore) => {
-  const runtimeGarmentStorePath = getRuntimeGarmentStorePath();
-  await fs.mkdir(path.dirname(runtimeGarmentStorePath), { recursive: true });
-  await fs.writeFile(
-    runtimeGarmentStorePath,
-    JSON.stringify(
-      {
-        version: 1,
-        items: dedupeAndSort(store.items),
-      } satisfies RuntimeGarmentCatalogStore,
-      null,
-      2,
-    ),
-    "utf8",
-  );
-};
-
-export const listPublishedRuntimeGarmentRecords = async (filters?: {
-  category?: AssetCategory;
-  sourceSystem?: GarmentPublicationRecord["sourceSystem"];
-}) => {
-  const store = await readStore();
-  return store.items.filter((item) => {
+const filterItems = (
+  items: PublishedGarmentAsset[],
+  filters?: {
+    category?: AssetCategory;
+    sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+  },
+) => {
+  return items.filter((item) => {
     if (filters?.category && item.category !== filters.category) {
       return false;
     }
@@ -119,20 +84,115 @@ export const listPublishedRuntimeGarmentRecords = async (filters?: {
   });
 };
 
+export const createFilePublishedRuntimeGarmentPersistencePort = (options?: {
+  storePath?: string;
+}): PublishedRuntimeGarmentPersistencePort => {
+  const resolveStorePath = () => options?.storePath?.trim() || getRuntimeGarmentStorePath();
+
+  const readStoreFromPath = async () => {
+    const runtimeGarmentStorePath = resolveStorePath();
+
+    try {
+      const raw = await fs.readFile(runtimeGarmentStorePath, "utf8");
+      const parsedJson = JSON.parse(raw) as unknown;
+      const legacy = readLegacyArray(parsedJson);
+      if (legacy) {
+        return legacy;
+      }
+
+      const parsed = runtimeGarmentCatalogEnvelopeSchema.safeParse(parsedJson);
+      if (!parsed.success) {
+        return { version: 1 as const, items: [] } satisfies RuntimeGarmentCatalogStore;
+      }
+
+      return {
+        version: 1 as const,
+        items: dedupeAndSort(readPersistedItems(parsed.data.items)),
+      } satisfies RuntimeGarmentCatalogStore;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return { version: 1 as const, items: [] } satisfies RuntimeGarmentCatalogStore;
+      }
+
+      throw error;
+    }
+  };
+
+  const writeStoreToPath = async (store: RuntimeGarmentCatalogStore) => {
+    const runtimeGarmentStorePath = resolveStorePath();
+    await fs.mkdir(path.dirname(runtimeGarmentStorePath), { recursive: true });
+    await fs.writeFile(
+      runtimeGarmentStorePath,
+      JSON.stringify(
+        {
+          version: 1,
+          items: dedupeAndSort(store.items),
+        } satisfies RuntimeGarmentCatalogStore,
+        null,
+        2,
+      ),
+      "utf8",
+    );
+  };
+
+  return {
+    async listPublishedRuntimeGarmentRecords(filters) {
+      const store = await readStoreFromPath();
+      return filterItems(store.items, filters);
+    },
+    async getPublishedRuntimeGarmentRecord(id) {
+      const store = await readStoreFromPath();
+      return store.items.find((item) => item.id === id) ?? null;
+    },
+    async upsertPublishedRuntimeGarmentRecord(item) {
+      const parsed = publishedGarmentAssetSchema.parse(item);
+      const store = await readStoreFromPath();
+      const nextItems = store.items.filter((entry) => entry.id !== parsed.id);
+      nextItems.push(parsed);
+      await writeStoreToPath({
+        version: 1,
+        items: nextItems,
+      });
+      return parsed;
+    },
+  };
+};
+
+export const createMemoryPublishedRuntimeGarmentPersistencePort = (
+  initialItems?: PublishedGarmentAsset[],
+): PublishedRuntimeGarmentPersistencePort => {
+  const store = new Map<string, PublishedGarmentAsset>(
+    dedupeAndSort(readPersistedItems(initialItems)).map((item) => [item.id, item]),
+  );
+
+  return {
+    async listPublishedRuntimeGarmentRecords(filters) {
+      return filterItems(dedupeAndSort(Array.from(store.values())), filters);
+    },
+    async getPublishedRuntimeGarmentRecord(id) {
+      return store.get(id) ?? null;
+    },
+    async upsertPublishedRuntimeGarmentRecord(item) {
+      const parsed = publishedGarmentAssetSchema.parse(item);
+      store.set(parsed.id, parsed);
+      return parsed;
+    },
+  };
+};
+
+const defaultPublishedRuntimeGarmentPersistencePort = createFilePublishedRuntimeGarmentPersistencePort();
+
+export const listPublishedRuntimeGarmentRecords = async (filters?: {
+  category?: AssetCategory;
+  sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+}) => {
+  return defaultPublishedRuntimeGarmentPersistencePort.listPublishedRuntimeGarmentRecords(filters);
+};
+
 export const getPublishedRuntimeGarmentRecord = async (id: string) => {
-  const store = await readStore();
-  return store.items.find((item) => item.id === id) ?? null;
+  return defaultPublishedRuntimeGarmentPersistencePort.getPublishedRuntimeGarmentRecord(id);
 };
 
 export const upsertPublishedRuntimeGarmentRecord = async (item: PublishedGarmentAsset) => {
-  const parsed = publishedGarmentAssetSchema.parse(item);
-  const store = await readStore();
-  const nextItems = store.items.filter((entry) => entry.id !== parsed.id);
-  nextItems.push(parsed);
-  const nextStore = {
-    version: 1 as const,
-    items: nextItems,
-  } satisfies RuntimeGarmentCatalogStore;
-  await writeStore(nextStore);
-  return parsed;
+  return defaultPublishedRuntimeGarmentPersistencePort.upsertPublishedRuntimeGarmentRecord(item);
 };

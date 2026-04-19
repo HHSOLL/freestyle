@@ -701,6 +701,7 @@ Response
 Notes
 - 현재 evaluator worker는 `request_payload.imageDataUrl`를 필수로 사용한다.
 - `asset_ids`만 전달하는 방식은 현재 런타임 구현과 맞지 않으며, 캔버스 렌더 결과를 `data:image/...` 형태로 전달해야 한다.
+- `idempotency_key`는 사용자 범위 안에서만 dedupe 된다. 현재 evaluator queue uniqueness 기준은 `(user_id, job_type, idempotency_key)`다.
 
 ### `GET /v1/evaluations/:id`
 - user-owned evaluation row 반환
@@ -731,6 +732,7 @@ Notes
 - 실시간 3D 마네킹 피팅은 `GET/PATCH /v1/assets`로 읽어온 asset metadata와 Studio 클라이언트 body profile 계산을 사용한다.
 - 현재 계약은 metadata 기반 preview를 위한 것이며, 패턴/원단 물성 기반 cloth simulation API는 아직 없다.
 - body profile persistence endpoint(`GET/PUT /v1/body-profiles/me`)는 historical reservation note이며 현재 try-on/runtime 경로에는 연결되어 있지 않다.
+- `idempotency_key`는 사용자 범위 안에서만 dedupe 된다. 현재 try-on queue uniqueness 기준은 `(user_id, job_type, idempotency_key)`다.
 
 ### `GET /v1/tryons/:id`
 - user-owned tryon row 반환

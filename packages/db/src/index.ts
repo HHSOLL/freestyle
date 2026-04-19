@@ -244,6 +244,27 @@ export const getJobByIdForUser = async (jobId: string, userId: string) => {
   return data as JobRecord;
 };
 
+export const getJobByIdempotencyKeyForUser = async (input: {
+  userId: string;
+  jobType: JobType;
+  idempotencyKey: string;
+}) => {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("user_id", input.userId)
+    .eq("job_type", input.jobType)
+    .eq("idempotency_key", input.idempotencyKey)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? (data as JobRecord) : null;
+};
+
 export const getProductBySourceForUser = async (input: {
   userId: string;
   sourceType: ProductRecord["source_type"];
@@ -617,6 +638,12 @@ export const getOutfitEvaluationById = async (evaluationId: string) => {
   return data as OutfitEvaluationRecord;
 };
 
+export const deleteOutfitEvaluationById = async (evaluationId: string) => {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("outfit_evaluations").delete().eq("id", evaluationId);
+  if (error) throw new Error(error.message);
+};
+
 export const createTryon = async (input: {
   userId: string;
   assetId: string;
@@ -669,6 +696,12 @@ export const getTryonById = async (tryonId: string) => {
   const { data, error } = await supabase.from("tryons").select("*").eq("id", tryonId).single();
   if (error || !data) return null;
   return data as TryonRecord;
+};
+
+export const deleteTryonById = async (tryonId: string) => {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("tryons").delete().eq("id", tryonId);
+  if (error) throw new Error(error.message);
 };
 
 export type OutfitListItem = {

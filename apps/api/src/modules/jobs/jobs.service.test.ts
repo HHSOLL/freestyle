@@ -73,3 +73,71 @@ test("buildUserJobResponse preserves errors and null results", () => {
     message: "Background removal is unavailable for this asset.",
   });
 });
+
+test("buildUserJobResponse preserves evaluator explanation fields inside canonical job results", () => {
+  const response = buildUserJobResponse(
+    baseJob({
+      job_type: JOB_TYPES.EVALUATOR_OUTFIT,
+      payload: buildJobPayloadEnvelope(
+        JOB_TYPES.EVALUATOR_OUTFIT,
+        {
+          evaluation_id: "00000000-0000-4000-8000-000000000025",
+          request_payload: {},
+        },
+        {
+          traceId: "00000000-0000-4000-8000-000000000026",
+          idempotencyKey: "eval-123",
+        },
+      ),
+      result: {
+        progress: 100,
+        evaluation_id: "00000000-0000-4000-8000-000000000025",
+        compatibility_score: 82,
+        explanation: {
+          summary: "balanced palette",
+        },
+      },
+    }),
+  );
+
+  assert.equal(response.trace_id, "00000000-0000-4000-8000-000000000026");
+  assert.equal(
+    (response.result?.data.explanation as Record<string, unknown> | undefined)?.summary,
+    "balanced palette",
+  );
+});
+
+test("buildUserJobResponse preserves try-on artifacts and output urls inside canonical job results", () => {
+  const response = buildUserJobResponse(
+    baseJob({
+      job_type: JOB_TYPES.TRYON_GENERATE,
+      payload: buildJobPayloadEnvelope(
+        JOB_TYPES.TRYON_GENERATE,
+        {
+          tryon_id: "00000000-0000-4000-8000-000000000027",
+          asset_id: "00000000-0000-4000-8000-000000000028",
+          input_image_url: "https://example.com/person.jpg",
+        },
+        {
+          traceId: "00000000-0000-4000-8000-000000000029",
+          idempotencyKey: "tryon-123",
+        },
+      ),
+      result: {
+        progress: 100,
+        tryon_id: "00000000-0000-4000-8000-000000000027",
+        output_image_url: "https://cdn.example.com/tryon/output.png",
+        artifacts: [
+          {
+            kind: "tryon-output-image",
+            url: "https://cdn.example.com/tryon/output.png",
+          },
+        ],
+      },
+    }),
+  );
+
+  assert.equal(response.trace_id, "00000000-0000-4000-8000-000000000029");
+  assert.equal(response.result?.artifacts[0]?.url, "https://cdn.example.com/tryon/output.png");
+  assert.equal(response.result?.data.output_image_url, "https://cdn.example.com/tryon/output.png");
+});

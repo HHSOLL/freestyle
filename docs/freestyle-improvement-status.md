@@ -27,7 +27,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
 | `Phase 4` | server persistence and admin publishing hardening | `completed` | `BodyProfile` persistence is replaceable, and published runtime garments now have a remote Supabase backing store with RLS-ready coverage plus local fallback |
-| `Phase 5` | worker, job contract, and observability hardening | `partial` | `Batch 1` is complete for the import chain; evaluator/tryon and broader route-level smoke are still open |
+| `Phase 5` | worker, job contract, and observability hardening | `completed` | `Batch 1` and `Batch 2` are complete; broader release smoke now moves to `Phase 6` |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
 
 ## Current Batch
@@ -624,9 +624,41 @@ Outcome:
 - trace propagation survives import -> background removal -> asset processing fan-out
 - duplicate replay of the same idempotency key can no longer collide across different users
 
+### `Phase 5 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. normalized `evaluator.outfit` and `tryon.generate` workers through the same canonical queued payload path already used by the import chain
+2. fixed evaluator and try-on failure propagation so their domain rows now move to `failed` instead of getting stuck behind a failed queue job
+3. hardened evaluator/tryon idempotency handling so replayed requests reuse the existing bound resource row instead of leaving a new orphaned row behind
+4. added focused worker and service coverage for canonical and legacy payload binding on the lab queue paths
+
+Evidence:
+
+- `workers/evaluator/src/worker.ts`
+- `workers/evaluator/src/worker.test.ts`
+- `workers/tryon/src/worker.ts`
+- `workers/tryon/src/worker.test.ts`
+- `apps/api/src/modules/evaluations/evaluations.service.ts`
+- `apps/api/src/modules/evaluations/evaluations.service.test.ts`
+- `apps/api/src/modules/tryons/tryons.service.ts`
+- `apps/api/src/modules/tryons/tryons.service.test.ts`
+- `packages/db/src/index.ts`
+- `package.json`
+- `docs/api-contract.md`
+- `docs/worker-playbook.md`
+
+Outcome:
+
+- Phase 5 queue/job contract rollout is now consistent across import, evaluator, and try-on workers
+- lab callers no longer depend on bare payload casting behavior that broke once `createJob()` started writing canonical envelopes
+- evaluator and try-on rows now track failure state more accurately under worker errors and idempotent replays
+
 ### Next Batch
 
-`Phase 5 / Batch 2` should extend the same contract discipline to `evaluator.outfit` and `tryon.generate`, then add route-level jobs smoke before moving into `Phase 6 / Batch 1`.
+`Phase 6 / Batch 1` should add release-facing smoke evidence for lab job creation/status reads, product/admin route/API smoke, and current screenshot/update evidence without reopening queue contract internals.
 
 ## Phase 0 Closeout
 

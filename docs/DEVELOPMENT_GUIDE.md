@@ -233,6 +233,7 @@ Compatibility rules:
 
 - old flat body profile payloads must normalize into the current envelope shape
 - storage keys must stay versioned
+- API-side body-profile persistence must stay behind a replaceable port so the file adapter can be swapped for a remote store without rewriting routes
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules

@@ -73,6 +73,7 @@
 - auth: same as other `/v1/profile/*` routes
 - request body must satisfy the active `BodyProfileUpsertInput` contract from `@freestyle/contracts`
 - current compatibility rule: both canonical envelope payloads and legacy flat body-profile payloads are normalized into the canonical envelope before persistence
+- current implementation detail: server persistence is now behind an API-side `BodyProfile` persistence port with a versioned file adapter, so backing-store replacement does not require route contract changes
 - response body satisfies the active `BodyProfileRecord` contract from `@freestyle/contracts`
 
 ### Admin garment publication boundary

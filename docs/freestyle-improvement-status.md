@@ -26,7 +26,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
-| `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
+| `Phase 4` | server persistence and admin publishing hardening | `partial` | `BodyProfile` server persistence now sits behind a replaceable API port, but remote backing stores, RLS coverage, and published-garment persistence hardening still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
 
@@ -494,9 +494,36 @@ Outcome:
 - runtime stage policy now has node-level coverage without mounting the full `Canvas`
 - `Phase 3` is now limited less by runtime shell drift and more by unfinished persistence, worker, and release phases outside the current batch
 
+### `Phase 4 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. introduced an explicit API-side `BodyProfile` persistence port instead of leaving the profile route coupled directly to one JSON-file implementation
+2. moved the current file-backed `BodyProfile` store onto a versioned envelope so later remote adapter replacement has a stable migration seam
+3. added focused repository tests for memory/file adapters, legacy object-map compatibility, and versioned envelope writes
+4. added a route-level regression that proves unreadable profile backing stores fail as `500` without breaking the product namespace contract
+
+Evidence:
+
+- `apps/api/src/modules/profile/body-profile.repository.ts`
+- `apps/api/src/modules/profile/body-profile.repository.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `package.json`
+- `docs/api-contract.md`
+- `docs/architecture-overview.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- `/v1/profile/body-profile` keeps the same product contract while the server-side persistence seam is now replaceable
+- body-profile local file persistence is versioned instead of being an unstructured user-id map only
+- the next Phase 4 gap is published runtime-garment persistence/auth hardening, not the unscoped profile backing store
+
 ### Next Batch
 
-`Phase 4 / Batch 1` should move back to server persistence hardening by tightening the canonical remote `BodyProfile` and published-garment persistence seam without widening into worker orchestration or release QA.
+`Phase 4 / Batch 2` should keep server persistence hardening moving by tightening the published runtime-garment persistence and authz seam without widening into worker orchestration or release QA.
 
 ## Phase 0 Closeout
 

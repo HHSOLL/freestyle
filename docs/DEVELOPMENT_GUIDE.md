@@ -234,7 +234,8 @@ Compatibility rules:
 - old flat body profile payloads must normalize into the current envelope shape
 - storage keys must stay versioned
 - API-side body-profile persistence must stay behind a replaceable port so the file adapter can be swapped for a remote store without rewriting routes
-- API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move to a dedicated backing store without changing route contracts
+- API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move between the file fallback and the Supabase-backed `published_runtime_garments` store without changing route contracts
+- use `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` when the API should write and read from the remote publication table
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules
@@ -308,6 +309,11 @@ The minimum product gate is:
 - `npm run test:core`
 - `npm run build:services`
 - `npm run build`
+
+Local environment note:
+
+- when running inside Codex desktop, native addons such as `sharp`, `lightningcss`, and `@next/swc` may fail under the bundled app Node
+- for `npm run test:core`, `npm run build`, and `npm run build:admin`, prefer `PATH=/opt/homebrew/bin:$PATH <command>` so Homebrew Node loads the native modules correctly
 
 Core tests that must stay healthy:
 

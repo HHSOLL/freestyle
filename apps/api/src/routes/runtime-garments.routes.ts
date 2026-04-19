@@ -12,7 +12,7 @@ import {
   getPublishedRuntimeGarmentById,
   listPublishedRuntimeGarments,
   RuntimeGarmentValidationError,
-  upsertPublishedRuntimeGarment,
+  upsertPublishedRuntimeGarmentForActor,
 } from "../modules/garments/runtime-garments.service.js";
 
 const runtimeGarmentQuerySchema = z
@@ -106,7 +106,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
 
     let item;
     try {
-      item = await createPublishedRuntimeGarment(parsed.data);
+      item = await createPublishedRuntimeGarment(parsed.data, userId);
     } catch (error) {
       if (error instanceof RuntimeGarmentValidationError) {
         return reply.code(400).send({
@@ -158,7 +158,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
 
     let item;
     try {
-      item = await upsertPublishedRuntimeGarment(parsed.data);
+      item = await upsertPublishedRuntimeGarmentForActor(parsed.data, userId);
     } catch (error) {
       if (error instanceof RuntimeGarmentValidationError) {
         return reply.code(400).send({

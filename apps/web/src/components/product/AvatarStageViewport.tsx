@@ -1,8 +1,17 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState, type ComponentType } from "react";
+import { startTransition, useEffect, useMemo, useReducer, useState, type ComponentType } from "react";
 import type { BodyProfile, RuntimeGarmentAsset } from "@freestyle/shared-types";
 import { AvatarStageViewportFallback } from "./AvatarStageViewportFallback.js";
+import {
+  avatarStageViewportInitialLifecycleState,
+  detectAvatarStageViewportSupport,
+  reduceAvatarStageViewportLifecycle,
+  resolveAvatarStageViewportQualityTier,
+  resolveAvatarStageViewportRenderState,
+  shouldApplyAvatarStageViewportLoadResult,
+  type ViewportQualityTier,
+} from "./avatar-stage-viewport-lifecycle.js";
 
 type AvatarStageViewportProps = {
   bodyProfile: BodyProfile;
@@ -10,12 +19,10 @@ type AvatarStageViewportProps = {
   poseId: "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
   equippedGarments: RuntimeGarmentAsset[];
   selectedItemId: string | null;
-  qualityTier?: "low" | "balanced" | "high";
+  qualityTier?: ViewportQualityTier;
 };
 
-type AvatarStageComponent = ComponentType<Omit<AvatarStageViewportProps, "qualityTier"> & { qualityTier: "low" | "balanced" | "high" }>;
-type StageLoadState = "loading" | "ready" | "error";
-type StageSupportState = "pending" | "supported" | "unsupported";
+type AvatarStageComponent = ComponentType<Omit<AvatarStageViewportProps, "qualityTier"> & { qualityTier: ViewportQualityTier }>;
 
 function detectQualityTier(): "low" | "balanced" | "high" {
   if (typeof window === "undefined") return "balanced";
@@ -31,22 +38,6 @@ function detectQualityTier(): "low" | "balanced" | "high" {
   return "balanced";
 }
 
-const qualityTierRank = {
-  low: 0,
-  balanced: 1,
-  high: 2,
-} as const;
-
-function supportsWebGL() {
-  if (typeof document === "undefined") return true;
-  const canvas = document.createElement("canvas");
-  return Boolean(
-    canvas.getContext("webgl2") ||
-      canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl"),
-  );
-}
-
 export function AvatarStageViewport({
   bodyProfile,
   avatarVariantId,
@@ -56,64 +47,90 @@ export function AvatarStageViewport({
   qualityTier,
 }: AvatarStageViewportProps) {
   const resolvedQualityTier = useMemo(() => {
-    const detected = detectQualityTier();
-    if (!qualityTier) return detected;
-    return qualityTierRank[qualityTier] <= qualityTierRank[detected] ? qualityTier : detected;
+    return resolveAvatarStageViewportQualityTier(qualityTier, detectQualityTier());
   }, [qualityTier]);
-  const [supportState, setSupportState] = useState<StageSupportState>("pending");
-  const [stageAttempt, setStageAttempt] = useState(0);
-  const [stageLoadState, setStageLoadState] = useState<StageLoadState>("loading");
+  const [lifecycleState, dispatchLifecycle] = useReducer(
+    reduceAvatarStageViewportLifecycle,
+    avatarStageViewportInitialLifecycleState,
+  );
   const [StageComponent, setStageComponent] = useState<AvatarStageComponent | null>(null);
 
   useEffect(() => {
-    setSupportState(supportsWebGL() ? "supported" : "unsupported");
+    dispatchLifecycle({
+      type: "support-detected",
+      supportState: detectAvatarStageViewportSupport(
+        typeof document === "undefined" ? undefined : () => document.createElement("canvas"),
+      ),
+    });
   }, []);
 
   useEffect(() => {
-    if (supportState !== "supported") return;
+    if (lifecycleState.supportState !== "supported") return;
 
     let cancelled = false;
-    setStageLoadState("loading");
+    const attempt = lifecycleState.attempt;
+    dispatchLifecycle({ type: "load-started", attempt });
     setStageComponent(null);
 
     void import("@freestyle/runtime-3d")
       .then((module) => {
-        if (cancelled) return;
+        if (
+          !shouldApplyAvatarStageViewportLoadResult({
+            cancelled,
+            supportState: lifecycleState.supportState,
+            activeAttempt: lifecycleState.attempt,
+            resolvedAttempt: attempt,
+          })
+        ) {
+          return;
+        }
         setStageComponent(() => module.ReferenceClosetStageCanvas as AvatarStageComponent);
-        setStageLoadState("ready");
+        dispatchLifecycle({ type: "load-resolved", attempt, loadState: "ready" });
       })
       .catch((error) => {
-        if (cancelled) return;
+        if (
+          !shouldApplyAvatarStageViewportLoadResult({
+            cancelled,
+            supportState: lifecycleState.supportState,
+            activeAttempt: lifecycleState.attempt,
+            resolvedAttempt: attempt,
+          })
+        ) {
+          return;
+        }
         console.error("Failed to load runtime closet stage", error);
         setStageComponent(null);
-        setStageLoadState("error");
+        dispatchLifecycle({ type: "load-resolved", attempt, loadState: "error" });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [stageAttempt, supportState]);
+  }, [lifecycleState.attempt, lifecycleState.supportState]);
 
   const handleRetry = () => {
     startTransition(() => {
-      setStageAttempt((attempt) => attempt + 1);
+      dispatchLifecycle({ type: "retry-requested" });
     });
   };
 
-  if (supportState === "unsupported") {
-    return <AvatarStageViewportFallback state="unsupported" />;
+  const renderState = resolveAvatarStageViewportRenderState(lifecycleState, Boolean(StageComponent));
+  if (renderState !== "ready") {
+    return (
+      <AvatarStageViewportFallback
+        state={renderState}
+        onRetry={renderState === "error" ? handleRetry : undefined}
+      />
+    );
   }
 
-  if (stageLoadState === "error") {
-    return <AvatarStageViewportFallback state="error" onRetry={handleRetry} />;
-  }
-
-  if (supportState !== "supported" || stageLoadState !== "ready" || !StageComponent) {
+  const RuntimeStageComponent = StageComponent;
+  if (!RuntimeStageComponent) {
     return <AvatarStageViewportFallback state="loading" />;
   }
 
   return (
-    <StageComponent
+    <RuntimeStageComponent
       bodyProfile={bodyProfile}
       avatarVariantId={avatarVariantId}
       poseId={poseId}

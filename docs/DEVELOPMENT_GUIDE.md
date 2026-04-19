@@ -205,6 +205,7 @@ Rules:
 - keep runtime stage loads and runtime preloads on the same shared loader configuration; do not duplicate glTF decoder setup across files
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
+- keep host stage support/load/retry lifecycle policy in a pure helper so `AvatarStageViewport` transitions stay testable without mounting the 3D canvas
 - preload only the active avatar, equipped garments, and near-term closet candidates
 - avoid whole-catalog eager preload on module import
 - prefer `frameloop="demand"` whenever the active stage has no continuous motion

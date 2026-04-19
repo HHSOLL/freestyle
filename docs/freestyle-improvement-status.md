@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-19`
 - Current branch baseline: `main`
-- Working overall completion estimate: `98%`
+- Working overall completion estimate: `99%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -25,7 +25,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
-| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader, clone-material disposal, and visible stage fallback ownership are now centralized, while deeper decomposition and broader regression coverage still need work |
+| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader, clone-material disposal, visible stage fallback ownership, and host lifecycle regression coverage are now centralized, while deeper composition extraction still needs work |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
@@ -443,9 +443,34 @@ Outcome:
 - asset suspend paths inside `closet-stage` now show a visible placeholder instead of a blank canvas with only backdrop state
 - `Phase 3` progress is now blocked more by composition extraction and broader lifecycle regression coverage than by missing visible fallback ownership
 
+### `Phase 3 / Batch 4`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted the `AvatarStageViewport` support/load/retry policy into a pure lifecycle helper instead of leaving the host state machine implicit inside the component
+2. added focused lifecycle regression coverage for unsupported WebGL, quality-tier clamping, retry state transitions, and stale load-result rejection
+3. kept the rendered fallback UI and runtime package ownership unchanged while making the host-side lifecycle deterministic and testable
+4. extended the active core suite so host stage lifecycle regressions are caught alongside fallback markup and runtime helper tests
+
+Evidence:
+
+- `apps/web/src/components/product/AvatarStageViewport.tsx`
+- `apps/web/src/components/product/avatar-stage-viewport-lifecycle.ts`
+- `apps/web/src/components/product/avatar-stage-viewport-lifecycle.test.ts`
+- `package.json`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- `AvatarStageViewport` no longer hides its load-state transition rules inside local effect code
+- unsupported, retry, and stale-attempt host lifecycle regressions now have node-level coverage without mounting `Canvas`
+- the next Phase 3 gap is stage composition extraction or deeper runtime-side lifecycle coverage, not the unguarded host state machine
+
 ### Next Batch
 
-`Phase 3 / Batch 4` should keep `Closet` and `runtime-3d` stabilization moving by extracting stage composition or adding stage-level lifecycle regression coverage without widening the batch into domain-fit or admin paths.
+`Phase 3 / Batch 5` should keep `Closet` and `runtime-3d` stabilization moving by extracting top-level stage composition from `packages/runtime-3d/src/closet-stage.tsx` or by adding runtime-side lifecycle coverage around demand invalidation and clone cleanup without widening the batch into domain-fit or admin paths.
 
 ## Phase 0 Closeout
 

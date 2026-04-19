@@ -94,6 +94,22 @@ test("product surface persists body profile through the profile namespace", asyn
   await app.close();
 });
 
+test("profile namespace returns 500 when the persistence backing store is unreadable", async () => {
+  process.env.BODY_PROFILE_STORE_PATH = tempDir;
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/profile/body-profile",
+  });
+
+  assert.equal(response.statusCode, 500);
+  assert.equal(response.headers["x-freestyle-surface"], "product");
+  assert.equal(response.json().error, "INTERNAL_SERVER_ERROR");
+
+  await app.close();
+});
+
 test("product namespace smoke keeps representative routes and admin under the product surface", async () => {
   const app = buildServer();
 

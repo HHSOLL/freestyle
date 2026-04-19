@@ -167,6 +167,7 @@ Current state:
 
 - local-first repositories exist for body profile, closet scene, and canvas compositions
 - API namespace and service boundaries are in place for remote persistence
+- the `BodyProfile` API path now also uses an explicit persistence port with a file-backed adapter so the route can move to a remote store without changing its contract
 
 This is intentional. The UI and scene runtime are already separated from persistence so remote adapters can replace local storage without rewriting pages.
 

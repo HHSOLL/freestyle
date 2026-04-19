@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,13 +7,23 @@ import test from "node:test";
 import {
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
+  jobStatusResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
 } from "@freestyle/contracts";
+import {
+  createAsset,
+  deleteAssetByIdForUser,
+  deleteOutfitEvaluationById,
+  deleteTryonById,
+} from "@freestyle/db";
+import { JOB_TYPES } from "@freestyle/shared";
 import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-api-"));
 const bodyProfileStorePath = path.join(tempDir, "body-profiles.json");
 const runtimeGarmentStorePath = path.join(tempDir, "runtime-garments.json");
+const hasSupabaseAdminEnv =
+  Boolean(process.env.SUPABASE_URL?.trim()) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
 
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
@@ -228,6 +239,131 @@ test("legacy and lab namespaces stay isolated from the main product surface", as
   assert.equal(missingOldLabTryons.statusCode, 404);
 
   await app.close();
+});
+
+test(
+  "lab smoke covers evaluation and try-on creation plus legacy job status reads",
+  { skip: !hasSupabaseAdminEnv },
+  async () => {
+  const userId = process.env.DEV_BYPASS_USER_ID;
+  assert.ok(userId, "DEV_BYPASS_USER_ID must be configured for lab smoke.");
+
+  const app = buildServer();
+  const createdAsset = await createAsset({
+    userId,
+    originalImageUrl: "https://cdn.example.com/smoke/top.png",
+    category: "tops",
+    name: "Phase 6 Smoke Top",
+  });
+
+  let evaluationId: string | null = null;
+  let tryonId: string | null = null;
+
+  try {
+    const evaluationCreateResponse = await app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/evaluations",
+      payload: {
+        request_payload: {
+          smoke: true,
+          route: "phase6-batch1",
+        },
+        idempotency_key: `phase6-evaluation-${randomUUID()}`,
+      },
+    });
+
+    assert.equal(evaluationCreateResponse.statusCode, 201);
+    assert.equal(evaluationCreateResponse.headers["x-freestyle-surface"], "lab");
+    const evaluationCreatePayload = evaluationCreateResponse.json() as {
+      job_id: string;
+      evaluation_id: string;
+    };
+    evaluationId = evaluationCreatePayload.evaluation_id;
+
+    const evaluationStatusResponse = await app.inject({
+      method: "GET",
+      url: `/v1/legacy/jobs/${evaluationCreatePayload.job_id}`,
+    });
+
+    assert.equal(evaluationStatusResponse.statusCode, 200);
+    assert.equal(evaluationStatusResponse.headers["x-freestyle-surface"], "legacy");
+    assert.equal(evaluationStatusResponse.headers.deprecation, "true");
+    const evaluationJobStatus = jobStatusResponseSchema.parse(evaluationStatusResponse.json());
+    assert.equal(evaluationJobStatus.job_type, JOB_TYPES.EVALUATOR_OUTFIT);
+    assert.equal(evaluationJobStatus.status, "queued");
+    assert.equal(evaluationJobStatus.result, null);
+    assert.ok(evaluationJobStatus.trace_id);
+
+    const evaluationReadResponse = await app.inject({
+      method: "GET",
+      url: `/v1/lab/evaluations/${evaluationCreatePayload.evaluation_id}`,
+    });
+
+    assert.equal(evaluationReadResponse.statusCode, 200);
+    assert.equal(evaluationReadResponse.headers["x-freestyle-surface"], "lab");
+    const evaluationReadPayload = evaluationReadResponse.json() as {
+      id: string;
+      status: string;
+    };
+    assert.equal(evaluationReadPayload.id, evaluationCreatePayload.evaluation_id);
+    assert.equal(evaluationReadPayload.status, "queued");
+
+    const tryonCreateResponse = await app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/tryons",
+      payload: {
+        asset_id: createdAsset.id,
+        input_image_url:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5Wf8sAAAAASUVORK5CYII=",
+        idempotency_key: `phase6-tryon-${randomUUID()}`,
+      },
+    });
+
+    assert.equal(tryonCreateResponse.statusCode, 201);
+    assert.equal(tryonCreateResponse.headers["x-freestyle-surface"], "lab");
+    const tryonCreatePayload = tryonCreateResponse.json() as {
+      job_id: string;
+      tryon_id: string;
+    };
+    tryonId = tryonCreatePayload.tryon_id;
+
+    const tryonStatusResponse = await app.inject({
+      method: "GET",
+      url: `/v1/legacy/jobs/${tryonCreatePayload.job_id}`,
+    });
+
+    assert.equal(tryonStatusResponse.statusCode, 200);
+    assert.equal(tryonStatusResponse.headers["x-freestyle-surface"], "legacy");
+    assert.equal(tryonStatusResponse.headers.deprecation, "true");
+    const tryonJobStatus = jobStatusResponseSchema.parse(tryonStatusResponse.json());
+    assert.equal(tryonJobStatus.job_type, JOB_TYPES.TRYON_GENERATE);
+    assert.equal(tryonJobStatus.status, "queued");
+    assert.equal(tryonJobStatus.result, null);
+    assert.ok(tryonJobStatus.trace_id);
+
+    const tryonReadResponse = await app.inject({
+      method: "GET",
+      url: `/v1/lab/tryons/${tryonCreatePayload.tryon_id}`,
+    });
+
+    assert.equal(tryonReadResponse.statusCode, 200);
+    assert.equal(tryonReadResponse.headers["x-freestyle-surface"], "lab");
+    const tryonReadPayload = tryonReadResponse.json() as {
+      id: string;
+      status: string;
+    };
+    assert.equal(tryonReadPayload.id, tryonCreatePayload.tryon_id);
+    assert.equal(tryonReadPayload.status, "queued");
+  } finally {
+    if (tryonId) {
+      await deleteTryonById(tryonId).catch(() => undefined);
+    }
+    if (evaluationId) {
+      await deleteOutfitEvaluationById(evaluationId).catch(() => undefined);
+    }
+    await deleteAssetByIdForUser(createdAsset.id, userId).catch(() => undefined);
+    await app.close();
+  }
 });
 
 test("health routes stay outside the product, legacy, and lab namespace headers", async () => {

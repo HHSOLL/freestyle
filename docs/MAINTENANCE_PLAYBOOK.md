@@ -54,7 +54,11 @@
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/legacy/assets`
+- `GET /v1/legacy/jobs/:job_id`
+- `POST /v1/lab/jobs/evaluations`
 - `POST /v1/lab/jobs/tryons`
+- `GET /v1/lab/evaluations/:id`
+- `GET /v1/lab/tryons/:id`
 
 Also confirm namespace headers:
 
@@ -68,11 +72,12 @@ Also confirm namespace headers:
 Before a release:
 
 1. Capture fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`.
-2. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
-3. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
-4. Confirm old routes are still redirected or removed from the main flow.
-5. Confirm `lab` failures do not break any main product page.
-6. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
+2. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and screenshot paths used for that run.
+3. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
+4. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
+5. Confirm old routes are still redirected or removed from the main flow.
+6. Confirm `lab` failures do not break any main product page.
+7. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
 
 ## 4. Avatar Runtime Regression Checklist
 

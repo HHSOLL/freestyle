@@ -100,7 +100,11 @@ Use these when a task changes routes, runtime boundaries, or release-facing beha
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/legacy/assets`
+- `GET /v1/legacy/jobs/:job_id`
+- `POST /v1/lab/jobs/evaluations`
 - `POST /v1/lab/jobs/tryons`
+- `GET /v1/lab/evaluations/:id`
+- `GET /v1/lab/tryons/:id`
 
 ### Namespace headers
 

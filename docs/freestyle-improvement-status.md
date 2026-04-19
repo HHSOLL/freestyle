@@ -28,7 +28,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
 | `Phase 4` | server persistence and admin publishing hardening | `completed` | `BodyProfile` persistence is replaceable, and published runtime garments now have a remote Supabase backing store with RLS-ready coverage plus local fallback |
 | `Phase 5` | worker, job contract, and observability hardening | `completed` | `Batch 1` and `Batch 2` are complete; broader release smoke now moves to `Phase 6` |
-| `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
+| `Phase 6` | QA, security, and release candidate | `in_progress` | `Batch 1` added current screenshot evidence, smoke-doc expansion, and an env-gated lab create/status smoke path; release candidate hardening is still open |
 
 ## Current Batch
 
@@ -659,6 +659,38 @@ Outcome:
 ### Next Batch
 
 `Phase 6 / Batch 1` should add release-facing smoke evidence for lab job creation/status reads, product/admin route/API smoke, and current screenshot/update evidence without reopening queue contract internals.
+
+### `Phase 6 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. widened the active smoke docs so release-facing API checks now explicitly name legacy job status reads and the lab evaluation / try-on create-and-read routes
+2. added an env-gated route smoke test for lab evaluation and try-on creation plus `/v1/legacy/jobs/:job_id` status reads, without reopening queue or worker internals
+3. captured a fresh screenshot set for `Home`, `Closet`, `Canvas`, `Community`, and `Profile` and recorded the current local release evidence under `docs/qa/`
+
+Evidence:
+
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `docs/quality-gates.md`
+- `docs/MAINTENANCE_PLAYBOOK.md`
+- `docs/qa/phase6-batch1-release-evidence-2026-04-19.md`
+- `docs/qa/assets/phase6-batch1/home.png`
+- `docs/qa/assets/phase6-batch1/closet.png`
+- `docs/qa/assets/phase6-batch1/canvas.png`
+- `docs/qa/assets/phase6-batch1/community.png`
+- `docs/qa/assets/phase6-batch1/profile.png`
+
+Outcome:
+
+- the active release checklist now points at the real lab status-read surfaces instead of stopping at a single try-on create route
+- current product screenshots are checked in alongside a dated evidence note instead of being left as an implicit manual step
+- release smoke still needs one env-enabled pass before RC because the workspace does not currently carry Supabase admin credentials for live lab create/status execution
+
+### Next Batch
+
+`Phase 6 / Batch 2` should run an env-backed release pass for the lab create/status routes, tighten the RLS/security checklist against the active remote stores, and then freeze RC deployment notes.
 
 ## Phase 0 Closeout
 

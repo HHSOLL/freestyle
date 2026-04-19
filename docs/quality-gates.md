@@ -38,6 +38,7 @@ Run these when the scope touches the matching area.
 | avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:avatar3d` |
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
 | promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
+| job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
 
 ### L2. Full Local Gate
 
@@ -118,6 +119,7 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - load failure shows a fallback instead of a blank scene
 - host chunk/WebGL fallback and in-canvas asset-loading placeholder remain visible on the closet stage
 - preloading stays within explicit asset budgets
+- queued jobs preserve `trace_id` and return canonical `job-result.v1` envelopes on status reads
 
 Use `docs/MAINTENANCE_PLAYBOOK.md` for the full runtime regression checklist.
 

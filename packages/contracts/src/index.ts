@@ -166,6 +166,63 @@ export const widgetErrorResponseSchema = z
   })
   .strict();
 
+const unknownRecordSchema = z.record(z.string(), z.unknown());
+
+export const jobPayloadEnvelopeSchema = z
+  .object({
+    schema_version: z.literal("job-payload.v1"),
+    job_type: z.string().trim().min(1).max(120),
+    trace_id: z.uuid(),
+    idempotency_key: z.string().trim().min(1).max(128).optional(),
+    data: unknownRecordSchema,
+  })
+  .strict();
+
+export const jobArtifactSchema = z
+  .object({
+    kind: z.string().trim().min(1).max(120),
+    url: z.url().optional(),
+    key: z.string().trim().min(1).max(256).optional(),
+    label: z.string().trim().min(1).max(120).optional(),
+    metadata: unknownRecordSchema.optional(),
+  })
+  .strict();
+
+export const jobResultEnvelopeSchema = z
+  .object({
+    schema_version: z.literal("job-result.v1"),
+    job_type: z.string().trim().min(1).max(120),
+    trace_id: z.uuid(),
+    progress: z.number().min(0).max(100).optional(),
+    artifacts: z.array(jobArtifactSchema).default([]),
+    metrics: unknownRecordSchema.default({}),
+    warnings: z.array(z.string().trim().min(1)).default([]),
+    data: unknownRecordSchema.default({}),
+  })
+  .strict();
+
+export const jobStatusErrorSchema = z
+  .object({
+    code: z.string().trim().min(1).max(120),
+    message: z.string().trim().min(1),
+  })
+  .strict();
+
+export const jobStatusResponseSchema = z
+  .object({
+    id: z.uuid(),
+    job_type: z.string().trim().min(1).max(120),
+    status: z.enum(["queued", "processing", "succeeded", "failed", "cancelled"]),
+    trace_id: z.uuid().nullable(),
+    progress: z.number().min(0).max(100).optional(),
+    result: jobResultEnvelopeSchema.nullable(),
+    error: jobStatusErrorSchema.nullable(),
+    created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
+    completed_at: z.iso.datetime().nullable(),
+  })
+  .strict();
+
 export const measurementCmSchema = z.number().min(0).max(400);
 
 export const avatarGenderSchema = z.enum(["female", "male", "neutral"]);

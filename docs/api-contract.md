@@ -494,7 +494,8 @@ Response
 
 Notes
 - 브라우저 브리지/확장 프로그램이 무신사 좋아요나 장바구니에서 추출한 `product_url[]`를 전달하는 용도로 적합하다.
-- `idempotency_key`가 같은 배치 재전송은 동일 URL 기준으로 job 중복 생성을 줄인다.
+- `idempotency_key` 재사용은 사용자 범위 안에서만 dedupe 된다. 현재 queue uniqueness 기준은 `(user_id, job_type, idempotency_key)`다.
+- 배치 item fan-out 시 각 child job은 배치 key + normalized URL digest를 붙인 child idempotency key를 사용한다.
 - 일부 URL만 queue 생성에 성공하면 응답은 `207 Multi-Status`가 될 수 있다.
 
 ### `POST /v1/jobs/import/cart`
@@ -532,15 +533,31 @@ Response
 {
   "id": "uuid",
   "job_type": "import.product_url",
+  "trace_id": "uuid",
   "status": "queued",
   "progress": 20,
-  "result": {},
+  "result": {
+    "schema_version": "job-result.v1",
+    "job_type": "import.product_url",
+    "trace_id": "uuid",
+    "progress": 20,
+    "artifacts": [],
+    "metrics": {},
+    "warnings": [],
+    "data": {}
+  },
   "error": null,
   "created_at": "...",
   "updated_at": "...",
   "completed_at": null
 }
 ```
+
+Notes
+- current status response shape is validated against the canonical `jobStatusResponseSchema`
+- stored worker results are normalized to the canonical `job-result.v1` envelope on both write and read paths
+- legacy raw result blobs are still read for compatibility, but they are upgraded into the canonical envelope before response emission
+- the queued payload stored in `jobs.payload` is also canonicalized internally as `job-payload.v1` with `trace_id`, `job_type`, optional `idempotency_key`, and `data`
 
 ## Assets
 

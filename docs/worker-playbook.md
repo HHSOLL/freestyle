@@ -7,6 +7,12 @@
 - Reaper: RPC `requeue_stale_jobs(stale_before, limit)`
 - 기본 운영 모드: `workers/runtime/src/worker.ts`가 모든 job type을 한 프로세스에서 라우팅
 - `WORKER_JOB_TYPES`를 지정하면 특정 job type만 처리하는 전용 worker로도 동일 런타임을 재사용
+- queued payload contract: `job-payload.v1`
+  - fields: `schema_version`, `job_type`, `trace_id`, optional `idempotency_key`, `data`
+  - legacy bare payload rows are still read, but workers normalize them before handling
+- stored worker result contract: `job-result.v1`
+  - fields: `schema_version`, `job_type`, `trace_id`, optional `progress`, `artifacts`, `metrics`, `warnings`, `data`
+  - legacy raw result blobs are still readable, but queue writes now store canonical envelopes
 
 ## Job Handler Matrix
 1. `worker_importer` handler
@@ -49,7 +55,9 @@
 - Retryable: transient network/provider errors -> `queued` + backoff
 - Terminal: `attempt >= max_attempts` -> `failed`
 - Poison payload은 `error_code`, `error_message`에 기록
+- duplicate prevention is now user-scoped: `(user_id, job_type, idempotency_key)`
 
 ## Observability
-- 모든 로그에 `job_id`, `user_id`, `worker_name`, `job_type` 포함
+- 모든 success/failure 로그에 `job_id`, `user_id`, `worker_name`, `job_type`, `trace_id` 포함
+- canonical payload metadata가 있으면 `idempotency_key`도 함께 남긴다
 - 장애시 `jobs` 테이블 분포와 stale 상태를 먼저 확인

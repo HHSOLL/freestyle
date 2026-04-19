@@ -3,9 +3,7 @@
 import { Suspense, useLayoutEffect, useMemo, useRef, type ComponentRef, type RefObject } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { OrbitControls } from "@react-three/drei";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { bodyProfileToAvatarMorphPlan } from "@freestyle/domain-avatar";
 import {
@@ -28,6 +26,7 @@ import type {
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
+import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
 type OrbitControlsImpl = ComponentRef<typeof OrbitControls>;
 type RigTargetPlan = AvatarMorphPlan["rigTargets"];
@@ -61,19 +60,6 @@ type SecondaryMotionState = {
   position: THREE.Vector3;
   positionVelocity: THREE.Vector3;
 };
-
-const DRACO_DECODER_PATH = "/draco/gltf/";
-
-const configureRuntimeLoader = (loader: unknown) => {
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
-  (loader as { setDRACOLoader: (dracoLoader: DRACOLoader) => unknown }).setDRACOLoader(dracoLoader);
-  if ("setMeshoptDecoder" in (loader as object)) {
-    (loader as { setMeshoptDecoder: (decoder: typeof MeshoptDecoder) => unknown }).setMeshoptDecoder(MeshoptDecoder);
-  }
-};
-
-const useRuntimeGLTF = (modelPath: string) => useGLTF(modelPath, false, true, configureRuntimeLoader);
 
 function normalizeBoneName(name: string) {
   return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");

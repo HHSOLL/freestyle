@@ -77,6 +77,7 @@ Rules:
 - `packages/runtime-3d` owns the shared avatar manifest and reusable scene contract
 - `packages/runtime-3d/src/closet-stage.tsx` is the current live `Closet` stage implementation
 - `packages/runtime-3d/src/closet-stage-fallback.tsx` owns the in-canvas asset-loading placeholder for the live stage
+- `packages/runtime-3d/src/reference-closet-stage-policy.ts` owns the pure scene policy for stage lighting, damping, and continuous-motion gating
 - `packages/runtime-3d/src/runtime-gltf-loader.ts` owns shared runtime decoder setup for both live stage loads and preloads
 - `packages/runtime-3d/src/runtime-disposal.ts` owns clone-material cleanup for runtime-created stage resources
 - domain packages own logic and persistence helpers
@@ -131,6 +132,7 @@ Source-of-truth files:
 - quality tier
 - live stage renderer: `packages/runtime-3d/src/closet-stage.tsx`
 - in-canvas loading placeholder: `packages/runtime-3d/src/closet-stage-fallback.tsx`
+- pure stage scene policy helper: `packages/runtime-3d/src/reference-closet-stage-policy.ts`
 - shared runtime preload/model-path helpers: `packages/runtime-3d/src/runtime-gltf-loader.ts`, `packages/runtime-3d/src/runtime-model-paths.ts`
 - clone-owned runtime cleanup helper: `packages/runtime-3d/src/runtime-disposal.ts`
 

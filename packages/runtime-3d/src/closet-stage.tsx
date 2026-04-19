@@ -27,6 +27,10 @@ import type {
 } from "@freestyle/shared-types";
 import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
 import { ClosetStageLoadingFallback } from "./closet-stage-fallback.js";
+import {
+  getFitLoosenessMultiplier,
+  resolveReferenceClosetStageScenePolicy,
+} from "./reference-closet-stage-policy.js";
 import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
@@ -676,21 +680,6 @@ function computeBodyFitInfo(root: THREE.Object3D) {
   };
 }
 
-function getFitLoosenessMultiplier(item: RuntimeGarmentAsset, bodyProfile: BodyProfile) {
-  const assessment = assessGarmentPhysicalFit(item, bodyProfile);
-  const fitStateMultiplier = assessment
-    ? {
-        compression: 0.58,
-        snug: 0.78,
-        regular: 1,
-        relaxed: 1.18,
-        oversized: 1.34,
-      }[assessment.overallState]
-    : 1;
-  const drape = item.metadata?.fitProfile?.drape ?? 0.08;
-  return fitStateMultiplier * (0.74 + drape * 0.92);
-}
-
 function getAdaptiveBodyMaskExpansionZones(
   item: RuntimeGarmentAsset,
   bodyProfile: BodyProfile,
@@ -749,39 +738,6 @@ function getAdaptiveBodyMaskExpansionZones(
   }
 
   return zones;
-}
-
-function hasSignificantContinuousMotion(
-  item: RuntimeGarmentAsset,
-  bodyProfile: BodyProfile,
-  poseId: AvatarPoseId,
-  qualityTier: QualityTier,
-) {
-  if (qualityTier === "low") {
-    return false;
-  }
-
-  const binding = item.runtime.secondaryMotion;
-  if (!binding) {
-    return false;
-  }
-
-  const looseness = getFitLoosenessMultiplier(item, bodyProfile);
-  const poseMultiplier =
-    poseId === "stride" ? 1.22 : poseId === "contrapposto" ? 1.1 : poseId === "tailored" ? 0.94 : 1;
-  const motionScale = looseness * poseMultiplier;
-  const idleEnergy = (binding.idleAmplitudeDeg ?? 0.4) * motionScale;
-  const travelEnergy = Math.max(binding.lateralSwingCm ?? 0, binding.verticalBobCm ?? 0) * motionScale;
-
-  if (binding.profileId === "hair-long" || binding.profileId === "garment-loose") {
-    return true;
-  }
-
-  if (item.category === "hair") {
-    return idleEnergy >= 0.85 || travelEnergy >= 0.7;
-  }
-
-  return idleEnergy >= 0.75 || travelEnergy >= 0.55;
 }
 
 function resolveMotionAnchorBone(aliasMap: AliasMap, category: RuntimeGarmentAsset["category"]) {
@@ -1679,7 +1635,8 @@ function SceneRig({
   selectedItemId,
   avatarOnly,
   qualityTier,
-  hasContinuousMotion,
+  controlsEnableDamping,
+  controlsDampingFactor,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1688,7 +1645,8 @@ function SceneRig({
   selectedItemId: string | null;
   avatarOnly: boolean;
   qualityTier: QualityTier;
-  hasContinuousMotion: boolean;
+  controlsEnableDamping: boolean;
+  controlsDampingFactor: number;
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
@@ -1698,8 +1656,8 @@ function SceneRig({
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
-        enableDamping={qualityTier !== "low" || hasContinuousMotion}
-        dampingFactor={qualityTier === "high" ? 0.08 : 0.06}
+        enableDamping={controlsEnableDamping}
+        dampingFactor={controlsDampingFactor}
       />
       <AvatarRig
         bodyProfile={bodyProfile}
@@ -1728,42 +1686,44 @@ export function ReferenceClosetStageCanvas({
   selectedItemId: string | null;
   qualityTier: QualityTier;
 }) {
-  const dpr: [number, number] =
-    qualityTier === "low" ? [0.85, 1] : qualityTier === "high" ? [1, 1.5] : [0.95, 1.25];
-  const avatarOnly = equippedGarments.length === 0;
-  const hasContinuousMotion = useMemo(
+  const scenePolicy = useMemo(
     () =>
-      equippedGarments.some((item) =>
-        hasSignificantContinuousMotion(item, bodyProfile, poseId, qualityTier),
-      ),
+      resolveReferenceClosetStageScenePolicy({
+        bodyProfile,
+        equippedGarments,
+        poseId,
+        qualityTier,
+      }),
     [bodyProfile, equippedGarments, poseId, qualityTier],
   );
-  const backgroundColor = avatarOnly ? "#d7cec6" : "#d0d4db";
-  const fogColor = avatarOnly ? "#d7cec6" : "#d0d4db";
 
   return (
     <Canvas
-      shadows={qualityTier !== "low"}
+      shadows={scenePolicy.shadows}
       camera={{ position: [0, 1.18, 5.45], fov: 22, near: 0.1, far: 100 }}
-      frameloop="demand"
-      gl={{ antialias: qualityTier !== "low", alpha: true, powerPreference: "high-performance" }}
-      dpr={dpr}
+      frameloop={scenePolicy.frameloop}
+      gl={{ antialias: scenePolicy.antialias, alpha: true, powerPreference: "high-performance" }}
+      dpr={scenePolicy.dpr}
       style={{ height: "100%", width: "100%" }}
     >
-      <color attach="background" args={[backgroundColor]} />
-      <fog attach="fog" args={[fogColor, 5.4, 13.8]} />
+      <color attach="background" args={[scenePolicy.backgroundColor]} />
+      <fog attach="fog" args={[scenePolicy.fogColor, 5.4, 13.8]} />
 
-      <ambientLight intensity={avatarOnly ? 0.48 : 0.42} />
+      <ambientLight intensity={scenePolicy.lighting.ambientIntensity} />
       <hemisphereLight
-        args={[avatarOnly ? "#fff7ef" : "#f3f6fb", avatarOnly ? "#c8bcaf" : "#c7cfdb", avatarOnly ? 0.7 : 0.62]}
+        args={[
+          scenePolicy.lighting.hemisphere.skyColor,
+          scenePolicy.lighting.hemisphere.groundColor,
+          scenePolicy.lighting.hemisphere.intensity,
+        ]}
       />
       <directionalLight
         position={[3.8, 5.9, 4.4]}
-        intensity={avatarOnly ? 1.28 : 1.18}
-        color={avatarOnly ? "#fff8ef" : "#ffffff"}
-        castShadow={qualityTier !== "low"}
-        shadow-mapSize-width={qualityTier === "high" ? 1536 : 1024}
-        shadow-mapSize-height={qualityTier === "high" ? 1536 : 1024}
+        intensity={scenePolicy.lighting.directional.intensity}
+        color={scenePolicy.lighting.directional.color}
+        castShadow={scenePolicy.shadows}
+        shadow-mapSize-width={scenePolicy.lighting.directional.shadowMapSize}
+        shadow-mapSize-height={scenePolicy.lighting.directional.shadowMapSize}
         shadow-camera-near={0.5}
         shadow-camera-far={16}
         shadow-camera-left={-6}
@@ -1775,25 +1735,40 @@ export function ReferenceClosetStageCanvas({
         position={[-3.4, 5.0, 3.4]}
         angle={0.48}
         penumbra={0.94}
-        intensity={avatarOnly ? 0.46 : 0.4}
-        color={avatarOnly ? "#f3e6d8" : "#e0e8f7"}
+        intensity={scenePolicy.lighting.leftSpot.intensity}
+        color={scenePolicy.lighting.leftSpot.color}
       />
       <spotLight
         position={[3.3, 4.7, 2.8]}
         angle={0.44}
         penumbra={0.94}
-        intensity={avatarOnly ? 0.5 : 0.44}
-        color={avatarOnly ? "#efe2d6" : "#dbe3f5"}
+        intensity={scenePolicy.lighting.rightSpot.intensity}
+        color={scenePolicy.lighting.rightSpot.color}
       />
-      <pointLight position={[0, 4.8, -2.6]} intensity={avatarOnly ? 0.1 : 0.08} distance={14} color={avatarOnly ? "#eedfd1" : "#d9e2f0"} />
-      {avatarOnly ? (
+      <pointLight
+        position={[0, 4.8, -2.6]}
+        intensity={scenePolicy.lighting.point.intensity}
+        distance={14}
+        color={scenePolicy.lighting.point.color}
+      />
+      {scenePolicy.lighting.avatarOnlyAccent ? (
         <>
-          <directionalLight position={[-2.6, 2.4, 4.6]} intensity={0.42} color="#fff2e6" />
-          <spotLight position={[0, 2.2, 5.8]} angle={0.34} penumbra={0.92} intensity={0.22} color="#fff7f0" />
+          <directionalLight
+            position={[-2.6, 2.4, 4.6]}
+            intensity={scenePolicy.lighting.avatarOnlyAccent.directionalIntensity}
+            color={scenePolicy.lighting.avatarOnlyAccent.directionalColor}
+          />
+          <spotLight
+            position={[0, 2.2, 5.8]}
+            angle={0.34}
+            penumbra={0.92}
+            intensity={scenePolicy.lighting.avatarOnlyAccent.spotIntensity}
+            color={scenePolicy.lighting.avatarOnlyAccent.spotColor}
+          />
         </>
       ) : null}
 
-      <StudioBackdrop avatarOnly={avatarOnly} />
+      <StudioBackdrop avatarOnly={scenePolicy.avatarOnly} />
       <Suspense fallback={<ClosetStageLoadingFallback />}>
         <SceneRig
           bodyProfile={bodyProfile}
@@ -1801,9 +1776,10 @@ export function ReferenceClosetStageCanvas({
           poseId={poseId}
           equippedGarments={equippedGarments}
           selectedItemId={selectedItemId}
-          avatarOnly={avatarOnly}
+          avatarOnly={scenePolicy.avatarOnly}
           qualityTier={qualityTier}
-          hasContinuousMotion={hasContinuousMotion}
+          controlsEnableDamping={scenePolicy.controlsEnableDamping}
+          controlsDampingFactor={scenePolicy.controlsDampingFactor}
         />
       </Suspense>
     </Canvas>

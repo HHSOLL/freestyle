@@ -182,6 +182,7 @@ Current source-of-truth files:
 - `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/runtime-3d/src/closet-stage-fallback.tsx`
 - `packages/runtime-3d/src/preload-runtime-assets.ts`
+- `packages/runtime-3d/src/reference-closet-stage-policy.ts`
 - `packages/runtime-3d/src/runtime-gltf-loader.ts`
 - `packages/runtime-3d/src/runtime-disposal.ts`
 - `packages/runtime-3d/src/runtime-model-paths.ts`
@@ -206,6 +207,7 @@ Rules:
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
 - keep host stage support/load/retry lifecycle policy in a pure helper so `AvatarStageViewport` transitions stay testable without mounting the 3D canvas
+- keep top-level `Closet` scene policy in a pure runtime helper so `dpr`, lighting, damping, and continuous-motion gating stay testable without mounting `Canvas`
 - preload only the active avatar, equipped garments, and near-term closet candidates
 - avoid whole-catalog eager preload on module import
 - prefer `frameloop="demand"` whenever the active stage has no continuous motion

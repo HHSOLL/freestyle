@@ -25,7 +25,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 0` | scope lock, repo inventory, route boundary freeze, execution tracker reset | `completed` | `Batch 1` and `Batch 2` are complete |
 | `Phase 1` | Product / Legacy / Lab separation hardening | `completed` | Boundary helpers, smoke guards, and historical-doc markers are aligned to the current product definition |
 | `Phase 2` | contracts and domain core hardening | `completed` | `BodyProfile`, canvas, runtime garment, physical-fit assessment, and the last legacy shared-3d fit-summary drift are now closed on the active path |
-| `Phase 3` | Closet and runtime-3d stabilization | `partial` | Shared runtime exists; loader, clone-material disposal, visible stage fallback ownership, and host lifecycle regression coverage are now centralized, while deeper composition extraction still needs work |
+| `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
 | `Phase 4` | server persistence and admin publishing hardening | `partial` | Admin/API paths exist; remote persistence, RLS coverage, and publishing contract still need expansion |
 | `Phase 5` | worker, job contract, and observability hardening | `partial` | Runtime worker exists; canonical job payload/result contracts and idempotency tracing need stronger enforcement |
 | `Phase 6` | QA, security, and release candidate | `not_started` | Quality gates exist, but end-to-end release evidence is incomplete for the current product definition |
@@ -468,9 +468,35 @@ Outcome:
 - unsupported, retry, and stale-attempt host lifecycle regressions now have node-level coverage without mounting `Canvas`
 - the next Phase 3 gap is stage composition extraction or deeper runtime-side lifecycle coverage, not the unguarded host state machine
 
+### `Phase 3 / Batch 5`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted top-level `Closet` scene policy into a pure runtime helper instead of leaving `dpr`, lighting, damping, and motion gating inline inside `closet-stage.tsx`
+2. reused that helper from the live stage so top-level scene composition now consumes one policy source instead of repeating quality-tier and avatar-only branching
+3. added node-level regression coverage for avatar-only vs dressed stage policy, long-hair/loose-garment motion gating, and low-tier damping/shadow fallback
+4. extended the active core suite so runtime stage policy regressions are caught beside loader, fallback, and disposal helpers
+
+Evidence:
+
+- `packages/runtime-3d/src/reference-closet-stage-policy.ts`
+- `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`
+- `packages/runtime-3d/src/closet-stage.tsx`
+- `package.json`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/architecture-overview.md`
+
+Outcome:
+
+- `closet-stage.tsx` no longer hides its top-level scene policy inside inline quality/avatar branching
+- runtime stage policy now has node-level coverage without mounting the full `Canvas`
+- `Phase 3` is now limited less by runtime shell drift and more by unfinished persistence, worker, and release phases outside the current batch
+
 ### Next Batch
 
-`Phase 3 / Batch 5` should keep `Closet` and `runtime-3d` stabilization moving by extracting top-level stage composition from `packages/runtime-3d/src/closet-stage.tsx` or by adding runtime-side lifecycle coverage around demand invalidation and clone cleanup without widening the batch into domain-fit or admin paths.
+`Phase 4 / Batch 1` should move back to server persistence hardening by tightening the canonical remote `BodyProfile` and published-garment persistence seam without widening into worker orchestration or release QA.
 
 ## Phase 0 Closeout
 

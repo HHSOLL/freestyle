@@ -168,6 +168,7 @@ Current remaining limitation:
 - the current promoted female base preset uses `short04` hair with `eyebrow001` and `eyelashes01`, while the promoted male base preset uses `short02`
 - the current raw authoring contract now emits `summary + skeleton + measurements + morph-map` sidecars for each promoted base variant
 - the current `measurements.json` sidecar is a geometry-derived reference artifact for authoring QA, not yet the final runtime calibration source
+- the current `measurements.json` sidecar now also records the extraction method and source anchors for each reference measurement so authoring QA can diff semantic changes without reopening Blender
 - the current raw contract also records `buildProvenance` so future reruns can be traced back to a specific MPFB revision, asset-pack checksum, and Blender export toolchain
 - the current MPFB wrapper now resolves authoring inputs against `authoring/avatar/mpfb/source-lock.json` instead of floating `origin/master`
 - the current default starter direction is `Soft Tucked Tee + Soft Wool Trousers + Soft Day Shoe`, built from the official MakeHuman Community `shirts01`, `pants01`, and `shoes01` packs

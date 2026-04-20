@@ -363,6 +363,41 @@ def _tokenize_shape_key(name):
     return [token for token in re.split(r"[^a-zA-Z0-9]+", str(name).lower()) if token]
 
 
+def build_measurement_derivations(summary):
+    return {
+        "kind": "geometry-derived-reference",
+        "intendedUse": "authoring-qa",
+        "sourceObjectName": summary.get("fullBody"),
+        "sourceRigName": summary.get("rig", {}).get("name"),
+        "measurements": {
+            "statureMm": {
+                "method": "object-bounding-box-height",
+                "objectName": summary.get("fullBody"),
+            },
+            "shoulderWidthMm": {
+                "method": "bone-head-distance",
+                "bones": ["upperarm_l", "upperarm_r"],
+            },
+            "armLengthMm": {
+                "method": "bone-chain-length",
+                "bones": ["upperarm_l", "lowerarm_l", "hand_l"],
+            },
+            "inseamMm": {
+                "method": "bone-chain-length",
+                "bones": ["thigh_l", "calf_l"],
+            },
+            "torsoLengthMm": {
+                "method": "bone-chain-length",
+                "bones": ["spine_01", "spine_02", "spine_03", "neck_01"],
+            },
+            "hipWidthMm": {
+                "method": "bone-head-distance",
+                "bones": ["thigh_l", "thigh_r"],
+            },
+        },
+    }
+
+
 def build_measurements_sidecar(summary, variant_id):
     return {
         "schemaVersion": AVATAR_MEASUREMENTS_SIDECAR_SCHEMA_VERSION,
@@ -371,6 +406,7 @@ def build_measurements_sidecar(summary, variant_id):
         "units": "mm",
         "buildProvenance": summary.get("buildProvenance"),
         "referenceMeasurementsMm": summary.get("referenceMeasurementsMm", {}),
+        "referenceMeasurementsMmDerivation": build_measurement_derivations(summary),
         "segmentationVertexCounts": summary.get("segmentation", {}),
     }
 

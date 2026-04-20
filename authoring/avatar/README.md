@@ -29,6 +29,8 @@ Required raw-sidecar outputs per promoted avatar variant:
 - `*.measurements.json`
 - `*.morph-map.json`
 
+`*.measurements.json` must keep the reference values plus `referenceMeasurementsMmDerivation` for the extraction method and source anchors used during authoring QA.
+
 Authoring input lock:
 
 - `authoring/avatar/mpfb/source-lock.json` is the pinned source-of-truth for MPFB revision and expected asset-pack checksum

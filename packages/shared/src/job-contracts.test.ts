@@ -65,10 +65,10 @@ test("normalizeQueuedJobPayload upgrades reserved simulation requests into canon
     payload: {
       jobType: fitSimulateHQJobType,
       schemaVersion: "fit-simulate-hq.v1",
-      bodyVersionId: "00000000-0000-4000-8000-000000000021",
-      garmentVariantId: "00000000-0000-4000-8000-000000000022",
-      avatarManifestUrl: "https://cdn.freestyle.test/avatars/female-base.manifest.json",
-      garmentManifestUrl: "https://cdn.freestyle.test/garments/soft-casual.manifest.json",
+      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      garmentVariantId: "starter-top-soft-casual",
+      avatarManifestUrl: "https://cdn.freestyle.test/assets/avatars/female-base.glb",
+      garmentManifestUrl: "https://cdn.freestyle.test/assets/garments/soft-casual.glb",
       materialPreset: "cotton_woven_light",
       qualityTier: "fast",
     },
@@ -80,7 +80,7 @@ test("normalizeQueuedJobPayload upgrades reserved simulation requests into canon
   assert.equal(payload.schema_version, "job-payload.v1");
   assert.equal(payload.job_type, JOB_TYPES.FIT_SIMULATE_HQ);
   assert.equal(payload.idempotency_key, "fit-sim-123");
-  assert.equal(payload.data.bodyVersionId, "00000000-0000-4000-8000-000000000021");
+  assert.equal(payload.data.bodyVersionId, "body-profile:user-1:2026-04-20T10:00:00.000Z");
   assert.equal("schemaVersion" in payload.data, false);
 });
 

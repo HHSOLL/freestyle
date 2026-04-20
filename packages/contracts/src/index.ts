@@ -735,6 +735,7 @@ export const fitCalibrationReportSchema = z
 
 export const fitSimulateHQJobType = "fit_simulate_hq_v1";
 export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
+const fitSimulationOpaqueIdSchema = z.string().trim().min(1).max(160);
 
 export const fitSimulationQualityTierSchema = z.enum(["fast", "balanced", "high"]);
 
@@ -749,8 +750,8 @@ export const fitSimulationArtifactSchema = jobArtifactSchema
 
 export const fitSimulateHQJobPayloadSchema = z
   .object({
-    bodyVersionId: z.uuid(),
-    garmentVariantId: z.uuid(),
+    bodyVersionId: fitSimulationOpaqueIdSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
@@ -788,8 +789,8 @@ export const fitSimulateHQMetricsSchema = z
 export const fitSimulateHQResultDataSchema = z
   .object({
     schemaVersion: z.literal(fitSimulateHQSchemaVersion),
-    bodyVersionId: z.uuid(),
-    garmentVariantId: z.uuid(),
+    bodyVersionId: fitSimulationOpaqueIdSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
     qualityTier: fitSimulationQualityTierSchema,
   })
   .strict();
@@ -800,6 +801,44 @@ export const fitSimulateHQResultEnvelopeSchema = jobResultEnvelopeSchema
     artifacts: z.array(fitSimulationArtifactSchema).min(1),
     metrics: fitSimulateHQMetricsSchema,
     data: fitSimulateHQResultDataSchema,
+  })
+  .strict();
+
+export const fitSimulationStatusSchema = z.enum(["queued", "processing", "succeeded", "failed"]);
+
+export const fitSimulationRecordSchema = z
+  .object({
+    id: z.uuid(),
+    jobId: z.uuid().nullable(),
+    status: fitSimulationStatusSchema,
+    avatarVariantId: avatarRenderVariantIdSchema,
+    bodyVersionId: fitSimulationOpaqueIdSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    avatarManifestUrl: z.url(),
+    garmentManifestUrl: z.url(),
+    materialPreset: z.string().trim().min(1).max(120),
+    qualityTier: fitSimulationQualityTierSchema,
+    instantFit: garmentInstantFitReportSchema.nullable(),
+    artifacts: z.array(fitSimulationArtifactSchema).default([]),
+    metrics: fitSimulateHQMetricsSchema.nullable(),
+    warnings: z.array(z.string().trim().min(1)).default([]),
+    errorMessage: z.string().trim().min(1).nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    completedAt: z.iso.datetime().nullable(),
+  })
+  .strict();
+
+export const fitSimulationCreateResponseSchema = z
+  .object({
+    job_id: z.uuid(),
+    fit_simulation_id: z.uuid(),
+  })
+  .strict();
+
+export const fitSimulationGetResponseSchema = z
+  .object({
+    fitSimulation: fitSimulationRecordSchema,
   })
   .strict();
 
@@ -1519,6 +1558,10 @@ export type FitSimulateHQJobPayloadInput = z.infer<typeof fitSimulateHQJobPayloa
 export type FitSimulateHQMetrics = z.infer<typeof fitSimulateHQMetricsSchema>;
 export type FitSimulateHQResultData = z.infer<typeof fitSimulateHQResultDataSchema>;
 export type FitSimulateHQResultEnvelope = z.infer<typeof fitSimulateHQResultEnvelopeSchema>;
+export type FitSimulationStatus = z.infer<typeof fitSimulationStatusSchema>;
+export type FitSimulationRecord = z.infer<typeof fitSimulationRecordSchema>;
+export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResponseSchema>;
+export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;

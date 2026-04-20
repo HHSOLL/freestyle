@@ -33,6 +33,8 @@ import {
   garmentPatternSpecSchema,
   garmentPatternSpecSchemaVersion,
   fitCalibrationReportSchema,
+  fitSimulationCreateResponseSchema,
+  fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
   fitSimulateHQRequestSchema,
   fitSimulateHQResultEnvelopeSchema,
@@ -320,10 +322,10 @@ test('fitSimulateHQRequestSchema accepts the reserved offline simulation request
   const parsed = fitSimulateHQRequestSchema.parse({
     jobType: fitSimulateHQJobType,
     schemaVersion: 'fit-simulate-hq.v1',
-    bodyVersionId: '00000000-0000-4000-8000-000000000021',
-    garmentVariantId: '00000000-0000-4000-8000-000000000022',
-    avatarManifestUrl: 'https://cdn.freestyle.test/avatars/female-base.manifest.json',
-    garmentManifestUrl: 'https://cdn.freestyle.test/garments/soft-casual.manifest.json',
+    bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+    garmentVariantId: 'starter-top-soft-casual',
+    avatarManifestUrl: 'https://cdn.freestyle.test/assets/avatars/female-base.glb',
+    garmentManifestUrl: 'https://cdn.freestyle.test/assets/garments/soft-casual.glb',
     materialPreset: 'cotton_woven_light',
     qualityTier: 'balanced',
   });
@@ -360,14 +362,47 @@ test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result enve
     warnings: [],
     data: {
       schemaVersion: 'fit-simulate-hq.v1',
-      bodyVersionId: '00000000-0000-4000-8000-000000000021',
-      garmentVariantId: '00000000-0000-4000-8000-000000000022',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
       qualityTier: 'high',
     },
   });
 
   assert.equal(parsed.artifacts[0]?.kind, 'draped_glb');
   assert.equal(parsed.metrics.durationMs, 120000);
+});
+
+test('fitSimulation response schemas accept the active lab record shape', () => {
+  const created = fitSimulationCreateResponseSchema.parse({
+    job_id: '00000000-0000-4000-8000-000000000024',
+    fit_simulation_id: '00000000-0000-4000-8000-000000000025',
+  });
+
+  const read = fitSimulationGetResponseSchema.parse({
+    fitSimulation: {
+      id: '00000000-0000-4000-8000-000000000025',
+      jobId: '00000000-0000-4000-8000-000000000024',
+      status: 'queued',
+      avatarVariantId: 'female-base',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      instantFit: null,
+      artifacts: [],
+      metrics: null,
+      warnings: [],
+      errorMessage: null,
+      createdAt: '2026-04-20T10:00:00.000Z',
+      updatedAt: '2026-04-20T10:00:00.000Z',
+      completedAt: null,
+    },
+  });
+
+  assert.equal(created.fit_simulation_id, '00000000-0000-4000-8000-000000000025');
+  assert.equal(read.fitSimulation.materialPreset, 'knit_medium');
 });
 
 test('authoring summary schemas accept committed garment, hair, and accessory artifacts', () => {

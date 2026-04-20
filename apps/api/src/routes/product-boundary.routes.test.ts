@@ -8,6 +8,8 @@ import {
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
   closetRuntimeGarmentListResponseSchema,
+  fitSimulationCreateResponseSchema,
+  fitSimulationGetResponseSchema,
   jobStatusResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
 } from "@freestyle/contracts";
@@ -22,18 +24,106 @@ import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-api-"));
 const bodyProfileStorePath = path.join(tempDir, "body-profiles.json");
+const fitSimulationStorePath = path.join(tempDir, "fit-simulations.json");
 const runtimeGarmentStorePath = path.join(tempDir, "runtime-garments.json");
 const hasSupabaseAdminEnv =
   Boolean(process.env.SUPABASE_URL?.trim()) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+
+const publishedGarmentFixture = {
+  id: "published-top-phase-d-smoke",
+  name: "Phase D Smoke Tee",
+  imageSrc: "/assets/demo/phase-d-smoke-tee.png",
+  category: "tops",
+  brand: "Partner Sample",
+  source: "inventory",
+  metadata: {
+    measurements: {
+      chestCm: 58.5,
+      shoulderCm: 52.5,
+      sleeveLengthCm: 21,
+      lengthCm: 65.5,
+    },
+    fitProfile: {
+      layer: "base",
+      silhouette: "regular",
+      structure: "soft",
+      stretch: 0.08,
+      drape: 0.18,
+    },
+    measurementModes: {
+      chestCm: "flat-half-circumference",
+      shoulderCm: "linear-length",
+      sleeveLengthCm: "linear-length",
+      lengthCm: "linear-length",
+    },
+    sizeChart: [
+      {
+        label: "L",
+        measurements: {
+          chestCm: 58.5,
+          shoulderCm: 52.5,
+          sleeveLengthCm: 21,
+          lengthCm: 65.5,
+        },
+        measurementModes: {
+          chestCm: "flat-half-circumference",
+          shoulderCm: "linear-length",
+          sleeveLengthCm: "linear-length",
+          lengthCm: "linear-length",
+        },
+        source: "product-detail",
+      },
+    ],
+    selectedSizeLabel: "L",
+    physicalProfile: {
+      materialStretchRatio: 0.08,
+      maxComfortStretchRatio: 0.05,
+      compressionToleranceCm: {
+        chestCm: 1.4,
+        shoulderCm: 0.8,
+      },
+    },
+  },
+  runtime: {
+    modelPath: "/assets/garments/partner/phase-d-smoke-tee.glb",
+    skeletonProfileId: "freestyle-rig-v2",
+    anchorBindings: [
+      { id: "leftShoulder", weight: 0.3 },
+      { id: "rightShoulder", weight: 0.3 },
+      { id: "chestCenter", weight: 0.2 },
+      { id: "waistCenter", weight: 0.2 },
+    ],
+    collisionZones: ["torso", "arms"],
+    bodyMaskZones: [],
+    surfaceClearanceCm: 1.2,
+    renderPriority: 1,
+  },
+  palette: ["#f5f5f5", "#10161f"],
+  publication: {
+    sourceSystem: "admin-domain",
+    publishedAt: "2026-04-20T12:00:00.000Z",
+    assetVersion: "phase-d-smoke-tee@1.0.0",
+    measurementStandard: "body-garment-v1",
+    provenanceUrl: "https://partner.example.com/garments/phase-d-smoke-tee",
+  },
+} as const;
 
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
+  process.env.FIT_SIMULATION_STORE_PATH = fitSimulationStorePath;
   process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER = "file";
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
   try {
     fs.unlinkSync(bodyProfileStorePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+  try {
+    fs.unlinkSync(fitSimulationStorePath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       throw error;
@@ -52,6 +142,7 @@ test.after(() => {
   delete process.env.DEV_BYPASS_USER_ID;
   delete process.env.ADMIN_USER_IDS;
   delete process.env.BODY_PROFILE_STORE_PATH;
+  delete process.env.FIT_SIMULATION_STORE_PATH;
   delete process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER;
   delete process.env.GARMENT_PUBLICATION_STORE_PATH;
   fs.rmSync(tempDir, { recursive: true, force: true });
@@ -243,13 +334,41 @@ test("legacy and lab namespaces stay isolated from the main product surface", as
 });
 
 test(
-  "lab smoke covers evaluation and try-on creation plus legacy job status reads",
+  "lab smoke covers evaluation, try-on, and fit-simulation creation plus legacy job status reads",
   { skip: !hasSupabaseAdminEnv },
   async () => {
   const userId = process.env.DEV_BYPASS_USER_ID;
   assert.ok(userId, "DEV_BYPASS_USER_ID must be configured for lab smoke.");
 
   const app = buildServer();
+  const bodyProfileResponse = await app.inject({
+    method: "PUT",
+    url: "/v1/profile/body-profile",
+    payload: {
+      profile: {
+        version: 2,
+        gender: "female",
+        bodyFrame: "balanced",
+        simple: {
+          heightCm: 172,
+          shoulderCm: 44,
+          chestCm: 91,
+          waistCm: 74,
+          hipCm: 95,
+          inseamCm: 79,
+        },
+      },
+    },
+  });
+  assert.equal(bodyProfileResponse.statusCode, 200);
+
+  const garmentCreateResponse = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: publishedGarmentFixture,
+  });
+  assert.equal(garmentCreateResponse.statusCode, 201);
+
   const createdAsset = await createAsset({
     userId,
     originalImageUrl: "https://cdn.example.com/smoke/top.png",
@@ -308,6 +427,45 @@ test(
     };
     assert.equal(evaluationReadPayload.id, evaluationCreatePayload.evaluation_id);
     assert.equal(evaluationReadPayload.status, "queued");
+
+    const fitSimulationCreateResponse = await app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/fit-simulations",
+      payload: {
+        garment_id: publishedGarmentFixture.id,
+        quality_tier: "fast",
+        idempotency_key: `phase6-fit-sim-${randomUUID()}`,
+      },
+    });
+
+    assert.equal(fitSimulationCreateResponse.statusCode, 201);
+    assert.equal(fitSimulationCreateResponse.headers["x-freestyle-surface"], "lab");
+    const fitSimulationCreatePayload = fitSimulationCreateResponseSchema.parse(fitSimulationCreateResponse.json());
+    const fitSimulationStatusResponse = await app.inject({
+      method: "GET",
+      url: `/v1/legacy/jobs/${fitSimulationCreatePayload.job_id}`,
+    });
+
+    assert.equal(fitSimulationStatusResponse.statusCode, 200);
+    assert.equal(fitSimulationStatusResponse.headers["x-freestyle-surface"], "legacy");
+    assert.equal(fitSimulationStatusResponse.headers.deprecation, "true");
+    const fitSimulationJobStatus = jobStatusResponseSchema.parse(fitSimulationStatusResponse.json());
+    assert.equal(fitSimulationJobStatus.job_type, JOB_TYPES.FIT_SIMULATE_HQ);
+    assert.equal(fitSimulationJobStatus.status, "queued");
+    assert.equal(fitSimulationJobStatus.result, null);
+    assert.ok(fitSimulationJobStatus.trace_id);
+
+    const fitSimulationReadResponse = await app.inject({
+      method: "GET",
+      url: `/v1/lab/fit-simulations/${fitSimulationCreatePayload.fit_simulation_id}`,
+    });
+
+    assert.equal(fitSimulationReadResponse.statusCode, 200);
+    assert.equal(fitSimulationReadResponse.headers["x-freestyle-surface"], "lab");
+    const fitSimulationReadPayload = fitSimulationGetResponseSchema.parse(fitSimulationReadResponse.json());
+    assert.equal(fitSimulationReadPayload.fitSimulation.id, fitSimulationCreatePayload.fit_simulation_id);
+    assert.equal(fitSimulationReadPayload.fitSimulation.status, "queued");
+    assert.equal(fitSimulationReadPayload.fitSimulation.instantFit?.overallFit, "good");
 
     const tryonCreateResponse = await app.inject({
       method: "POST",

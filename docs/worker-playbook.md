@@ -13,9 +13,10 @@
 - stored worker result contract: `job-result.v1`
   - fields: `schema_version`, `job_type`, `trace_id`, optional `progress`, `artifacts`, `metrics`, `warnings`, `data`
   - legacy raw result blobs are still readable, but queue writes now store canonical envelopes
-- reserved offline simulation contract: `fit_simulate_hq_v1`
-  - versioned request/result schemas now exist in `packages/contracts`
-  - no active handler is registered yet, so this job type should not be routed in production until the worker batch lands
+- active offline simulation contract: `fit_simulate_hq_v1`
+  - versioned request/result schemas live in `packages/contracts`
+  - the runtime router now registers a baseline handler
+  - the baseline worker currently emits `fit_map_json` only; `draped_glb` and `preview_png` remain future outputs
 
 ## Job Handler Matrix
 1. `worker_importer` handler
@@ -46,10 +47,14 @@
 - current runtime note: queued try-on payloads are normalized through the canonical job envelope before handling
 - failure handling also marks `tryons.status='failed'` and writes `error_message`
 
-6. reserved `worker_fit_simulate_hq` contract
-- Reserved job type: `fit_simulate_hq_v1`
-- Expected output artifact kinds: `draped_glb`, `fit_map_json`, `preview_png`
-- Status: contract only; handler, storage write path, and production routing are not implemented yet
+6. `worker_fit_simulate_hq` handler
+- Job type: `fit_simulate_hq_v1`
+- Output: persisted fit-simulation record plus `fit_map_json` artifact
+- Expected artifact kind set stays reserved as `draped_glb`, `fit_map_json`, `preview_png`
+- current baseline note:
+  - the handler is active
+  - `fit_map_json` is implemented
+  - `draped_glb` and `preview_png` are intentionally emitted as warnings only for now
 
 ## Recommended Railway Layout
 1. 최소 비용 운영

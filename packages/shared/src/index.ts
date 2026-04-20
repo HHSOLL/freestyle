@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   type AssetMetadata,
+  fitSimulationQualityTierSchema,
+  fitSimulateHQJobPayloadSchema,
   fitSimulateHQJobType,
   jobArtifactSchema,
   jobPayloadEnvelopeSchema,
@@ -82,12 +84,20 @@ export const createTryonInputSchema = z.object({
   idempotency_key: z.string().trim().min(1).max(128).optional(),
 });
 
+export const createFitSimulationInputSchema = z.object({
+  garment_id: z.string().trim().min(1).max(160),
+  material_preset: z.string().trim().min(1).max(120).optional(),
+  quality_tier: fitSimulationQualityTierSchema.optional(),
+  idempotency_key: z.string().trim().min(1).max(128).optional(),
+});
+
 export type ImportProductJobInput = z.infer<typeof importProductJobInputSchema>;
 export type ImportProductBatchJobInput = z.infer<typeof importProductBatchJobInputSchema>;
 export type ImportCartJobInput = z.infer<typeof importCartJobInputSchema>;
 export type ImportUploadJobInput = z.infer<typeof importUploadJobInputSchema>;
 export type EvaluateOutfitInput = z.infer<typeof evaluateOutfitInputSchema>;
 export type CreateTryonInput = z.infer<typeof createTryonInputSchema>;
+export type CreateFitSimulationInput = z.infer<typeof createFitSimulationInputSchema>;
 
 const unknownRecordSchema = z.record(z.string(), z.unknown());
 
@@ -147,6 +157,12 @@ export const tryonJobPayloadSchema = z
   })
   .strict();
 
+export const fitSimulationJobPayloadSchema = fitSimulateHQJobPayloadSchema
+  .extend({
+    fit_simulation_id: z.uuid(),
+  })
+  .strict();
+
 export type ImportProductJobPayload = z.infer<typeof importProductJobPayloadSchema>;
 export type ImportCartJobPayload = z.infer<typeof importCartJobPayloadSchema>;
 export type ImportUploadJobPayload = z.infer<typeof importUploadJobPayloadSchema>;
@@ -154,6 +170,7 @@ export type BackgroundRemovalJobPayload = z.infer<typeof backgroundRemovalJobPay
 export type AssetProcessorJobPayload = z.infer<typeof assetProcessorJobPayloadSchema>;
 export type EvaluatorJobPayload = z.infer<typeof evaluatorJobPayloadSchema>;
 export type TryonJobPayload = z.infer<typeof tryonJobPayloadSchema>;
+export type FitSimulationJobPayload = z.infer<typeof fitSimulationJobPayloadSchema>;
 
 export type CanonicalJobPayloadEnvelope<TData extends Record<string, unknown> = Record<string, unknown>> = {
   schema_version: "job-payload.v1";

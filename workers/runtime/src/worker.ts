@@ -5,6 +5,7 @@ import { jobTypeList, type JobType } from "@freestyle/shared";
 import { assetProcessorWorkerDefinition } from "../../asset_processor/src/worker.js";
 import { backgroundRemovalWorkerDefinition } from "../../background_removal/src/worker.js";
 import { evaluatorWorkerDefinition } from "../../evaluator/src/worker.js";
+import { fitSimulationWorkerDefinition } from "../../fit_simulation/src/worker.js";
 import { importerWorkerDefinition } from "../../importer/src/worker.js";
 import { tryonWorkerDefinition } from "../../tryon/src/worker.js";
 
@@ -13,6 +14,7 @@ const workerDefinitions = [
   backgroundRemovalWorkerDefinition,
   assetProcessorWorkerDefinition,
   evaluatorWorkerDefinition,
+  fitSimulationWorkerDefinition,
   tryonWorkerDefinition,
 ] as const;
 

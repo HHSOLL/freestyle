@@ -51,7 +51,7 @@ flowchart LR
 ### Lab
 
 - route prefix: `/v1/lab`
-- purpose: experiments such as evaluation and try-on
+- purpose: experiments such as evaluation, try-on, and offline fit simulation
 - UI exposure: isolated and non-primary
 - response header: `x-freestyle-surface: lab`
 
@@ -169,6 +169,7 @@ Current state:
 - API namespace and service boundaries are in place for remote persistence
 - the `BodyProfile` API path now also uses an explicit persistence port with a file-backed adapter so the route can move to a remote store without changing its contract
 - published runtime-garment persistence now uses the same replaceable-port pattern, with a Supabase-backed publication table available behind `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` and a file fallback for isolated dev/test flows
+- fit-simulation detail records now use the same replaceable-port pattern, with a versioned file-backed adapter for current lab flows and artifact persistence delegated to object storage when configured or a local file fallback otherwise
 
 This is intentional. The UI and scene runtime are already separated from persistence so remote adapters can replace local storage without rewriting pages.
 

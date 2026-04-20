@@ -9,6 +9,12 @@ The source-of-truth implementation lives in:
 - `packages/domain-garment/src/index.ts`
 - `packages/domain-garment/src/skeleton-profiles.ts`
 
+This document is intentionally about the runtime product contract.
+
+- upstream MPFB authoring summaries now have their own versioned parse contract in `packages/contracts`
+- those authoring summaries are validated by `scripts/validate-garment-3d.mjs`
+- they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` API payloads
+
 ## 2. Required Contract
 
 Every runtime garment needs:
@@ -23,7 +29,7 @@ Every runtime garment needs:
 - `surfaceClearanceCm`
 - `renderPriority`
 - `metadata.measurements`
-- `metadata.measurementModes` when measurements come from flat-width or mixed size charts
+- `metadata.measurementModes`
 - `metadata.sizeChart` when the garment is shipped with selectable product sizes
 - `metadata.selectedSizeLabel` when one chart row is currently active
 - `metadata.physicalProfile` for stretch and compression budget hints

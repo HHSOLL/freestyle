@@ -1,4 +1,7 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "hair",
   "variantId": "female-base",
   "hairStyle": "afro01",
   "armature": "mpfb-female-base",
@@ -11,6 +14,6 @@
       ]
     }
   ],
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-hair_afro_cloud.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-female-hair_afro_cloud.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb"
 }

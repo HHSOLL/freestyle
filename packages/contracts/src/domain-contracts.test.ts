@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  accessoryAuthoringSummarySchema,
+  assetAuthoringSummarySchemaVersion,
   avatarMeasurementsSidecarSchemaVersion,
   avatarMeasurementsSidecarSchema,
   assetMetadataSchema,
@@ -26,10 +28,13 @@ import {
   garmentFitStateSchema,
   garmentMeasurementsSchema,
   fitCalibrationReportSchema,
+  garmentAuthoringSummarySchema,
   normalizeBodyProfile,
+  hairAuthoringSummarySchema,
   publishedGarmentAssetSchema,
   publishedRuntimeGarmentItemResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
+  runtimeAssetAuthoringSummarySchema,
   runtimeGarmentAssetSchema,
 } from './index.js';
 
@@ -301,6 +306,77 @@ test('fitCalibrationReportSchema accepts the committed calibration artifact shap
   assert.equal(parsed.schemaVersion, 'fit-calibration-report.v1');
   assert.ok(parsed.avatarCalibrationReferences.length > 0);
   assert.ok(parsed.garments.length > 0);
+});
+
+test('authoring summary schemas accept committed garment, hair, and accessory artifacts', () => {
+  const garment = garmentAuthoringSummarySchema.parse(
+    readJsonFixture('../../../authoring/garments/exports/raw/mpfb-female-top_soft_casual.summary.json'),
+  );
+  const hair = hairAuthoringSummarySchema.parse(
+    readJsonFixture('../../../authoring/garments/exports/raw/mpfb-female-hair_signature_ponytail.summary.json'),
+  );
+  const accessory = accessoryAuthoringSummarySchema.parse(
+    readJsonFixture('../../../authoring/garments/exports/raw/mpfb-female-accessory_city_bucket_hat.summary.json'),
+  );
+
+  assert.equal(garment.schemaVersion, assetAuthoringSummarySchemaVersion);
+  assert.equal(garment.kind, 'garment');
+  assert.equal(garment.variantId, 'female-base');
+  assert.equal(hair.schemaVersion, assetAuthoringSummarySchemaVersion);
+  assert.equal(hair.kind, 'hair');
+  assert.equal(accessory.schemaVersion, assetAuthoringSummarySchemaVersion);
+  assert.equal(accessory.kind, 'accessory');
+
+  assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(garment), garment);
+  assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(hair), hair);
+  assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(accessory), accessory);
+});
+
+test('authoring summary schemas reject checkout-specific absolute paths', () => {
+  assert.throws(
+    () =>
+      garmentAuthoringSummarySchema.parse({
+        schemaVersion: assetAuthoringSummarySchemaVersion,
+        authoringSource: 'mpfb2',
+        kind: 'garment',
+        variantId: 'female-base',
+        garment: {
+          name: 'FS.Garment',
+          vertexCount: 12,
+          materialSlots: ['FS_Material'],
+          vertexGroups: ['spine_01'],
+        },
+        fitAudit: {
+          minDistanceMeters: 0.002,
+          penetratingVertexCount: 0,
+          thresholdCounts: {
+            '0.003': 4,
+          },
+          hotSpots: [],
+        },
+        armature: {
+          name: 'mpfb-female-base',
+          boneNames: ['Root'],
+        },
+        preset: {
+          presetId: 'female-base',
+          relativePath: '/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/female-base.json',
+        },
+        clothesAsset: {
+          kind: 'repo-relative',
+          value: 'authoring/garments/.cache/example.mhclo',
+        },
+        packState: {
+          installed: true,
+          modern: true,
+          installedNow: false,
+          userDataSource: 'blender-extension-user-data',
+        },
+        outputBlend: 'authoring/garments/exports/raw/example.blend',
+        outputGlb: 'apps/web/public/assets/garments/example.glb',
+      }),
+    /repo-relative path/,
+  );
 });
 
 test('garment measurement + fit profile schemas stay backward-compatible', () => {

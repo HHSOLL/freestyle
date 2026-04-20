@@ -1,4 +1,8 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "garment",
+  "variantId": "male-base",
   "garment": {
     "name": "mpfb-male-base.male_casualsuit02",
     "vertexCount": 2136,
@@ -112,14 +116,20 @@
       "ball_r"
     ]
   },
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/male-base.json",
-  "clothesAsset": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data/clothes/male_casualsuit02/male_casualsuit02.mhclo",
+  "preset": {
+    "presetId": "male-base",
+    "relativePath": "authoring/avatar/mpfb/presets/male-base.json"
+  },
+  "clothesAsset": {
+    "kind": "mpfb-user-data-fragment",
+    "value": "clothes/male_casualsuit02/male_casualsuit02.mhclo"
+  },
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installedNow": false,
+    "userDataSource": "blender-extension-user-data"
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-male-top_city_relaxed.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_city_relaxed.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
 }

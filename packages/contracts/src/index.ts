@@ -660,6 +660,133 @@ export const fitCalibrationReportSchema = z
   })
   .strict();
 
+export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
+
+const repoRelativePathSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => !value.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(value),
+    "expected a repo-relative path",
+  );
+
+const authoringSourceSchema = z.literal("mpfb2");
+
+const garmentFitAuditHotSpotSchema = z
+  .object({
+    zone: z.string().trim().min(1).max(64),
+    countWithin5mm: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const garmentFitAuditSchema = z
+  .object({
+    minDistanceMeters: z.number().finite().nonnegative().nullable(),
+    penetratingVertexCount: z.number().int().nonnegative(),
+    thresholdCounts: z.record(z.string(), z.number().int().nonnegative()),
+    hotSpots: z.array(garmentFitAuditHotSpotSchema).default([]),
+  })
+  .strict();
+
+const garmentAuthoringMeshSummarySchema = z
+  .object({
+    name: z.string().trim().min(1),
+    vertexCount: z.number().int().nonnegative(),
+    materialSlots: z.array(z.string().trim().min(1).nullable()),
+    vertexGroups: z.array(z.string().trim().min(1)),
+  })
+  .strict();
+
+const garmentAuthoringArmatureSummarySchema = z
+  .object({
+    name: z.string().trim().min(1),
+    boneNames: z.array(z.string().trim().min(1)),
+  })
+  .strict();
+
+const garmentAuthoringPresetSchema = z
+  .object({
+    presetId: avatarRenderVariantIdSchema,
+    relativePath: repoRelativePathSchema,
+  })
+  .strict();
+
+const garmentAuthoringAssetReferenceSchema = z
+  .object({
+    kind: z.enum(["repo-relative", "mpfb-user-data-fragment"]),
+    value: z.string().trim().min(1),
+  })
+  .strict();
+
+const garmentAuthoringPackStateSchema = z
+  .object({
+    installed: z.boolean(),
+    modern: z.boolean(),
+    installedNow: z.boolean(),
+    userDataSource: z.literal("blender-extension-user-data"),
+  })
+  .strict();
+
+const runtimeAuthoringObjectSummarySchema = z
+  .object({
+    name: z.string().trim().min(1),
+    vertices: z.number().int().nonnegative(),
+    materials: z.array(z.string().trim().min(1).nullable()),
+  })
+  .strict();
+
+export const garmentAuthoringSummarySchema = z
+  .object({
+    schemaVersion: z.literal(assetAuthoringSummarySchemaVersion),
+    authoringSource: authoringSourceSchema,
+    kind: z.literal("garment"),
+    variantId: avatarRenderVariantIdSchema,
+    garment: garmentAuthoringMeshSummarySchema,
+    fitAudit: garmentFitAuditSchema,
+    armature: garmentAuthoringArmatureSummarySchema,
+    preset: garmentAuthoringPresetSchema,
+    clothesAsset: garmentAuthoringAssetReferenceSchema,
+    packState: garmentAuthoringPackStateSchema,
+    outputBlend: repoRelativePathSchema,
+    outputGlb: repoRelativePathSchema,
+  })
+  .strict();
+
+export const hairAuthoringSummarySchema = z
+  .object({
+    schemaVersion: z.literal(assetAuthoringSummarySchemaVersion),
+    authoringSource: authoringSourceSchema,
+    kind: z.literal("hair"),
+    variantId: avatarRenderVariantIdSchema,
+    hairStyle: z.string().trim().min(1).max(64),
+    armature: z.string().trim().min(1),
+    objects: z.array(runtimeAuthoringObjectSummarySchema).min(1),
+    outputBlend: repoRelativePathSchema,
+    outputGlb: repoRelativePathSchema,
+  })
+  .strict();
+
+export const accessoryAuthoringSummarySchema = z
+  .object({
+    schemaVersion: z.literal(assetAuthoringSummarySchemaVersion),
+    authoringSource: authoringSourceSchema,
+    kind: z.literal("accessory"),
+    variantId: avatarRenderVariantIdSchema,
+    accessoryType: z.string().trim().min(1).max(64),
+    armature: z.string().trim().min(1),
+    objects: z.array(runtimeAuthoringObjectSummarySchema).min(1),
+    outputBlend: repoRelativePathSchema,
+    outputGlb: repoRelativePathSchema,
+  })
+  .strict();
+
+export const runtimeAssetAuthoringSummarySchema = z.discriminatedUnion("kind", [
+  garmentAuthoringSummarySchema,
+  hairAuthoringSummarySchema,
+  accessoryAuthoringSummarySchema,
+]);
+
 export const garmentRuntimeBindingSchema = z
   .object({
     modelPath: z.string().trim().min(1),
@@ -1112,6 +1239,10 @@ export type GarmentFitState = z.infer<typeof garmentFitStateSchema>;
 export type GarmentFitRisk = z.infer<typeof garmentFitRiskSchema>;
 export type GarmentFitDimensionAssessment = z.infer<typeof garmentFitDimensionAssessmentSchema>;
 export type GarmentFitAssessment = z.infer<typeof garmentFitAssessmentSchema>;
+export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySchema>;
+export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
+export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;
+export type RuntimeAssetAuthoringSummary = z.infer<typeof runtimeAssetAuthoringSummarySchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;
 export type PublishedRuntimeGarmentListResponse = z.infer<typeof publishedRuntimeGarmentListResponseSchema>;
 export type ClosetItem = z.infer<typeof closetItemSchema>;

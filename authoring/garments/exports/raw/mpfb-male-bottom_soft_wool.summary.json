@@ -1,4 +1,8 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "garment",
+  "variantId": "male-base",
   "garment": {
     "name": "mpfb-male-base.toigo_wool_pants",
     "vertexCount": 1372,
@@ -100,14 +104,20 @@
       "ball_r"
     ]
   },
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/male-base.json",
-  "clothesAsset": "/Users/sol/Desktop/fsp/authoring/garments/.cache/official-packs/extracted/pants01/clothes/toigo_wool_pants/toigo_wool_pants.mhclo",
+  "preset": {
+    "presetId": "male-base",
+    "relativePath": "authoring/avatar/mpfb/presets/male-base.json"
+  },
+  "clothesAsset": {
+    "kind": "repo-relative",
+    "value": "authoring/garments/.cache/official-packs/extracted/pants01/clothes/toigo_wool_pants/toigo_wool_pants.mhclo"
+  },
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installedNow": false,
+    "userDataSource": "blender-extension-user-data"
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
 }

@@ -12,6 +12,9 @@ import bmesh
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+AUTHORING_SUMMARY_SCHEMA_VERSION = "runtime-asset-authoring-summary.v1"
+
 
 def parse_args():
     argv = sys.argv
@@ -71,16 +74,16 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
         return {
             "installed": True,
             "modern": True,
-            "installed_now": False,
-            "user_data": LocationService.get_user_data(),
+            "installedNow": False,
+            "userDataSource": "blender-extension-user-data",
         }
 
     if not asset_pack_zip:
         return {
             "installed": installed,
             "modern": modern,
-            "installed_now": False,
-            "user_data": LocationService.get_user_data(),
+            "installedNow": False,
+            "userDataSource": "blender-extension-user-data",
         }
 
     zip_path = Path(asset_pack_zip).resolve()
@@ -98,8 +101,8 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
     return {
         "installed": installed,
         "modern": modern,
-        "installed_now": True,
-        "user_data": str(data_dir),
+        "installedNow": True,
+        "userDataSource": "blender-extension-user-data",
     }
 
 
@@ -107,6 +110,44 @@ def resolve_clothes_path(module, asset_fragment: str):
     if os.path.isabs(asset_fragment):
         return str(Path(asset_fragment).resolve())
     return str(Path(module.services.LocationService.get_user_data()) / asset_fragment)
+
+
+def to_repo_relative(path_value: Path):
+    resolved = path_value.resolve()
+    try:
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError as error:
+        raise RuntimeError(f"Expected repo-relative path inside {REPO_ROOT}, got {resolved}") from error
+
+
+def detect_variant_id_from_preset(preset_path: Path):
+    preset_id = preset_path.stem
+    if preset_id not in {"female-base", "male-base"}:
+        raise RuntimeError(f"Unsupported preset id for runtime garment summary: {preset_id}")
+    return preset_id
+
+
+def serialize_clothes_asset_reference(raw_argument: str, resolved_path: Path):
+    if not os.path.isabs(raw_argument):
+        return {
+            "kind": "mpfb-user-data-fragment",
+            "value": raw_argument,
+        }
+
+    try:
+        return {
+            "kind": "repo-relative",
+            "value": to_repo_relative(resolved_path),
+        }
+    except RuntimeError:
+        parts = resolved_path.parts
+        if "clothes" in parts:
+            clothes_index = parts.index("clothes")
+            return {
+                "kind": "mpfb-user-data-fragment",
+                "value": Path(*parts[clothes_index:]).as_posix(),
+            }
+        raise
 
 
 def classify_proximity_zone(co, bounds_min, bounds_max):
@@ -205,8 +246,23 @@ def collect_proximity_metrics(clothes_obj, body_obj):
             body_bm.free()
 
 
-def collect_summary(clothes_obj, armature, body_obj, output_blend, output_glb, preset_path, clothes_path, pack_state):
+def collect_summary(
+    clothes_obj,
+    armature,
+    body_obj,
+    output_blend,
+    output_glb,
+    preset_path,
+    clothes_path,
+    clothes_asset_argument,
+    pack_state,
+):
+    variant_id = detect_variant_id_from_preset(preset_path)
     return {
+        "schemaVersion": AUTHORING_SUMMARY_SCHEMA_VERSION,
+        "authoringSource": "mpfb2",
+        "kind": "garment",
+        "variantId": variant_id,
         "garment": {
             "name": clothes_obj.name,
             "vertexCount": len(clothes_obj.data.vertices),
@@ -218,11 +274,14 @@ def collect_summary(clothes_obj, armature, body_obj, output_blend, output_glb, p
             "name": armature.name if armature else None,
             "boneNames": [bone.name for bone in armature.data.bones] if armature else [],
         },
-        "preset": str(preset_path),
-        "clothesAsset": str(clothes_path),
+        "preset": {
+            "presetId": variant_id,
+            "relativePath": to_repo_relative(preset_path),
+        },
+        "clothesAsset": serialize_clothes_asset_reference(clothes_asset_argument, clothes_path),
         "packState": pack_state,
-        "outputBlend": str(output_blend),
-        "outputGlb": str(output_glb),
+        "outputBlend": to_repo_relative(output_blend),
+        "outputGlb": to_repo_relative(output_glb),
     }
 
 
@@ -618,6 +677,7 @@ def main():
         Path(args.output_glb).resolve(),
         preset_path,
         clothes_path,
+        args.clothes_asset,
         pack_state,
     )
 

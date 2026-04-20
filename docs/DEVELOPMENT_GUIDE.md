@@ -166,6 +166,8 @@ Current registry:
 
 Every new garment asset must validate before product use. Use `npm run validate:garment3d` and keep the runtime contract aligned with [garment-fitting-contract.md](./garment-fitting-contract.md).
 
+- `validate:garment3d` now parses the committed MPFB garment authoring summaries through `packages/contracts` before it evaluates the fit-budget thresholds, so malformed source summaries fail closed instead of silently falling through to ad-hoc JSON reads
+
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 
 Admin workflow rule:

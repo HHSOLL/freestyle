@@ -7,6 +7,9 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+AUTHORING_SUMMARY_SCHEMA_VERSION = "runtime-asset-authoring-summary.v1"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -28,6 +31,14 @@ def parse_args():
 def ensure_object_mode():
     if bpy.context.object and bpy.context.object.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def to_repo_relative(path_value: Path):
+    resolved = path_value.resolve()
+    try:
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError as error:
+        raise RuntimeError(f"Expected repo-relative path inside {REPO_ROOT}, got {resolved}") from error
 
 
 def create_material(name: str, rgba, roughness: float, metallic: float = 0.0):
@@ -86,6 +97,9 @@ def assign_head_weight(obj, armature_obj, bone_name: str = "head"):
 
 def collect_summary(armature_obj, accessory_objects, output_blend, output_glb, accessory_type, variant_id):
     return {
+        "schemaVersion": AUTHORING_SUMMARY_SCHEMA_VERSION,
+        "authoringSource": "mpfb2",
+        "kind": "accessory",
         "variantId": variant_id,
         "accessoryType": accessory_type,
         "armature": armature_obj.name,
@@ -97,8 +111,8 @@ def collect_summary(armature_obj, accessory_objects, output_blend, output_glb, a
             }
             for obj in accessory_objects
         ],
-        "outputBlend": str(output_blend),
-        "outputGlb": str(output_glb),
+        "outputBlend": to_repo_relative(output_blend),
+        "outputGlb": to_repo_relative(output_glb),
     }
 
 

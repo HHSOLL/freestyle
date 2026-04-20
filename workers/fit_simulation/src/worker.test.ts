@@ -11,6 +11,7 @@ import {
 import {
   buildFitMapArtifactPayload,
   buildFitSimulationPreviewPngBuffer,
+  buildFitSimulationPreviewSvg,
   parseFitSimulationJobPayload,
 } from "./worker.js";
 
@@ -256,4 +257,86 @@ test("buildFitSimulationPreviewPngBuffer rasterizes a PNG preview artifact", asy
 
   assert.ok(png.length > 1024);
   assert.deepEqual(Array.from(png.subarray(0, 8)), [137, 80, 78, 71, 13, 10, 26, 10]);
+});
+
+test("buildFitSimulationPreviewSvg reflects the dominant overlay summary", () => {
+  const fitAssessment = garmentFitAssessmentSchema.parse({
+    sizeLabel: "L",
+    overallState: "snug",
+    tensionRisk: "medium",
+    clippingRisk: "medium",
+    stretchLoad: 0.76,
+    limitingKeys: ["chestCm"],
+    dimensions: [
+      {
+        key: "chestCm",
+        measurementMode: "body-circumference",
+        garmentCm: 108,
+        bodyCm: 104,
+        effectiveGarmentCm: 110,
+        easeCm: 6,
+        requiredStretchRatio: 0.02,
+        state: "snug",
+      },
+    ],
+  });
+  const instantFit = garmentInstantFitReportSchema.parse({
+    schemaVersion: "garment-instant-fit-report.v1",
+    sizeLabel: "L",
+    overallFit: "tight",
+    overallState: "snug",
+    tensionRisk: "medium",
+    clippingRisk: "medium",
+    confidence: 0.74,
+    primaryRegionId: "chest",
+    summary: {
+      ko: "L · 가슴 기준 타이트함",
+      en: "L · Chest tight fit",
+    },
+    explanations: [
+      {
+        ko: "가슴 여유가 제한적이다.",
+        en: "Chest ease is limited.",
+      },
+    ],
+    limitingKeys: ["chestCm"],
+    regions: [
+      {
+        regionId: "chest",
+        measurementKey: "chestCm",
+        fitState: "snug",
+        easeCm: 6,
+        isLimiting: true,
+      },
+    ],
+  });
+
+  const fitMap = buildFitMapArtifactPayload(
+    "00000000-0000-4000-8000-000000000083",
+    {
+      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      garmentVariantId: "starter-top-soft-casual",
+      avatarVariantId: "female-base",
+      avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+      garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
+      materialPreset: "knit_medium",
+      qualityTier: "balanced",
+    },
+    {
+      id: "starter-top-soft-casual",
+      name: "Soft Tucked Tee",
+      category: "tops",
+    },
+    fitAssessment,
+    instantFit,
+    ["Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending."],
+  );
+
+  const svg = buildFitSimulationPreviewSvg(
+    "00000000-0000-4000-8000-000000000083",
+    fitMap,
+  );
+
+  assert.match(svg, /dominant overlay: collisionRiskMap/);
+  assert.match(svg, /region collisionRiskMap summary/);
 });

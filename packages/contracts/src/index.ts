@@ -815,6 +815,26 @@ export const fitMapOverlaySchema = z
   })
   .strict();
 
+export const fitMapSummarySchema = z
+  .object({
+    dominantOverlayKind: fitMapOverlayKindSchema,
+    dominantRegionId: garmentFitRegionIdSchema,
+    dominantMeasurementKey: garmentMeasurementKeySchema,
+    dominantScore: z.number().finite().min(0).max(1),
+    overlayScores: z
+      .array(
+        z
+          .object({
+            kind: fitMapOverlayKindSchema,
+            overallScore: z.number().finite().min(0).max(1),
+            maxRegionScore: z.number().finite().min(0).max(1),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+
 export const fitMapArtifactDataSchema = z
   .object({
     schemaVersion: z.literal(fitMapArtifactSchemaVersion),
@@ -879,6 +899,7 @@ export const fitSimulationRecordSchema = z
     qualityTier: fitSimulationQualityTierSchema,
     instantFit: garmentInstantFitReportSchema.nullable(),
     fitMap: fitMapArtifactDataSchema.nullable().default(null),
+    fitMapSummary: fitMapSummarySchema.nullable().default(null),
     artifacts: z.array(fitSimulationArtifactSchema).default([]),
     metrics: fitSimulateHQMetricsSchema.nullable(),
     warnings: z.array(z.string().trim().min(1)).default([]),
@@ -1615,6 +1636,7 @@ export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
 export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
 export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;
 export type FitMapOverlay = z.infer<typeof fitMapOverlaySchema>;
+export type FitMapSummary = z.infer<typeof fitMapSummarySchema>;
 export type FitMapArtifactData = z.infer<typeof fitMapArtifactDataSchema>;
 export type FitSimulateHQJobPayload = z.infer<typeof fitSimulateHQJobPayloadSchema>;
 export type FitSimulateHQRequest = z.infer<typeof fitSimulateHQRequestSchema>;

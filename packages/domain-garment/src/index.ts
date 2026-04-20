@@ -1,6 +1,9 @@
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
 import {
+  fitMapSummarySchema,
   garmentFitAssessmentSchema,
+  type FitMapArtifactData,
+  type FitMapSummary,
   garmentInstantFitReportSchema,
   garmentInstantFitSchemaVersion,
 } from "@freestyle/contracts";
@@ -2028,6 +2031,40 @@ export const assessGarmentInstantFit = (
   garment: Pick<Asset | StarterGarment, "metadata" | "category">,
   profile: BodyProfile,
 ) => buildGarmentInstantFitReport(assessGarmentPhysicalFit(garment, profile));
+
+export const buildFitMapSummary = (fitMap: FitMapArtifactData): FitMapSummary => {
+  const dominantOverlay =
+    [...fitMap.overlays].sort((left, right) => {
+      if (right.maxRegionScore !== left.maxRegionScore) {
+        return right.maxRegionScore - left.maxRegionScore;
+      }
+      return right.overallScore - left.overallScore;
+    })[0] ?? fitMap.overlays[0];
+
+  if (!dominantOverlay) {
+    throw new Error("fitMap must contain at least one overlay.");
+  }
+
+  const dominantRegion =
+    [...dominantOverlay.regions].sort((left, right) => right.score - left.score)[0] ??
+    dominantOverlay.regions[0];
+
+  if (!dominantRegion) {
+    throw new Error("fitMap dominant overlay must contain at least one region.");
+  }
+
+  return fitMapSummarySchema.parse({
+    dominantOverlayKind: dominantOverlay.kind,
+    dominantRegionId: dominantRegion.regionId,
+    dominantMeasurementKey: dominantRegion.measurementKey,
+    dominantScore: dominantRegion.score,
+    overlayScores: fitMap.overlays.map((overlay) => ({
+      kind: overlay.kind,
+      overallScore: overlay.overallScore,
+      maxRegionScore: overlay.maxRegionScore,
+    })),
+  });
+};
 
 export const validateGarmentRuntimeBinding = (binding: GarmentRuntimeBinding) => {
   const issues: string[] = [];

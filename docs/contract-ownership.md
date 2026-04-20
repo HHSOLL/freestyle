@@ -52,7 +52,7 @@ When documents disagree, resolve conflicts in this order:
 | API namespace boundaries | `apps/api/src/main.ts`, `apps/api/src/lib/route-namespaces.ts` | `docs/api-contract.md`, `docs/product-boundaries.md` | API Contract Owner | Coordinator / Docs Steward | an endpoint changes prefix or surface class |
 | Shared schemas and cross-app payloads | `packages/contracts/**`, `packages/shared-types/**`, `packages/shared/**` | `docs/api-contract.md` | API Contract Owner | Queue & Data Owner | a shape changes, a field is removed, or compatibility behavior changes |
 | Body profile and avatar mapping | `packages/contracts/**`, `packages/domain-avatar/**`, `packages/shared-types/**` | `docs/api-contract.md`, `docs/DEVELOPMENT_GUIDE.md`, `docs/architecture-overview.md` | Avatar Domain Owner | API Contract Owner | measurement mapping or persisted body profile shape changes |
-| Avatar authoring sidecar contract | `packages/contracts/**`, `packages/domain-avatar/src/calibration.ts`, `scripts/validate-avatar-3d.mjs`, `scripts/validate-fit-calibration.mjs` | `docs/avatar-pipeline.md`, `docs/DEVELOPMENT_GUIDE.md`, `docs/freestyle-improvement-status.md` | Avatar Domain Owner | API Contract Owner | measurements or sidecar schema, parse rules, or calibration-side semantic checks change |
+| Avatar authoring sidecar contract | `packages/contracts/**`, `packages/contracts/src/__fixtures__/fit-calibration-report.json`, `packages/domain-avatar/src/calibration.ts`, `scripts/validate-avatar-3d.mjs`, `scripts/validate-fit-calibration.mjs` | `docs/avatar-pipeline.md`, `docs/DEVELOPMENT_GUIDE.md`, `docs/physical-fit-system.md`, `docs/freestyle-improvement-status.md` | Avatar Domain Owner | API Contract Owner | measurements or sidecar schema, calibration artifact schema, parse rules, committed fixture shape, or calibration-side semantic checks change |
 | Garment runtime contract | `packages/domain-garment/**`, `packages/contracts/**` | `docs/garment-fitting-contract.md`, `docs/admin-asset-publishing.md` | Garment Contract Owner | Admin Publishing Owner | required runtime fields, size metadata, or validation semantics change |
 | 3D runtime manifest and stage behavior | `packages/runtime-3d/**` | `docs/DEVELOPMENT_GUIDE.md`, `docs/architecture-overview.md`, `docs/quality-gates.md` | Runtime Owner | Garment Contract Owner | avatar manifest, loader behavior, quality tiers, or fallback behavior changes |
 | Canvas composition contract | `packages/contracts/**`, `packages/domain-canvas/**` | `docs/architecture-overview.md`, `docs/DEVELOPMENT_GUIDE.md` | Canvas Domain Owner | API Contract Owner | serialization or stored composition shape changes |
@@ -85,7 +85,7 @@ When these areas change, update the paired docs immediately:
 - route or IA boundary: `docs/product-boundaries.md`, `docs/architecture-overview.md`
 - API namespace or cross-app schema: `docs/api-contract.md`
 - avatar or body mapping: `docs/DEVELOPMENT_GUIDE.md`, `docs/architecture-overview.md`
-- avatar authoring sidecar contract: `docs/avatar-pipeline.md`, `docs/DEVELOPMENT_GUIDE.md`, `docs/freestyle-improvement-status.md`
+- avatar authoring sidecar contract: `docs/avatar-pipeline.md`, `docs/DEVELOPMENT_GUIDE.md`, `docs/physical-fit-system.md`, `docs/freestyle-improvement-status.md`
 - garment runtime rules: `docs/garment-fitting-contract.md`, `docs/admin-asset-publishing.md`
 - runtime stage behavior: `docs/quality-gates.md`, `docs/MAINTENANCE_PLAYBOOK.md`
 - release gates: `docs/quality-gates.md`, `docs/MAINTENANCE_PLAYBOOK.md`

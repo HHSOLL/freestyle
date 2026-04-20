@@ -14,9 +14,9 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `100%`
+- Working overall completion estimate: `82%`
 
-The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
+The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
 ## Phase Map
 
@@ -269,6 +269,34 @@ Outcome:
 
 - avatar measurements-sidecar handling is now typed at the contract boundary instead of relying on loose record shapes
 - future schema evolution can happen from a single parse source before flowing into calibration semantics or validator reporting
+
+### `Phase A / Batch 9`
+
+Status: `completed`
+
+Completed work:
+
+1. added a versioned fit-calibration report schema to `packages/contracts`, covering avatar calibration references, archetype comparison rows, and garment fit rows
+2. updated `validate:fit-calibration` so the generated report now includes `schemaVersion` and is parsed through the shared contract before `latest.json` is written
+3. tightened the calibration write path by removing nullable fallbacks for already-validated avatar sidecar fields inside the generated report
+4. added a contract test that parses the committed `output/fit-calibration/latest.json` artifact shape directly
+5. synced active docs so calibration evidence ownership now includes the versioned report contract alongside the measurements sidecar contract
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/contracts/src/__fixtures__/fit-calibration-report.json`
+- `scripts/validate-fit-calibration.mjs`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/avatar-pipeline.md`
+- `docs/physical-fit-system.md`
+- `docs/contract-ownership.md`
+
+Outcome:
+
+- fit-calibration evidence is now a first-class contract artifact instead of an ad-hoc JSON blob
+- future calibration-report evolution now has an explicit schema/version seam and a committed fixture gate
 
 ## Current Batch
 

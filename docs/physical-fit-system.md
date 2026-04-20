@@ -209,6 +209,7 @@ As of `2026-04-17`:
   - `GarmentFitDimensionAssessment`
   - `GarmentFitAssessment`
 - `validate:fit-calibration` now snapshots the committed MPFB avatar `measurements.json` sidecars next to the starter garment fit matrix, so calibration evidence includes the authored base-avatar reference measurements and derivation metadata without widening runtime consumers
+- the generated `output/fit-calibration/latest.json` evidence is now schema-versioned and parsed through `packages/contracts`, so calibration-report drift is treated as a contract change instead of an ad-hoc JSON edit
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

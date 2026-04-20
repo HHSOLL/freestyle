@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { flattenBodyProfile } from "@freestyle/contracts";
+import { fitCalibrationReportSchema, flattenBodyProfile } from "@freestyle/contracts";
 import {
   avatarComparableReferenceMeasurements,
   fitReviewArchetypes,
@@ -96,11 +96,14 @@ const avatarCalibrationVariantConfigs = requiredCalibrationVariantIds.map((varia
   const representativeArchetype = fitReviewArchetypes.find(
     (entry) => resolveAvatarVariantFromProfile(entry.profile) === variantId,
   );
+  if (!representativeArchetype) {
+    issues.push(`missing representative fit archetype for calibration variant ${variantId}`);
+  }
 
   return {
     variantId,
     measurementsPath: path.join(process.cwd(), manifestEntry.sourceProvenance.measurementsPath),
-    expectedGender: representativeArchetype?.profile.gender ?? null,
+    expectedGender: representativeArchetype?.profile.gender,
   };
 }).filter(Boolean);
 
@@ -126,11 +129,11 @@ const loadAvatarCalibrationReference = async ({ variantId, expectedGender, measu
     variantId,
     expectedGender,
     sidecarPath: path.relative(process.cwd(), measurementsPath),
-    authoringSource: sidecar.authoringSource ?? null,
-    units: sidecar.units ?? null,
-    buildProvenance: sidecar.buildProvenance ?? null,
-    referenceMeasurementsMm: sidecar.referenceMeasurementsMm ?? {},
-    referenceMeasurementsMmDerivation: sidecar.referenceMeasurementsMmDerivation ?? null,
+    authoringSource: sidecar.authoringSource,
+    units: sidecar.units,
+    buildProvenance: sidecar.buildProvenance,
+    referenceMeasurementsMm: sidecar.referenceMeasurementsMm,
+    referenceMeasurementsMmDerivation: sidecar.referenceMeasurementsMmDerivation,
   };
 };
 
@@ -142,6 +145,7 @@ const avatarCalibrationReferenceByVariant = Object.fromEntries(
 );
 
 const report = {
+  schemaVersion: "fit-calibration-report.v1",
   generatedAt: new Date().toISOString(),
   avatarCalibrationReferences: avatarCalibrationReferences.map((entry) => ({
     variantId: entry.variantId,
@@ -215,6 +219,7 @@ const report = {
     }),
   })),
 };
+const parsedReport = fitCalibrationReportSchema.parse(report);
 
 for (const expectation of monotonicExpectations) {
   const garment = starterGarmentCatalog.find((entry) => entry.id === expectation.garmentId);
@@ -267,7 +272,7 @@ for (const expectation of adaptiveMaskExpectations) {
 
 const outputDir = path.join(process.cwd(), "output", "fit-calibration");
 await mkdir(outputDir, { recursive: true });
-await writeFile(path.join(outputDir, "latest.json"), JSON.stringify(report, null, 2));
+await writeFile(path.join(outputDir, "latest.json"), JSON.stringify(parsedReport, null, 2));
 
 if (issues.length > 0) {
   console.error("Fit calibration validation failed:");

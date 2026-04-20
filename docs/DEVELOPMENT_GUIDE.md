@@ -135,6 +135,7 @@ Use these boundaries:
 - `AvatarStageCanvas` applies those transforms to the active skeleton
 - `fitReviewArchetypes` is the representative QA set for admin publishing and fit calibration, and `validate:fit-calibration` now snapshots the committed base-avatar measurements sidecars for the variants those archetypes resolve to
 - avatar measurements-sidecar parse/type schemas now live in `packages/contracts`, while calibration-specific semantic expectations stay in `packages/domain-avatar`
+- the `validate:fit-calibration` report artifact is now also versioned and parsed through `packages/contracts` before it is written to `output/fit-calibration/latest.json`
 - both `validate:avatar3d` and `validate:fit-calibration` should import the shared calibration helper instead of re-declaring derivation rules or ad-hoc parse checks locally
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.

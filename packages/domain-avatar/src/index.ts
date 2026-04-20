@@ -28,6 +28,7 @@ export {
   buildAvatarReferenceMeasurementDerivationExpectations,
   collectAvatarMeasurementsSidecarBaseIssues,
   collectAvatarMeasurementsSidecarSummaryIssues,
+  parseAvatarMeasurementsSidecar,
 } from "./calibration.js";
 
 export const avatarStorageKeys = {

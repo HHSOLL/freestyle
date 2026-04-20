@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  avatarMeasurementsSidecarSchema,
   assetMetadataSchema,
   canvasCompositionSchema,
   canvasLookCreateResponseSchema,
@@ -165,6 +166,112 @@ test('body profile upsert schema accepts legacy flat payloads and normalizes the
   assert.equal(parsed.profile.version, 2);
   assert.equal(parsed.profile.simple.heightCm, 170);
   assert.equal(parsed.profile.detailed?.neckCm, 37);
+});
+
+test('avatarMeasurementsSidecarSchema accepts the committed authoring artifact shape', () => {
+  const parsed = avatarMeasurementsSidecarSchema.parse({
+    schemaVersion: 'avatar-measurements-sidecar-v1',
+    variantId: 'female-base',
+    authoringSource: 'mpfb2',
+    units: 'mm',
+    buildProvenance: {
+      mpfb: {
+        revision: '7053847edd62a09dfe1ec6209d69a425435195c4',
+      },
+    },
+    referenceMeasurementsMm: {
+      statureMm: 1639,
+      shoulderWidthMm: 313,
+      armLengthMm: 491,
+      inseamMm: 784,
+      torsoLengthMm: 432,
+      hipWidthMm: 196,
+    },
+    referenceMeasurementsMmDerivation: {
+      kind: 'geometry-derived-reference',
+      intendedUse: 'authoring-qa',
+      sourceObjectName: 'mpfb-female-base.body.fullbody',
+      sourceRigName: 'mpfb-female-base',
+      measurements: {
+        statureMm: {
+          method: 'object-bounding-box-height',
+          objectName: 'mpfb-female-base.body.fullbody',
+        },
+        shoulderWidthMm: {
+          method: 'bone-head-distance',
+          bones: ['upperarm_l', 'upperarm_r'],
+        },
+        armLengthMm: {
+          method: 'bone-chain-length',
+          bones: ['upperarm_l', 'lowerarm_l', 'hand_l'],
+        },
+        inseamMm: {
+          method: 'bone-chain-length',
+          bones: ['thigh_l', 'calf_l'],
+        },
+        torsoLengthMm: {
+          method: 'bone-chain-length',
+          bones: ['spine_01', 'spine_02', 'spine_03', 'neck_01'],
+        },
+        hipWidthMm: {
+          method: 'bone-head-distance',
+          bones: ['thigh_l', 'thigh_r'],
+        },
+      },
+    },
+    segmentationVertexCounts: {
+      torso: 2898,
+      arms: 5098,
+      hips: 666,
+      legs: 2546,
+      feet: 2864,
+      exposed: 5086,
+    },
+  });
+
+  assert.equal(parsed.variantId, 'female-base');
+  assert.equal(parsed.referenceMeasurementsMmDerivation.measurements.armLengthMm.method, 'bone-chain-length');
+});
+
+test('avatarMeasurementsSidecarSchema rejects missing derivation blocks', () => {
+  assert.throws(
+    () =>
+      avatarMeasurementsSidecarSchema.parse({
+        schemaVersion: 'avatar-measurements-sidecar-v1',
+        variantId: 'male-base',
+        authoringSource: 'mpfb2',
+        units: 'mm',
+        buildProvenance: {
+          mpfb: {
+            revision: '7053847edd62a09dfe1ec6209d69a425435195c4',
+          },
+        },
+        referenceMeasurementsMm: {
+          statureMm: 1782,
+          shoulderWidthMm: 393,
+          armLengthMm: 566,
+          inseamMm: 889,
+          torsoLengthMm: 381,
+          hipWidthMm: 221,
+        },
+        referenceMeasurementsMmDerivation: {
+          kind: 'geometry-derived-reference',
+          intendedUse: 'authoring-qa',
+          sourceObjectName: 'mpfb-male-base.body.fullbody',
+          sourceRigName: 'mpfb-male-base',
+          measurements: {
+            statureMm: {
+              method: 'object-bounding-box-height',
+              objectName: 'mpfb-male-base.body.fullbody',
+            },
+          },
+        },
+        segmentationVertexCounts: {
+          torso: 1,
+        },
+      }),
+    /shoulderWidthMm/,
+  );
 });
 
 test('garment measurement + fit profile schemas stay backward-compatible', () => {

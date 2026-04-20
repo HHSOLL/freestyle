@@ -243,6 +243,33 @@ Outcome:
 - avatar measurements-sidecar expectations now live in one calibration-owned helper instead of drifting between two validators
 - future Phase A batches can widen sidecar consumption or schema evolution without first reconciling duplicated validation logic
 
+### `Phase A / Batch 8`
+
+Status: `completed`
+
+Completed work:
+
+1. formalized the avatar measurements-sidecar parse/type contract in `packages/contracts` with explicit schemas for reference measurements and derivation metadata
+2. updated `packages/domain-avatar` so the calibration helper now parses against the shared contract before applying semantic validation
+3. rewired `validate:avatar3d` and `validate:fit-calibration` to consume the parsed sidecar contract through the shared helper instead of reading untyped JSON blobs directly
+4. added contract tests for the authoring artifact shape and domain-avatar tests for parsed-sidecar drift handling
+5. synced active docs so parse ownership and semantic ownership are now split cleanly between `contracts` and `domain-avatar`
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/domain-avatar/src/calibration.ts`
+- `packages/domain-avatar/src/calibration.test.ts`
+- `scripts/validate-avatar-3d.mjs`
+- `scripts/validate-fit-calibration.mjs`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- avatar measurements-sidecar handling is now typed at the contract boundary instead of relying on loose record shapes
+- future schema evolution can happen from a single parse source before flowing into calibration semantics or validator reporting
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

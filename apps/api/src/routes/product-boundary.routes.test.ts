@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
+  closetRuntimeGarmentListResponseSchema,
   jobStatusResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
 } from "@freestyle/contracts";
@@ -184,7 +185,7 @@ test("product namespace smoke keeps representative routes and admin under the pr
     assert.equal(response.headers["x-freestyle-surface"], "product");
 
     if (testCase.method === "GET" && testCase.url === "/v1/closet/runtime-garments") {
-      assert.equal(publishedRuntimeGarmentListResponseSchema.parse(response.json()).total, 0);
+      assert.equal(closetRuntimeGarmentListResponseSchema.parse(response.json()).total, 0);
     }
     if (testCase.method === "GET" && testCase.url === "/v1/admin/garments") {
       assert.equal(publishedRuntimeGarmentListResponseSchema.parse(response.json()).total, 0);

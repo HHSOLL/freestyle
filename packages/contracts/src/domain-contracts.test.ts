@@ -21,6 +21,7 @@ import {
   bodyProfileRecordSchema,
   bodyProfileSimpleSchema,
   closetSceneStateSchema,
+  closetRuntimeGarmentListResponseSchema,
   legacyBodyProfileFlatSchema,
   bodyProfileUpsertInputSchema,
   garmentFitAssessmentSchema,
@@ -634,13 +635,36 @@ test('published runtime garment response schemas accept canonical envelopes and 
     items: [garment],
     total: 1,
   });
+  const closetListResponse = closetRuntimeGarmentListResponseSchema.parse({
+    items: [
+      {
+        item: garment,
+        instantFit: null,
+      },
+    ],
+    total: 1,
+  });
 
   assert.equal(itemResponse.item.id, garment.id);
   assert.equal(listResponse.total, 1);
+  assert.equal(closetListResponse.items[0]?.item.id, garment.id);
   assert.throws(
     () =>
       publishedRuntimeGarmentListResponseSchema.parse({
         items: [garment],
+        total: 2,
+      }),
+    /total must match items.length/,
+  );
+  assert.throws(
+    () =>
+      closetRuntimeGarmentListResponseSchema.parse({
+        items: [
+          {
+            item: garment,
+            instantFit: null,
+          },
+        ],
         total: 2,
       }),
     /total must match items.length/,

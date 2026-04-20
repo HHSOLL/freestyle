@@ -116,37 +116,47 @@
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes
 - product consumer rule:
-  - `items` are consumed as canonical camelCase `PublishedGarmentAsset` payloads
+  - `items` are consumed as product-only `{ item, instantFit }` entries
+  - `item` is the canonical camelCase `PublishedGarmentAsset` payload
+  - `instantFit` is derived from the current persisted `BodyProfile` when present, otherwise `null`
   - legacy snake_case asset rows are not a supported shape for this route
   - malformed or semantically invalid persisted publication rows are filtered before the response is emitted
-- response body satisfies `publishedRuntimeGarmentListResponseSchema`
+- response body satisfies `closetRuntimeGarmentListResponseSchema`
 - example:
 ```json
 {
   "items": [
     {
-      "id": "published-top-precision-tee",
-      "name": "Precision Tee",
-      "imageSrc": "/assets/demo/precision-tee.png",
-      "category": "tops",
-      "source": "inventory",
-      "runtime": {
-        "modelPath": "/assets/garments/partner/precision-tee.glb",
-        "skeletonProfileId": "freestyle-rig-v2",
-        "anchorBindings": [
-          { "id": "leftShoulder", "weight": 0.3 }
-        ],
-        "collisionZones": ["torso", "arms"],
-        "bodyMaskZones": [],
-        "surfaceClearanceCm": 1.2,
-        "renderPriority": 1
+      "item": {
+        "id": "published-top-precision-tee",
+        "name": "Precision Tee",
+        "imageSrc": "/assets/demo/precision-tee.png",
+        "category": "tops",
+        "source": "inventory",
+        "runtime": {
+          "modelPath": "/assets/garments/partner/precision-tee.glb",
+          "skeletonProfileId": "freestyle-rig-v2",
+          "anchorBindings": [
+            { "id": "leftShoulder", "weight": 0.3 }
+          ],
+          "collisionZones": ["torso", "arms"],
+          "bodyMaskZones": [],
+          "surfaceClearanceCm": 1.2,
+          "renderPriority": 1
+        },
+        "palette": ["#f5f5f5", "#10161f"],
+        "publication": {
+          "sourceSystem": "admin-domain",
+          "publishedAt": "2026-04-14T12:00:00.000Z",
+          "assetVersion": "precision-tee@1.0.0",
+          "measurementStandard": "body-garment-v1"
+        }
       },
-      "palette": ["#f5f5f5", "#10161f"],
-      "publication": {
-        "sourceSystem": "admin-domain",
-        "publishedAt": "2026-04-14T12:00:00.000Z",
-        "assetVersion": "precision-tee@1.0.0",
-        "measurementStandard": "body-garment-v1"
+      "instantFit": {
+        "schemaVersion": "garment-instant-fit-report.v1",
+        "overallFit": "good",
+        "confidence": 0.79,
+        "primaryRegionId": "length"
       }
     }
   ],

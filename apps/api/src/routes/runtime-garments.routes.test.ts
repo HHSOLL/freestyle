@@ -4,6 +4,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  closetRuntimeGarmentListResponseSchema,
   publishedRuntimeGarmentItemResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
   type PublishedGarmentAsset,
@@ -12,6 +13,7 @@ import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-runtime-garments-"));
 const runtimeGarmentStorePath = path.join(tempDir, "runtime-garments.json");
+const bodyProfileStorePath = path.join(tempDir, "body-profiles.json");
 
 const publishedGarmentFixture: PublishedGarmentAsset = {
   id: "published-top-precision-tee",
@@ -113,6 +115,7 @@ const writeRuntimeGarmentStore = (value: unknown) => {
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
+  process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
   delete process.env.ALLOW_ANONYMOUS_USER;
   process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER = "file";
   process.env.GARMENT_PUBLICATION_STORE_PATH = runtimeGarmentStorePath;
@@ -123,11 +126,19 @@ test.beforeEach(() => {
       throw error;
     }
   }
+  try {
+    fs.unlinkSync(bodyProfileStorePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
 });
 
 test.after(() => {
   delete process.env.DEV_BYPASS_USER_ID;
   delete process.env.ADMIN_USER_IDS;
+  delete process.env.BODY_PROFILE_STORE_PATH;
   delete process.env.ALLOW_ANONYMOUS_USER;
   delete process.env.GARMENT_PUBLICATION_PERSISTENCE_DRIVER;
   delete process.env.GARMENT_PUBLICATION_STORE_PATH;
@@ -174,9 +185,10 @@ test("published runtime garments can be upserted through admin routes and consum
 
   assert.equal(getClosetResponse.statusCode, 200);
   assert.equal(getClosetResponse.headers["x-freestyle-surface"], "product");
-  const closetPayload = publishedRuntimeGarmentListResponseSchema.parse(getClosetResponse.json());
-  assert.equal(closetPayload.items[0]?.publication.sourceSystem, "admin-domain");
-  assert.equal(closetPayload.items[0]?.metadata?.selectedSizeLabel, "L");
+  const closetPayload = closetRuntimeGarmentListResponseSchema.parse(getClosetResponse.json());
+  assert.equal(closetPayload.items[0]?.item.publication.sourceSystem, "admin-domain");
+  assert.equal(closetPayload.items[0]?.item.metadata?.selectedSizeLabel, "L");
+  assert.equal(closetPayload.items[0]?.instantFit, null);
 
   const putResponse = await app.inject({
     method: "PUT",
@@ -302,7 +314,7 @@ test("admin routes reject non-admin dev bypass users while closet runtime reads 
   });
 
   assert.equal(closetResponse.statusCode, 200);
-  assert.equal(publishedRuntimeGarmentListResponseSchema.parse(closetResponse.json()).total, 0);
+  assert.equal(closetRuntimeGarmentListResponseSchema.parse(closetResponse.json()).total, 0);
 
   await app.close();
 });
@@ -325,10 +337,10 @@ test("persisted mixed runtime garment rows keep valid entries while filtering ma
   });
 
   assert.equal(closetResponse.statusCode, 200);
-  const closetPayload = publishedRuntimeGarmentListResponseSchema.parse(closetResponse.json());
+  const closetPayload = closetRuntimeGarmentListResponseSchema.parse(closetResponse.json());
   assert.equal(closetPayload.total, 1);
   assert.deepEqual(
-    closetPayload.items.map((item) => item.id),
+    closetPayload.items.map((entry) => entry.item.id),
     [publishedGarmentFixture.id],
   );
 
@@ -344,6 +356,60 @@ test("persisted mixed runtime garment rows keep valid entries while filtering ma
     adminPayload.items.map((item) => item.id),
     [publishedGarmentFixture.id],
   );
+
+  await app.close();
+});
+
+test("closet runtime route derives instant-fit reports when a body profile exists for the current user", async () => {
+  const app = buildServer();
+
+  const putProfileResponse = await app.inject({
+    method: "PUT",
+    url: "/v1/profile/body-profile",
+    payload: {
+      profile: {
+        version: 2,
+        gender: "female",
+        bodyFrame: "balanced",
+        simple: {
+          heightCm: 168,
+          shoulderCm: 41,
+          chestCm: 88,
+          waistCm: 70,
+          hipCm: 95,
+          inseamCm: 78,
+        },
+        detailed: {
+          armLengthCm: 58,
+          torsoLengthCm: 60,
+          thighCm: 54,
+          calfCm: 35,
+        },
+      },
+    },
+  });
+
+  assert.equal(putProfileResponse.statusCode, 200);
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: publishedGarmentFixture,
+  });
+
+  assert.equal(createResponse.statusCode, 201);
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 200);
+  const closetPayload = closetRuntimeGarmentListResponseSchema.parse(closetResponse.json());
+  assert.equal(closetPayload.total, 1);
+  assert.equal(closetPayload.items[0]?.item.id, publishedGarmentFixture.id);
+  assert.equal(closetPayload.items[0]?.instantFit?.schemaVersion, "garment-instant-fit-report.v1");
+  assert.ok(closetPayload.items[0]?.instantFit?.summary.ko.length);
 
   await app.close();
 });

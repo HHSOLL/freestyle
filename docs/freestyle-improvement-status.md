@@ -35,7 +35,36 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | Track | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
-| `Phase A` | avatar authoring pipeline hardening | `pending` | begins the long-roadmap track by tightening the MPFB authoring contract before any broader pattern or simulation work |
+| `Phase A` | avatar authoring pipeline hardening | `in_progress` | contract hardening now started with MPFB summary ↔ manifest parity checks (schemaVersion, provenance, runtime path) |
+
+### `Phase A / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added manifest schema versioning and source-provenance metadata for MPFB base-avatar variants
+2. taught the MPFB Blender build path and wrapper to emit the same schema-version and provenance contract into regenerated base-avatar summaries
+3. added source-provenance metadata to MPFB raw summary outputs for path-schema parity checks without relying on checkout-specific absolute preset paths
+4. added validator enforcement for manifest/schema/version/path parity between MPFB summaries and runtime manifest entries
+5. documented the MPFB base-avatar contract requirements in the active avatar pipeline and authoring docs
+
+Evidence:
+
+- `authoring/avatar/README.md`
+- `authoring/avatar/exports/raw/mpfb-female-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.summary.json`
+- `authoring/avatar/mpfb/README.md`
+- `authoring/avatar/mpfb/scripts/build_runtime_avatar.py`
+- `packages/runtime-3d/src/avatar-manifest.ts`
+- `scripts/build-mpfb-base-avatars.mjs`
+- `scripts/validate-avatar-3d.mjs`
+- `docs/avatar-pipeline.md`
+
+Outcome:
+
+- MPFB base-avatar contract now has explicit schema-version and source-provenance checks before runtime validation is marked passed
+- future `authoring:avatar:mpfb:build` reruns now regenerate the same contract instead of depending on hand-edited summary files
 
 ## Current Batch
 

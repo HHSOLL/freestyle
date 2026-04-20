@@ -165,13 +165,19 @@
     "exposed": 5086
   },
   "fullBody": "mpfb-male-base.body.fullbody",
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/male-base.json",
+  "schemaVersion": "avatar-build-summary-v1",
+  "authoringProvenance": {
+    "sourceSystem": "mpfb2",
+    "variantId": "male-base",
+    "presetPath": "authoring/avatar/mpfb/presets/male-base.json",
+    "outputModelPath": "/assets/avatars/mpfb-male-base.glb"
+  },
+  "preset": "authoring/avatar/mpfb/presets/male-base.json",
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installed_now": false
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/avatar/exports/raw/mpfb-male-base.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/avatars/mpfb-male-base.glb"
+  "outputBlend": "authoring/avatar/exports/raw/mpfb-male-base.blend",
+  "outputGlb": "apps/web/public/assets/avatars/mpfb-male-base.glb"
 }

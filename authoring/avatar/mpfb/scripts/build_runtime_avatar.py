@@ -9,6 +9,8 @@ from pathlib import Path
 
 import bpy
 
+AVATAR_BUILD_SUMMARY_SCHEMA_VERSION = "avatar-build-summary-v1"
+
 
 def parse_args():
     argv = sys.argv
@@ -16,8 +18,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Build a runtime-ready MPFB avatar blend and GLB.")
     parser.add_argument("--mpfb-source-dir", required=True, help="Path to MPFB source repo 'src' directory")
     parser.add_argument("--preset-json", required=True, help="Human preset JSON")
+    parser.add_argument("--variant-id", required=True, help="Runtime avatar variant id")
     parser.add_argument("--output-blend", required=True, help="Output .blend path")
     parser.add_argument("--output-glb", help="Optional output .glb path")
+    parser.add_argument("--runtime-model-path", help="Runtime model path registered in the web manifest")
     parser.add_argument("--summary-json", help="Optional JSON summary path")
     parser.add_argument("--asset-pack-zip", help="Optional path to makehuman_system_assets zip")
     parser.add_argument("--skin-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "ENHANCED", "ENHANCED_SSS", "LAYERED", "NONE"])
@@ -66,7 +70,6 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
             "installed": True,
             "modern": True,
             "installed_now": False,
-            "user_data": LocationService.get_user_data(),
         }
 
     if not asset_pack_zip:
@@ -74,7 +77,6 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
             "installed": installed,
             "modern": modern,
             "installed_now": False,
-            "user_data": LocationService.get_user_data(),
         }
 
     zip_path = Path(asset_pack_zip).resolve()
@@ -93,7 +95,6 @@ def ensure_asset_pack(module, asset_pack_zip: str | None):
         "installed": installed,
         "modern": modern,
         "installed_now": True,
-        "user_data": str(data_dir),
     }
 
 
@@ -320,6 +321,13 @@ def prepare_runtime_export():
             alpha_input.default_value = 1.0
 
 
+def to_repo_relative(path_value: Path):
+    try:
+        return path_value.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return str(path_value.resolve())
+
+
 def main():
     args = parse_args()
     module = ensure_mpfb_enabled(args.mpfb_source_dir)
@@ -356,11 +364,21 @@ def main():
     summary["segmentation"] = segmentation["zones"]
     summary["fullBody"] = full_body.name
     summary["bodySegments"] = [segment.name for segment in segmentation["segments"]]
-    summary["preset"] = str(preset_path)
+    summary["schemaVersion"] = AVATAR_BUILD_SUMMARY_SCHEMA_VERSION
+    summary["authoringProvenance"] = {
+        "sourceSystem": "mpfb2",
+        "variantId": args.variant_id,
+        "presetPath": to_repo_relative(preset_path),
+        "outputModelPath": args.runtime_model_path if args.runtime_model_path else None,
+    }
+    summary["preset"] = to_repo_relative(preset_path)
     summary["packState"] = pack_state
-    summary["outputBlend"] = str(output_blend)
+    summary["outputBlend"] = to_repo_relative(output_blend)
     if args.output_glb:
-        summary["outputGlb"] = str(Path(args.output_glb).resolve())
+        output_glb = Path(args.output_glb).resolve()
+        summary["outputGlb"] = to_repo_relative(output_glb)
+        if summary["authoringProvenance"]["outputModelPath"] is None:
+            summary["authoringProvenance"]["outputModelPath"] = summary["outputGlb"]
 
     if args.summary_json:
         summary_path = Path(args.summary_json).resolve()

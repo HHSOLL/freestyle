@@ -23,6 +23,19 @@ export type AvatarRigAlias =
   | "leftFoot"
   | "rightFoot";
 
+export const avatarManifestSchemaVersion = "avatar-manifest-v1";
+export const avatarSummarySchemaVersion = "avatar-build-summary-v1";
+
+export type AvatarSourceSystem = "mpfb2" | "charmorph" | "runtime-fallback";
+
+type AvatarSourceProvenance = {
+  sourceSystem: AvatarSourceSystem;
+  schemaVersion: typeof avatarSummarySchemaVersion;
+  presetPath: string;
+  summaryPath: string;
+  outputModelPath: string;
+};
+
 export const referenceRigAliasPatterns = {
   root: ["root"],
   hips: ["hips"],
@@ -50,8 +63,10 @@ export const referenceRigAliasPatterns = {
 export type AvatarRenderManifestEntry = {
   id: AvatarRenderVariantId;
   label: string;
+  schemaVersion: typeof avatarManifestSchemaVersion;
   modelPath: string;
-  authoringSource: "mpfb2" | "charmorph" | "runtime-fallback";
+  authoringSource: AvatarSourceSystem;
+  sourceProvenance: AvatarSourceProvenance;
   bodyMaskStrategy: "named-mesh-zones" | "none";
   stageOffsetY: number;
   stageScale: number;
@@ -69,9 +84,17 @@ export type AvatarRenderManifestEntry = {
 export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderManifestEntry> = {
   "female-base": {
     id: "female-base" as AvatarRenderVariantId,
+    schemaVersion: avatarManifestSchemaVersion,
     label: "Female base",
     modelPath: "/assets/avatars/mpfb-female-base.glb",
     authoringSource: "mpfb2",
+    sourceProvenance: {
+      sourceSystem: "mpfb2",
+      schemaVersion: avatarSummarySchemaVersion,
+      presetPath: "authoring/avatar/mpfb/presets/female-base.json",
+      summaryPath: "authoring/avatar/exports/raw/mpfb-female-base.summary.json",
+      outputModelPath: "/assets/avatars/mpfb-female-base.glb",
+    },
     bodyMaskStrategy: "named-mesh-zones",
     stageOffsetY: -0.12,
     stageScale: 0.6,
@@ -109,9 +132,17 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
   },
   "male-base": {
     id: "male-base" as AvatarRenderVariantId,
+    schemaVersion: avatarManifestSchemaVersion,
     label: "Male base",
     modelPath: "/assets/avatars/mpfb-male-base.glb",
     authoringSource: "mpfb2",
+    sourceProvenance: {
+      sourceSystem: "mpfb2",
+      schemaVersion: avatarSummarySchemaVersion,
+      presetPath: "authoring/avatar/mpfb/presets/male-base.json",
+      summaryPath: "authoring/avatar/exports/raw/mpfb-male-base.summary.json",
+      outputModelPath: "/assets/avatars/mpfb-male-base.glb",
+    },
     bodyMaskStrategy: "named-mesh-zones",
     stageOffsetY: -0.12,
     stageScale: 0.6,

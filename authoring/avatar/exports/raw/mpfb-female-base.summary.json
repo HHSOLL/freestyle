@@ -174,13 +174,19 @@
     "exposed": 5086
   },
   "fullBody": "mpfb-female-base.body.fullbody",
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/female-base.json",
+  "schemaVersion": "avatar-build-summary-v1",
+  "authoringProvenance": {
+    "sourceSystem": "mpfb2",
+    "variantId": "female-base",
+    "presetPath": "authoring/avatar/mpfb/presets/female-base.json",
+    "outputModelPath": "/assets/avatars/mpfb-female-base.glb"
+  },
+  "preset": "authoring/avatar/mpfb/presets/female-base.json",
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installed_now": false
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/avatar/exports/raw/mpfb-female-base.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/avatars/mpfb-female-base.glb"
+  "outputBlend": "authoring/avatar/exports/raw/mpfb-female-base.blend",
+  "outputGlb": "apps/web/public/assets/avatars/mpfb-female-base.glb"
 }

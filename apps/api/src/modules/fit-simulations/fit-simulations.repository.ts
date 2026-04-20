@@ -193,6 +193,7 @@ export const upsertFitSimulationRecord = async (record: {
   fitAssessment: GarmentFitAssessment | null;
   instantFit: FitSimulationRecord["instantFit"];
   fitMap: FitSimulationRecord["fitMap"];
+  fitMapSummary: FitSimulationRecord["fitMapSummary"];
   artifacts: FitSimulationRecord["artifacts"];
   metrics: FitSimulationRecord["metrics"];
   warnings: string[];

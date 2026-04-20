@@ -393,6 +393,7 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
       qualityTier: 'balanced',
       instantFit: null,
       fitMap: null,
+      fitMapSummary: null,
       artifacts: [],
       metrics: null,
       warnings: [],

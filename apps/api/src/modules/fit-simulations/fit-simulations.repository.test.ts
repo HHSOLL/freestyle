@@ -244,6 +244,19 @@ const fitMapFixture = fitMapArtifactDataSchema.parse({
   warnings: [],
 });
 
+const fitMapSummaryFixture = {
+  dominantOverlayKind: "confidenceMap" as const,
+  dominantRegionId: "chest" as const,
+  dominantMeasurementKey: "chestCm" as const,
+  dominantScore: 0.9,
+  overlayScores: [
+    { kind: "easeMap" as const, overallScore: 0.14, maxRegionScore: 0.14 },
+    { kind: "stretchMap" as const, overallScore: 0.08, maxRegionScore: 0.08 },
+    { kind: "collisionRiskMap" as const, overallScore: 0.38, maxRegionScore: 0.38 },
+    { kind: "confidenceMap" as const, overallScore: 0.9, maxRegionScore: 0.9 },
+  ],
+};
+
 test.beforeEach(() => {
   try {
     fs.unlinkSync(storePath);
@@ -277,6 +290,7 @@ test("file fit-simulation persistence port round-trips stored records", async ()
     fitAssessment: null,
     instantFit: null,
     fitMap: fitMapFixture,
+    fitMapSummary: fitMapSummaryFixture,
     artifacts: [],
     metrics: null,
     warnings: [],
@@ -291,6 +305,7 @@ test("file fit-simulation persistence port round-trips stored records", async ()
   assert.equal(byId?.garmentSnapshot.id, garmentSnapshot.id);
   assert.equal(byId?.fitMap?.schemaVersion, "fit-map-json.v1");
   assert.equal(byId?.fitMap?.overlays[0]?.kind, "easeMap");
+  assert.equal(byId?.fitMapSummary?.dominantOverlayKind, "confidenceMap");
 
   const byUser = await port.getFitSimulationRecordForUser(
     record.id,

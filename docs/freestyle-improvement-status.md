@@ -14,9 +14,9 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `99%`
+- Working overall completion estimate: `100%`
 
-The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
+The completion estimate is a planning number, not a release gate. It now reflects that the repository-improvement, operational-closeout, and baseline follow-on roadmap tracked in this document are complete. Higher-fidelity cloth solving and richer pressure semantics remain future R&D, but are no longer open seams in this execution program.
 
 ## Phase Map
 
@@ -39,7 +39,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
 | `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam, `Batch 2` closed the lab create/read path, and `Batch 3` added `preview_png` plus typed fit-map overlay artifacts |
-| `Phase E` | fit / stress / pressure map | `in_progress` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`), and `Batch 2` now carries that `fitMap` snapshot through the lab read-path |
+| `Phase E` | fit / stress / pressure map | `completed` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`), `Batch 2` carried that `fitMap` snapshot through the lab read-path, and `Batch 3` closed the summary/consumer seam |
 
 ### `Phase A / Batch 1`
 
@@ -663,6 +663,37 @@ Outcome:
 
 - the typed Phase E overlay payload is now available directly from the lab fit-simulation record, not only from an artifact URL
 - future fit/stress/pressure consumers can build on the API read-path without adding another parallel persistence format
+
+### `Phase E / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. added a shared `fitMapSummary` contract so typed overlay payloads also expose one consumer-friendly dominant-overlay summary
+2. implemented `buildFitMapSummary` in `packages/domain-garment` so preview rendering and future consumers reuse one ranking rule
+3. taught the fit-simulation worker to persist `fitMapSummary` next to `fitMap` and to use that summary for preview labeling and artifact metadata
+4. extended repository, route, worker, and garment-domain regressions so summary drift fails closed with the rest of the fit-map contract
+5. updated tracker and fit-system docs so `Phase E` is now a completed baseline, not an in-progress seam
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/domain-garment/src/index.ts`
+- `packages/domain-garment/src/validation.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `docs/api-contract.md`
+- `docs/physical-fit-system.md`
+
+Outcome:
+
+- `Phase E` consumers now have both the raw typed overlays and a stable summary seam to build on
+- the tracked execution program in this document is complete at its current baseline scope
 
 ## Current Batch
 

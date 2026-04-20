@@ -125,6 +125,7 @@
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
   - the baseline worker currently persists typed `fit_map_json` plus `preview_png`; `draped_glb` remains a future output
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
+  - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
@@ -172,6 +173,12 @@
       "overallFit": "good",
       "confidence": 0.79,
       "primaryRegionId": "length"
+    },
+    "fitMapSummary": {
+      "dominantOverlayKind": "collisionRiskMap",
+      "dominantRegionId": "length",
+      "dominantMeasurementKey": "lengthCm",
+      "dominantScore": 0.61
     },
     "fitMap": {
       "schemaVersion": "fit-map-json.v1",

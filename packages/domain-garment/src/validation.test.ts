@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  fitMapArtifactDataSchema,
   garmentFitAssessmentSchema,
   garmentInstantFitReportSchema,
   garmentPatternSpecSchema,
@@ -10,6 +11,7 @@ import {
 import {
   assessGarmentPhysicalFit,
   assessGarmentInstantFit,
+  buildFitMapSummary,
   buildGarmentInstantFitReport,
   computeGarmentCorrectiveTransform,
   defaultHairItemIdsByVariant,
@@ -346,6 +348,168 @@ test("instant fit report escalates compression-heavy assessments into risky over
   assert.ok(report);
   assert.equal(report.overallFit, "risky");
   assert.equal(report.regions.some((entry) => entry.isLimiting), true);
+});
+
+test("fit-map summary resolves a dominant overlay and region from typed overlay evidence", () => {
+  const fitMap = fitMapArtifactDataSchema.parse({
+    schemaVersion: "fit-map-json.v1",
+    generatedAt: "2026-04-21T00:00:00.000Z",
+    fitSimulationId: "00000000-0000-4000-8000-000000000099",
+    request: {
+      bodyVersionId: "body-profile:user-1:2026-04-21T00:00:00.000Z",
+      garmentVariantId: "starter-top-soft-casual",
+      avatarVariantId: "female-base",
+      avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+      garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
+      materialPreset: "knit_medium",
+      qualityTier: "balanced",
+    },
+    garment: {
+      id: "starter-top-soft-casual",
+      name: "Soft Tucked Tee",
+      category: "tops",
+    },
+    fitAssessment: {
+      sizeLabel: "L",
+      overallState: "snug",
+      tensionRisk: "medium",
+      clippingRisk: "medium",
+      stretchLoad: 0.76,
+      limitingKeys: ["chestCm", "waistCm"],
+      dimensions: [
+        {
+          key: "chestCm",
+          measurementMode: "body-circumference",
+          garmentCm: 108,
+          bodyCm: 104,
+          effectiveGarmentCm: 110,
+          easeCm: 6,
+          requiredStretchRatio: 0.02,
+          state: "snug",
+        },
+        {
+          key: "waistCm",
+          measurementMode: "body-circumference",
+          garmentCm: 92,
+          bodyCm: 88,
+          effectiveGarmentCm: 94,
+          easeCm: 6,
+          requiredStretchRatio: 0.01,
+          state: "regular",
+        },
+      ],
+    },
+    instantFit: {
+      schemaVersion: "garment-instant-fit-report.v1",
+      sizeLabel: "L",
+      overallFit: "tight",
+      overallState: "snug",
+      tensionRisk: "medium",
+      clippingRisk: "medium",
+      confidence: 0.74,
+      primaryRegionId: "chest",
+      summary: {
+        ko: "L · 가슴 기준 타이트함",
+        en: "L · Chest tight fit",
+      },
+      explanations: [
+        {
+          ko: "가슴 여유가 제한적이다.",
+          en: "Chest ease is limited.",
+        },
+      ],
+      limitingKeys: ["chestCm", "waistCm"],
+      regions: [
+        {
+          regionId: "chest",
+          measurementKey: "chestCm",
+          fitState: "snug",
+          easeCm: 6,
+          isLimiting: true,
+        },
+        {
+          regionId: "waist",
+          measurementKey: "waistCm",
+          fitState: "regular",
+          easeCm: 6,
+          isLimiting: true,
+        },
+      ],
+    },
+    overlays: [
+      {
+        kind: "easeMap",
+        overallScore: 0.3,
+        maxRegionScore: 0.42,
+        regions: [
+          {
+            regionId: "chest",
+            measurementKey: "chestCm",
+            score: 0.42,
+            fitState: "snug",
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: "stretchMap",
+        overallScore: 0.38,
+        maxRegionScore: 0.54,
+        regions: [
+          {
+            regionId: "chest",
+            measurementKey: "chestCm",
+            score: 0.54,
+            fitState: "snug",
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: "collisionRiskMap",
+        overallScore: 0.61,
+        maxRegionScore: 0.84,
+        regions: [
+          {
+            regionId: "chest",
+            measurementKey: "chestCm",
+            score: 0.84,
+            fitState: "snug",
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: "confidenceMap",
+        overallScore: 0.52,
+        maxRegionScore: 0.7,
+        regions: [
+          {
+            regionId: "chest",
+            measurementKey: "chestCm",
+            score: 0.7,
+            fitState: "snug",
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+        ],
+      },
+    ],
+    warnings: [],
+  });
+
+  const summary = buildFitMapSummary(fitMap);
+  assert.equal(summary.dominantOverlayKind, "collisionRiskMap");
+  assert.equal(summary.dominantRegionId, "chest");
+  assert.equal(summary.dominantMeasurementKey, "chestCm");
+  assert.equal(summary.overlayScores.length, 4);
 });
 
 test("fit summary renders selected size and dominant fit dimension", () => {

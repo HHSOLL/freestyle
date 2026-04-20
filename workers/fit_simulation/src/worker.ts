@@ -23,7 +23,11 @@ import {
   type GarmentInstantFitReport,
   type JobRecord,
 } from "@freestyle/shared";
-import { assessGarmentInstantFit, assessGarmentPhysicalFit } from "@freestyle/domain-garment";
+import {
+  assessGarmentInstantFit,
+  assessGarmentPhysicalFit,
+  buildFitMapSummary,
+} from "@freestyle/domain-garment";
 import { getFitSimulationById } from "../../../apps/api/src/modules/fit-simulations/fit-simulations.service.js";
 import { upsertFitSimulationRecord } from "../../../apps/api/src/modules/fit-simulations/fit-simulations.repository.js";
 
@@ -254,11 +258,14 @@ export const buildFitSimulationPreviewSvg = (
   fitSimulationId: string,
   fitMap: FitMapArtifactData,
 ) => {
-  const collisionOverlay = fitMap.overlays.find((entry) => entry.kind === "collisionRiskMap") ?? fitMap.overlays[0];
+  const fitMapSummary = buildFitMapSummary(fitMap);
+  const dominantOverlay =
+    fitMap.overlays.find((entry) => entry.kind === fitMapSummary.dominantOverlayKind) ?? fitMap.overlays[0];
   const confidenceOverlay = fitMap.overlays.find((entry) => entry.kind === "confidenceMap") ?? fitMap.overlays[0];
-  const topRegions = [...collisionOverlay.regions].sort((left, right) => right.score - left.score).slice(0, 4);
+  const topRegions = [...dominantOverlay.regions].sort((left, right) => right.score - left.score).slice(0, 4);
   const confidencePercent = Math.round((fitMap.instantFit?.confidence ?? confidenceOverlay.overallScore) * 100);
-  const primaryRegion = fitMap.instantFit?.primaryRegionId ?? topRegions[0]?.regionId ?? "chest";
+  const primaryRegion =
+    fitMap.instantFit?.primaryRegionId ?? fitMapSummary.dominantRegionId ?? topRegions[0]?.regionId ?? "chest";
 
   const regionRows = topRegions
     .map((region, index) => {
@@ -301,9 +308,10 @@ export const buildFitSimulationPreviewSvg = (
       <rect x="690" y="224" width="420" height="132" rx="22" fill="rgba(255,255,255,0.06)" />
       <text x="716" y="260" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">simulation</text>
       <text x="716" y="308" fill="#f7fafc" font-size="22" font-family="Arial, sans-serif">${svgLabel(fitSimulationId)}</text>
-      <text x="716" y="340" fill="#d3dbe5" font-size="20" font-family="Arial, sans-serif">primary region: ${svgLabel(primaryRegion)}</text>
+      <text x="716" y="340" fill="#d3dbe5" font-size="20" font-family="Arial, sans-serif">dominant overlay: ${svgLabel(fitMapSummary.dominantOverlayKind)}</text>
+      <text x="716" y="368" fill="#d3dbe5" font-size="20" font-family="Arial, sans-serif">primary region: ${svgLabel(primaryRegion)}</text>
 
-      <text x="70" y="404" fill="#9aa7b6" font-size="20" font-family="Arial, sans-serif">region pressure summary</text>
+      <text x="70" y="404" fill="#9aa7b6" font-size="20" font-family="Arial, sans-serif">region ${svgLabel(fitMapSummary.dominantOverlayKind)} summary</text>
       ${regionRows}
 
       <text x="70" y="612" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">Phase D baseline now persists typed fit-map overlays and a preview image. Full draped mesh output remains pending.</text>
@@ -360,6 +368,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       status: "processing",
       errorMessage: null,
       fitMap: row.fitMap ?? null,
+      fitMapSummary: row.fitMapSummary ?? null,
       updatedAt: new Date().toISOString(),
     });
 
@@ -417,6 +426,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         instantFit,
         warnings,
       );
+      const fitMapSummary = buildFitMapSummary(fitMapArtifactPayload);
 
       const fitMapArtifact = await persistFitSimulationArtifact(
         row.id,
@@ -435,6 +445,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           width: fitSimulationPreviewWidth,
           height: fitSimulationPreviewHeight,
           overallFit: instantFit.overallFit,
+          dominantOverlayKind: fitMapSummary.dominantOverlayKind,
           primaryRegionId: instantFit.primaryRegionId,
         },
       );
@@ -446,6 +457,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         fitAssessment,
         instantFit,
         fitMap: fitMapArtifactPayload,
+        fitMapSummary,
         artifacts: [fitMapArtifact, previewArtifact],
         metrics,
         warnings,
@@ -478,6 +490,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         ...row,
         status: "failed",
         fitMap: row.fitMap ?? null,
+        fitMapSummary: row.fitMapSummary ?? null,
         errorMessage: error instanceof Error ? error.message : "HQ fit simulation failed.",
         updatedAt: failedAt,
         completedAt: failedAt,

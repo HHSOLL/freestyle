@@ -17,9 +17,45 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-20
+- 2026-04-21
 
 ## 점검 로그
+### 2026-04-21
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Supabase official docs:
+    - `https://supabase.com/docs/guides/api/api-keys`
+    - `https://supabase.com/docs/guides/api/securing-your-api`
+    - `https://supabase.com/docs/guides/database/hardening-data-api`
+  - Playwright official docs:
+    - `https://playwright.dev/docs/trace-viewer-intro`
+    - `https://playwright.dev/docs/best-practices`
+    - `https://playwright.dev/docs/release-notes`
+- 신규 변화 요약:
+  - `Pulse`는 오늘도 현재 인증 환경에서 접근되지 않았다.
+  - Supabase 공식 문서는 browser/client surface에는 publishable key, backend/admin/worker에는 secret 또는 service-role posture를 계속 권장하고 있고, exposed schema에는 RLS와 Security Advisor 재확인을 production 기본값으로 둔다.
+  - Playwright 공식 문서는 여전히 `on-first-retry`와 `retain-on-failure` 계열 trace retention을 CI 실패 분석 기본값으로 두고, 최근 release note에서는 `retain-on-first-failure` 모드도 추가로 안내한다.
+- 우리 프로젝트 영향:
+  - 기존 release/security 문서 방향은 여전히 맞고, key separation / RLS / trace retention 규칙을 현재 소스 오브 트루스 기준으로 유지하면 된다.
+  - 오늘 배치의 직접 적용 포인트는 새로운 외부 도입보다 `Phase E` closeout과 함께 tracker/documentation을 최신 기준으로 닫는 것이다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `docs/TECH_WATCH.md`
+    - `docs/freestyle-improvement-status.md`
+    - `docs/api-contract.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/physical-fit-system.md`
+    - `packages/contracts/src/index.ts`
+    - `packages/domain-garment/src/index.ts`
+    - `packages/domain-garment/src/validation.test.ts`
+    - `workers/fit_simulation/src/worker.ts`
+    - `workers/fit_simulation/src/worker.test.ts`
+    - `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+    - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+    - `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+    - `apps/api/src/routes/fit-simulations.routes.test.ts`
+
 ### 2026-04-20
 - 확인 소스:
   - `ChatGPT Pulse`

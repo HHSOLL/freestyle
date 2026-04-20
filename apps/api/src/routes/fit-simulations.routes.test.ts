@@ -225,6 +225,19 @@ const fitMapFixture = {
   warnings: [],
 };
 
+const fitMapSummaryFixture = {
+  dominantOverlayKind: "confidenceMap",
+  dominantRegionId: "chest",
+  dominantMeasurementKey: "chestCm",
+  dominantScore: 0.9,
+  overlayScores: [
+    { kind: "easeMap", overallScore: 0.12, maxRegionScore: 0.12 },
+    { kind: "stretchMap", overallScore: 0.08, maxRegionScore: 0.08 },
+    { kind: "collisionRiskMap", overallScore: 0.32, maxRegionScore: 0.32 },
+    { kind: "confidenceMap", overallScore: 0.9, maxRegionScore: 0.9 },
+  ],
+};
+
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
@@ -359,6 +372,7 @@ test("fit-simulation read route returns the public record shape from the persist
             fitAssessment: null,
             instantFit: null,
             fitMap: fitMapFixture,
+            fitMapSummary: fitMapSummaryFixture,
             artifacts: [],
             metrics: null,
             warnings: [],
@@ -388,6 +402,7 @@ test("fit-simulation read route returns the public record shape from the persist
   assert.equal(payload.fitSimulation.materialPreset, "knit_medium");
   assert.equal(payload.fitSimulation.fitMap?.schemaVersion, "fit-map-json.v1");
   assert.equal(payload.fitSimulation.fitMap?.overlays[0]?.kind, "easeMap");
+  assert.equal(payload.fitSimulation.fitMapSummary?.dominantOverlayKind, "confidenceMap");
 
   await app.close();
 });

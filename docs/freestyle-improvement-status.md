@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `94%`
+- Working overall completion estimate: `95%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -37,7 +37,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
-| `Phase C` | instant fit engine | `in_progress` | `Batch 1` and `Batch 2` are complete; `Closet` now consumes the shared instant-fit report locally while `/v1` payloads remain unchanged |
+| `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
 
 ### `Phase A / Batch 1`
 
@@ -471,6 +471,40 @@ Outcome:
 
 - `Closet` now renders product-facing fit guidance from the shared instant-fit contract instead of relying on a surface-local summary formatter
 - later `Phase C` batches can move this same report into API or persistence adapters without needing to redesign the product UI language first
+
+### `Phase C / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. introduced a product-only `closetRuntimeGarmentListResponseSchema` so `/v1/closet/runtime-garments` can carry a published garment plus an optional user-scoped instant-fit seed without widening the admin publication contract
+2. rewired the product route to derive `instantFit` from the current persisted `BodyProfile` while preserving fail-soft behavior when no profile exists
+3. updated the web runtime-garment parser and wardrobe hook so `Closet` can consume API-provided instant-fit reports as seeded guidance while still persisting only the canonical published garment asset catalog locally
+4. rewired `V18ClosetExperience` so catalog items can start from API-provided instant-fit guidance but active tab and equipped-item fit cards continue to prefer locally derived reports from the current deferred body profile
+5. added targeted contracts, API, and web regression coverage and synced active fit docs so `Phase C` closes on a contracts -> product API adapter -> product consumer path
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/modules/garments/runtime-garments.service.ts`
+- `apps/api/src/routes/runtime-garments.routes.ts`
+- `apps/api/src/routes/runtime-garments.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `apps/web/src/hooks/publishedRuntimeGarment.ts`
+- `apps/web/src/hooks/publishedRuntimeGarment.test.ts`
+- `apps/web/src/hooks/useWardrobeAssets.ts`
+- `apps/web/src/components/product/V18ClosetExperience.tsx`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- `Phase C` is now closed on the active product path
+- shared instant-fit recommendations now exist as a typed domain contract, a product API adapter, and a live `Closet` consumer without changing admin publication payloads
 
 ## Current Batch
 

@@ -179,6 +179,11 @@ The first admin publishing boundary is now active through:
 - `/v1/admin/garments`
 - `/v1/closet/runtime-garments`
 
+Current product closet contract split:
+
+- `/v1/admin/garments*` stays on the publication-focused `PublishedGarmentAsset` envelope
+- `/v1/closet/runtime-garments` now emits product-only `{ item, instantFit }` entries so the public closet catalog can seed fit guidance from the persisted `BodyProfile`
+
 `apps/admin` is now the dedicated admin surface, with a guided create/update workflow for garment identity, exact size-chart rows, runtime binding, and raw manifest inspection. The API endpoints now have a Supabase-backed `published_runtime_garments` table available behind the replaceable persistence port, while the file adapter stays available for isolated local workflows and tests. The `/v1/admin/garments*` boundary now also uses explicit admin auth instead of sharing the anonymous-capable product auth fallback.
 
 ## 9. Implementation Status

@@ -6,9 +6,10 @@ import {
   mergeRuntimeGarmentCatalogs,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
+import type { GarmentInstantFitReport } from "@freestyle/contracts";
 import type { Asset, PublishedGarmentAsset, RuntimeGarmentAsset, StarterGarment } from "@freestyle/shared-types";
 import { apiFetchJson, isClientApiConfigured } from "@/lib/clientApi";
-import { parsePublishedRuntimeGarmentList } from "./publishedRuntimeGarment";
+import { parseClosetRuntimeGarmentCatalog } from "./publishedRuntimeGarment";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -40,31 +41,40 @@ const toAsset = (value: unknown): Asset | null => {
 export function useWardrobeAssets() {
   const [remoteAssets, setRemoteAssets] = useState<Asset[]>([]);
   const [publishedAssets, setPublishedAssets] = useState<PublishedGarmentAsset[]>(() => publishedRepository.load());
+  const [publishedInstantFitReportsById, setPublishedInstantFitReportsById] = useState<Record<string, GarmentInstantFitReport>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!isClientApiConfigured) {
       setRemoteAssets([]);
       setPublishedAssets(publishedRepository.load());
+      setPublishedInstantFitReportsById({});
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const runtimeCatalog = await apiFetchJson<{ items?: unknown[] }>("/v1/closet/runtime-garments");
+      const runtimeCatalog = await apiFetchJson<unknown>("/v1/closet/runtime-garments");
       if (runtimeCatalog.response.ok) {
-        const items = Array.isArray(runtimeCatalog.data?.items) ? runtimeCatalog.data.items : [];
-        const published = parsePublishedRuntimeGarmentList(items);
+        const runtimeCatalogItems = Array.isArray((runtimeCatalog.data as { items?: unknown[] } | null | undefined)?.items)
+          ? ((runtimeCatalog.data as { items?: unknown[] }).items ?? [])
+          : [];
+        const { items: published, instantFitById } = parseClosetRuntimeGarmentCatalog(runtimeCatalog.data);
 
-        if (items.length === 0 || published.length > 0) {
+        if (runtimeCatalogItems.length === 0 || published.length > 0) {
           setPublishedAssets(published);
+          setPublishedInstantFitReportsById(instantFitById);
           publishedRepository.save(published);
         } else {
           setPublishedAssets(publishedRepository.load());
+          setPublishedInstantFitReportsById({});
         }
       } else {
         setPublishedAssets(publishedRepository.load());
+        setPublishedInstantFitReportsById({});
       }
 
       const { response, data } = await apiFetchJson<{ items?: unknown[]; assets?: unknown[] }>(
@@ -78,9 +88,11 @@ export function useWardrobeAssets() {
 
       setRemoteAssets([]);
       setPublishedAssets(publishedRepository.load());
+      setPublishedInstantFitReportsById({});
     } catch {
       setRemoteAssets([]);
       setPublishedAssets(publishedRepository.load());
+      setPublishedInstantFitReportsById({});
     } finally {
       setLoading(false);
     }
@@ -96,11 +108,12 @@ export function useWardrobeAssets() {
       refresh,
       starterAssets: starterGarmentCatalog,
       publishedAssets,
+      publishedInstantFitReportsById,
       closetRuntimeAssets: mergeRuntimeGarmentCatalogs(starterGarmentCatalog, publishedAssets),
       remoteAssets,
       mergedAssets: [...starterGarmentCatalog, ...publishedAssets, ...remoteAssets] as Array<StarterGarment | Asset>,
       runtimeAssets: [...starterGarmentCatalog, ...publishedAssets] as RuntimeGarmentAsset[],
     }),
-    [loading, publishedAssets, refresh, remoteAssets],
+    [loading, publishedAssets, publishedInstantFitReportsById, refresh, remoteAssets],
   );
 }

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   assetCategorySchema,
+  closetRuntimeGarmentListResponseSchema,
   publishedGarmentAssetSchema,
   publishedRuntimeGarmentItemResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
@@ -10,10 +11,12 @@ import { requireAdminAuth, requireAuth } from "../modules/auth/auth.js";
 import {
   createPublishedRuntimeGarment,
   getPublishedRuntimeGarmentById,
+  listClosetRuntimeGarments,
   listPublishedRuntimeGarments,
   RuntimeGarmentValidationError,
   upsertPublishedRuntimeGarmentForActor,
 } from "../modules/garments/runtime-garments.service.js";
+import { getBodyProfileRecordForUser } from "../modules/profile/body-profile.repository.js";
 
 const runtimeGarmentQuerySchema = z
   .object({
@@ -35,12 +38,13 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
       });
     }
 
-    const items = await listPublishedRuntimeGarments({
+    const bodyProfileRecord = await getBodyProfileRecordForUser(userId).catch(() => null);
+    const items = await listClosetRuntimeGarments(bodyProfileRecord?.profile ?? null, {
       category: parsed.data.category,
       sourceSystem: parsed.data.source_system,
     });
     return reply.send(
-      publishedRuntimeGarmentListResponseSchema.parse({
+      closetRuntimeGarmentListResponseSchema.parse({
         items,
         total: items.length,
       }),

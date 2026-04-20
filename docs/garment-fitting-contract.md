@@ -238,6 +238,19 @@ The current `overallFit` buckets are:
 - `loose`
 - `risky`
 
+`Phase C / Batch 3` closes the product adapter seam:
+
+- `/v1/closet/runtime-garments` now returns a product-only `closetRuntimeGarmentListResponseSchema`
+- each entry is `{ item, instantFit }`
+- `item` stays the canonical `PublishedGarmentAsset`
+- `instantFit` is derived from the current persisted `BodyProfile` when one exists, otherwise `null`
+- `/v1/admin/garments*` stays on the publication-focused response contract and does not inherit the user-scoped fit payload
+
+The current product-consumer rule is:
+
+- API-provided `instantFit` is a seeded recommendation for the published closet catalog
+- active `Closet` review still prefers locally derived reports from the current deferred body profile so in-session edits remain authoritative
+
 The current region layer normalizes measurement keys into product-facing regions such as:
 
 - `chest`

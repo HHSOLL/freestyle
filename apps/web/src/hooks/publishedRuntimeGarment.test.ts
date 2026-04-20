@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parsePublishedRuntimeGarment, parsePublishedRuntimeGarmentList } from "./publishedRuntimeGarment.js";
+import { defaultBodyProfile } from "@freestyle/contracts";
+import { assessGarmentInstantFit } from "@freestyle/domain-garment";
+import type { PublishedGarmentAsset } from "@freestyle/shared-types";
+import {
+  parseClosetRuntimeGarmentCatalog,
+  parsePublishedRuntimeGarment,
+  parsePublishedRuntimeGarmentList,
+} from "./publishedRuntimeGarment.js";
 
-const publishedGarmentFixture = {
+const publishedGarmentFixture: PublishedGarmentAsset = {
   id: "published-top-precision-tee",
   name: "Precision Tee",
   imageSrc: "/assets/demo/precision-tee.png",
@@ -79,7 +86,7 @@ const publishedGarmentFixture = {
     measurementStandard: "body-garment-v1",
     provenanceUrl: "https://partner.example.com/garments/precision-tee",
   },
-} as const;
+};
 
 test("parsePublishedRuntimeGarment accepts canonical camelCase published garments", () => {
   const parsed = parsePublishedRuntimeGarment(publishedGarmentFixture);
@@ -115,4 +122,34 @@ test("parsePublishedRuntimeGarmentList filters malformed garments without droppi
 
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0]?.id, publishedGarmentFixture.id);
+});
+
+test("parseClosetRuntimeGarmentCatalog preserves valid items and instant-fit reports", () => {
+  const instantFit = assessGarmentInstantFit(publishedGarmentFixture, defaultBodyProfile);
+  assert.ok(instantFit);
+
+  const parsed = parseClosetRuntimeGarmentCatalog({
+    items: [
+      {
+        item: publishedGarmentFixture,
+        instantFit,
+      },
+      {
+        item: {
+          ...publishedGarmentFixture,
+          id: "bad-rig",
+          runtime: {
+            ...publishedGarmentFixture.runtime,
+            skeletonProfileId: "freestyle-humanoid-v1",
+          },
+        },
+        instantFit: null,
+      },
+    ],
+    total: 2,
+  });
+
+  assert.equal(parsed.items.length, 1);
+  assert.equal(parsed.items[0]?.id, publishedGarmentFixture.id);
+  assert.equal(parsed.instantFitById[publishedGarmentFixture.id]?.schemaVersion, "garment-instant-fit-report.v1");
 });

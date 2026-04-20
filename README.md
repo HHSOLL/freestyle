@@ -45,6 +45,11 @@ The repository is now split into four runtime surfaces:
 
 Main web surfaces should use product routes only. Admin is an operational publishing surface, not part of public product navigation. Legacy and lab are isolated on purpose.
 
+Current fit-specific contract split:
+
+- `/v1/admin/garments*` remains the publication-focused runtime-garment boundary
+- `/v1/closet/runtime-garments` is the product-facing closet catalog boundary and now returns `{ item, instantFit }` entries seeded from the current persisted body profile
+
 ## Current Runtime Status
 
 The shipped runtime now uses:

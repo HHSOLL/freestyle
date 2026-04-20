@@ -1097,7 +1097,7 @@ function AssetPanel({
 export function V18ClosetExperience() {
   const router = useRouter();
   const { profile, avatarVariantId, setProfile } = useBodyProfile();
-  const { closetRuntimeAssets } = useWardrobeAssets();
+  const { closetRuntimeAssets, publishedInstantFitReportsById } = useWardrobeAssets();
   const { scene, equippedGarments, setPose, equipItem, clearCategory, setSelectedItemId } = useClosetScene(closetRuntimeAssets);
 
   const [unit, setUnit] = useState<"cm" | "inch">("cm");
@@ -1137,6 +1137,7 @@ export function V18ClosetExperience() {
       subtitle: item.publication?.sourceSystem === "admin-domain" ? "관리자 발행 에셋" : item.brand ?? "분리형 GLB",
       thumbUrl: item.imageSrc,
       filterTags: classifyStarter(item),
+      fitReport: publishedInstantFitReportsById[item.id] ?? null,
     });
 
     return {
@@ -1147,7 +1148,7 @@ export function V18ClosetExperience() {
       accessory: closetRuntimeAssets.filter((item) => item.category === "accessories").map(toDisplayItem),
       hair: closetRuntimeAssets.filter((item) => item.category === "hair").map(toDisplayItem),
     };
-  }, [closetRuntimeAssets]);
+  }, [closetRuntimeAssets, publishedInstantFitReportsById]);
 
   const fitAssessments = useMemo(() => {
     const next = new Map<string, GarmentFitAssessment | null>();

@@ -3,13 +3,18 @@
 import argparse
 import json
 import os
+import re
 import sys
 import zipfile
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 
 AVATAR_BUILD_SUMMARY_SCHEMA_VERSION = "avatar-build-summary-v1"
+AVATAR_SKELETON_SIDECAR_SCHEMA_VERSION = "avatar-skeleton-sidecar-v1"
+AVATAR_MEASUREMENTS_SIDECAR_SCHEMA_VERSION = "avatar-measurements-sidecar-v1"
+AVATAR_MORPH_MAP_SIDECAR_SCHEMA_VERSION = "avatar-morph-map-sidecar-v1"
 
 
 def parse_args():
@@ -256,6 +261,140 @@ def collect_summary(module, basemesh):
     }
 
 
+def _find_bone(rig, *candidate_names):
+    wanted = {_normalize_name(name) for name in candidate_names}
+    for bone in rig.data.bones:
+        if _normalize_name(bone.name) in wanted:
+            return bone
+    return None
+
+
+def _bone_head_world(rig, bone):
+    return rig.matrix_world @ bone.head_local
+
+
+def _bone_tail_world(rig, bone):
+    return rig.matrix_world @ bone.tail_local
+
+
+def _bone_length_m(rig, bone):
+    return (_bone_tail_world(rig, bone) - _bone_head_world(rig, bone)).length
+
+
+def _chain_length_m(rig, bone_names):
+    total = 0.0
+    for bone_name in bone_names:
+        bone = _find_bone(rig, bone_name)
+        if bone is None:
+            return None
+        total += _bone_length_m(rig, bone)
+    return total
+
+
+def _distance_between_bone_heads_m(rig, left_name, right_name):
+    left = _find_bone(rig, left_name)
+    right = _find_bone(rig, right_name)
+    if left is None or right is None:
+        return None
+    return (_bone_head_world(rig, left) - _bone_head_world(rig, right)).length
+
+
+def _object_height_m(obj):
+    world_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+    z_values = [corner.z for corner in world_corners]
+    return max(z_values) - min(z_values)
+
+
+def _meters_to_mm(value):
+    if value is None:
+        return None
+    return int(round(value * 1000))
+
+
+def derive_reference_measurements_mm(full_body, rig):
+    return {
+        "statureMm": _meters_to_mm(_object_height_m(full_body)),
+        "shoulderWidthMm": _meters_to_mm(_distance_between_bone_heads_m(rig, "upperarm_l", "upperarm_r")),
+        "armLengthMm": _meters_to_mm(_chain_length_m(rig, ["upperarm_l", "lowerarm_l", "hand_l"])),
+        "inseamMm": _meters_to_mm(_chain_length_m(rig, ["thigh_l", "calf_l"])),
+        "torsoLengthMm": _meters_to_mm(_chain_length_m(rig, ["spine_01", "spine_02", "spine_03", "neck_01"])),
+        "hipWidthMm": _meters_to_mm(_distance_between_bone_heads_m(rig, "thigh_l", "thigh_r")),
+    }
+
+
+def _sidecar_stem(summary_path: Path):
+    name = summary_path.name
+    if name.endswith(".summary.json"):
+        return name[: -len(".summary.json")]
+    if name.endswith(".json"):
+        return name[: -len(".json")]
+    return summary_path.stem
+
+
+def _sidecar_path(summary_path: Path, suffix: str):
+    return summary_path.with_name(f"{_sidecar_stem(summary_path)}.{suffix}.json")
+
+
+def build_skeleton_sidecar(summary, variant_id):
+    rig = summary.get("rig", {})
+    bone_names = rig.get("boneNames", [])
+    return {
+        "schemaVersion": AVATAR_SKELETON_SIDECAR_SCHEMA_VERSION,
+        "variantId": variant_id,
+        "authoringSource": "mpfb2",
+        "rigName": rig.get("name"),
+        "boneCount": len(bone_names),
+        "rootBoneName": bone_names[0] if bone_names else None,
+        "boneNames": bone_names,
+        "normalizedBoneNames": [_normalize_name(name) for name in bone_names],
+    }
+
+
+def _tokenize_shape_key(name):
+    return [token for token in re.split(r"[^a-zA-Z0-9]+", str(name).lower()) if token]
+
+
+def build_measurements_sidecar(summary, variant_id):
+    return {
+        "schemaVersion": AVATAR_MEASUREMENTS_SIDECAR_SCHEMA_VERSION,
+        "variantId": variant_id,
+        "authoringSource": "mpfb2",
+        "units": "mm",
+        "referenceMeasurementsMm": summary.get("referenceMeasurementsMm", {}),
+        "segmentationVertexCounts": summary.get("segmentation", {}),
+    }
+
+
+def build_morph_map_sidecar(summary, variant_id):
+    shape_keys = summary.get("basemesh", {}).get("shapeKeys", [])
+    return {
+        "schemaVersion": AVATAR_MORPH_MAP_SIDECAR_SCHEMA_VERSION,
+        "variantId": variant_id,
+        "authoringSource": "mpfb2",
+        "shapeKeyCount": len(shape_keys),
+        "basisShapeKey": shape_keys[0] if shape_keys else None,
+        "shapeKeys": [
+            {
+                "name": name,
+                "tokens": _tokenize_shape_key(name),
+                "isBasis": index == 0,
+            }
+            for index, name in enumerate(shape_keys)
+        ],
+    }
+
+
+def write_avatar_sidecars(summary_path: Path, summary, variant_id):
+    sidecars = {
+        "skeleton": build_skeleton_sidecar(summary, variant_id),
+        "measurements": build_measurements_sidecar(summary, variant_id),
+        "morph-map": build_morph_map_sidecar(summary, variant_id),
+    }
+    for suffix, payload in sidecars.items():
+        path = _sidecar_path(summary_path, suffix)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
 def export_glb(output_glb: str):
     output_path = Path(output_glb).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -354,6 +493,7 @@ def main():
     segmentation = segment_body_mesh(basemesh)
     full_body = segmentation["full_body"]
     summary = collect_summary(module, full_body)
+    rig = module.services.ObjectService.find_object_of_type_amongst_nearest_relatives(full_body, "Skeleton")
     output_blend = Path(args.output_blend).resolve()
     output_blend.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(output_blend))
@@ -364,6 +504,7 @@ def main():
     summary["segmentation"] = segmentation["zones"]
     summary["fullBody"] = full_body.name
     summary["bodySegments"] = [segment.name for segment in segmentation["segments"]]
+    summary["referenceMeasurementsMm"] = derive_reference_measurements_mm(full_body, rig) if rig else {}
     summary["schemaVersion"] = AVATAR_BUILD_SUMMARY_SCHEMA_VERSION
     summary["authoringProvenance"] = {
         "sourceSystem": "mpfb2",
@@ -384,6 +525,7 @@ def main():
         summary_path = Path(args.summary_json).resolve()
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        write_avatar_sidecars(summary_path, summary, args.variant_id)
 
     print(json.dumps(summary, indent=2))
 

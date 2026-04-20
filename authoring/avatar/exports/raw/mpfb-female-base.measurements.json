@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "avatar-measurements-sidecar-v1",
+  "variantId": "female-base",
+  "authoringSource": "mpfb2",
+  "units": "mm",
+  "referenceMeasurementsMm": {
+    "statureMm": 1639,
+    "shoulderWidthMm": 313,
+    "armLengthMm": 491,
+    "inseamMm": 784,
+    "torsoLengthMm": 432,
+    "hipWidthMm": 196
+  },
+  "segmentationVertexCounts": {
+    "torso": 2898,
+    "arms": 5098,
+    "hips": 666,
+    "legs": 2546,
+    "feet": 2864,
+    "exposed": 5086
+  }
+}

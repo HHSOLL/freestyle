@@ -19,11 +19,14 @@ The intended command path is:
 
 Do not commit the downloaded MPFB source or asset-pack zip. Only commit source presets, scripts, and approved outputs.
 
-The exported base-avatar summaries are part of the authoring contract. They must keep:
+The exported base-avatar summaries and sidecars are part of the authoring contract. They must keep:
 
 - `schemaVersion`
 - `authoringProvenance.variantId`
 - `authoringProvenance.presetPath`
 - `authoringProvenance.outputModelPath`
+- `authoring/avatar/exports/raw/*.skeleton.json`
+- `authoring/avatar/exports/raw/*.measurements.json`
+- `authoring/avatar/exports/raw/*.morph-map.json`
 
 in parity with `packages/runtime-3d/src/avatar-manifest.ts`.

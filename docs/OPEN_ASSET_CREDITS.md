@@ -9,7 +9,7 @@
   - Authoring source: MakeHuman Community
   - License: MPFB2 addon code is GPL-3.0-or-later, generated avatar outputs and the official system asset pack are documented as CC0-compatible on the official asset page
   - Note: the repo ships generated runtime GLBs, not the full upstream asset pack zip
-  - Current promoted presets: female uses `ponytail01` hair, `eyebrow001`, `eyelashes01`; male uses `short02`
+  - Current promoted presets: female uses `short04` hair, `eyebrow001`, `eyelashes01`; male uses `short02`
 
 ## Runtime Garments
 - `apps/web/public/assets/garments/mpfb/female/*.glb`

@@ -4,7 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   avatarManifestSchemaVersion,
+  avatarMeasurementsSidecarSchemaVersion,
+  avatarMorphMapSidecarSchemaVersion,
   avatarRenderManifest,
+  avatarSkeletonSidecarSchemaVersion,
   avatarSummarySchemaVersion,
   referenceRigAliasPatterns,
 } from "../packages/runtime-3d/src/avatar-manifest.ts";
@@ -25,6 +28,17 @@ const resolveWorkspacePath = (value) => {
     return null;
   }
   return path.isAbsolute(value) ? path.normalize(value) : path.join(repoRoot, value);
+};
+
+const normalizeName = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+const readJsonFile = (label, absolutePath) => {
+  try {
+    return JSON.parse(fs.readFileSync(absolutePath, "utf8"));
+  } catch (error) {
+    issues.push(`${label}: parse failed (${error instanceof Error ? error.message : "unknown"})`);
+    return null;
+  }
 };
 
 const requiredAliases = Object.keys(referenceRigAliasPatterns);
@@ -66,7 +80,7 @@ const validateSourceProvenance = (label, entry) => {
     issues.push(`${label}: sourceProvenance.schemaVersion must be ${avatarSummarySchemaVersion}`);
   }
 
-  for (const key of ["presetPath", "summaryPath", "outputModelPath"]) {
+  for (const key of ["presetPath", "summaryPath", "skeletonPath", "measurementsPath", "morphMapPath", "outputModelPath"]) {
     if (typeof sourceProvenance[key] !== "string" || sourceProvenance[key].trim().length === 0) {
       issues.push(`${label}: sourceProvenance.${key} is required`);
     }
@@ -93,12 +107,8 @@ const validateMpfbSummary = (variantId, entry) => {
     return;
   }
 
-  let summary;
-  try {
-    const raw = fs.readFileSync(summaryPath, "utf8");
-    summary = JSON.parse(raw);
-  } catch (error) {
-    issues.push(`${variantId}: authoring summary parse failed (${error instanceof Error ? error.message : "unknown"})`);
+  const summary = readJsonFile(`${variantId}: authoring summary`, summaryPath);
+  if (!summary) {
     return;
   }
 
@@ -175,6 +185,128 @@ const validateMpfbSummary = (variantId, entry) => {
     }
   } else if (!summaryPresetPath) {
     issues.push(`${variantId}: summary preset is required`);
+  }
+
+  const normalizedBodySegments = Array.isArray(summary?.bodySegments)
+    ? summary.bodySegments.map((segmentName) => normalizeName(segmentName))
+    : [];
+  if (entry.bodyMaskStrategy !== "none") {
+    for (const [zone, meshNames] of Object.entries(entry.meshZones)) {
+      if (zone === "fullBody") continue;
+      const matched = meshNames.some((meshName) =>
+        normalizedBodySegments.some((segmentName) => segmentName.includes(normalizeName(meshName))),
+      );
+      if (!matched) {
+        issues.push(`${variantId}: bodySegments must include a segment matching meshZones.${zone}`);
+      }
+    }
+  }
+
+  const sidecarSpecs = [
+    {
+      key: "skeletonPath",
+      schemaVersion: avatarSkeletonSidecarSchemaVersion,
+      validate: (sidecar) => {
+        if (sidecar?.variantId !== variantId) {
+          issues.push(`${variantId}: skeleton sidecar variantId mismatch`);
+        }
+        if (sidecar?.authoringSource !== "mpfb2") {
+          issues.push(`${variantId}: skeleton sidecar authoringSource must be mpfb2`);
+        }
+        if (sidecar?.rigName !== summary?.rig?.name) {
+          issues.push(`${variantId}: skeleton sidecar rigName must match summary rig name`);
+        }
+        const sidecarBoneNames = Array.isArray(sidecar?.boneNames) ? sidecar.boneNames : [];
+        const summaryBoneNames = Array.isArray(summary?.rig?.boneNames) ? summary.rig.boneNames : [];
+        if (
+          sidecarBoneNames.length !== summaryBoneNames.length
+          || sidecarBoneNames.some((boneName, index) => boneName !== summaryBoneNames[index])
+        ) {
+          issues.push(`${variantId}: skeleton sidecar boneNames must match summary rig.boneNames`);
+        }
+        if (sidecar?.boneCount !== summaryBoneNames.length) {
+          issues.push(`${variantId}: skeleton sidecar boneCount must match summary rig.boneNames length`);
+        }
+      },
+    },
+    {
+      key: "measurementsPath",
+      schemaVersion: avatarMeasurementsSidecarSchemaVersion,
+      validate: (sidecar) => {
+        if (sidecar?.variantId !== variantId) {
+          issues.push(`${variantId}: measurements sidecar variantId mismatch`);
+        }
+        if (sidecar?.authoringSource !== "mpfb2") {
+          issues.push(`${variantId}: measurements sidecar authoringSource must be mpfb2`);
+        }
+        if (sidecar?.units !== "mm") {
+          issues.push(`${variantId}: measurements sidecar units must be mm`);
+        }
+        const requiredMeasurements = [
+          "statureMm",
+          "shoulderWidthMm",
+          "armLengthMm",
+          "inseamMm",
+          "torsoLengthMm",
+          "hipWidthMm",
+        ];
+        for (const key of requiredMeasurements) {
+          if (typeof sidecar?.referenceMeasurementsMm?.[key] !== "number" || sidecar.referenceMeasurementsMm[key] <= 0) {
+            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm.${key} must be a positive number`);
+          }
+        }
+        if (JSON.stringify(sidecar?.referenceMeasurementsMm ?? {}) !== JSON.stringify(summary?.referenceMeasurementsMm ?? {})) {
+          issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm must match summary`);
+        }
+        if (JSON.stringify(sidecar?.segmentationVertexCounts ?? {}) !== JSON.stringify(summary?.segmentation ?? {})) {
+          issues.push(`${variantId}: measurements sidecar segmentationVertexCounts must match summary segmentation`);
+        }
+      },
+    },
+    {
+      key: "morphMapPath",
+      schemaVersion: avatarMorphMapSidecarSchemaVersion,
+      validate: (sidecar) => {
+        if (sidecar?.variantId !== variantId) {
+          issues.push(`${variantId}: morph-map sidecar variantId mismatch`);
+        }
+        if (sidecar?.authoringSource !== "mpfb2") {
+          issues.push(`${variantId}: morph-map sidecar authoringSource must be mpfb2`);
+        }
+        const summaryShapeKeys = Array.isArray(summary?.basemesh?.shapeKeys) ? summary.basemesh.shapeKeys : [];
+        const sidecarShapeKeys = Array.isArray(sidecar?.shapeKeys) ? sidecar.shapeKeys.map((shapeKey) => shapeKey?.name) : [];
+        if (
+          sidecarShapeKeys.length !== summaryShapeKeys.length
+          || sidecarShapeKeys.some((shapeKey, index) => shapeKey !== summaryShapeKeys[index])
+        ) {
+          issues.push(`${variantId}: morph-map sidecar shapeKeys must match summary basemesh.shapeKeys`);
+        }
+        if (sidecar?.shapeKeyCount !== summaryShapeKeys.length) {
+          issues.push(`${variantId}: morph-map sidecar shapeKeyCount must match summary basemesh.shapeKeys length`);
+        }
+      },
+    },
+  ];
+
+  for (const spec of sidecarSpecs) {
+    const sidecarRef = entry.sourceProvenance?.[spec.key];
+    const sidecarPath = resolveWorkspacePath(sidecarRef);
+    if (!sidecarPath) {
+      issues.push(`${variantId}: sourceProvenance.${spec.key} is invalid`);
+      continue;
+    }
+    if (!fs.existsSync(sidecarPath)) {
+      issues.push(`${variantId}: missing ${spec.key} ${path.relative(repoRoot, sidecarPath)}`);
+      continue;
+    }
+    const sidecar = readJsonFile(`${variantId}: ${spec.key}`, sidecarPath);
+    if (!sidecar) {
+      continue;
+    }
+    if (sidecar?.schemaVersion !== spec.schemaVersion) {
+      issues.push(`${variantId}: ${spec.key} schemaVersion must be ${spec.schemaVersion}`);
+    }
+    spec.validate(sidecar);
   }
 };
 

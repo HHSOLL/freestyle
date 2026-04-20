@@ -1,6 +1,15 @@
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
-import { garmentFitAssessmentSchema } from "@freestyle/contracts";
-import type { GarmentPatternSpec } from "@freestyle/contracts";
+import {
+  garmentFitAssessmentSchema,
+  garmentInstantFitReportSchema,
+  garmentInstantFitSchemaVersion,
+} from "@freestyle/contracts";
+import type {
+  GarmentFitOverall,
+  GarmentFitRegionId,
+  GarmentInstantFitReport,
+  GarmentPatternSpec,
+} from "@freestyle/contracts";
 import type {
   Asset,
   AvatarPoseId,
@@ -1579,6 +1588,35 @@ const bodyMeasurementLabels: Record<GarmentMeasurementKey, { ko: string; en: str
   hemCm: { ko: "밑단", en: "Hem" },
 };
 
+const instantFitRegionIdsByMeasurement: Record<GarmentMeasurementKey, GarmentFitRegionId> = {
+  chestCm: "chest",
+  waistCm: "waist",
+  hipCm: "hip",
+  headCircumferenceCm: "head",
+  frameWidthCm: "frame",
+  shoulderCm: "shoulder",
+  sleeveLengthCm: "sleeve",
+  lengthCm: "length",
+  inseamCm: "inseam",
+  riseCm: "rise",
+  hemCm: "hem",
+};
+
+const instantFitOverallLabels: Record<GarmentFitOverall, { ko: string; en: string }> = {
+  good: { ko: "잘 맞음", en: "good fit" },
+  tight: { ko: "타이트함", en: "tight fit" },
+  loose: { ko: "여유가 큼", en: "loose fit" },
+  risky: { ko: "주의 필요", en: "risky fit" },
+};
+
+const instantFitStateLabels: Record<GarmentFitState, { ko: string; en: string }> = {
+  compression: { ko: "압박이 큼", en: "compressed" },
+  snug: { ko: "슬림하게 맞음", en: "snug" },
+  regular: { ko: "기본 핏", en: "regular" },
+  relaxed: { ko: "여유 있게 맞음", en: "relaxed" },
+  oversized: { ko: "오버 핏", en: "oversized" },
+};
+
 const deriveFootLengthCm = (heightCm: number) => round(heightCm * 0.152);
 const deriveFootOpeningCm = (ankleCm: number | undefined, footLengthCm: number) =>
   round(ankleCm ?? footLengthCm * 0.38);
@@ -1858,6 +1896,138 @@ export const formatGarmentFitSummary = (
 
   return `${label}${bodyMeasurementLabels[primary.key][language]} ${stateLabel}`;
 };
+
+const resolveGarmentInstantFitOverall = (
+  assessment: Pick<GarmentFitAssessment, "overallState" | "tensionRisk" | "clippingRisk">,
+): GarmentFitOverall => {
+  if (
+    assessment.overallState === "compression" ||
+    assessment.tensionRisk === "high" ||
+    assessment.clippingRisk === "high"
+  ) {
+    return "risky";
+  }
+
+  if (
+    assessment.overallState === "snug" ||
+    assessment.tensionRisk === "medium" ||
+    assessment.clippingRisk === "medium"
+  ) {
+    return "tight";
+  }
+
+  if (assessment.overallState === "oversized") {
+    return "loose";
+  }
+
+  return "good";
+};
+
+const resolveGarmentInstantFitConfidence = (
+  assessment: Pick<GarmentFitAssessment, "dimensions" | "sizeLabel" | "tensionRisk" | "clippingRisk">,
+) => {
+  const tensionPenalty =
+    assessment.tensionRisk === "high" ? 0.12 : assessment.tensionRisk === "medium" ? 0.05 : 0;
+  const clippingPenalty =
+    assessment.clippingRisk === "high" ? 0.08 : assessment.clippingRisk === "medium" ? 0.03 : 0;
+  const value = clamp(
+    0.45 +
+      Math.min(assessment.dimensions.length, 4) * 0.08 +
+      (assessment.sizeLabel ? 0.1 : 0) -
+      tensionPenalty -
+      clippingPenalty,
+    0.35,
+    0.95,
+  );
+  return round(value);
+};
+
+const buildGarmentInstantFitExplanations = (
+  assessment: GarmentFitAssessment,
+  overallFit: GarmentFitOverall,
+) => {
+  const primary =
+    assessment.dimensions.find((entry) => entry.key === assessment.limitingKeys[0]) ?? assessment.dimensions[0];
+  const explanations: Array<{ ko: string; en: string }> = [];
+
+  if (primary) {
+    explanations.push({
+      ko: `${bodyMeasurementLabels[primary.key].ko} 기준 여유는 ${round(primary.easeCm)}cm이며 현재 ${instantFitStateLabels[primary.state].ko} 상태다.`,
+      en: `${bodyMeasurementLabels[primary.key].en} leads with ${round(primary.easeCm)}cm ease and currently reads ${instantFitStateLabels[primary.state].en}.`,
+    });
+  }
+
+  if (assessment.tensionRisk === "low" && assessment.clippingRisk === "low") {
+    explanations.push({
+      ko: "현재 선택된 사이즈 기준으로 장력과 클리핑 위험은 낮다.",
+      en: "Tension and clipping risk stay low for the currently selected size.",
+    });
+  } else {
+    explanations.push({
+      ko: `장력 위험 ${assessment.tensionRisk}, 클리핑 위험 ${assessment.clippingRisk}로 추가 확인이 필요하다.`,
+      en: `Tension risk is ${assessment.tensionRisk} and clipping risk is ${assessment.clippingRisk}, so this fit needs extra review.`,
+    });
+  }
+
+  if (assessment.sizeLabel) {
+    explanations.push({
+      ko: `현재 instant-fit 판단은 ${assessment.sizeLabel} 사이즈 기준이다.`,
+      en: `The current instant-fit recommendation is based on size ${assessment.sizeLabel}.`,
+    });
+  }
+
+  if (overallFit === "loose") {
+    explanations.push({
+      ko: "전반적으로 여유가 커서 실루엣이 의도보다 크게 읽힐 수 있다.",
+      en: "The overall ease is generous enough that the silhouette may read looser than intended.",
+    });
+  }
+
+  return explanations.slice(0, 4);
+};
+
+export const buildGarmentInstantFitReport = (
+  assessment: GarmentFitAssessment | null,
+): GarmentInstantFitReport | null => {
+  if (!assessment) {
+    return null;
+  }
+
+  const overallFit = resolveGarmentInstantFitOverall(assessment);
+  const primary =
+    assessment.dimensions.find((entry) => entry.key === assessment.limitingKeys[0]) ?? assessment.dimensions[0];
+  const primaryRegionId = instantFitRegionIdsByMeasurement[primary.key];
+  const summaryLabel = instantFitOverallLabels[overallFit];
+
+  return garmentInstantFitReportSchema.parse({
+    schemaVersion: garmentInstantFitSchemaVersion,
+    sizeLabel: assessment.sizeLabel,
+    overallFit,
+    overallState: assessment.overallState,
+    tensionRisk: assessment.tensionRisk,
+    clippingRisk: assessment.clippingRisk,
+    confidence: resolveGarmentInstantFitConfidence(assessment),
+    primaryRegionId,
+    summary: {
+      ko: `${assessment.sizeLabel ? `${assessment.sizeLabel} · ` : ""}${bodyMeasurementLabels[primary.key].ko} 기준 ${summaryLabel.ko}`,
+      en: `${assessment.sizeLabel ? `${assessment.sizeLabel} · ` : ""}${bodyMeasurementLabels[primary.key].en} ${summaryLabel.en}`,
+    },
+    explanations: buildGarmentInstantFitExplanations(assessment, overallFit),
+    limitingKeys: assessment.limitingKeys,
+    regions: assessment.dimensions.map((entry) => ({
+      regionId: instantFitRegionIdsByMeasurement[entry.key],
+      measurementKey: entry.key,
+      fitState: entry.state,
+      easeCm: entry.easeCm,
+      isLimiting: assessment.limitingKeys.includes(entry.key),
+    })),
+  });
+};
+
+export const assessGarmentInstantFit = (
+  garment: Pick<Asset | StarterGarment, "metadata" | "category">,
+  profile: BodyProfile,
+) => buildGarmentInstantFitReport(assessGarmentPhysicalFit(garment, profile));
 
 export const validateGarmentRuntimeBinding = (binding: GarmentRuntimeBinding) => {
   const issues: string[] = [];

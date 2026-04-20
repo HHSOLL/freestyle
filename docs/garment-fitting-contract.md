@@ -206,6 +206,51 @@ The active runtime contract for this payload is now:
 
 This is the layer that turns “a size table exists” into “the user can see whether this size will compress, stretch, or sit relaxed on the current body”.
 
+## 8.1 Instant Fit Report
+
+`Phase C / Batch 1` adds a product-facing derived contract above the raw physical-fit assessment:
+
+- `garmentInstantFitReportSchema`
+- `garmentFitOverallSchema`
+- `garmentInstantFitRegionSchema`
+
+This layer is still derived-only.
+
+- it is built from `GarmentFitAssessment`
+- it does not widen current `/v1` payloads yet
+- it exists so product surfaces and future APIs can share one recommendation format instead of inventing separate summary strings
+
+The current instant-fit report contains:
+
+- `overallFit`
+- `overallState`
+- `confidence`
+- `primaryRegionId`
+- `summary`
+- `explanations`
+- `regions`
+
+The current `overallFit` buckets are:
+
+- `good`
+- `tight`
+- `loose`
+- `risky`
+
+The current region layer normalizes measurement keys into product-facing regions such as:
+
+- `chest`
+- `waist`
+- `hip`
+- `shoulder`
+- `sleeve`
+- `length`
+- `inseam`
+- `rise`
+- `hem`
+- `head`
+- `frame`
+
 ## 9. Corrective Fit Contract
 
 `metadata.correctiveFit` is a per-state profile keyed by:

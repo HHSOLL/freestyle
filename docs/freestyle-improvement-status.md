@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `92%`
+- Working overall completion estimate: `93%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -37,6 +37,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
+| `Phase C` | instant fit engine | `in_progress` | `Batch 1` is complete; a product-facing instant-fit report contract and garment-domain builder now derive `overallFit / regions / confidence / explanations` from the current physical-fit assessment without widening `/v1` payloads |
 
 ### `Phase A / Batch 1`
 
@@ -416,6 +417,34 @@ Outcome:
 
 - starter garment pattern/material metadata now has a single semantic parity source in the garment domain instead of duplicated validator-only logic
 - `Phase B` is closed, so later work can start from a stable pattern/material metadata seam without reopening the public runtime or admin contracts
+
+### `Phase C / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added a versioned `garment-instant-fit-report.v1` contract in `packages/contracts` for product-facing fit recommendations derived from the existing physical-fit assessment
+2. formalized `overallFit`, normalized fit regions, confidence, summary copy, and explanation copy without widening current `/v1` payloads
+3. added shared garment-domain helpers that convert `GarmentFitAssessment` into a contract-valid instant-fit report and expose a direct `assessGarmentInstantFit` path
+4. added targeted contract and domain tests that lock both a canonical derived payload and a compression-heavy escalation path into `overallFit = risky`
+5. synced active docs so `Phase C` now starts from a contracts-first seam instead of UI-only strings or ad-hoc per-surface formatting
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/domain-garment/src/index.ts`
+- `packages/domain-garment/src/validation.test.ts`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- FreeStyle now has a typed, reusable instant-fit report layer above the lower-level physical-fit assessment
+- later `Phase C` batches can wire this result into product surfaces or persistence without first inventing another fit-report contract
 
 ## Current Batch
 

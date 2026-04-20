@@ -170,6 +170,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `validate:garment3d` now also resolves `patternSpec.relativePath` for committed starter garment summaries and delegates semantic parity checks to the shared `validateGarmentPatternSpecAgainstStarterCatalog` helper in `packages/domain-garment`
 - authoring-only garment pattern/material metadata now lives in `authoring/garments/mpfb/specs/*.pattern-spec.json`; do not widen `/v1` or `PublishedGarmentAsset` just to carry that upstream metadata
 - if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
+- `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
+- do not widen current `/v1` payloads just to ship `overallFit / regions / confidence / explanations`; land the shared contract first, then wire a consumer in a later batch
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 

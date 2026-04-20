@@ -177,6 +177,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `Phase D` now has an active baseline async path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
 - keep that baseline honest: it currently persists typed `fit_map_json` overlay evidence plus a generated `preview_png` from snapshot-derived assessment/report data, and should not be documented or surfaced as full draped cloth output until `draped_glb` is real
 - `Phase E` now starts from the typed `fit_map_json` contract in `packages/contracts`; fit, stress, pressure, and confidence overlays should evolve that shared schema instead of adding one-off worker-only JSON blobs
+- the current `Phase E` lab read-path should prefer the persisted `fitMap` snapshot carried on `fitSimulation` records; do not make every consumer refetch and reparsed the artifact URL before the solver-backed pipeline exists
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 

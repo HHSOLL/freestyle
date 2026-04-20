@@ -192,6 +192,7 @@ export const upsertFitSimulationRecord = async (record: {
   garmentSnapshot: PublishedGarmentAsset;
   fitAssessment: GarmentFitAssessment | null;
   instantFit: FitSimulationRecord["instantFit"];
+  fitMap: FitSimulationRecord["fitMap"];
   artifacts: FitSimulationRecord["artifacts"];
   metrics: FitSimulationRecord["metrics"];
   warnings: string[];
@@ -206,4 +207,3 @@ export const upsertFitSimulationRecord = async (record: {
 export const deleteFitSimulationRecord = async (id: string) => {
   return defaultFitSimulationPersistencePort.deleteFitSimulationRecord(id);
 };
-

@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `98%`
+- Working overall completion estimate: `99%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -39,7 +39,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
 | `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam, `Batch 2` closed the lab create/read path, and `Batch 3` added `preview_png` plus typed fit-map overlay artifacts |
-| `Phase E` | fit / stress / pressure map | `in_progress` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`) that the worker now emits |
+| `Phase E` | fit / stress / pressure map | `in_progress` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`), and `Batch 2` now carries that `fitMap` snapshot through the lab read-path |
 
 ### `Phase A / Batch 1`
 
@@ -633,6 +633,36 @@ Outcome:
 
 - `Phase E` is now active on a shared typed overlay contract
 - future stress/pressure-map work can build on the existing `fit_map_json` schema instead of replacing it
+
+### `Phase E / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. extended `fitSimulationRecordSchema` so lab-fit records can carry a persisted typed `fitMap` snapshot next to `instantFit` and artifact metadata
+2. taught the fit-simulation worker to store that typed snapshot on success instead of keeping overlay evidence only in the JSON artifact file
+3. wired `GET /v1/lab/fit-simulations/:id` to emit the same `fitMap` snapshot through the public lab response schema
+4. added repository and route regressions so the typed overlay payload survives persistence round-trips and read-path parsing
+5. synced API and fit-system docs so consumers know the lab read-path is now the primary Phase E evidence surface
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `docs/api-contract.md`
+- `docs/physical-fit-system.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- the typed Phase E overlay payload is now available directly from the lab fit-simulation record, not only from an artifact URL
+- future fit/stress/pressure consumers can build on the API read-path without adding another parallel persistence format
 
 ## Current Batch
 

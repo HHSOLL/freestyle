@@ -204,5 +204,10 @@
     "installed_now": false
   },
   "outputBlend": "authoring/avatar/exports/raw/mpfb-male-base.blend",
+  "outputArtifact": {
+    "relativePath": "apps/web/public/assets/avatars/mpfb-male-base.glb",
+    "byteSize": 2122616,
+    "sha256": "c4d1d4f70ca444695adf1067485af4ce803c72b1c8dbaf081c65435cf22d7358"
+  },
   "outputGlb": "apps/web/public/assets/avatars/mpfb-male-base.glb"
 }

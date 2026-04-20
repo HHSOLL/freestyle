@@ -27,6 +27,8 @@ The exported base-avatar summaries and sidecars are part of the authoring contra
 - `buildProvenance.mpfb.repoUrl`
 - `buildProvenance.mpfb.revision`
 - `buildProvenance.assetPack.sha256`
+- `outputArtifact.byteSize`
+- `outputArtifact.sha256`
 - `source-lock.json` parity for MPFB revision and asset-pack checksum
 - `authoringProvenance.variantId`
 - `authoringProvenance.presetPath`

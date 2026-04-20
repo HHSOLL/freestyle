@@ -213,5 +213,10 @@
     "installed_now": false
   },
   "outputBlend": "authoring/avatar/exports/raw/mpfb-female-base.blend",
+  "outputArtifact": {
+    "relativePath": "apps/web/public/assets/avatars/mpfb-female-base.glb",
+    "byteSize": 2844620,
+    "sha256": "8cd2db80f81080f06185191a372a4c78ef3601ff2565acb50795a24cc3e73b19"
+  },
   "outputGlb": "apps/web/public/assets/avatars/mpfb-female-base.glb"
 }

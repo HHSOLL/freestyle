@@ -35,6 +35,7 @@ Every promoted mannequin asset must satisfy:
   - contract schema version
   - source provenance (preset + summary + sidecar + output GLB parity)
   - build provenance (MPFB repo revision + asset-pack checksum + builder version)
+  - output artifact digest (post-optimize byte size + SHA-256)
   - explicit variant/runtime model path coupling
 
 Current runtime source-of-truth files:
@@ -102,10 +103,12 @@ Each render variant must declare:
   - `sourceProvenance.skeletonPath`, `measurementsPath`, and `morphMapPath` resolve to existing authoring sidecars
   - `sourceProvenance.outputModelPath` matches summary `outputModelPath`
   - summary `outputGlb` resolves to manifest `modelPath`
+  - summary `outputArtifact` records the shipped GLB byte size and SHA-256 digest
   - summary and sidecars share the same `buildProvenance`
   - `buildProvenance.mpfb.revision` is a concrete upstream git SHA
   - `buildProvenance.assetPack.sha256` records the exact asset-pack payload used during export
-  - body-segment object names still match the manifest mesh-zone contract used by runtime masking
+  - shipped GLBs still require the runtime optimization extensions (`EXT_meshopt_compression`, `EXT_texture_webp`, `KHR_mesh_quantization`)
+  - shipped GLB root node, skin joints, body-segment nodes, alias-resolved bones, and morph target names still match the summary + manifest contract used by runtime masking
 
 Current registry:
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -374,6 +375,15 @@ def build_measurements_sidecar(summary, variant_id):
     }
 
 
+def build_output_artifact(output_glb: Path):
+    payload = output_glb.read_bytes()
+    return {
+        "relativePath": to_repo_relative(output_glb),
+        "byteSize": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+
+
 def build_morph_map_sidecar(summary, variant_id):
     shape_keys = summary.get("basemesh", {}).get("shapeKeys", [])
     return {
@@ -549,6 +559,7 @@ def main():
     if args.output_glb:
         output_glb = Path(args.output_glb).resolve()
         summary["outputGlb"] = to_repo_relative(output_glb)
+        summary["outputArtifact"] = build_output_artifact(output_glb)
         if summary["authoringProvenance"]["outputModelPath"] is None:
             summary["authoringProvenance"]["outputModelPath"] = summary["outputGlb"]
 

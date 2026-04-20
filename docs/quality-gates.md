@@ -124,8 +124,20 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - host chunk/WebGL fallback and in-canvas asset-loading placeholder remain visible on the closet stage
 - preloading stays within explicit asset budgets
 - queued jobs preserve `trace_id` and return canonical `job-result.v1` envelopes on status reads
+- remote-backed job status reads normalize timestamp formats into canonical ISO `...Z` strings before emitting public envelopes
 
 Use `docs/MAINTENANCE_PLAYBOOK.md` for the full runtime regression checklist.
+
+## Security Expectations
+
+When release, auth, or remote-store work changes, verify at least the relevant subset of these:
+
+- exposed Supabase `public` schema tables, views, and functions used by the product keep RLS enabled
+- browser-facing surfaces use only `NEXT_PUBLIC_SUPABASE_URL` plus a low-privilege browser key; the repo still names that key `NEXT_PUBLIC_SUPABASE_ANON_KEY` for compatibility
+- `SUPABASE_SERVICE_ROLE_KEY` remains backend-only on Railway API / worker surfaces and is never required for Vercel/browser smoke
+- admin garment routes still reject anonymous-header fallback and non-admin callers
+- release evidence clearly says whether smoke used dummy/local env or backend-injected live env
+- Security Advisor review status is called out when RC notes are frozen
 
 ## Evidence Rules
 
@@ -139,7 +151,9 @@ Release-oriented work should also capture:
 
 - fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`
 - any required route or API smoke evidence
+- any browser trace artifact kept from `on-first-retry` or `retain-on-failure` smoke runs when a retry/failure occurs
 - docs synced with the changed boundary
+- the active remote-store / key-separation posture used for the run
 
 ## Failure Policy
 

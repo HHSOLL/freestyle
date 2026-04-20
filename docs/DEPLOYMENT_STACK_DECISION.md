@@ -76,3 +76,13 @@ Status: Accepted (updated)
 3. `jobs` RPC(`claim_jobs`, `heartbeat_jobs`, `requeue_stale_jobs`) smoke test
 4. Supabase Auth/Storage/Postgres 권한(RLS/서비스키) 확인
 5. `lint + typecheck + build` 및 주요 API smoke 테스트 통과
+
+## 7. RC Freeze Reference
+현재 release-candidate 기준 연결 리소스는 아래 조합으로 고정한다.
+
+1. Vercel product project: `freestyle`
+2. Vercel admin project: `freestyleadmin`
+3. Railway production project/environment: `freestyle / production`
+4. Railway production services: `api`, `worker_importer`
+5. Supabase production project ref: `yczpjbwsszikuljstphi` (`fsp`)
+6. Active RC evidence note: `docs/qa/phase6-batch2-release-evidence-2026-04-20.md`

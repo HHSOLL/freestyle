@@ -17,9 +17,42 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-19
+- 2026-04-20
 
 ## 점검 로그
+### 2026-04-20
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Supabase official docs:
+    - `https://supabase.com/docs/guides/api/api-keys`
+    - `https://supabase.com/docs/guides/api/securing-your-api`
+    - `https://supabase.com/docs/guides/deployment/going-into-prod`
+  - Playwright official docs:
+    - `https://playwright.dev/docs/trace-viewer`
+- 신규 변화 요약:
+  - `Pulse`는 현재 인증 환경에서 여전히 접근되지 않았다.
+  - Supabase 공식 문서는 browser/client surface에는 low-privilege publishable posture를, backend components에는 secret/service-role posture를 분리해서 쓰라고 계속 강하게 권장한다.
+  - 같은 문서군은 exposed `public` schema 객체에 대해 RLS를 기본값으로 유지하고, production 전에는 Security Advisor findings를 다시 확인하라고 명시한다.
+  - Playwright 공식 문서는 CI/release smoke에서 trace를 `on-first-retry` 또는 `retain-on-failure`로 남겨 실패 재현 evidence를 보존하는 방향을 권장한다.
+- 우리 프로젝트 영향:
+  - `Phase 6 / Batch 2` 문서와 RC evidence에는 Vercel browser env와 Railway backend env의 Supabase key 경계를 명시해야 한다.
+  - release smoke evidence는 live env-backed pass인지, dummy/local env인지 구분해서 적어야 한다.
+  - browser smoke가 retry/fail 할 때는 trace artifact를 evidence 규칙에 포함시키는 편이 맞다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `packages/db/src/assets-schema-compat.ts`
+    - `packages/db/src/assets-schema-compat.test.ts`
+    - `packages/db/src/index.ts`
+    - `apps/api/src/modules/jobs/jobs.service.ts`
+    - `apps/api/src/modules/jobs/jobs.service.test.ts`
+    - `docs/quality-gates.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/api-contract.md`
+    - `docs/DEPLOYMENT_STACK_DECISION.md`
+    - `docs/qa/phase6-batch2-release-evidence-2026-04-20.md`
+    - `docs/freestyle-improvement-status.md`
+
 ### 2026-04-19
 - 확인 소스:
   - `ChatGPT Pulse`

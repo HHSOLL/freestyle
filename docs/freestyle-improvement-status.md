@@ -12,9 +12,9 @@ It is separate from `docs/replatform-v2/**`.
 
 ## As Of
 
-- Date: `2026-04-19`
+- Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `99%`
+- Working overall completion estimate: `100%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repo already has the mannequin-first product shape, contracts package, runtime package split, and early admin/runtime garment flow, while persistence hardening, worker contracts, and release-grade QA remain unfinished.
 
@@ -28,7 +28,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 3` | Closet and runtime-3d stabilization | `completed` | Loader, disposal, visible fallback ownership, host lifecycle coverage, and top-level stage scene policy are now centralized and regression-tested |
 | `Phase 4` | server persistence and admin publishing hardening | `completed` | `BodyProfile` persistence is replaceable, and published runtime garments now have a remote Supabase backing store with RLS-ready coverage plus local fallback |
 | `Phase 5` | worker, job contract, and observability hardening | `completed` | `Batch 1` and `Batch 2` are complete; broader release smoke now moves to `Phase 6` |
-| `Phase 6` | QA, security, and release candidate | `in_progress` | `Batch 1` added current screenshot evidence, smoke-doc expansion, and an env-gated lab create/status smoke path; release candidate hardening is still open |
+| `Phase 6` | QA, security, and release candidate | `completed` | `Batch 1` added screenshot and smoke evidence, and `Batch 2` closed the live env-backed lab smoke, security/RLS checklist, and RC freeze notes |
 
 ## Current Batch
 
@@ -688,9 +688,35 @@ Outcome:
 - current product screenshots are checked in alongside a dated evidence note instead of being left as an implicit manual step
 - release smoke still needs one env-enabled pass before RC because the workspace does not currently carry Supabase admin credentials for live lab create/status execution
 
-### Next Batch
+### `Phase 6 / Batch 2`
 
-`Phase 6 / Batch 2` should run an env-backed release pass for the lab create/status routes, tighten the RLS/security checklist against the active remote stores, and then freeze RC deployment notes.
+Status: `completed`
+
+Completed work:
+
+1. ran the env-backed lab create/status smoke path using Railway `api` service variables instead of dummy/local Supabase values
+2. fixed two remote-compatibility seams discovered by that live pass: optional `assets` insert columns on lagging remote stores and offset timestamp normalization for legacy job status reads
+3. tightened the active release docs around RLS, browser-vs-backend Supabase key separation, trace artifact retention, and RC deployment freeze references
+4. recorded a dated release-evidence note for the completed RC pass
+
+Evidence:
+
+- `packages/db/src/assets-schema-compat.ts`
+- `packages/db/src/assets-schema-compat.test.ts`
+- `packages/db/src/index.ts`
+- `apps/api/src/modules/jobs/jobs.service.ts`
+- `apps/api/src/modules/jobs/jobs.service.test.ts`
+- `docs/quality-gates.md`
+- `docs/MAINTENANCE_PLAYBOOK.md`
+- `docs/api-contract.md`
+- `docs/DEPLOYMENT_STACK_DECISION.md`
+- `docs/qa/phase6-batch2-release-evidence-2026-04-20.md`
+
+Outcome:
+
+- env-backed lab evaluation and try-on create/status reads are now proven against the linked production backend credentials instead of remaining a skipped path
+- RC docs now make the active Vercel browser key / Railway service key boundary explicit
+- the remaining repo-improvement program is closed; follow-on work is ordinary maintenance rather than an open hardening phase
 
 ## Phase 0 Closeout
 

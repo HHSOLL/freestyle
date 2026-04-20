@@ -16,6 +16,11 @@ import type {
   ProductRecord,
   TryonRecord,
 } from "@freestyle/shared";
+import {
+  buildLegacyCompatibleAssetInsert,
+  isLegacyAssetsColumnDriftError,
+  normalizeAssetRecord,
+} from "./assets-schema-compat.js";
 
 const required = (key: string) => {
   const value = process.env[key]?.trim();
@@ -493,24 +498,30 @@ export const createAsset = async (input: {
   metadata?: AssetMetadata;
 }) => {
   const supabase = getAdminClient();
-  const { data, error } = await supabase
-    .from("assets")
-    .insert({
-      user_id: input.userId,
-      product_id: input.productId ?? null,
-      name: input.name ?? input.metadata?.sourceTitle ?? null,
-      brand: input.brand ?? input.metadata?.sourceBrand ?? null,
-      source_url: input.sourceUrl ?? input.metadata?.sourceUrl ?? null,
-      original_image_url: input.originalImageUrl,
-      category: input.category ?? null,
-      metadata: input.metadata ?? {},
-      status: "pending",
-    })
-    .select("*")
-    .single();
+  const insertRow = {
+    user_id: input.userId,
+    product_id: input.productId ?? null,
+    name: input.name ?? input.metadata?.sourceTitle ?? null,
+    brand: input.brand ?? input.metadata?.sourceBrand ?? null,
+    source_url: input.sourceUrl ?? input.metadata?.sourceUrl ?? null,
+    original_image_url: input.originalImageUrl,
+    category: input.category ?? null,
+    metadata: input.metadata ?? {},
+    status: "pending" as const,
+  };
+
+  let { data, error } = await supabase.from("assets").insert(insertRow).select("*").single();
+
+  if (error && isLegacyAssetsColumnDriftError(error.message)) {
+    ({ data, error } = await supabase
+      .from("assets")
+      .insert(buildLegacyCompatibleAssetInsert(insertRow))
+      .select("*")
+      .single());
+  }
 
   if (error || !data) throw new Error(error?.message || "Failed to create asset.");
-  return data as AssetRecord;
+  return normalizeAssetRecord(data as AssetRecord);
 };
 
 export const updateAsset = async (assetId: string, patch: Record<string, unknown>) => {

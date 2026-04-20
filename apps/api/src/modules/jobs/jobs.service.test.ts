@@ -74,6 +74,20 @@ test("buildUserJobResponse preserves errors and null results", () => {
   });
 });
 
+test("buildUserJobResponse normalizes offset timestamps from remote stores into canonical ISO strings", () => {
+  const response = buildUserJobResponse(
+    baseJob({
+      created_at: "2026-04-20T10:35:32.125407+00:00",
+      updated_at: "2026-04-20T10:35:32.125407+00:00",
+      completed_at: "2026-04-20T10:36:00+00:00",
+    }),
+  );
+
+  assert.equal(response.created_at, "2026-04-20T10:35:32.125Z");
+  assert.equal(response.updated_at, "2026-04-20T10:35:32.125Z");
+  assert.equal(response.completed_at, "2026-04-20T10:36:00.000Z");
+});
+
 test("buildUserJobResponse preserves evaluator explanation fields inside canonical job results", () => {
   const response = buildUserJobResponse(
     baseJob({

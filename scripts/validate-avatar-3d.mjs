@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { collectAvatarMeasurementsSidecarSummaryIssues } from "@freestyle/domain-avatar";
 import {
   avatarManifestSchemaVersion,
   avatarMeasurementsSidecarSchemaVersion,
@@ -516,106 +517,13 @@ const validateMpfbSummary = (variantId, entry) => {
       key: "measurementsPath",
       schemaVersion: avatarMeasurementsSidecarSchemaVersion,
       validate: (sidecar) => {
-        if (sidecar?.variantId !== variantId) {
-          issues.push(`${variantId}: measurements sidecar variantId mismatch`);
-        }
-        if (sidecar?.authoringSource !== "mpfb2") {
-          issues.push(`${variantId}: measurements sidecar authoringSource must be mpfb2`);
-        }
-        if (sidecar?.units !== "mm") {
-          issues.push(`${variantId}: measurements sidecar units must be mm`);
-        }
-        const requiredMeasurements = [
-          "statureMm",
-          "shoulderWidthMm",
-          "armLengthMm",
-          "inseamMm",
-          "torsoLengthMm",
-          "hipWidthMm",
-        ];
-        for (const key of requiredMeasurements) {
-          if (typeof sidecar?.referenceMeasurementsMm?.[key] !== "number" || sidecar.referenceMeasurementsMm[key] <= 0) {
-            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm.${key} must be a positive number`);
-          }
-        }
-        if (JSON.stringify(sidecar?.referenceMeasurementsMm ?? {}) !== JSON.stringify(summary?.referenceMeasurementsMm ?? {})) {
-          issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm must match summary`);
-        }
-        const summaryBoneNames = Array.isArray(summary?.rig?.boneNames) ? summary.rig.boneNames : [];
-        const expectedDerivations = {
-          statureMm: {
-            method: "object-bounding-box-height",
-            objectName: summary?.fullBody,
-          },
-          shoulderWidthMm: {
-            method: "bone-head-distance",
-            bones: ["upperarm_l", "upperarm_r"],
-          },
-          armLengthMm: {
-            method: "bone-chain-length",
-            bones: ["upperarm_l", "lowerarm_l", "hand_l"],
-          },
-          inseamMm: {
-            method: "bone-chain-length",
-            bones: ["thigh_l", "calf_l"],
-          },
-          torsoLengthMm: {
-            method: "bone-chain-length",
-            bones: ["spine_01", "spine_02", "spine_03", "neck_01"],
-          },
-          hipWidthMm: {
-            method: "bone-head-distance",
-            bones: ["thigh_l", "thigh_r"],
-          },
-        };
-        const measurementDerivation = sidecar?.referenceMeasurementsMmDerivation;
-        if (!measurementDerivation || typeof measurementDerivation !== "object") {
-          issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation is required`);
-        } else {
-          if (measurementDerivation.kind !== "geometry-derived-reference") {
-            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.kind must be geometry-derived-reference`);
-          }
-          if (measurementDerivation.intendedUse !== "authoring-qa") {
-            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.intendedUse must be authoring-qa`);
-          }
-          if (measurementDerivation.sourceObjectName !== summary?.fullBody) {
-            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.sourceObjectName must match summary fullBody`);
-          }
-          if (measurementDerivation.sourceRigName !== summary?.rig?.name) {
-            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.sourceRigName must match summary rig name`);
-          }
-          for (const [key, expected] of Object.entries(expectedDerivations)) {
-            const derivation = measurementDerivation?.measurements?.[key];
-            if (!derivation || typeof derivation !== "object") {
-              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key} is required`);
-              continue;
-            }
-            if (derivation.method !== expected.method) {
-              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.method must be ${expected.method}`);
-            }
-            if (Array.isArray(expected.bones)) {
-              const boneNames = Array.isArray(derivation.bones) ? derivation.bones : [];
-              if (
-                boneNames.length !== expected.bones.length
-                || boneNames.some((boneName, index) => boneName !== expected.bones[index])
-              ) {
-                issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must match the extraction chain`);
-              }
-              if (boneNames.some((boneName) => !summaryBoneNames.includes(boneName))) {
-                issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must exist in summary rig.boneNames`);
-              }
-            }
-            if (typeof expected.objectName === "string" && derivation.objectName !== expected.objectName) {
-              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.objectName must match summary fullBody`);
-            }
-          }
-        }
-        if (JSON.stringify(sidecar?.segmentationVertexCounts ?? {}) !== JSON.stringify(summary?.segmentation ?? {})) {
-          issues.push(`${variantId}: measurements sidecar segmentationVertexCounts must match summary segmentation`);
-        }
-        if (JSON.stringify(sidecar?.buildProvenance ?? {}) !== JSON.stringify(summary?.buildProvenance ?? {})) {
-          issues.push(`${variantId}: measurements sidecar buildProvenance must match summary buildProvenance`);
-        }
+        issues.push(
+          ...collectAvatarMeasurementsSidecarSummaryIssues(sidecar, {
+            variantId,
+            expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
+            summary,
+          }),
+        );
       },
     },
     {

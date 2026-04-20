@@ -22,6 +22,13 @@ import {
   type BodyProfileDetailedKey,
   type BodyProfileSimpleKey,
 } from "@freestyle/contracts";
+export {
+  avatarComparableReferenceMeasurements,
+  avatarReferenceMeasurementKeys,
+  buildAvatarReferenceMeasurementDerivationExpectations,
+  collectAvatarMeasurementsSidecarBaseIssues,
+  collectAvatarMeasurementsSidecarSummaryIssues,
+} from "./calibration.js";
 
 export const avatarStorageKeys = {
   bodyProfile: "freestyle:avatar-profile:v2",

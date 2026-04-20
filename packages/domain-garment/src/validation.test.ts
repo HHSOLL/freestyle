@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { garmentFitAssessmentSchema } from "@freestyle/contracts";
+import fs from "node:fs";
+import path from "node:path";
+import { garmentFitAssessmentSchema, garmentPatternSpecSchema } from "@freestyle/contracts";
 import {
   assessGarmentPhysicalFit,
   computeGarmentCorrectiveTransform,
@@ -16,10 +18,13 @@ import {
   resolveLayeredEquippedItemIds,
   resolveDefaultClosetLoadout,
   starterGarmentCatalog,
+  validateGarmentPatternSpecAgainstStarterCatalog,
   validateGarmentRuntimeBinding,
   validateStarterGarment,
 } from "./index.js";
 import { defaultBodyProfile } from "@freestyle/shared-types";
+
+const repoRoot = process.cwd();
 
 test("starter garment catalog satisfies runtime contract", () => {
   const issues = starterGarmentCatalog.flatMap(validateStarterGarment);
@@ -34,6 +39,40 @@ test("starter garment catalog carries publication-ready physical fit metadata", 
     assert.ok(item.metadata?.physicalProfile, `${item.id} is missing physicalProfile`);
     assert.ok(assessGarmentPhysicalFit(item, defaultBodyProfile), `${item.id} does not produce a fit assessment`);
   }
+});
+
+test("committed garment pattern specs stay aligned with starter runtime metadata", () => {
+  const specRoot = path.join(repoRoot, "authoring/garments/mpfb/specs");
+  const specFiles = fs
+    .readdirSync(specRoot)
+    .filter((entry) => entry.endsWith(".pattern-spec.json"))
+    .sort();
+
+  assert.ok(specFiles.length > 0);
+
+  for (const specFile of specFiles) {
+    const parsedSpec = garmentPatternSpecSchema.parse(
+      JSON.parse(fs.readFileSync(path.join(specRoot, specFile), "utf8")),
+    );
+    assert.deepEqual(
+      validateGarmentPatternSpecAgainstStarterCatalog(parsedSpec),
+      [],
+      `${specFile} drifted away from starter runtime metadata`,
+    );
+  }
+});
+
+test("pattern spec parity validation flags starter metadata drift", () => {
+  const specPath = path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json");
+  const parsedSpec = garmentPatternSpecSchema.parse(JSON.parse(fs.readFileSync(specPath, "utf8")));
+
+  assert.deepEqual(
+    validateGarmentPatternSpecAgainstStarterCatalog({
+      ...parsedSpec,
+      anchorIds: ["leftShoulder"],
+    }),
+    ["pattern spec anchorIds does not match starter runtime metadata."],
+  );
 });
 
 test("hero garment size charts stay monotonic across M/L/XL ladders", () => {

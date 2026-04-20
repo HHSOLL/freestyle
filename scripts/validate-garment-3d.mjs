@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   collectGarmentRuntimeModelPaths,
   starterGarmentCatalog,
+  validateGarmentPatternSpecAgainstStarterCatalog,
   validateStarterGarment,
 } from "../packages/domain-garment/src/index.ts";
 import { garmentAuthoringSummarySchema, garmentPatternSpecSchema } from "../packages/contracts/src/index.ts";
@@ -13,7 +14,6 @@ const repoRoot = process.cwd();
 const issues = [];
 const seenIds = new Set();
 const rawSummaryRoot = path.join(repoRoot, "authoring/garments/exports/raw");
-const starterCatalogById = new Map(starterGarmentCatalog.map((item) => [item.id, item]));
 
 const heroFitAuditExpectations = [
   {
@@ -75,49 +75,6 @@ const resolvePublicPath = (assetPath) => {
 };
 
 const readJson = (absolutePath) => JSON.parse(fs.readFileSync(absolutePath, "utf8"));
-
-const sortForStableCompare = (value) => {
-  if (Array.isArray(value)) {
-    return value.map(sortForStableCompare);
-  }
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nestedValue]) => [key, sortForStableCompare(nestedValue)]),
-    );
-  }
-  return value;
-};
-
-const comparePatternSpecWithRuntimeMetadata = (summaryLabel, patternSpec) => {
-  const starter = starterCatalogById.get(patternSpec.runtimeStarterId);
-  if (!starter) {
-    issues.push(`${summaryLabel}: pattern spec starter id ${patternSpec.runtimeStarterId} does not exist.`);
-    return;
-  }
-
-  if (starter.category !== patternSpec.category) {
-    issues.push(
-      `${summaryLabel}: pattern spec category ${patternSpec.category} does not match starter catalog category ${starter.category}.`,
-    );
-  }
-
-  const metadata = starter.metadata ?? {};
-  const checks = [
-    ["measurements", metadata.measurements ?? null, patternSpec.measurements],
-    ["measurementModes", metadata.measurementModes ?? null, patternSpec.measurementModes],
-    ["sizeChart", metadata.sizeChart ?? null, patternSpec.sizeChart],
-    ["selectedSizeLabel", metadata.selectedSizeLabel ?? null, patternSpec.selectedSizeLabel],
-    ["physicalProfile", metadata.physicalProfile ?? null, patternSpec.physicalProfile],
-  ];
-
-  for (const [label, runtimeValue, patternValue] of checks) {
-    if (JSON.stringify(sortForStableCompare(runtimeValue)) !== JSON.stringify(sortForStableCompare(patternValue))) {
-      issues.push(`${summaryLabel}: pattern spec ${label} does not match starter runtime metadata.`);
-    }
-  }
-};
 
 for (const item of starterGarmentCatalog) {
   if (seenIds.has(item.id)) {
@@ -222,7 +179,11 @@ for (const summaryFile of committedRawSummaries) {
     continue;
   }
 
-  comparePatternSpecWithRuntimeMetadata(summaryFile, parsedPatternSpec.data);
+  issues.push(
+    ...validateGarmentPatternSpecAgainstStarterCatalog(parsedPatternSpec.data, starterGarmentCatalog).map(
+      (issue) => `${summaryFile}: ${issue}`,
+    ),
+  );
 }
 
 if (issues.length > 0) {

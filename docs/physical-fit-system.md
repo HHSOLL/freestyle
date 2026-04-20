@@ -217,7 +217,8 @@ As of `2026-04-20`:
   - it does not widen `metadata.measurements`, `measurementModes`, `sizeChart`, `physicalProfile`, `correctiveFit`, or `/v1` runtime payloads
 - `Phase B / Batch 2` now adds committed garment `pattern-spec` sidecars under `authoring/garments/mpfb/specs/*.pattern-spec.json`
 - those sidecars mirror the current starter runtime measurement truth while adding authoring-only `materialPreset`, `anchorIds`, and optional `panels` / `seams`
-- `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the sidecar drifts away from starter runtime metadata parity
+- `Phase B / Batch 3` closes the semantic ownership seam by moving starter pattern-spec parity checks into `packages/domain-garment`, so validator runs and domain tests now share the same rule set
+- `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the shared garment-domain parity helper detects starter drift
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

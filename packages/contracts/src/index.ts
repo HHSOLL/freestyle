@@ -845,6 +845,8 @@ export const garmentPatternSpecSchema = z
     });
   });
 
+export type GarmentPatternSpec = z.infer<typeof garmentPatternSpecSchema>;
+
 const garmentPatternSpecReferenceSchema = z
   .object({
     relativePath: repoRelativePathSchema,

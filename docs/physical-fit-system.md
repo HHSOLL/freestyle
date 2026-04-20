@@ -173,6 +173,7 @@ That upstream domain is responsible for:
 - attaching exact product measurements
 - declaring measurement interpretation
 - publishing the runtime package
+- emitting versioned authoring summaries for garment, hair, and accessory source artifacts before runtime promotion
 
 `Closet` should only consume the published package and perform fitting.
 
@@ -182,7 +183,7 @@ Companion document:
 
 ## 8. Current Implementation Status
 
-As of `2026-04-17`:
+As of `2026-04-20`:
 
 - the repo ships MPFB-authored avatar GLBs with runtime shape keys
 - the repo ships MPFB starter garments
@@ -210,6 +211,10 @@ As of `2026-04-17`:
   - `GarmentFitAssessment`
 - `validate:fit-calibration` now snapshots the committed MPFB avatar `measurements.json` sidecars next to the starter garment fit matrix, so calibration evidence includes the authored base-avatar reference measurements and derivation metadata without widening runtime consumers
 - the generated `output/fit-calibration/latest.json` evidence is now schema-versioned and parsed through `packages/contracts`, so calibration-report drift is treated as a contract change instead of an ad-hoc JSON edit
+- `Phase B / Batch 1` has started by versioning the committed MPFB garment, hair, and accessory authoring summaries in `packages/contracts` and parsing the hero garment summaries in `validate:garment3d` before the fit-budget checks run
+- the new authoring-summary contract is upstream-only:
+  - it records authoring provenance and promoted artifact paths
+  - it does not widen `metadata.measurements`, `measurementModes`, `sizeChart`, `physicalProfile`, `correctiveFit`, or `/v1` runtime payloads
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

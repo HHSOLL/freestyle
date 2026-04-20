@@ -1,4 +1,7 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "accessory",
   "variantId": "female-base",
   "accessoryType": "oval_shades",
   "armature": "mpfb-female-base",
@@ -12,6 +15,6 @@
       ]
     }
   ],
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-accessory_oval_shades.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-female-accessory_oval_shades.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb"
 }

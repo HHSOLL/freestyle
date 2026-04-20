@@ -1,4 +1,8 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "garment",
+  "variantId": "female-base",
   "garment": {
     "name": "mpfb-female-base.toigo_wool_pants",
     "vertexCount": 1372,
@@ -104,14 +108,20 @@
       "ball_r"
     ]
   },
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/female-base.json",
-  "clothesAsset": "/Users/sol/Desktop/fsp/authoring/garments/.cache/official-packs/extracted/pants01/clothes/toigo_wool_pants/toigo_wool_pants.mhclo",
+  "preset": {
+    "presetId": "female-base",
+    "relativePath": "authoring/avatar/mpfb/presets/female-base.json"
+  },
+  "clothesAsset": {
+    "kind": "repo-relative",
+    "value": "authoring/garments/.cache/official-packs/extracted/pants01/clothes/toigo_wool_pants/toigo_wool_pants.mhclo"
+  },
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installedNow": false,
+    "userDataSource": "blender-extension-user-data"
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-bottom_soft_wool.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-female-bottom_soft_wool.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb"
 }

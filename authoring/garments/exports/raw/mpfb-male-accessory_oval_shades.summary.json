@@ -1,4 +1,7 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "accessory",
   "variantId": "male-base",
   "accessoryType": "oval_shades",
   "armature": "mpfb-male-base",
@@ -12,6 +15,6 @@
       ]
     }
   ],
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-male-accessory_oval_shades.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-male-accessory_oval_shades.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb"
 }

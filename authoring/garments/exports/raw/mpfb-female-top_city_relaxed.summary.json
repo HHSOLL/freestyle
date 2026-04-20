@@ -1,4 +1,8 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "garment",
+  "variantId": "female-base",
   "garment": {
     "name": "mpfb-female-base.female_casualsuit02",
     "vertexCount": 2876,
@@ -96,14 +100,20 @@
       "ball_r"
     ]
   },
-  "preset": "/Users/sol/Desktop/fsp/authoring/avatar/mpfb/presets/female-base.json",
-  "clothesAsset": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data/clothes/female_casualsuit02/female_casualsuit02.mhclo",
+  "preset": {
+    "presetId": "female-base",
+    "relativePath": "authoring/avatar/mpfb/presets/female-base.json"
+  },
+  "clothesAsset": {
+    "kind": "mpfb-user-data-fragment",
+    "value": "clothes/female_casualsuit02/female_casualsuit02.mhclo"
+  },
   "packState": {
     "installed": true,
     "modern": true,
-    "installed_now": false,
-    "user_data": "/Users/sol/Library/Application Support/Blender/4.4/extensions/.user/src/mpfb/data"
+    "installedNow": false,
+    "userDataSource": "blender-extension-user-data"
   },
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-female-top_city_relaxed.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-female-top_city_relaxed.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb"
 }

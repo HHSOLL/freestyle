@@ -1,4 +1,7 @@
 {
+  "schemaVersion": "runtime-asset-authoring-summary.v1",
+  "authoringSource": "mpfb2",
+  "kind": "accessory",
   "variantId": "male-base",
   "accessoryType": "bucket_hat",
   "armature": "mpfb-male-base",
@@ -12,6 +15,6 @@
       ]
     }
   ],
-  "outputBlend": "/Users/sol/Desktop/fsp/authoring/garments/exports/raw/mpfb-male-accessory_city_bucket_hat.blend",
-  "outputGlb": "/Users/sol/Desktop/fsp/apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb"
+  "outputBlend": "authoring/garments/exports/raw/mpfb-male-accessory_city_bucket_hat.blend",
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb"
 }

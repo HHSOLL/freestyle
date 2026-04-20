@@ -7,6 +7,7 @@ import {
   starterGarmentCatalog,
   validateStarterGarment,
 } from "../packages/domain-garment/src/index.ts";
+import { garmentAuthoringSummarySchema } from "../packages/contracts/src/index.ts";
 
 const repoRoot = process.cwd();
 const issues = [];
@@ -99,7 +100,16 @@ for (const expectation of heroFitAuditExpectations) {
     continue;
   }
   const summary = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
-  const fitAudit = summary.fitAudit;
+  const parsedSummary = garmentAuthoringSummarySchema.safeParse(summary);
+  if (!parsedSummary.success) {
+    issues.push(
+      `${expectation.label}: authoring summary failed schema validation (${parsedSummary.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+  const fitAudit = parsedSummary.data.fitAudit;
   if (!fitAudit) {
     issues.push(`${expectation.label}: fitAudit is required in garment summary.`);
     continue;

@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `86%`
+- Working overall completion estimate: `88%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -36,7 +36,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
-| `Phase B` | pattern and garment metadata layer | `pending` | follow-on track after avatar authoring pipeline hardening |
+| `Phase B` | pattern and garment metadata layer | `in_progress` | `Batch 1` is complete; upstream MPFB authoring summaries are now versioned and parsed before garment QA budgets run |
 
 ### `Phase A / Batch 1`
 
@@ -327,6 +327,38 @@ Outcome:
 
 - avatar authoring pipeline hardening is now closed as a tracked phase instead of depending on duplicate schema literals or synthetic-only regression coverage
 - the next long-term authoring work can move to `Phase B` without carrying unresolved `Phase A` contract drift
+
+### `Phase B / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added versioned shared authoring-summary schemas for `garment`, `hair`, and `accessory` artifacts in `packages/contracts`
+2. normalized committed MPFB raw summary files away from checkout-specific absolute paths and toward repo-relative or structured source references
+3. updated the MPFB garment, hair, and accessory Blender export scripts so regenerated summaries emit the same versioned contract
+4. tightened `validate:garment3d` so hero garment summaries are parsed through the shared contract before the fit-budget checks run
+5. clarified in active docs that this new authoring-summary contract is upstream-only and does not widen `PublishedGarmentAsset`, runtime metadata, or `/v1` payloads
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `scripts/validate-garment-3d.mjs`
+- `authoring/garments/mpfb/scripts/build_runtime_garment.py`
+- `authoring/garments/mpfb/scripts/build_runtime_hair.py`
+- `authoring/garments/mpfb/scripts/build_runtime_accessory.py`
+- `authoring/garments/exports/raw/mpfb-female-top_soft_casual.summary.json`
+- `authoring/garments/exports/raw/mpfb-female-hair_signature_ponytail.summary.json`
+- `authoring/garments/exports/raw/mpfb-female-accessory_city_bucket_hat.summary.json`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+- `docs/contract-ownership.md`
+
+Outcome:
+
+- FreeStyle now has a typed seam between MPFB source artifacts and runtime garment promotion instead of treating raw authoring JSON as an unversioned implementation detail
+- the next `Phase B` batch can move toward pattern/material metadata without reopening public runtime or admin payload contracts first
 
 ## Current Batch
 

@@ -106,6 +106,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_night_runner.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-shoes_night_runner.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb"
 }

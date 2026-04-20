@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-shoe-night-runner",
+  "category": "shoes",
+  "measurements": {
+    "lengthCm": 29,
+    "hemCm": 12
+  },
+  "measurementModes": {
+    "lengthCm": "linear-length",
+    "hemCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "265",
+      "measurements": {
+        "lengthCm": 26.6,
+        "hemCm": 10.2
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Reference runner chart in cm-based length and instep opening width."
+    },
+    {
+      "label": "275",
+      "measurements": {
+        "lengthCm": 27.6,
+        "hemCm": 10.9
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "285",
+      "measurements": {
+        "lengthCm": 28.6,
+        "hemCm": 11.6
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "275",
+  "physicalProfile": {
+    "materialStretchRatio": 0.018,
+    "maxComfortStretchRatio": 0.01,
+    "compressionToleranceCm": {
+      "lengthCm": 0.25,
+      "hemCm": 0.3
+    }
+  },
+  "materialPreset": {
+    "presetId": "mesh-runner-upper",
+    "fabricFamily": "synthetic",
+    "stretchProfile": "medium",
+    "thicknessMm": 2.2,
+    "notes": "Performance runner upper with slightly higher opening tolerance."
+  },
+  "anchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "panels": [
+    {
+      "id": "upper",
+      "role": "front-upper",
+      "pieceCount": 2
+    },
+    {
+      "id": "heel-counter",
+      "role": "heel-counter",
+      "pieceCount": 2
+    },
+    {
+      "id": "sole",
+      "role": "sole",
+      "pieceCount": 2
+    }
+  ],
+  "seams": [
+    {
+      "id": "upper-to-sole",
+      "construction": "cemented",
+      "panelIds": [
+        "upper",
+        "sole"
+      ]
+    },
+    {
+      "id": "heel-join",
+      "construction": "joined",
+      "panelIds": [
+        "upper",
+        "heel-counter"
+      ]
+    }
+  ]
+}

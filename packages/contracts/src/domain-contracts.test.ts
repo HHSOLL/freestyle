@@ -27,6 +27,8 @@ import {
   garmentFitProfileSchema,
   garmentFitStateSchema,
   garmentMeasurementsSchema,
+  garmentPatternSpecSchema,
+  garmentPatternSpecSchemaVersion,
   fitCalibrationReportSchema,
   garmentAuthoringSummarySchema,
   normalizeBodyProfile,
@@ -322,6 +324,7 @@ test('authoring summary schemas accept committed garment, hair, and accessory ar
   assert.equal(garment.schemaVersion, assetAuthoringSummarySchemaVersion);
   assert.equal(garment.kind, 'garment');
   assert.equal(garment.variantId, 'female-base');
+  assert.equal(garment.patternSpec?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json');
   assert.equal(hair.schemaVersion, assetAuthoringSummarySchemaVersion);
   assert.equal(hair.kind, 'hair');
   assert.equal(accessory.schemaVersion, assetAuthoringSummarySchemaVersion);
@@ -330,6 +333,26 @@ test('authoring summary schemas accept committed garment, hair, and accessory ar
   assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(garment), garment);
   assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(hair), hair);
   assert.deepEqual(runtimeAssetAuthoringSummarySchema.parse(accessory), accessory);
+});
+
+test('garmentPatternSpecSchema accepts committed starter authoring specs', () => {
+  const top = garmentPatternSpecSchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json'),
+  );
+  const trousers = garmentPatternSpecSchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/bottom_soft_wool.pattern-spec.json'),
+  );
+  const runner = garmentPatternSpecSchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/shoes_night_runner.pattern-spec.json'),
+  );
+
+  assert.equal(top.schemaVersion, garmentPatternSpecSchemaVersion);
+  assert.equal(top.runtimeStarterId, 'starter-top-soft-casual');
+  assert.equal(top.materialPreset.fabricFamily, 'knit');
+  assert.equal(trousers.category, 'bottoms');
+  assert.equal(trousers.selectedSizeLabel, 'L');
+  assert.equal(runner.category, 'shoes');
+  assert.ok(runner.anchorIds.includes('leftFoot'));
 });
 
 test('authoring summary schemas reject checkout-specific absolute paths', () => {

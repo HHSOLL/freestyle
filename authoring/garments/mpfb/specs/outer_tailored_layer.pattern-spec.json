@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-outer-tailored-layer",
+  "category": "outerwear",
+  "measurements": {
+    "chestCm": 128,
+    "waistCm": 118,
+    "shoulderCm": 51,
+    "sleeveLengthCm": 65,
+    "lengthCm": 95
+  },
+  "measurementModes": {
+    "chestCm": "body-circumference",
+    "waistCm": "body-circumference",
+    "shoulderCm": "linear-length",
+    "sleeveLengthCm": "linear-length",
+    "lengthCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "M",
+      "measurements": {
+        "shoulderCm": 46,
+        "chestCm": 56,
+        "waistCm": 52,
+        "sleeveLengthCm": 60,
+        "lengthCm": 88
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Tailored outer layer chart: shoulder/chest/waist flat width plus sleeve and length."
+    },
+    {
+      "label": "L",
+      "measurements": {
+        "shoulderCm": 51,
+        "chestCm": 64,
+        "waistCm": 59,
+        "sleeveLengthCm": 65,
+        "lengthCm": 95
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "XL",
+      "measurements": {
+        "shoulderCm": 52.5,
+        "chestCm": 66,
+        "waistCm": 61,
+        "sleeveLengthCm": 66,
+        "lengthCm": 96.5
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "L",
+  "physicalProfile": {
+    "materialStretchRatio": 0.03,
+    "maxComfortStretchRatio": 0.015,
+    "compressionToleranceCm": {
+      "chestCm": 2.8,
+      "waistCm": 2.2,
+      "shoulderCm": 1.2
+    }
+  },
+  "materialPreset": {
+    "presetId": "wool-suiting-structured",
+    "fabricFamily": "woven",
+    "stretchProfile": "low",
+    "thicknessMm": 1.8,
+    "weightGsm": 320,
+    "notes": "Structured suiting shell intended for tailored outer layering."
+  },
+  "anchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "panels": [
+    {
+      "id": "front-body",
+      "role": "front-body",
+      "pieceCount": 2
+    },
+    {
+      "id": "back-body",
+      "role": "back-body",
+      "pieceCount": 1
+    },
+    {
+      "id": "left-sleeve",
+      "role": "left-sleeve",
+      "pieceCount": 1
+    },
+    {
+      "id": "right-sleeve",
+      "role": "right-sleeve",
+      "pieceCount": 1
+    },
+    {
+      "id": "collar",
+      "role": "collar",
+      "pieceCount": 2
+    }
+  ],
+  "seams": [
+    {
+      "id": "shoulder-join",
+      "construction": "lockstitch",
+      "panelIds": [
+        "front-body",
+        "back-body"
+      ]
+    },
+    {
+      "id": "front-edge",
+      "construction": "welt",
+      "panelIds": [
+        "front-body",
+        "collar"
+      ]
+    },
+    {
+      "id": "sleeve-set",
+      "construction": "lockstitch",
+      "panelIds": [
+        "front-body",
+        "back-body",
+        "left-sleeve",
+        "right-sleeve"
+      ]
+    }
+  ]
+}

@@ -130,6 +130,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_city_relaxed.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
 }

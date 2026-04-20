@@ -118,6 +118,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-female-top_soft_casual.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb"
 }

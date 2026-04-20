@@ -167,6 +167,8 @@ Current registry:
 Every new garment asset must validate before product use. Use `npm run validate:garment3d` and keep the runtime contract aligned with [garment-fitting-contract.md](./garment-fitting-contract.md).
 
 - `validate:garment3d` now parses the committed MPFB garment authoring summaries through `packages/contracts` before it evaluates the fit-budget thresholds, so malformed source summaries fail closed instead of silently falling through to ad-hoc JSON reads
+- `validate:garment3d` now also resolves `patternSpec.relativePath` for committed starter garment summaries and checks that the authoring-only pattern/material sidecar stays in parity with starter runtime metadata before the fit-budget checks pass
+- authoring-only garment pattern/material metadata now lives in `authoring/garments/mpfb/specs/*.pattern-spec.json`; do not widen `/v1` or `PublishedGarmentAsset` just to carry that upstream metadata
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 
@@ -223,6 +225,7 @@ Rules:
 - validate promoted avatar assets with `npm run validate:avatar3d`
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
+- keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch
 - rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules

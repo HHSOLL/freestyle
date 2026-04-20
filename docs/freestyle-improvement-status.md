@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `88%`
+- Working overall completion estimate: `90%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -36,7 +36,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
-| `Phase B` | pattern and garment metadata layer | `in_progress` | `Batch 1` is complete; upstream MPFB authoring summaries are now versioned and parsed before garment QA budgets run |
+| `Phase B` | pattern and garment metadata layer | `in_progress` | `Batch 1` and `Batch 2` are complete; starter garment authoring summaries now point at committed pattern/material sidecars that are parity-checked against the runtime catalog |
 
 ### `Phase A / Batch 1`
 
@@ -359,6 +359,35 @@ Outcome:
 
 - FreeStyle now has a typed seam between MPFB source artifacts and runtime garment promotion instead of treating raw authoring JSON as an unversioned implementation detail
 - the next `Phase B` batch can move toward pattern/material metadata without reopening public runtime or admin payload contracts first
+
+### `Phase B / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a versioned `garment-pattern-spec.v1` contract in `packages/contracts` for authoring-only garment measurement/material metadata
+2. committed starter garment `pattern-spec` sidecars under `authoring/garments/mpfb/specs/*.pattern-spec.json` instead of widening runtime `/v1` payloads
+3. updated raw starter garment summaries so each garment summary now points at its sidecar through `patternSpec.relativePath`
+4. updated the MPFB Blender starter-garment build path so future summary reruns regenerate the same pattern-spec reference through `--pattern-spec-json`
+5. tightened `validate:garment3d` so starter garment summaries must resolve, parse, and stay in parity with the starter runtime metadata before garment QA passes
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `authoring/garments/mpfb/specs/*.pattern-spec.json`
+- `authoring/garments/exports/raw/mpfb-*.summary.json`
+- `authoring/garments/mpfb/scripts/build_runtime_garment.py`
+- `scripts/build-mpfb-starter-garments.mjs`
+- `scripts/validate-garment-3d.mjs`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+
+Outcome:
+
+- FreeStyle now has an explicit authoring-only pattern/material metadata layer for starter garments without reopening `PublishedGarmentAsset` or `/v1` contracts
+- garment-side measurement truth can evolve upstream with validator-backed parity against the current starter runtime catalog instead of drifting in docs or ad-hoc JSON blobs
 
 ## Current Batch
 

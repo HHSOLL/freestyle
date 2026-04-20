@@ -36,6 +36,7 @@ const officialPackMirrors = {
 
 const femalePreset = path.join(repoRoot, "authoring", "avatar", "mpfb", "presets", "female-base.json");
 const malePreset = path.join(repoRoot, "authoring", "avatar", "mpfb", "presets", "male-base.json");
+const patternSpec = (name) => path.join(repoRoot, "authoring", "garments", "mpfb", "specs", `${name}.pattern-spec.json`);
 
 const officialAssetPath = (pack, ...parts) => path.join(officialPackExtractedRoot, pack, ...parts);
 
@@ -46,6 +47,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-top_soft_casual.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-top_soft_casual.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "top_soft_casual_v4.glb"),
+    patternSpecJson: patternSpec("top_soft_casual"),
     baseColor: "#eef0f4",
     roughness: 0.92,
   },
@@ -55,6 +57,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-top_soft_casual.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-top_soft_casual.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "top_soft_casual_v4.glb"),
+    patternSpecJson: patternSpec("top_soft_casual"),
     baseColor: "#f0f2f5",
     roughness: 0.92,
   },
@@ -64,6 +67,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-bottom_soft_wool.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-bottom_soft_wool.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "bottom_soft_wool_v1.glb"),
+    patternSpecJson: patternSpec("bottom_soft_wool"),
     baseColor: "#353a42",
     roughness: 0.96,
   },
@@ -73,6 +77,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-bottom_soft_wool.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-bottom_soft_wool.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "bottom_soft_wool_v1.glb"),
+    patternSpecJson: patternSpec("bottom_soft_wool"),
     baseColor: "#3c4149",
     roughness: 0.96,
   },
@@ -82,6 +87,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_soft_flat.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_soft_flat.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "shoes_soft_flat_v1.glb"),
+    patternSpecJson: patternSpec("shoes_soft_flat"),
     baseColor: "#15181d",
     roughness: 0.88,
   },
@@ -91,6 +97,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-top_city_relaxed.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-top_city_relaxed.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "top_city_relaxed.glb"),
+    patternSpecJson: patternSpec("top_city_relaxed"),
     baseColor: "#cfd5de",
     roughness: 0.9,
   },
@@ -100,6 +107,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-top_city_relaxed.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-top_city_relaxed.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "top_city_relaxed.glb"),
+    patternSpecJson: patternSpec("top_city_relaxed"),
     baseColor: "#c7ced7",
     roughness: 0.9,
   },
@@ -109,6 +117,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-outer_tailored_layer.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-outer_tailored_layer.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "outer_tailored_layer.glb"),
+    patternSpecJson: patternSpec("outer_tailored_layer"),
     baseColor: "#4b4748",
     roughness: 0.86,
     metalness: 0.04,
@@ -119,6 +128,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-outer_tailored_layer.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-outer_tailored_layer.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "outer_tailored_layer.glb"),
+    patternSpecJson: patternSpec("outer_tailored_layer"),
     baseColor: "#4a4647",
     roughness: 0.86,
     metalness: 0.04,
@@ -129,6 +139,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_soft_sneaker.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_soft_sneaker.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "shoes_soft_sneaker.glb"),
+    patternSpecJson: patternSpec("shoes_soft_sneaker"),
   },
   {
     preset: malePreset,
@@ -136,6 +147,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-shoes_soft_sneaker.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-shoes_soft_sneaker.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "shoes_soft_sneaker.glb"),
+    patternSpecJson: patternSpec("shoes_soft_sneaker"),
   },
   {
     preset: femalePreset,
@@ -143,6 +155,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_night_runner.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-female-shoes_night_runner.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "female", "shoes_night_runner.glb"),
+    patternSpecJson: patternSpec("shoes_night_runner"),
   },
   {
     preset: malePreset,
@@ -150,6 +163,7 @@ const builds = [
     blend: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-shoes_night_runner.blend"),
     summary: path.join(repoRoot, "authoring", "garments", "exports", "raw", "mpfb-male-shoes_night_runner.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "garments", "mpfb", "male", "shoes_night_runner.glb"),
+    patternSpecJson: patternSpec("shoes_night_runner"),
   },
 ];
 
@@ -230,7 +244,7 @@ function ensureOfficialPack(packName) {
   }
 }
 
-function buildPreset({ preset, clothesAsset, blend, summary, glb, baseColor, roughness, metalness }) {
+function buildPreset({ preset, clothesAsset, blend, summary, glb, patternSpecJson, baseColor, roughness, metalness }) {
   ensureDir(path.dirname(blend));
   ensureDir(path.dirname(glb));
   const args = [
@@ -256,6 +270,9 @@ function buildPreset({ preset, clothesAsset, blend, summary, glb, baseColor, rou
   ];
   if (baseColor) {
     args.push("--base-color", baseColor);
+  }
+  if (patternSpecJson) {
+    args.push("--pattern-spec-json", patternSpecJson);
   }
   if (typeof roughness === "number") {
     args.push("--roughness", String(roughness));

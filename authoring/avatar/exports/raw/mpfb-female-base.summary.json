@@ -183,6 +183,23 @@
     "hipWidthMm": 196
   },
   "schemaVersion": "avatar-build-summary-v1",
+  "buildProvenance": {
+    "mpfb": {
+      "repoUrl": "https://github.com/makehumancommunity/mpfb2.git",
+      "revision": "7053847edd62a09dfe1ec6209d69a425435195c4",
+      "sourcePath": "authoring/avatar/.cache/mpfb2/src"
+    },
+    "assetPack": {
+      "path": "authoring/avatar/.cache/makehuman_system_assets_cc0.zip",
+      "fileName": "makehuman_system_assets_cc0.zip",
+      "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+      "sourceRef": "cached:makehuman_system_assets_cc0.zip"
+    },
+    "builder": {
+      "scriptPath": "authoring/avatar/mpfb/scripts/build_runtime_avatar.py",
+      "blenderVersion": "4.4.3"
+    }
+  },
   "authoringProvenance": {
     "sourceSystem": "mpfb2",
     "variantId": "female-base",

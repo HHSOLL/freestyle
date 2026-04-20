@@ -27,6 +27,13 @@ def parse_args():
     parser.add_argument("--output-blend", required=True, help="Output .blend path")
     parser.add_argument("--output-glb", help="Optional output .glb path")
     parser.add_argument("--runtime-model-path", help="Runtime model path registered in the web manifest")
+    parser.add_argument("--mpfb-repo-url", help="Resolved MPFB source repository URL")
+    parser.add_argument("--mpfb-revision", help="Resolved MPFB source git revision")
+    parser.add_argument("--mpfb-source-path", help="Resolved MPFB source directory path")
+    parser.add_argument("--asset-pack-path", help="Resolved asset-pack path")
+    parser.add_argument("--asset-pack-file-name", help="Resolved asset-pack file name")
+    parser.add_argument("--asset-pack-sha256", help="Resolved asset-pack SHA256")
+    parser.add_argument("--asset-pack-source-ref", help="Resolved asset-pack source URL or local reference")
     parser.add_argument("--summary-json", help="Optional JSON summary path")
     parser.add_argument("--asset-pack-zip", help="Optional path to makehuman_system_assets zip")
     parser.add_argument("--skin-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "ENHANCED", "ENHANCED_SSS", "LAYERED", "NONE"])
@@ -345,6 +352,7 @@ def build_skeleton_sidecar(summary, variant_id):
         "rigName": rig.get("name"),
         "boneCount": len(bone_names),
         "rootBoneName": bone_names[0] if bone_names else None,
+        "buildProvenance": summary.get("buildProvenance"),
         "boneNames": bone_names,
         "normalizedBoneNames": [_normalize_name(name) for name in bone_names],
     }
@@ -360,6 +368,7 @@ def build_measurements_sidecar(summary, variant_id):
         "variantId": variant_id,
         "authoringSource": "mpfb2",
         "units": "mm",
+        "buildProvenance": summary.get("buildProvenance"),
         "referenceMeasurementsMm": summary.get("referenceMeasurementsMm", {}),
         "segmentationVertexCounts": summary.get("segmentation", {}),
     }
@@ -373,6 +382,7 @@ def build_morph_map_sidecar(summary, variant_id):
         "authoringSource": "mpfb2",
         "shapeKeyCount": len(shape_keys),
         "basisShapeKey": shape_keys[0] if shape_keys else None,
+        "buildProvenance": summary.get("buildProvenance"),
         "shapeKeys": [
             {
                 "name": name,
@@ -393,6 +403,26 @@ def write_avatar_sidecars(summary_path: Path, summary, variant_id):
     for suffix, payload in sidecars.items():
         path = _sidecar_path(summary_path, suffix)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def build_provenance(args):
+    return {
+        "mpfb": {
+            "repoUrl": args.mpfb_repo_url,
+            "revision": args.mpfb_revision,
+            "sourcePath": args.mpfb_source_path,
+        },
+        "assetPack": {
+            "path": args.asset_pack_path,
+            "fileName": args.asset_pack_file_name,
+            "sha256": args.asset_pack_sha256,
+            "sourceRef": args.asset_pack_source_ref,
+        },
+        "builder": {
+            "scriptPath": to_repo_relative(Path(__file__).resolve()),
+            "blenderVersion": bpy.app.version_string,
+        },
+    }
 
 
 def export_glb(output_glb: str):
@@ -506,6 +536,7 @@ def main():
     summary["bodySegments"] = [segment.name for segment in segmentation["segments"]]
     summary["referenceMeasurementsMm"] = derive_reference_measurements_mm(full_body, rig) if rig else {}
     summary["schemaVersion"] = AVATAR_BUILD_SUMMARY_SCHEMA_VERSION
+    summary["buildProvenance"] = build_provenance(args)
     summary["authoringProvenance"] = {
         "sourceSystem": "mpfb2",
         "variantId": args.variant_id,

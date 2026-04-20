@@ -14,6 +14,8 @@ import {
 
 const repoRoot = process.cwd();
 const issues = [];
+const sourceLockPath = path.join(repoRoot, "authoring", "avatar", "mpfb", "source-lock.json");
+const sourceLockSchemaVersion = "mpfb-source-lock-v1";
 
 const resolvePublicPath = (assetPath) => {
   if (!assetPath.startsWith("/")) {
@@ -40,6 +42,11 @@ const readJsonFile = (label, absolutePath) => {
     return null;
   }
 };
+
+const sourceLock = readJsonFile("source-lock", sourceLockPath);
+
+const isSha256 = (value) => typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
+const isGitRevision = (value) => typeof value === "string" && /^[a-f0-9]{40}$/i.test(value);
 
 const requiredAliases = Object.keys(referenceRigAliasPatterns);
 
@@ -119,6 +126,56 @@ const validateMpfbSummary = (variantId, entry) => {
 
   if (summary?.schemaVersion !== avatarSummarySchemaVersion) {
     issues.push(`${variantId}: summary schemaVersion must be ${avatarSummarySchemaVersion}`);
+  }
+
+  const buildProvenance = summary?.buildProvenance;
+  if (!buildProvenance || typeof buildProvenance !== "object") {
+    issues.push(`${variantId}: summary buildProvenance is required`);
+  } else {
+    if (!sourceLock || typeof sourceLock !== "object") {
+      issues.push(`${variantId}: source-lock.json must be readable`);
+    } else if (sourceLock.schemaVersion !== sourceLockSchemaVersion) {
+      issues.push(`${variantId}: source-lock schemaVersion must be ${sourceLockSchemaVersion}`);
+    }
+    if (typeof buildProvenance?.mpfb?.repoUrl !== "string" || buildProvenance.mpfb.repoUrl.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.mpfb.repoUrl is required`);
+    }
+    if (!isGitRevision(buildProvenance?.mpfb?.revision)) {
+      issues.push(`${variantId}: summary buildProvenance.mpfb.revision must be a full git SHA`);
+    }
+    if (typeof buildProvenance?.mpfb?.sourcePath !== "string" || buildProvenance.mpfb.sourcePath.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.mpfb.sourcePath is required`);
+    }
+    if (typeof buildProvenance?.assetPack?.fileName !== "string" || buildProvenance.assetPack.fileName.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.fileName is required`);
+    }
+    if (typeof buildProvenance?.assetPack?.path !== "string" || buildProvenance.assetPack.path.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.path is required`);
+    }
+    if (!isSha256(buildProvenance?.assetPack?.sha256)) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.sha256 must be a SHA256`);
+    }
+    if (typeof buildProvenance?.assetPack?.sourceRef !== "string" || buildProvenance.assetPack.sourceRef.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.sourceRef is required`);
+    }
+    if (typeof buildProvenance?.builder?.scriptPath !== "string" || buildProvenance.builder.scriptPath.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.builder.scriptPath is required`);
+    }
+    if (typeof buildProvenance?.builder?.blenderVersion !== "string" || buildProvenance.builder.blenderVersion.trim().length === 0) {
+      issues.push(`${variantId}: summary buildProvenance.builder.blenderVersion is required`);
+    }
+    if (sourceLock?.mpfb?.repoUrl && buildProvenance?.mpfb?.repoUrl !== sourceLock.mpfb.repoUrl) {
+      issues.push(`${variantId}: summary buildProvenance.mpfb.repoUrl must match source-lock`);
+    }
+    if (sourceLock?.mpfb?.revision && buildProvenance?.mpfb?.revision !== sourceLock.mpfb.revision) {
+      issues.push(`${variantId}: summary buildProvenance.mpfb.revision must match source-lock`);
+    }
+    if (sourceLock?.assetPack?.fileName && buildProvenance?.assetPack?.fileName !== sourceLock.assetPack.fileName) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.fileName must match source-lock`);
+    }
+    if (sourceLock?.assetPack?.sha256 && buildProvenance?.assetPack?.sha256 !== sourceLock.assetPack.sha256) {
+      issues.push(`${variantId}: summary buildProvenance.assetPack.sha256 must match source-lock`);
+    }
   }
 
   const authoringProvenance = summary?.authoringProvenance;
@@ -227,6 +284,9 @@ const validateMpfbSummary = (variantId, entry) => {
         if (sidecar?.boneCount !== summaryBoneNames.length) {
           issues.push(`${variantId}: skeleton sidecar boneCount must match summary rig.boneNames length`);
         }
+        if (JSON.stringify(sidecar?.buildProvenance ?? {}) !== JSON.stringify(summary?.buildProvenance ?? {})) {
+          issues.push(`${variantId}: skeleton sidecar buildProvenance must match summary buildProvenance`);
+        }
       },
     },
     {
@@ -261,6 +321,9 @@ const validateMpfbSummary = (variantId, entry) => {
         if (JSON.stringify(sidecar?.segmentationVertexCounts ?? {}) !== JSON.stringify(summary?.segmentation ?? {})) {
           issues.push(`${variantId}: measurements sidecar segmentationVertexCounts must match summary segmentation`);
         }
+        if (JSON.stringify(sidecar?.buildProvenance ?? {}) !== JSON.stringify(summary?.buildProvenance ?? {})) {
+          issues.push(`${variantId}: measurements sidecar buildProvenance must match summary buildProvenance`);
+        }
       },
     },
     {
@@ -283,6 +346,9 @@ const validateMpfbSummary = (variantId, entry) => {
         }
         if (sidecar?.shapeKeyCount !== summaryShapeKeys.length) {
           issues.push(`${variantId}: morph-map sidecar shapeKeyCount must match summary basemesh.shapeKeys length`);
+        }
+        if (JSON.stringify(sidecar?.buildProvenance ?? {}) !== JSON.stringify(summary?.buildProvenance ?? {})) {
+          issues.push(`${variantId}: morph-map sidecar buildProvenance must match summary buildProvenance`);
         }
       },
     },

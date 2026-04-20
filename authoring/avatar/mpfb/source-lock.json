@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "mpfb-source-lock-v1",
+  "mpfb": {
+    "repoUrl": "https://github.com/makehumancommunity/mpfb2.git",
+    "revision": "7053847edd62a09dfe1ec6209d69a425435195c4"
+  },
+  "assetPack": {
+    "fileName": "makehuman_system_assets_cc0.zip",
+    "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+    "sourceUrls": [
+      "https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+      "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
+    ]
+  }
+}

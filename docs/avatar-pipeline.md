@@ -34,6 +34,7 @@ Every promoted mannequin asset must satisfy:
 - metadata for authoring source and runtime compatibility:
   - contract schema version
   - source provenance (preset + summary + sidecar + output GLB parity)
+  - build provenance (MPFB repo revision + asset-pack checksum + builder version)
   - explicit variant/runtime model path coupling
 
 Current runtime source-of-truth files:
@@ -101,6 +102,9 @@ Each render variant must declare:
   - `sourceProvenance.skeletonPath`, `measurementsPath`, and `morphMapPath` resolve to existing authoring sidecars
   - `sourceProvenance.outputModelPath` matches summary `outputModelPath`
   - summary `outputGlb` resolves to manifest `modelPath`
+  - summary and sidecars share the same `buildProvenance`
+  - `buildProvenance.mpfb.revision` is a concrete upstream git SHA
+  - `buildProvenance.assetPack.sha256` records the exact asset-pack payload used during export
   - body-segment object names still match the manifest mesh-zone contract used by runtime masking
 
 Current registry:
@@ -141,6 +145,7 @@ Current preset source-of-truth:
 
 - `authoring/avatar/mpfb/presets/female-base.json`
 - `authoring/avatar/mpfb/presets/male-base.json`
+- `authoring/avatar/mpfb/source-lock.json`
 
 ## 8. Current Limitation
 
@@ -160,6 +165,8 @@ Current remaining limitation:
 - the current promoted female base preset uses `short04` hair with `eyebrow001` and `eyelashes01`, while the promoted male base preset uses `short02`
 - the current raw authoring contract now emits `summary + skeleton + measurements + morph-map` sidecars for each promoted base variant
 - the current `measurements.json` sidecar is a geometry-derived reference artifact for authoring QA, not yet the final runtime calibration source
+- the current raw contract also records `buildProvenance` so future reruns can be traced back to a specific MPFB revision, asset-pack checksum, and Blender export toolchain
+- the current MPFB wrapper now resolves authoring inputs against `authoring/avatar/mpfb/source-lock.json` instead of floating `origin/master`
 - the current default starter direction is `Soft Tucked Tee + Soft Wool Trousers + Soft Day Shoe`, built from the official MakeHuman Community `shirts01`, `pants01`, and `shoes01` packs
 - the current hero-garment authoring pass widened and dropped the `Soft Casual` top and `Tailored Layer` outerwear directly in Blender before export
 - the current hero-garment pass now also creates a helper-aware projection target before shrinkwrap/corrective fit, so structured tops and outerwear are conformed against the same helper-inclusive body space that MPFB uses during authoring

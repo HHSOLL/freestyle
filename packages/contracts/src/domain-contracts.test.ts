@@ -24,6 +24,8 @@ import {
   legacyBodyProfileFlatSchema,
   bodyProfileUpsertInputSchema,
   garmentFitAssessmentSchema,
+  garmentFitOverallSchema,
+  garmentInstantFitReportSchema,
   garmentFitProfileSchema,
   garmentFitStateSchema,
   garmentMeasurementsSchema,
@@ -481,6 +483,54 @@ test('garment fit assessment schema rejects limiting keys that are missing from 
       ],
     }),
   /limitingKeys entries must exist in dimensions/);
+});
+
+test('garment instant-fit report schema accepts canonical derived payloads', () => {
+  const overallFit = garmentFitOverallSchema.parse('good');
+  const report = garmentInstantFitReportSchema.parse({
+    schemaVersion: 'garment-instant-fit-report.v1',
+    sizeLabel: 'L',
+    overallFit,
+    overallState: 'relaxed',
+    tensionRisk: 'low',
+    clippingRisk: 'low',
+    confidence: 0.81,
+    primaryRegionId: 'chest',
+    summary: {
+      ko: 'L · 가슴 기준 잘 맞음',
+      en: 'L · Chest good fit',
+    },
+    explanations: [
+      {
+        ko: '가슴 기준 여유는 10.2cm이며 현재 여유 있게 맞음 상태다.',
+        en: 'Chest leads with 10.2cm ease and currently reads relaxed.',
+      },
+      {
+        ko: '현재 선택된 사이즈 기준으로 장력과 클리핑 위험은 낮다.',
+        en: 'Tension and clipping risk stay low for the currently selected size.',
+      },
+    ],
+    limitingKeys: ['chestCm'],
+    regions: [
+      {
+        regionId: 'chest',
+        measurementKey: 'chestCm',
+        fitState: 'relaxed',
+        easeCm: 10.2,
+        isLimiting: true,
+      },
+      {
+        regionId: 'waist',
+        measurementKey: 'waistCm',
+        fitState: 'regular',
+        easeCm: 7.1,
+        isLimiting: false,
+      },
+    ],
+  });
+
+  assert.equal(report.overallFit, 'good');
+  assert.equal(report.primaryRegionId, 'chest');
 });
 
 test('garment measurement schema accepts accessory-facing keys', () => {

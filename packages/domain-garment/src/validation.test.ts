@@ -2,9 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { garmentFitAssessmentSchema, garmentPatternSpecSchema } from "@freestyle/contracts";
+import {
+  garmentFitAssessmentSchema,
+  garmentInstantFitReportSchema,
+  garmentPatternSpecSchema,
+} from "@freestyle/contracts";
 import {
   assessGarmentPhysicalFit,
+  assessGarmentInstantFit,
+  buildGarmentInstantFitReport,
   computeGarmentCorrectiveTransform,
   defaultHairItemIdsByVariant,
   deriveAdaptiveBodyMaskZonesFromAssessment,
@@ -307,6 +313,39 @@ test("physical fit assessment flags compression when the body exceeds garment + 
   assert.ok(assessment);
   assert.equal(assessment.overallState, "compression");
   assert.equal(assessment.tensionRisk, "high");
+});
+
+test("instant fit report derives a contract-valid product summary from physical fit assessment", () => {
+  const tee = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(tee);
+
+  const report = assessGarmentInstantFit(tee, defaultBodyProfile);
+  assert.ok(report);
+  assert.deepEqual(garmentInstantFitReportSchema.parse(report), report);
+  assert.equal(report.sizeLabel, "L");
+  assert.equal(report.primaryRegionId, "length");
+  assert.ok(report.explanations.length >= 2);
+});
+
+test("instant fit report escalates compression-heavy assessments into risky overall fit", () => {
+  const tee = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(tee);
+
+  const broaderProfile = {
+    ...defaultBodyProfile,
+    simple: {
+      ...defaultBodyProfile.simple,
+      chestCm: 126,
+      waistCm: 102,
+    },
+  };
+
+  const assessment = assessGarmentPhysicalFit(tee, broaderProfile);
+  assert.ok(assessment);
+  const report = buildGarmentInstantFitReport(assessment);
+  assert.ok(report);
+  assert.equal(report.overallFit, "risky");
+  assert.equal(report.regions.some((entry) => entry.isLimiting), true);
 });
 
 test("fit summary renders selected size and dominant fit dimension", () => {

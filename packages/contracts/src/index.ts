@@ -586,6 +586,79 @@ export const garmentFitAssessmentSchema = z
     });
   });
 
+export const garmentInstantFitSchemaVersion = "garment-instant-fit-report.v1";
+
+export const garmentFitOverallSchema = z.enum(["good", "tight", "loose", "risky"]);
+
+export const garmentFitRegionIdSchema = z.enum([
+  "chest",
+  "waist",
+  "hip",
+  "shoulder",
+  "sleeve",
+  "length",
+  "inseam",
+  "rise",
+  "hem",
+  "head",
+  "frame",
+]);
+
+const localizedFitCopySchema = z
+  .object({
+    ko: z.string().trim().min(1).max(240),
+    en: z.string().trim().min(1).max(240),
+  })
+  .strict();
+
+export const garmentInstantFitRegionSchema = z
+  .object({
+    regionId: garmentFitRegionIdSchema,
+    measurementKey: garmentMeasurementKeySchema,
+    fitState: garmentFitStateSchema,
+    easeCm: z.number().finite(),
+    isLimiting: z.boolean(),
+  })
+  .strict();
+
+export const garmentInstantFitReportSchema = z
+  .object({
+    schemaVersion: z.literal(garmentInstantFitSchemaVersion),
+    sizeLabel: z.string().trim().min(1).max(64).nullable(),
+    overallFit: garmentFitOverallSchema,
+    overallState: garmentFitStateSchema,
+    tensionRisk: garmentFitRiskSchema,
+    clippingRisk: garmentFitRiskSchema,
+    confidence: z.number().finite().min(0).max(1),
+    primaryRegionId: garmentFitRegionIdSchema,
+    summary: localizedFitCopySchema,
+    explanations: z.array(localizedFitCopySchema).min(1).max(4),
+    limitingKeys: z.array(garmentMeasurementKeySchema).min(1).max(3),
+    regions: z.array(garmentInstantFitRegionSchema).min(1),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const regionIds = new Set(value.regions.map((entry) => entry.regionId));
+    if (!regionIds.has(value.primaryRegionId)) {
+      context.addIssue({
+        code: "custom",
+        path: ["primaryRegionId"],
+        message: "primaryRegionId must exist in regions",
+      });
+    }
+
+    const dimensionKeys = new Set(value.regions.map((entry) => entry.measurementKey));
+    value.limitingKeys.forEach((key, index) => {
+      if (!dimensionKeys.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: ["limitingKeys", index],
+          message: "limitingKeys entries must exist in regions",
+        });
+      }
+    });
+  });
+
 export const fitCalibrationComparisonEntrySchema = z
   .object({
     label: z.string().trim().min(1).max(120),
@@ -1348,6 +1421,10 @@ export type GarmentFitState = z.infer<typeof garmentFitStateSchema>;
 export type GarmentFitRisk = z.infer<typeof garmentFitRiskSchema>;
 export type GarmentFitDimensionAssessment = z.infer<typeof garmentFitDimensionAssessmentSchema>;
 export type GarmentFitAssessment = z.infer<typeof garmentFitAssessmentSchema>;
+export type GarmentFitOverall = z.infer<typeof garmentFitOverallSchema>;
+export type GarmentFitRegionId = z.infer<typeof garmentFitRegionIdSchema>;
+export type GarmentInstantFitRegion = z.infer<typeof garmentInstantFitRegionSchema>;
+export type GarmentInstantFitReport = z.infer<typeof garmentInstantFitReportSchema>;
 export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySchema>;
 export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
 export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;

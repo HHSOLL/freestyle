@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `95%`
+- Working overall completion estimate: `96%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -38,6 +38,8 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
+| `Phase D` | offline cloth simulation worker | `in_progress` | `Batch 1` is complete; the reserved `fit_simulate_hq_v1` request/result contract now exists, but there is still no active API route or worker handler |
+| `Phase E` | fit / stress / pressure map | `pending` | blocked on the Phase D worker/artifact path |
 
 ### `Phase A / Batch 1`
 
@@ -505,6 +507,36 @@ Outcome:
 
 - `Phase C` is now closed on the active product path
 - shared instant-fit recommendations now exist as a typed domain contract, a product API adapter, and a live `Closet` consumer without changing admin publication payloads
+
+### `Phase D / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added a reserved `fit_simulate_hq_v1` contract in `packages/contracts` with a versioned orchestration request, normalized queue payload schema, typed artifact kinds, and a canonical `job-result.v1` envelope shape
+2. extended `packages/shared` job typing so the queue layer now recognizes the reserved offline simulation job type without wiring a live handler yet
+3. added targeted contract and queue regression tests that lock both request/result parsing and queue-envelope normalization for the reserved simulation path
+4. replaced the older `cloth_simulate` draft doc with the current `fit_simulate_hq_v1` contract language and synced worker/gate ownership docs around that reserved seam
+5. kept the batch intentionally narrow by leaving API create routes, worker handlers, and artifact persistence for later Phase D batches
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/job-contracts.test.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/worker-playbook.md`
+- `docs/quality-gates.md`
+- `docs/contract-ownership.md`
+- `docs/physical-fit-system.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- FreeStyle now has a fixed offline simulation contract seam that future worker and storage work can target without inventing another payload format
+- `Phase D` has started, but the repo still does not expose or run HQ cloth simulation yet
 
 ## Current Batch
 

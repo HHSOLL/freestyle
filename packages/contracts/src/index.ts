@@ -733,6 +733,76 @@ export const fitCalibrationReportSchema = z
   })
   .strict();
 
+export const fitSimulateHQJobType = "fit_simulate_hq_v1";
+export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
+
+export const fitSimulationQualityTierSchema = z.enum(["fast", "balanced", "high"]);
+
+export const fitSimulationArtifactKindSchema = z.enum(["draped_glb", "fit_map_json", "preview_png"]);
+
+export const fitSimulationArtifactSchema = jobArtifactSchema
+  .extend({
+    kind: fitSimulationArtifactKindSchema,
+    url: z.url(),
+  })
+  .strict();
+
+export const fitSimulateHQJobPayloadSchema = z
+  .object({
+    bodyVersionId: z.uuid(),
+    garmentVariantId: z.uuid(),
+    avatarManifestUrl: z.url(),
+    garmentManifestUrl: z.url(),
+    materialPreset: z.string().trim().min(1).max(120),
+    qualityTier: fitSimulationQualityTierSchema,
+  })
+  .strict();
+
+export const fitSimulateHQRequestSchema = fitSimulateHQJobPayloadSchema
+  .extend({
+    jobType: z.literal(fitSimulateHQJobType),
+    schemaVersion: z.literal(fitSimulateHQSchemaVersion),
+  })
+  .strict();
+
+export const fitSimulateHQJobPayloadInputSchema = z.union([
+  fitSimulateHQJobPayloadSchema,
+  fitSimulateHQRequestSchema.transform((value) => ({
+    bodyVersionId: value.bodyVersionId,
+    garmentVariantId: value.garmentVariantId,
+    avatarManifestUrl: value.avatarManifestUrl,
+    garmentManifestUrl: value.garmentManifestUrl,
+    materialPreset: value.materialPreset,
+    qualityTier: value.qualityTier,
+  })),
+]);
+
+export const fitSimulateHQMetricsSchema = z
+  .object({
+    durationMs: z.number().int().positive(),
+    penetrationRate: z.number().finite().min(0).max(1),
+    maxStretchRatio: z.number().finite().positive(),
+  })
+  .strict();
+
+export const fitSimulateHQResultDataSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulateHQSchemaVersion),
+    bodyVersionId: z.uuid(),
+    garmentVariantId: z.uuid(),
+    qualityTier: fitSimulationQualityTierSchema,
+  })
+  .strict();
+
+export const fitSimulateHQResultEnvelopeSchema = jobResultEnvelopeSchema
+  .extend({
+    job_type: z.literal(fitSimulateHQJobType),
+    artifacts: z.array(fitSimulationArtifactSchema).min(1),
+    metrics: fitSimulateHQMetricsSchema,
+    data: fitSimulateHQResultDataSchema,
+  })
+  .strict();
+
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
 
@@ -1440,6 +1510,15 @@ export type FitCalibrationArchetype = z.infer<typeof fitCalibrationArchetypeSche
 export type FitCalibrationGarmentArchetype = z.infer<typeof fitCalibrationGarmentArchetypeSchema>;
 export type FitCalibrationGarment = z.infer<typeof fitCalibrationGarmentSchema>;
 export type FitCalibrationReport = z.infer<typeof fitCalibrationReportSchema>;
+export type FitSimulationQualityTier = z.infer<typeof fitSimulationQualityTierSchema>;
+export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
+export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
+export type FitSimulateHQJobPayload = z.infer<typeof fitSimulateHQJobPayloadSchema>;
+export type FitSimulateHQRequest = z.infer<typeof fitSimulateHQRequestSchema>;
+export type FitSimulateHQJobPayloadInput = z.infer<typeof fitSimulateHQJobPayloadInputSchema>;
+export type FitSimulateHQMetrics = z.infer<typeof fitSimulateHQMetricsSchema>;
+export type FitSimulateHQResultData = z.infer<typeof fitSimulateHQResultDataSchema>;
+export type FitSimulateHQResultEnvelope = z.infer<typeof fitSimulateHQResultEnvelopeSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;

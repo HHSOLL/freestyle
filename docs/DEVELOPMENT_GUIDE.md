@@ -133,7 +133,7 @@ Use these boundaries:
 - `bodyProfileToAvatarParams` converts measurements into normalized control space
 - `avatarParamsToRigTargets` converts normalized values into rig-level transforms
 - `AvatarStageCanvas` applies those transforms to the active skeleton
-- `fitReviewArchetypes` is the representative QA set for admin publishing and fit calibration
+- `fitReviewArchetypes` is the representative QA set for admin publishing and fit calibration, and `validate:fit-calibration` now snapshots the committed base-avatar measurements sidecars for the variants those archetypes resolve to
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.
 

@@ -30,6 +30,13 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase 5` | worker, job contract, and observability hardening | `completed` | `Batch 1` and `Batch 2` are complete; broader release smoke now moves to `Phase 6` |
 | `Phase 6` | QA, security, and release candidate | `completed` | `Batch 1` added screenshot and smoke evidence, and `Batch 2` closed the live env-backed lab smoke, security/RLS checklist, and RC freeze notes |
 
+## Post-Phase Follow-On
+
+| Track | Goal | Status | Notes |
+| --- | --- | --- | --- |
+| `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
+| `Phase A` | avatar authoring pipeline hardening | `pending` | begins the long-roadmap track by tightening the MPFB authoring contract before any broader pattern or simulation work |
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

@@ -59,6 +59,22 @@ This includes:
 - `npm run build`
 - `npm run build:admin`
 
+### L3. Operational Closeout Gate
+
+Run this when freezing an RC or closing an operations batch.
+
+- `PATH="/opt/homebrew/bin:$PATH" npm run check`
+- `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:ops-closeout`
+- `PATH="/opt/homebrew/bin:$PATH" vercel env ls production`
+- `PATH="/opt/homebrew/bin:$PATH" railway variable list --json`
+
+Expected evidence:
+
+- one dated release or operational closeout note under `docs/qa/`
+- route/browser smoke result plus any retained Playwright trace artifact
+- explicit browser-vs-backend Supabase key posture
+- explicit RC tag name if the run is used to freeze `main`
+
 ## Smoke Expectations
 
 Use these when a task changes routes, runtime boundaries, or release-facing behavior.
@@ -154,6 +170,7 @@ Release-oriented work should also capture:
 - any browser trace artifact kept from `on-first-retry` or `retain-on-failure` smoke runs when a retry/failure occurs
 - docs synced with the changed boundary
 - the active remote-store / key-separation posture used for the run
+- the RC tag name when the run freezes a release candidate
 
 ## Failure Policy
 

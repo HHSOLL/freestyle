@@ -172,6 +172,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - do not widen current `/v1` payloads just to ship `overallFit / regions / confidence / explanations`; land the shared contract first, then wire a consumer in a later batch
+- the first product consumer now lives in `apps/web/src/components/product/closet-fit-report.ts`; if fit copy, region ordering, or tone mapping changes, update that helper and its test before touching `V18ClosetExperience.tsx`
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 

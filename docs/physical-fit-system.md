@@ -234,6 +234,7 @@ As of `2026-04-20`:
   - `worker_fit_simulate_hq` now also persists `preview_png`
   - the `fit_map_json` payload is now typed as four overlay maps: `easeMap`, `stretchMap`, `collisionRiskMap`, and `confidenceMap`
 - `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
+- `Phase E / Batch 2` now also carries the same typed overlay payload on the persisted fit-simulation record, so `GET /v1/lab/fit-simulations/:id` exposes `fitMap` directly instead of forcing clients to pull the JSON artifact separately
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

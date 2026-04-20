@@ -392,6 +392,7 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
       materialPreset: 'knit_medium',
       qualityTier: 'balanced',
       instantFit: null,
+      fitMap: null,
       artifacts: [],
       metrics: null,
       warnings: [],

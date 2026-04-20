@@ -88,6 +88,143 @@ const publishedGarmentFixture = {
   },
 };
 
+const fitMapFixture = {
+  schemaVersion: "fit-map-json.v1",
+  generatedAt: "2026-04-20T10:02:00.000Z",
+  fitSimulationId: "00000000-0000-4000-8000-000000000011",
+  request: {
+    bodyVersionId: "body-profile:user-id:2026-04-20T10:00:00.000Z",
+    garmentVariantId: publishedGarmentFixture.id,
+    avatarVariantId: "female-base",
+    avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
+    materialPreset: "knit_medium",
+    qualityTier: "fast",
+  },
+  garment: {
+    id: publishedGarmentFixture.id,
+    name: publishedGarmentFixture.name,
+    category: publishedGarmentFixture.category,
+  },
+  fitAssessment: {
+    sizeLabel: "L",
+    overallState: "regular",
+    tensionRisk: "low",
+    clippingRisk: "low",
+    stretchLoad: 0.1,
+    limitingKeys: ["chestCm"],
+    dimensions: [
+      {
+        key: "chestCm",
+        measurementMode: "flat-half-circumference",
+        garmentCm: 117,
+        bodyCm: 91,
+        effectiveGarmentCm: 117,
+        easeCm: 26,
+        requiredStretchRatio: 0,
+        state: "regular",
+      },
+    ],
+  },
+  instantFit: {
+    schemaVersion: "garment-instant-fit-report.v1",
+    sizeLabel: "L",
+    overallFit: "good",
+    overallState: "regular",
+    tensionRisk: "low",
+    clippingRisk: "low",
+    confidence: 0.9,
+    primaryRegionId: "chest",
+    summary: {
+      ko: "L · 안정적인 핏",
+      en: "L · Stable fit",
+    },
+    explanations: [
+      {
+        ko: "가슴 여유가 충분하다.",
+        en: "Chest ease is sufficient.",
+      },
+    ],
+    limitingKeys: ["chestCm"],
+    regions: [
+      {
+        regionId: "chest",
+        measurementKey: "chestCm",
+        fitState: "regular",
+        easeCm: 26,
+        isLimiting: true,
+      },
+    ],
+  },
+  overlays: [
+    {
+      kind: "easeMap",
+      overallScore: 0.12,
+      maxRegionScore: 0.12,
+      regions: [
+        {
+          regionId: "chest",
+          measurementKey: "chestCm",
+          score: 0.12,
+          fitState: "regular",
+          easeCm: 26,
+          requiredStretchRatio: 0,
+          isLimiting: true,
+        },
+      ],
+    },
+    {
+      kind: "stretchMap",
+      overallScore: 0.08,
+      maxRegionScore: 0.08,
+      regions: [
+        {
+          regionId: "chest",
+          measurementKey: "chestCm",
+          score: 0.08,
+          fitState: "regular",
+          easeCm: 26,
+          requiredStretchRatio: 0,
+          isLimiting: true,
+        },
+      ],
+    },
+    {
+      kind: "collisionRiskMap",
+      overallScore: 0.32,
+      maxRegionScore: 0.32,
+      regions: [
+        {
+          regionId: "chest",
+          measurementKey: "chestCm",
+          score: 0.32,
+          fitState: "regular",
+          easeCm: 26,
+          requiredStretchRatio: 0,
+          isLimiting: true,
+        },
+      ],
+    },
+    {
+      kind: "confidenceMap",
+      overallScore: 0.9,
+      maxRegionScore: 0.9,
+      regions: [
+        {
+          regionId: "chest",
+          measurementKey: "chestCm",
+          score: 0.9,
+          fitState: "regular",
+          easeCm: 26,
+          requiredStretchRatio: 0,
+          isLimiting: true,
+        },
+      ],
+    },
+  ],
+  warnings: [],
+};
+
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
@@ -221,6 +358,7 @@ test("fit-simulation read route returns the public record shape from the persist
             garmentSnapshot: publishedGarmentFixture,
             fitAssessment: null,
             instantFit: null,
+            fitMap: fitMapFixture,
             artifacts: [],
             metrics: null,
             warnings: [],
@@ -248,7 +386,8 @@ test("fit-simulation read route returns the public record shape from the persist
   const payload = fitSimulationGetResponseSchema.parse(response.json());
   assert.equal(payload.fitSimulation.id, "00000000-0000-4000-8000-000000000011");
   assert.equal(payload.fitSimulation.materialPreset, "knit_medium");
+  assert.equal(payload.fitSimulation.fitMap?.schemaVersion, "fit-map-json.v1");
+  assert.equal(payload.fitSimulation.fitMap?.overlays[0]?.kind, "easeMap");
 
   await app.close();
 });
-

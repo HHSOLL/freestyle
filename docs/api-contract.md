@@ -124,6 +124,7 @@
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
   - the baseline worker currently persists typed `fit_map_json` plus `preview_png`; `draped_glb` remains a future output
+  - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
@@ -171,6 +172,15 @@
       "overallFit": "good",
       "confidence": 0.79,
       "primaryRegionId": "length"
+    },
+    "fitMap": {
+      "schemaVersion": "fit-map-json.v1",
+      "overlays": [
+        { "kind": "easeMap" },
+        { "kind": "stretchMap" },
+        { "kind": "collisionRiskMap" },
+        { "kind": "confidenceMap" }
+      ]
     },
     "artifacts": [
       {

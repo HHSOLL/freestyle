@@ -878,6 +878,7 @@ export const fitSimulationRecordSchema = z
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
     instantFit: garmentInstantFitReportSchema.nullable(),
+    fitMap: fitMapArtifactDataSchema.nullable().default(null),
     artifacts: z.array(fitSimulationArtifactSchema).default([]),
     metrics: fitSimulateHQMetricsSchema.nullable(),
     warnings: z.array(z.string().trim().min(1)).default([]),

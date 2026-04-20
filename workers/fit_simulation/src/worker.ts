@@ -359,6 +359,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       ...row,
       status: "processing",
       errorMessage: null,
+      fitMap: row.fitMap ?? null,
       updatedAt: new Date().toISOString(),
     });
 
@@ -444,6 +445,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         status: "succeeded",
         fitAssessment,
         instantFit,
+        fitMap: fitMapArtifactPayload,
         artifacts: [fitMapArtifact, previewArtifact],
         metrics,
         warnings,
@@ -475,6 +477,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       await upsertFitSimulationRecord({
         ...row,
         status: "failed",
+        fitMap: row.fitMap ?? null,
         errorMessage: error instanceof Error ? error.message : "HQ fit simulation failed.",
         updatedAt: failedAt,
         completedAt: failedAt,

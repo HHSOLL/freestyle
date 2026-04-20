@@ -4,6 +4,7 @@ import {
   buildAvatarReferenceMeasurementDerivationExpectations,
   collectAvatarMeasurementsSidecarBaseIssues,
   collectAvatarMeasurementsSidecarSummaryIssues,
+  parseAvatarMeasurementsSidecar,
 } from "./calibration.js";
 
 const expectedSchemaVersion = "avatar-measurements-sidecar-v1";
@@ -73,6 +74,33 @@ test("measurements sidecar base validation passes a complete calibration artifac
   });
 
   assert.deepEqual(issues, []);
+});
+
+test("measurements sidecar parser returns typed sidecars and reports schema drift", () => {
+  const parsed = parseAvatarMeasurementsSidecar(validSidecar, {
+    variantId: "female-base",
+    expectedSchemaVersion,
+  });
+  const drifted = parseAvatarMeasurementsSidecar(
+    {
+      ...validSidecar,
+      referenceMeasurementsMmDerivation: {
+        ...validSidecar.referenceMeasurementsMmDerivation,
+        measurements: {
+          statureMm: validSidecar.referenceMeasurementsMmDerivation.measurements.statureMm,
+        },
+      },
+    },
+    {
+      variantId: "female-base",
+      expectedSchemaVersion,
+    },
+  );
+
+  assert.equal(parsed.sidecar?.variantId, "female-base");
+  assert.deepEqual(parsed.issues, []);
+  assert.equal(drifted.sidecar, null);
+  assert.ok(drifted.issues.some((issue) => issue.includes("referenceMeasurementsMmDerivation.measurements.shoulderWidthMm")));
 });
 
 test("measurements sidecar summary validation enforces derivation and summary parity", () => {

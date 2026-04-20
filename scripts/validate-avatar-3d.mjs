@@ -3,7 +3,10 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { collectAvatarMeasurementsSidecarSummaryIssues } from "@freestyle/domain-avatar";
+import {
+  collectAvatarMeasurementsSidecarSummaryIssues,
+  parseAvatarMeasurementsSidecar,
+} from "@freestyle/domain-avatar";
 import {
   avatarManifestSchemaVersion,
   avatarMeasurementsSidecarSchemaVersion,
@@ -517,8 +520,16 @@ const validateMpfbSummary = (variantId, entry) => {
       key: "measurementsPath",
       schemaVersion: avatarMeasurementsSidecarSchemaVersion,
       validate: (sidecar) => {
+        const parsedSidecarResult = parseAvatarMeasurementsSidecar(sidecar, {
+          variantId,
+          expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
+        });
+        issues.push(...parsedSidecarResult.issues);
+        if (!parsedSidecarResult.sidecar) {
+          return;
+        }
         issues.push(
-          ...collectAvatarMeasurementsSidecarSummaryIssues(sidecar, {
+          ...collectAvatarMeasurementsSidecarSummaryIssues(parsedSidecarResult.sidecar, {
             variantId,
             expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
             summary,

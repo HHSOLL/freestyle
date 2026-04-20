@@ -3,8 +3,8 @@ import path from "node:path";
 import { flattenBodyProfile } from "@freestyle/contracts";
 import {
   avatarComparableReferenceMeasurements,
-  collectAvatarMeasurementsSidecarBaseIssues,
   fitReviewArchetypes,
+  parseAvatarMeasurementsSidecar,
   resolveAvatarVariantFromProfile,
 } from "@freestyle/domain-avatar";
 import {
@@ -105,20 +105,22 @@ const avatarCalibrationVariantConfigs = requiredCalibrationVariantIds.map((varia
 }).filter(Boolean);
 
 const loadAvatarCalibrationReference = async ({ variantId, expectedGender, measurementsPath }) => {
-  let sidecar;
+  let rawSidecar;
   try {
-    sidecar = JSON.parse(await readFile(measurementsPath, "utf8"));
+    rawSidecar = JSON.parse(await readFile(measurementsPath, "utf8"));
   } catch (error) {
     issues.push(`${variantId}: failed to read measurements sidecar at ${measurementsPath} (${error.message})`);
     return null;
   }
 
-  issues.push(
-    ...collectAvatarMeasurementsSidecarBaseIssues(sidecar, {
-      variantId,
-      expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
-    }),
-  );
+  const { sidecar, issues: sidecarIssues } = parseAvatarMeasurementsSidecar(rawSidecar, {
+    variantId,
+    expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
+  });
+  issues.push(...sidecarIssues);
+  if (!sidecar) {
+    return null;
+  }
 
   return {
     variantId,

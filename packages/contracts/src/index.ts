@@ -294,6 +294,62 @@ export const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProf
 export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
 export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
 export const qualityTierSchema = z.enum(["low", "balanced", "high"]);
+export const avatarMeasurementsDerivationMethodSchema = z.enum([
+  "object-bounding-box-height",
+  "bone-head-distance",
+  "bone-chain-length",
+]);
+
+export const avatarMeasurementDerivationEntrySchema = z
+  .object({
+    method: avatarMeasurementsDerivationMethodSchema,
+    bones: z.array(z.string().trim().min(1)).optional(),
+    objectName: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const avatarReferenceMeasurementsSchema = z
+  .object({
+    statureMm: z.number().finite().positive(),
+    shoulderWidthMm: z.number().finite().positive(),
+    armLengthMm: z.number().finite().positive(),
+    inseamMm: z.number().finite().positive(),
+    torsoLengthMm: z.number().finite().positive(),
+    hipWidthMm: z.number().finite().positive(),
+  })
+  .strict();
+
+export const avatarMeasurementsDerivationSchema = z
+  .object({
+    kind: z.literal("geometry-derived-reference"),
+    intendedUse: z.literal("authoring-qa"),
+    sourceObjectName: z.string().trim().min(1),
+    sourceRigName: z.string().trim().min(1),
+    measurements: z
+      .object({
+        statureMm: avatarMeasurementDerivationEntrySchema,
+        shoulderWidthMm: avatarMeasurementDerivationEntrySchema,
+        armLengthMm: avatarMeasurementDerivationEntrySchema,
+        inseamMm: avatarMeasurementDerivationEntrySchema,
+        torsoLengthMm: avatarMeasurementDerivationEntrySchema,
+        hipWidthMm: avatarMeasurementDerivationEntrySchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const avatarMeasurementsSidecarSchema = z
+  .object({
+    schemaVersion: z.literal("avatar-measurements-sidecar-v1"),
+    variantId: avatarRenderVariantIdSchema,
+    authoringSource: z.literal("mpfb2"),
+    units: z.literal("mm"),
+    buildProvenance: unknownRecordSchema,
+    referenceMeasurementsMm: avatarReferenceMeasurementsSchema,
+    referenceMeasurementsMmDerivation: avatarMeasurementsDerivationSchema,
+    segmentationVertexCounts: z.record(z.string(), z.number().int().nonnegative()),
+  })
+  .strict();
 
 const closetCategorySchema = z.enum([
   "tops",
@@ -959,6 +1015,11 @@ export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
 export type AvatarRenderVariantId = z.infer<typeof avatarRenderVariantIdSchema>;
 export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
 export type QualityTier = z.infer<typeof qualityTierSchema>;
+export type AvatarMeasurementDerivationMethod = z.infer<typeof avatarMeasurementsDerivationMethodSchema>;
+export type AvatarMeasurementDerivationEntry = z.infer<typeof avatarMeasurementDerivationEntrySchema>;
+export type AvatarReferenceMeasurements = z.infer<typeof avatarReferenceMeasurementsSchema>;
+export type AvatarMeasurementsDerivation = z.infer<typeof avatarMeasurementsDerivationSchema>;
+export type AvatarMeasurementsSidecar = z.infer<typeof avatarMeasurementsSidecarSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;

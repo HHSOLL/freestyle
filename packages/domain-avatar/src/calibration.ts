@@ -1,30 +1,13 @@
-type AvatarMeasurementDerivation = {
-  method?: string;
-  bones?: string[];
-  objectName?: string;
-};
+import {
+  avatarMeasurementsSidecarSchema,
+  type AvatarMeasurementsSidecar,
+  type AvatarReferenceMeasurements,
+} from "@freestyle/contracts";
 
 type AvatarMeasurementDerivationExpectation = {
   method: string;
   bones?: string[];
   objectName?: string;
-};
-
-type AvatarMeasurementsSidecarLike = {
-  schemaVersion?: string;
-  variantId?: string;
-  authoringSource?: string;
-  units?: string;
-  buildProvenance?: unknown;
-  referenceMeasurementsMm?: Record<string, number>;
-  referenceMeasurementsMmDerivation?: {
-    kind?: string;
-    intendedUse?: string;
-    sourceObjectName?: string;
-    sourceRigName?: string;
-    measurements?: Record<string, AvatarMeasurementDerivation>;
-  };
-  segmentationVertexCounts?: Record<string, number>;
 };
 
 type AvatarMeasurementsSummaryContext = {
@@ -33,7 +16,7 @@ type AvatarMeasurementsSummaryContext = {
     name?: string;
     boneNames?: string[];
   };
-  referenceMeasurementsMm?: Record<string, number>;
+  referenceMeasurementsMm?: AvatarReferenceMeasurements;
   segmentation?: Record<string, number>;
   buildProvenance?: unknown;
 };
@@ -101,7 +84,7 @@ export const buildAvatarReferenceMeasurementDerivationExpectations = (
 }) satisfies Record<string, AvatarMeasurementDerivationExpectation>;
 
 export const collectAvatarMeasurementsSidecarBaseIssues = (
-  sidecar: AvatarMeasurementsSidecarLike | null | undefined,
+  sidecar: AvatarMeasurementsSidecar | null | undefined,
   {
     variantId,
     expectedSchemaVersion,
@@ -155,8 +138,44 @@ export const collectAvatarMeasurementsSidecarBaseIssues = (
   return issues;
 };
 
+const formatContractPath = (path: PropertyKey[]) =>
+  path.length > 0
+    ? path
+        .map((part) => (typeof part === "symbol" ? part.toString() : String(part)))
+        .join(".")
+    : "root";
+
+export const parseAvatarMeasurementsSidecar = (
+  sidecar: unknown,
+  {
+    variantId,
+    expectedSchemaVersion,
+  }: {
+    variantId: string;
+    expectedSchemaVersion: string;
+  },
+) => {
+  const parsed = avatarMeasurementsSidecarSchema.safeParse(sidecar);
+  if (!parsed.success) {
+    return {
+      sidecar: null,
+      issues: parsed.error.issues.map(
+        (issue) => `${variantId}: measurements sidecar ${formatContractPath(issue.path)} ${issue.message}`,
+      ),
+    };
+  }
+
+  return {
+    sidecar: parsed.data,
+    issues: collectAvatarMeasurementsSidecarBaseIssues(parsed.data, {
+      variantId,
+      expectedSchemaVersion,
+    }),
+  };
+};
+
 export const collectAvatarMeasurementsSidecarSummaryIssues = (
-  sidecar: AvatarMeasurementsSidecarLike | null | undefined,
+  sidecar: AvatarMeasurementsSidecar | null | undefined,
   {
     variantId,
     expectedSchemaVersion,
@@ -187,7 +206,7 @@ export const collectAvatarMeasurementsSidecarSummaryIssues = (
       issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.sourceRigName must match summary rig name`);
     }
     for (const [key, expected] of Object.entries(expectedDerivations) as Array<
-      [string, AvatarMeasurementDerivationExpectation]
+      [keyof typeof expectedDerivations, AvatarMeasurementDerivationExpectation]
     >) {
       const derivation = measurementDerivation.measurements?.[key];
       if (!derivation || typeof derivation !== "object") {
@@ -201,11 +220,11 @@ export const collectAvatarMeasurementsSidecarSummaryIssues = (
         const boneNames = Array.isArray(derivation.bones) ? derivation.bones : [];
         if (
           boneNames.length !== expectedBones.length
-          || boneNames.some((boneName, index) => boneName !== expectedBones[index])
+          || boneNames.some((boneName: string, index: number) => boneName !== expectedBones[index])
         ) {
           issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must match the extraction chain`);
         }
-        if (boneNames.some((boneName) => !summaryBoneNames.includes(boneName))) {
+        if (boneNames.some((boneName: string) => !summaryBoneNames.includes(boneName))) {
           issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must exist in summary rig.boneNames`);
         }
       }

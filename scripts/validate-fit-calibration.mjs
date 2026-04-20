@@ -1,12 +1,17 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fitReviewArchetypes } from "@freestyle/domain-avatar";
+import { flattenBodyProfile } from "@freestyle/contracts";
+import { fitReviewArchetypes, resolveAvatarVariantFromProfile } from "@freestyle/domain-avatar";
 import {
   assessGarmentPhysicalFit,
   formatGarmentFitSummary,
   getGarmentAdaptiveBodyMaskZones,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
+import {
+  avatarMeasurementsSidecarSchemaVersion,
+  avatarRenderManifest,
+} from "../packages/runtime-3d/src/avatar-manifest.ts";
 
 const fitStateRank = {
   compression: 0,
@@ -62,6 +67,36 @@ const monotonicExpectations = [
 ];
 
 const issues = [];
+const expectedReferenceMeasurementKeys = [
+  "statureMm",
+  "shoulderWidthMm",
+  "armLengthMm",
+  "inseamMm",
+  "torsoLengthMm",
+  "hipWidthMm",
+];
+const comparableReferenceMeasurements = {
+  statureMm: {
+    profileKey: "heightCm",
+    label: "stature",
+  },
+  shoulderWidthMm: {
+    profileKey: "shoulderCm",
+    label: "shoulder",
+  },
+  armLengthMm: {
+    profileKey: "armLengthCm",
+    label: "armLength",
+  },
+  inseamMm: {
+    profileKey: "inseamCm",
+    label: "inseam",
+  },
+  torsoLengthMm: {
+    profileKey: "torsoLengthCm",
+    label: "torsoLength",
+  },
+};
 const adaptiveMaskExpectations = [
   {
     garmentId: "starter-outer-tailored-layer",
@@ -75,13 +110,136 @@ const adaptiveMaskExpectations = [
   },
 ];
 
+const requiredCalibrationVariantIds = [...new Set(fitReviewArchetypes.map((entry) => resolveAvatarVariantFromProfile(entry.profile)))];
+const avatarCalibrationVariantConfigs = requiredCalibrationVariantIds.map((variantId) => {
+  const manifestEntry = avatarRenderManifest[variantId];
+  if (!manifestEntry) {
+    issues.push(`missing avatar render manifest entry for calibration variant ${variantId}`);
+    return null;
+  }
+
+  const representativeArchetype = fitReviewArchetypes.find(
+    (entry) => resolveAvatarVariantFromProfile(entry.profile) === variantId,
+  );
+
+  return {
+    variantId,
+    measurementsPath: path.join(process.cwd(), manifestEntry.sourceProvenance.measurementsPath),
+    expectedGender: representativeArchetype?.profile.gender ?? null,
+  };
+}).filter(Boolean);
+
+const loadAvatarCalibrationReference = async ({ variantId, expectedGender, measurementsPath }) => {
+  let sidecar;
+  try {
+    sidecar = JSON.parse(await readFile(measurementsPath, "utf8"));
+  } catch (error) {
+    issues.push(`${variantId}: failed to read measurements sidecar at ${measurementsPath} (${error.message})`);
+    return null;
+  }
+
+  if (sidecar?.schemaVersion !== avatarMeasurementsSidecarSchemaVersion) {
+    issues.push(`${variantId}: measurements sidecar schemaVersion must be ${avatarMeasurementsSidecarSchemaVersion}`);
+  }
+  if (sidecar?.variantId !== variantId) {
+    issues.push(`${variantId}: measurements sidecar variantId must match ${variantId}`);
+  }
+  if (sidecar?.units !== "mm") {
+    issues.push(`${variantId}: measurements sidecar units must be mm`);
+  }
+  if (typeof sidecar?.buildProvenance !== "object" || !sidecar.buildProvenance) {
+    issues.push(`${variantId}: measurements sidecar buildProvenance is required`);
+  }
+  if (sidecar?.referenceMeasurementsMmDerivation?.kind !== "geometry-derived-reference") {
+    issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.kind must be geometry-derived-reference`);
+  }
+  if (sidecar?.referenceMeasurementsMmDerivation?.intendedUse !== "authoring-qa") {
+    issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.intendedUse must be authoring-qa`);
+  }
+
+  for (const key of expectedReferenceMeasurementKeys) {
+    if (typeof sidecar?.referenceMeasurementsMm?.[key] !== "number" || sidecar.referenceMeasurementsMm[key] <= 0) {
+      issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm.${key} must be a positive number`);
+    }
+
+    if (!sidecar?.referenceMeasurementsMmDerivation?.measurements?.[key]) {
+      issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key} is required`);
+    }
+  }
+
+  return {
+    variantId,
+    expectedGender,
+    sidecarPath: path.relative(process.cwd(), measurementsPath),
+    authoringSource: sidecar.authoringSource ?? null,
+    units: sidecar.units ?? null,
+    buildProvenance: sidecar.buildProvenance ?? null,
+    referenceMeasurementsMm: sidecar.referenceMeasurementsMm ?? {},
+    referenceMeasurementsMmDerivation: sidecar.referenceMeasurementsMmDerivation ?? null,
+  };
+};
+
+const avatarCalibrationReferences = (
+  await Promise.all(avatarCalibrationVariantConfigs.map(loadAvatarCalibrationReference))
+).filter(Boolean);
+const avatarCalibrationReferenceByVariant = Object.fromEntries(
+  avatarCalibrationReferences.map((entry) => [entry.variantId, entry]),
+);
+
 const report = {
   generatedAt: new Date().toISOString(),
+  avatarCalibrationReferences: avatarCalibrationReferences.map((entry) => ({
+    variantId: entry.variantId,
+    expectedGender: entry.expectedGender,
+    sidecarPath: entry.sidecarPath,
+    authoringSource: entry.authoringSource,
+    units: entry.units,
+    buildProvenance: entry.buildProvenance,
+    referenceMeasurementsMm: entry.referenceMeasurementsMm,
+    referenceMeasurementsMmDerivation: entry.referenceMeasurementsMmDerivation,
+    archetypeIds: fitReviewArchetypes
+      .filter((archetype) => resolveAvatarVariantFromProfile(archetype.profile) === entry.variantId)
+      .map((archetype) => archetype.id),
+  })),
   archetypes: fitReviewArchetypes.map((entry) => ({
-    id: entry.id,
-    gender: entry.profile.gender,
-    bodyFrame: entry.profile.bodyFrame,
-    heightCm: entry.profile.simple.heightCm,
+    ...(() => {
+      const variantId = resolveAvatarVariantFromProfile(entry.profile);
+      const calibrationReference = avatarCalibrationReferenceByVariant[variantId];
+      if (!calibrationReference) {
+        issues.push(`${entry.id}: missing avatar calibration reference for ${variantId}`);
+      }
+
+      const flatProfile = flattenBodyProfile(entry.profile);
+      const referenceComparisonMm = Object.fromEntries(
+        Object.entries(comparableReferenceMeasurements).map(([measurementKey, config]) => {
+          const profileValueCm = flatProfile[config.profileKey];
+          const profileValueMm = typeof profileValueCm === "number" ? Math.round(profileValueCm * 10) : null;
+          const referenceValueMm = calibrationReference?.referenceMeasurementsMm?.[measurementKey] ?? null;
+          return [
+            measurementKey,
+            {
+              label: config.label,
+              profileValueMm,
+              referenceValueMm,
+              deltaMm:
+                typeof profileValueMm === "number" && typeof referenceValueMm === "number"
+                  ? profileValueMm - referenceValueMm
+                  : null,
+            },
+          ];
+        }),
+      );
+
+      return {
+        id: entry.id,
+        avatarVariantId: variantId,
+        gender: entry.profile.gender,
+        bodyFrame: entry.profile.bodyFrame,
+        heightCm: entry.profile.simple.heightCm,
+        calibrationReferencePath: calibrationReference?.sidecarPath ?? null,
+        referenceComparisonMm,
+      };
+    })(),
   })),
   garments: starterGarmentCatalog.map((garment) => ({
     id: garment.id,

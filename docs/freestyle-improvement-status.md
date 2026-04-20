@@ -191,6 +191,32 @@ Outcome:
 - authoring QA can now distinguish numeric measurement drift from semantic extraction drift
 - future calibration work can consume the measurements sidecar with explicit bone/object provenance instead of reverse-engineering the Python build path
 
+### `Phase A / Batch 6`
+
+Status: `completed`
+
+Completed work:
+
+1. added a calibration-side measurements read path to `validate:fit-calibration` using the committed MPFB measurements sidecars for the active base-avatar variants
+2. resolved sidecar file paths through the runtime avatar manifest and archetype variant resolution instead of introducing a second hardcoded path map
+3. extended the fit-calibration report with `avatarCalibrationReferences`, including reference measurements, derivation metadata, provenance, and the archetype sets attached to each base variant
+4. added per-archetype `avatarVariantId`, sidecar path, and comparable linear-dimension deltas so calibration evidence can surface semantic extraction drift without changing fit math
+5. synced active docs so the measurements sidecar is now documented as a calibration evidence input while remaining outside the live runtime mapping path
+
+Evidence:
+
+- `scripts/validate-fit-calibration.mjs`
+- `output/fit-calibration/latest.json`
+- `README.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/avatar-pipeline.md`
+- `docs/physical-fit-system.md`
+
+Outcome:
+
+- the measurements sidecar now has a first consumer beyond `validate:avatar3d`, but that consumer is still artifact-only and calibration-scoped
+- calibration reports can now show which committed MPFB reference baselines and derivation rules were in force when the starter fit matrix was generated
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

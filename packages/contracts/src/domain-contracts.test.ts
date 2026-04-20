@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   avatarMeasurementsSidecarSchema,
@@ -23,6 +24,7 @@ import {
   garmentFitProfileSchema,
   garmentFitStateSchema,
   garmentMeasurementsSchema,
+  fitCalibrationReportSchema,
   normalizeBodyProfile,
   publishedGarmentAssetSchema,
   publishedRuntimeGarmentItemResponseSchema,
@@ -272,6 +274,17 @@ test('avatarMeasurementsSidecarSchema rejects missing derivation blocks', () => 
       }),
     /shoulderWidthMm/,
   );
+});
+
+test('fitCalibrationReportSchema accepts the committed calibration artifact shape', () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL('./__fixtures__/fit-calibration-report.json', import.meta.url), 'utf8'),
+  );
+  const parsed = fitCalibrationReportSchema.parse(fixture);
+
+  assert.equal(parsed.schemaVersion, 'fit-calibration-report.v1');
+  assert.ok(parsed.avatarCalibrationReferences.length > 0);
+  assert.ok(parsed.garments.length > 0);
 });
 
 test('garment measurement + fit profile schemas stay backward-compatible', () => {

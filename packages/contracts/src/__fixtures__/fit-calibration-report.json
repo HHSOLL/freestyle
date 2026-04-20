@@ -1,0 +1,1612 @@
+{
+  "schemaVersion": "fit-calibration-report.v1",
+  "generatedAt": "2026-04-20T09:57:01.766Z",
+  "avatarCalibrationReferences": [
+    {
+      "variantId": "female-base",
+      "expectedGender": "female",
+      "sidecarPath": "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+      "authoringSource": "mpfb2",
+      "units": "mm",
+      "buildProvenance": {
+        "mpfb": {
+          "repoUrl": "https://github.com/makehumancommunity/mpfb2.git",
+          "revision": "7053847edd62a09dfe1ec6209d69a425435195c4",
+          "sourcePath": "authoring/avatar/.cache/mpfb2/src"
+        },
+        "assetPack": {
+          "path": "authoring/avatar/.cache/makehuman_system_assets_cc0.zip",
+          "fileName": "makehuman_system_assets_cc0.zip",
+          "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+          "sourceRef": "cached:makehuman_system_assets_cc0.zip"
+        },
+        "builder": {
+          "scriptPath": "authoring/avatar/mpfb/scripts/build_runtime_avatar.py",
+          "blenderVersion": "4.4.3"
+        }
+      },
+      "referenceMeasurementsMm": {
+        "statureMm": 1639,
+        "shoulderWidthMm": 313,
+        "armLengthMm": 491,
+        "inseamMm": 784,
+        "torsoLengthMm": 432,
+        "hipWidthMm": 196
+      },
+      "referenceMeasurementsMmDerivation": {
+        "kind": "geometry-derived-reference",
+        "intendedUse": "authoring-qa",
+        "sourceObjectName": "mpfb-female-base.body.fullbody",
+        "sourceRigName": "mpfb-female-base",
+        "measurements": {
+          "statureMm": {
+            "method": "object-bounding-box-height",
+            "objectName": "mpfb-female-base.body.fullbody"
+          },
+          "shoulderWidthMm": {
+            "method": "bone-head-distance",
+            "bones": [
+              "upperarm_l",
+              "upperarm_r"
+            ]
+          },
+          "armLengthMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "upperarm_l",
+              "lowerarm_l",
+              "hand_l"
+            ]
+          },
+          "inseamMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "thigh_l",
+              "calf_l"
+            ]
+          },
+          "torsoLengthMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "spine_01",
+              "spine_02",
+              "spine_03",
+              "neck_01"
+            ]
+          },
+          "hipWidthMm": {
+            "method": "bone-head-distance",
+            "bones": [
+              "thigh_l",
+              "thigh_r"
+            ]
+          }
+        }
+      },
+      "archetypeIds": [
+        "female-petite-lean",
+        "female-balanced",
+        "female-curvy"
+      ]
+    },
+    {
+      "variantId": "male-base",
+      "expectedGender": "male",
+      "sidecarPath": "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+      "authoringSource": "mpfb2",
+      "units": "mm",
+      "buildProvenance": {
+        "mpfb": {
+          "repoUrl": "https://github.com/makehumancommunity/mpfb2.git",
+          "revision": "7053847edd62a09dfe1ec6209d69a425435195c4",
+          "sourcePath": "authoring/avatar/.cache/mpfb2/src"
+        },
+        "assetPack": {
+          "path": "authoring/avatar/.cache/makehuman_system_assets_cc0.zip",
+          "fileName": "makehuman_system_assets_cc0.zip",
+          "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+          "sourceRef": "cached:makehuman_system_assets_cc0.zip"
+        },
+        "builder": {
+          "scriptPath": "authoring/avatar/mpfb/scripts/build_runtime_avatar.py",
+          "blenderVersion": "4.4.3"
+        }
+      },
+      "referenceMeasurementsMm": {
+        "statureMm": 1782,
+        "shoulderWidthMm": 393,
+        "armLengthMm": 566,
+        "inseamMm": 889,
+        "torsoLengthMm": 381,
+        "hipWidthMm": 221
+      },
+      "referenceMeasurementsMmDerivation": {
+        "kind": "geometry-derived-reference",
+        "intendedUse": "authoring-qa",
+        "sourceObjectName": "mpfb-male-base.body.fullbody",
+        "sourceRigName": "mpfb-male-base",
+        "measurements": {
+          "statureMm": {
+            "method": "object-bounding-box-height",
+            "objectName": "mpfb-male-base.body.fullbody"
+          },
+          "shoulderWidthMm": {
+            "method": "bone-head-distance",
+            "bones": [
+              "upperarm_l",
+              "upperarm_r"
+            ]
+          },
+          "armLengthMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "upperarm_l",
+              "lowerarm_l",
+              "hand_l"
+            ]
+          },
+          "inseamMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "thigh_l",
+              "calf_l"
+            ]
+          },
+          "torsoLengthMm": {
+            "method": "bone-chain-length",
+            "bones": [
+              "spine_01",
+              "spine_02",
+              "spine_03",
+              "neck_01"
+            ]
+          },
+          "hipWidthMm": {
+            "method": "bone-head-distance",
+            "bones": [
+              "thigh_l",
+              "thigh_r"
+            ]
+          }
+        }
+      },
+      "archetypeIds": [
+        "male-soft",
+        "male-balanced",
+        "male-athletic-tall"
+      ]
+    }
+  ],
+  "archetypes": [
+    {
+      "id": "female-petite-lean",
+      "avatarVariantId": "female-base",
+      "gender": "female",
+      "bodyFrame": "athletic",
+      "heightCm": 158,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1580,
+          "referenceValueMm": 1639,
+          "deltaMm": -59
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 380,
+          "referenceValueMm": 313,
+          "deltaMm": 67
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 550,
+          "referenceValueMm": 491,
+          "deltaMm": 59
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 740,
+          "referenceValueMm": 784,
+          "deltaMm": -44
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 580,
+          "referenceValueMm": 432,
+          "deltaMm": 148
+        }
+      }
+    },
+    {
+      "id": "female-balanced",
+      "avatarVariantId": "female-base",
+      "gender": "female",
+      "bodyFrame": "balanced",
+      "heightCm": 166,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1660,
+          "referenceValueMm": 1639,
+          "deltaMm": 21
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 400,
+          "referenceValueMm": 313,
+          "deltaMm": 87
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 580,
+          "referenceValueMm": 491,
+          "deltaMm": 89
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 790,
+          "referenceValueMm": 784,
+          "deltaMm": 6
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 600,
+          "referenceValueMm": 432,
+          "deltaMm": 168
+        }
+      }
+    },
+    {
+      "id": "female-curvy",
+      "avatarVariantId": "female-base",
+      "gender": "female",
+      "bodyFrame": "curvy",
+      "heightCm": 171,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1710,
+          "referenceValueMm": 1639,
+          "deltaMm": 71
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 410,
+          "referenceValueMm": 313,
+          "deltaMm": 97
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 600,
+          "referenceValueMm": 491,
+          "deltaMm": 109
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 810,
+          "referenceValueMm": 784,
+          "deltaMm": 26
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 630,
+          "referenceValueMm": 432,
+          "deltaMm": 198
+        }
+      }
+    },
+    {
+      "id": "male-soft",
+      "avatarVariantId": "male-base",
+      "gender": "male",
+      "bodyFrame": "soft",
+      "heightCm": 176,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1760,
+          "referenceValueMm": 1782,
+          "deltaMm": -22
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 440,
+          "referenceValueMm": 393,
+          "deltaMm": 47
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 590,
+          "referenceValueMm": 566,
+          "deltaMm": 24
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 810,
+          "referenceValueMm": 889,
+          "deltaMm": -79
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 640,
+          "referenceValueMm": 381,
+          "deltaMm": 259
+        }
+      }
+    },
+    {
+      "id": "male-balanced",
+      "avatarVariantId": "male-base",
+      "gender": "male",
+      "bodyFrame": "balanced",
+      "heightCm": 179,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1790,
+          "referenceValueMm": 1782,
+          "deltaMm": 8
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 470,
+          "referenceValueMm": 393,
+          "deltaMm": 77
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 620,
+          "referenceValueMm": 566,
+          "deltaMm": 54
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 840,
+          "referenceValueMm": 889,
+          "deltaMm": -49
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 640,
+          "referenceValueMm": 381,
+          "deltaMm": 259
+        }
+      }
+    },
+    {
+      "id": "male-athletic-tall",
+      "avatarVariantId": "male-base",
+      "gender": "male",
+      "bodyFrame": "athletic",
+      "heightCm": 184,
+      "calibrationReferencePath": "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+      "referenceComparisonMm": {
+        "statureMm": {
+          "label": "stature",
+          "profileValueMm": 1840,
+          "referenceValueMm": 1782,
+          "deltaMm": 58
+        },
+        "shoulderWidthMm": {
+          "label": "shoulder",
+          "profileValueMm": 510,
+          "referenceValueMm": 393,
+          "deltaMm": 117
+        },
+        "armLengthMm": {
+          "label": "armLength",
+          "profileValueMm": 650,
+          "referenceValueMm": 566,
+          "deltaMm": 84
+        },
+        "inseamMm": {
+          "label": "inseam",
+          "profileValueMm": 880,
+          "referenceValueMm": 889,
+          "deltaMm": -9
+        },
+        "torsoLengthMm": {
+          "label": "torsoLength",
+          "profileValueMm": 630,
+          "referenceValueMm": 381,
+          "deltaMm": 249
+        }
+      }
+    }
+  ],
+  "garments": [
+    {
+      "id": "starter-top-soft-casual",
+      "category": "tops",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "L · 총장 오버 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "L · 총장 여유 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "relaxed",
+          "summaryKo": "L · 총장 여유 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "relaxed",
+          "summaryKo": "L · 총장 여유 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "relaxed",
+          "summaryKo": "L · 총장 여유 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "relaxed",
+          "summaryKo": "L · 어깨 여유 핏",
+          "limitingKeys": [
+            "shoulderCm",
+            "lengthCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        }
+      ]
+    },
+    {
+      "id": "starter-bottom-soft-wool",
+      "category": "bottoms",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "L · 인심 오버 핏",
+          "limitingKeys": [
+            "inseamCm",
+            "riseCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "oversized",
+          "summaryKo": "L · 인심 오버 핏",
+          "limitingKeys": [
+            "inseamCm",
+            "lengthCm",
+            "riseCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "relaxed",
+          "summaryKo": "L · 인심 여유 핏",
+          "limitingKeys": [
+            "inseamCm",
+            "lengthCm",
+            "riseCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "regular",
+          "summaryKo": "L · 허리 정상 핏",
+          "limitingKeys": [
+            "waistCm",
+            "inseamCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "relaxed",
+          "summaryKo": "L · 인심 여유 핏",
+          "limitingKeys": [
+            "inseamCm",
+            "lengthCm",
+            "waistCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "snug",
+          "summaryKo": "L · 총장 슬림 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "inseamCm",
+            "riseCm"
+          ],
+          "tensionRisk": "medium",
+          "clippingRisk": "medium"
+        }
+      ]
+    },
+    {
+      "id": "starter-top-city-relaxed",
+      "category": "tops",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "relaxed",
+          "summaryKo": "L · 소매 여유 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "regular",
+          "summaryKo": "L · 소매 정상 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "snug",
+          "summaryKo": "L · 소매 슬림 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "medium",
+          "clippingRisk": "medium"
+        }
+      ]
+    },
+    {
+      "id": "starter-outer-tailored-layer",
+      "category": "outerwear",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "relaxed",
+          "summaryKo": "L · 소매 여유 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "oversized",
+          "summaryKo": "L · 소매 오버 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "waistCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "relaxed",
+          "summaryKo": "L · 소매 여유 핏",
+          "limitingKeys": [
+            "sleeveLengthCm",
+            "shoulderCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "snug",
+          "summaryKo": "L · 어깨 슬림 핏",
+          "limitingKeys": [
+            "shoulderCm",
+            "sleeveLengthCm",
+            "chestCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        }
+      ]
+    },
+    {
+      "id": "starter-shoe-sneaker",
+      "category": "shoes",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "snug",
+          "summaryKo": "270 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "snug",
+          "summaryKo": "270 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "270 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "270 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "snug",
+          "summaryKo": "270 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "270 · 총장 끼는 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-shoe-soft-day",
+      "category": "shoes",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "snug",
+          "summaryKo": "255 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "snug",
+          "summaryKo": "255 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "compression",
+          "summaryKo": "255 · 총장 끼는 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "compression",
+          "summaryKo": "255 · 총장 끼는 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "255 · 총장 끼는 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "255 · 총장 끼는 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-shoe-night-runner",
+      "category": "shoes",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "snug",
+          "summaryKo": "275 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "snug",
+          "summaryKo": "275 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "275 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "275 · 밑단 슬림 핏",
+          "limitingKeys": [
+            "hemCm",
+            "lengthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "snug",
+          "summaryKo": "275 · 총장 슬림 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "snug",
+          "summaryKo": "275 · 총장 슬림 핏",
+          "limitingKeys": [
+            "lengthCm",
+            "hemCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-accessory-city-bucket-hat",
+      "category": "accessories",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "L · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "L · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "regular",
+          "summaryKo": "L · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "regular",
+          "summaryKo": "L · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "snug",
+          "summaryKo": "L · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "L · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-accessory-oval-shades",
+      "category": "accessories",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "regular",
+          "summaryKo": "One · 프레임폭 정상 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "snug",
+          "summaryKo": "One · 프레임폭 슬림 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "compression",
+          "summaryKo": "One · 프레임폭 끼는 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "compression",
+          "summaryKo": "One · 프레임폭 끼는 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 프레임폭 끼는 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 프레임폭 끼는 핏",
+          "limitingKeys": [
+            "frameWidthCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-signature-ponytail",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "One · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-soft-bob",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-long-fall",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "One · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-textured-crop",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-studio-braid",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "One · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-volume-bob",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "One · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-clean-sweep",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    },
+    {
+      "id": "starter-hair-afro-cloud",
+      "category": "hair",
+      "archetypes": [
+        {
+          "archetypeId": "female-petite-lean",
+          "state": "oversized",
+          "summaryKo": "One · 머리 오버 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-balanced",
+          "state": "relaxed",
+          "summaryKo": "One · 머리 여유 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "female-curvy",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-soft",
+          "state": "regular",
+          "summaryKo": "One · 머리 정상 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "low",
+          "clippingRisk": "low"
+        },
+        {
+          "archetypeId": "male-balanced",
+          "state": "snug",
+          "summaryKo": "One · 머리 슬림 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        },
+        {
+          "archetypeId": "male-athletic-tall",
+          "state": "compression",
+          "summaryKo": "One · 머리 끼는 핏",
+          "limitingKeys": [
+            "headCircumferenceCm"
+          ],
+          "tensionRisk": "high",
+          "clippingRisk": "high"
+        }
+      ]
+    }
+  ]
+}

@@ -585,6 +585,80 @@ export const garmentFitAssessmentSchema = z
     });
   });
 
+export const fitCalibrationComparisonEntrySchema = z
+  .object({
+    label: z.string().trim().min(1).max(120),
+    profileValueMm: z.number().finite().nullable(),
+    referenceValueMm: z.number().finite().nullable(),
+    deltaMm: z.number().finite().nullable(),
+  })
+  .strict();
+
+export const fitCalibrationReferenceComparisonSchema = z
+  .object({
+    statureMm: fitCalibrationComparisonEntrySchema,
+    shoulderWidthMm: fitCalibrationComparisonEntrySchema,
+    armLengthMm: fitCalibrationComparisonEntrySchema,
+    inseamMm: fitCalibrationComparisonEntrySchema,
+    torsoLengthMm: fitCalibrationComparisonEntrySchema,
+  })
+  .strict();
+
+export const avatarCalibrationReferenceSchema = z
+  .object({
+    variantId: avatarRenderVariantIdSchema,
+    expectedGender: avatarGenderSchema,
+    sidecarPath: z.string().trim().min(1),
+    authoringSource: z.literal("mpfb2"),
+    units: z.literal("mm"),
+    buildProvenance: unknownRecordSchema,
+    referenceMeasurementsMm: avatarReferenceMeasurementsSchema,
+    referenceMeasurementsMmDerivation: avatarMeasurementsDerivationSchema,
+    archetypeIds: z.array(z.string().trim().min(1)).min(1),
+  })
+  .strict();
+
+export const fitCalibrationArchetypeSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    avatarVariantId: avatarRenderVariantIdSchema,
+    gender: avatarGenderSchema,
+    bodyFrame: bodyFrameSchema,
+    heightCm: measurementCmSchema,
+    calibrationReferencePath: z.string().trim().min(1).nullable(),
+    referenceComparisonMm: fitCalibrationReferenceComparisonSchema,
+  })
+  .strict();
+
+export const fitCalibrationGarmentArchetypeSchema = z
+  .object({
+    archetypeId: z.string().trim().min(1),
+    state: garmentFitStateSchema.nullable(),
+    summaryKo: z.string().trim().min(1).nullable(),
+    limitingKeys: z.array(garmentMeasurementKeySchema),
+    tensionRisk: garmentFitRiskSchema.nullable(),
+    clippingRisk: garmentFitRiskSchema.nullable(),
+  })
+  .strict();
+
+export const fitCalibrationGarmentSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    category: assetCategorySchema,
+    archetypes: z.array(fitCalibrationGarmentArchetypeSchema).min(1),
+  })
+  .strict();
+
+export const fitCalibrationReportSchema = z
+  .object({
+    schemaVersion: z.literal("fit-calibration-report.v1"),
+    generatedAt: z.iso.datetime(),
+    avatarCalibrationReferences: z.array(avatarCalibrationReferenceSchema).min(1),
+    archetypes: z.array(fitCalibrationArchetypeSchema).min(1),
+    garments: z.array(fitCalibrationGarmentSchema).min(1),
+  })
+  .strict();
+
 export const garmentRuntimeBindingSchema = z
   .object({
     modelPath: z.string().trim().min(1),
@@ -1020,6 +1094,13 @@ export type AvatarMeasurementDerivationEntry = z.infer<typeof avatarMeasurementD
 export type AvatarReferenceMeasurements = z.infer<typeof avatarReferenceMeasurementsSchema>;
 export type AvatarMeasurementsDerivation = z.infer<typeof avatarMeasurementsDerivationSchema>;
 export type AvatarMeasurementsSidecar = z.infer<typeof avatarMeasurementsSidecarSchema>;
+export type FitCalibrationComparisonEntry = z.infer<typeof fitCalibrationComparisonEntrySchema>;
+export type FitCalibrationReferenceComparison = z.infer<typeof fitCalibrationReferenceComparisonSchema>;
+export type AvatarCalibrationReference = z.infer<typeof avatarCalibrationReferenceSchema>;
+export type FitCalibrationArchetype = z.infer<typeof fitCalibrationArchetypeSchema>;
+export type FitCalibrationGarmentArchetype = z.infer<typeof fitCalibrationGarmentArchetypeSchema>;
+export type FitCalibrationGarment = z.infer<typeof fitCalibrationGarmentSchema>;
+export type FitCalibrationReport = z.infer<typeof fitCalibrationReportSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;

@@ -1,14 +1,11 @@
 import {
   avatarMeasurementsSidecarSchema,
+  type AvatarMeasurementDerivationEntry,
   type AvatarMeasurementsSidecar,
   type AvatarReferenceMeasurements,
 } from "@freestyle/contracts";
 
-type AvatarMeasurementDerivationExpectation = {
-  method: string;
-  bones?: string[];
-  objectName?: string;
-};
+type AvatarMeasurementDerivationExpectation = AvatarMeasurementDerivationEntry;
 
 type AvatarMeasurementsSummaryContext = {
   fullBody?: string;

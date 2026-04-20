@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import type { AvatarMeasurementsSidecar } from "@freestyle/contracts";
 import {
   buildAvatarReferenceMeasurementDerivationExpectations,
   collectAvatarMeasurementsSidecarBaseIssues,
@@ -50,7 +51,7 @@ const summary = {
   },
 };
 
-const validSidecar = {
+const validSidecar: AvatarMeasurementsSidecar = {
   schemaVersion: expectedSchemaVersion,
   variantId: "female-base",
   authoringSource: "mpfb2",
@@ -114,7 +115,7 @@ test("measurements sidecar summary validation enforces derivation and summary pa
 });
 
 test("measurements sidecar summary validation fails on stale derivation drift", () => {
-  const driftedSidecar = {
+  const driftedSidecar: AvatarMeasurementsSidecar = {
     ...validSidecar,
     referenceMeasurementsMmDerivation: {
       ...validSidecar.referenceMeasurementsMmDerivation,

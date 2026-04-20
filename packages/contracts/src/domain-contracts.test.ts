@@ -33,6 +33,9 @@ import {
   garmentPatternSpecSchema,
   garmentPatternSpecSchemaVersion,
   fitCalibrationReportSchema,
+  fitSimulateHQJobType,
+  fitSimulateHQRequestSchema,
+  fitSimulateHQResultEnvelopeSchema,
   garmentAuthoringSummarySchema,
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
@@ -311,6 +314,60 @@ test('fitCalibrationReportSchema accepts the committed calibration artifact shap
   assert.equal(parsed.schemaVersion, 'fit-calibration-report.v1');
   assert.ok(parsed.avatarCalibrationReferences.length > 0);
   assert.ok(parsed.garments.length > 0);
+});
+
+test('fitSimulateHQRequestSchema accepts the reserved offline simulation request contract', () => {
+  const parsed = fitSimulateHQRequestSchema.parse({
+    jobType: fitSimulateHQJobType,
+    schemaVersion: 'fit-simulate-hq.v1',
+    bodyVersionId: '00000000-0000-4000-8000-000000000021',
+    garmentVariantId: '00000000-0000-4000-8000-000000000022',
+    avatarManifestUrl: 'https://cdn.freestyle.test/avatars/female-base.manifest.json',
+    garmentManifestUrl: 'https://cdn.freestyle.test/garments/soft-casual.manifest.json',
+    materialPreset: 'cotton_woven_light',
+    qualityTier: 'balanced',
+  });
+
+  assert.equal(parsed.jobType, fitSimulateHQJobType);
+  assert.equal(parsed.qualityTier, 'balanced');
+});
+
+test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result envelopes', () => {
+  const parsed = fitSimulateHQResultEnvelopeSchema.parse({
+    schema_version: 'job-result.v1',
+    job_type: fitSimulateHQJobType,
+    trace_id: '00000000-0000-4000-8000-000000000023',
+    progress: 100,
+    artifacts: [
+      {
+        kind: 'draped_glb',
+        url: 'https://cdn.freestyle.test/jobs/fit/draped.glb',
+      },
+      {
+        kind: 'fit_map_json',
+        url: 'https://cdn.freestyle.test/jobs/fit/fit-map.json',
+      },
+      {
+        kind: 'preview_png',
+        url: 'https://cdn.freestyle.test/jobs/fit/preview.png',
+      },
+    ],
+    metrics: {
+      durationMs: 120000,
+      penetrationRate: 0.012,
+      maxStretchRatio: 1.08,
+    },
+    warnings: [],
+    data: {
+      schemaVersion: 'fit-simulate-hq.v1',
+      bodyVersionId: '00000000-0000-4000-8000-000000000021',
+      garmentVariantId: '00000000-0000-4000-8000-000000000022',
+      qualityTier: 'high',
+    },
+  });
+
+  assert.equal(parsed.artifacts[0]?.kind, 'draped_glb');
+  assert.equal(parsed.metrics.durationMs, 120000);
 });
 
 test('authoring summary schemas accept committed garment, hair, and accessory artifacts', () => {

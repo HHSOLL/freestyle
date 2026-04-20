@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   type AssetMetadata,
+  fitSimulateHQJobType,
   jobArtifactSchema,
   jobPayloadEnvelopeSchema,
   jobResultEnvelopeSchema,
@@ -16,6 +17,7 @@ export const JOB_TYPES = {
   ASSET_PROCESSOR_PROCESS: "asset_processor.process",
   EVALUATOR_OUTFIT: "evaluator.outfit",
   TRYON_GENERATE: "tryon.generate",
+  FIT_SIMULATE_HQ: fitSimulateHQJobType,
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -28,6 +30,7 @@ export const jobTypeSchema = z.enum([
   JOB_TYPES.ASSET_PROCESSOR_PROCESS,
   JOB_TYPES.EVALUATOR_OUTFIT,
   JOB_TYPES.TRYON_GENERATE,
+  JOB_TYPES.FIT_SIMULATE_HQ,
 ]);
 
 export const JOB_STATUS = {

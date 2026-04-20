@@ -4,6 +4,8 @@ import {
   JOB_TYPES,
   buildJobPayloadEnvelope,
   buildJobResultEnvelope,
+  fitSimulateHQJobPayloadInputSchema,
+  fitSimulateHQJobType,
   importProductJobPayloadSchema,
   normalizeJobResultEnvelope,
   normalizeQueuedJobPayload,
@@ -55,6 +57,31 @@ test("queued payload helpers preserve canonical envelopes", () => {
 
   assert.deepEqual(normalized, canonical);
   assert.equal(readJobPayloadEnvelope(canonical)?.trace_id, traceId);
+});
+
+test("normalizeQueuedJobPayload upgrades reserved simulation requests into canonical envelopes", () => {
+  const payload = normalizeQueuedJobPayload({
+    jobType: JOB_TYPES.FIT_SIMULATE_HQ,
+    payload: {
+      jobType: fitSimulateHQJobType,
+      schemaVersion: "fit-simulate-hq.v1",
+      bodyVersionId: "00000000-0000-4000-8000-000000000021",
+      garmentVariantId: "00000000-0000-4000-8000-000000000022",
+      avatarManifestUrl: "https://cdn.freestyle.test/avatars/female-base.manifest.json",
+      garmentManifestUrl: "https://cdn.freestyle.test/garments/soft-casual.manifest.json",
+      materialPreset: "cotton_woven_light",
+      qualityTier: "fast",
+    },
+    schema: fitSimulateHQJobPayloadInputSchema,
+    fallbackTraceId: traceId,
+    idempotencyKey: "fit-sim-123",
+  });
+
+  assert.equal(payload.schema_version, "job-payload.v1");
+  assert.equal(payload.job_type, JOB_TYPES.FIT_SIMULATE_HQ);
+  assert.equal(payload.idempotency_key, "fit-sim-123");
+  assert.equal(payload.data.bodyVersionId, "00000000-0000-4000-8000-000000000021");
+  assert.equal("schemaVersion" in payload.data, false);
 });
 
 test("normalizeJobResultEnvelope upgrades legacy result blobs into canonical envelopes", () => {

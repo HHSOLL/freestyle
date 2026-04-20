@@ -217,6 +217,32 @@ Outcome:
 - the measurements sidecar now has a first consumer beyond `validate:avatar3d`, but that consumer is still artifact-only and calibration-scoped
 - calibration reports can now show which committed MPFB reference baselines and derivation rules were in force when the starter fit matrix was generated
 
+### `Phase A / Batch 7`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted shared avatar measurements-sidecar calibration helpers into `packages/domain-avatar`
+2. rewired `validate:avatar3d` to use the shared summary-parity helper instead of maintaining a second copy of the derivation contract inline
+3. rewired `validate:fit-calibration` to use the same shared base-sidecar expectations while keeping its report semantics unchanged
+4. added targeted domain-avatar tests that lock the derivation contract and summary parity checks at the helper level
+5. removed the duplicate untracked `authoring/avatar/mpfb/source-lock 2.json` artifact from the workspace
+
+Evidence:
+
+- `packages/domain-avatar/src/calibration.ts`
+- `packages/domain-avatar/src/calibration.test.ts`
+- `packages/domain-avatar/src/index.ts`
+- `scripts/validate-avatar-3d.mjs`
+- `scripts/validate-fit-calibration.mjs`
+- `docs/DEVELOPMENT_GUIDE.md`
+
+Outcome:
+
+- avatar measurements-sidecar expectations now live in one calibration-owned helper instead of drifting between two validators
+- future Phase A batches can widen sidecar consumption or schema evolution without first reconciling duplicated validation logic
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

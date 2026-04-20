@@ -1,7 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { flattenBodyProfile } from "@freestyle/contracts";
-import { fitReviewArchetypes, resolveAvatarVariantFromProfile } from "@freestyle/domain-avatar";
+import {
+  avatarComparableReferenceMeasurements,
+  collectAvatarMeasurementsSidecarBaseIssues,
+  fitReviewArchetypes,
+  resolveAvatarVariantFromProfile,
+} from "@freestyle/domain-avatar";
 import {
   assessGarmentPhysicalFit,
   formatGarmentFitSummary,
@@ -67,36 +72,6 @@ const monotonicExpectations = [
 ];
 
 const issues = [];
-const expectedReferenceMeasurementKeys = [
-  "statureMm",
-  "shoulderWidthMm",
-  "armLengthMm",
-  "inseamMm",
-  "torsoLengthMm",
-  "hipWidthMm",
-];
-const comparableReferenceMeasurements = {
-  statureMm: {
-    profileKey: "heightCm",
-    label: "stature",
-  },
-  shoulderWidthMm: {
-    profileKey: "shoulderCm",
-    label: "shoulder",
-  },
-  armLengthMm: {
-    profileKey: "armLengthCm",
-    label: "armLength",
-  },
-  inseamMm: {
-    profileKey: "inseamCm",
-    label: "inseam",
-  },
-  torsoLengthMm: {
-    profileKey: "torsoLengthCm",
-    label: "torsoLength",
-  },
-};
 const adaptiveMaskExpectations = [
   {
     garmentId: "starter-outer-tailored-layer",
@@ -138,34 +113,12 @@ const loadAvatarCalibrationReference = async ({ variantId, expectedGender, measu
     return null;
   }
 
-  if (sidecar?.schemaVersion !== avatarMeasurementsSidecarSchemaVersion) {
-    issues.push(`${variantId}: measurements sidecar schemaVersion must be ${avatarMeasurementsSidecarSchemaVersion}`);
-  }
-  if (sidecar?.variantId !== variantId) {
-    issues.push(`${variantId}: measurements sidecar variantId must match ${variantId}`);
-  }
-  if (sidecar?.units !== "mm") {
-    issues.push(`${variantId}: measurements sidecar units must be mm`);
-  }
-  if (typeof sidecar?.buildProvenance !== "object" || !sidecar.buildProvenance) {
-    issues.push(`${variantId}: measurements sidecar buildProvenance is required`);
-  }
-  if (sidecar?.referenceMeasurementsMmDerivation?.kind !== "geometry-derived-reference") {
-    issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.kind must be geometry-derived-reference`);
-  }
-  if (sidecar?.referenceMeasurementsMmDerivation?.intendedUse !== "authoring-qa") {
-    issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.intendedUse must be authoring-qa`);
-  }
-
-  for (const key of expectedReferenceMeasurementKeys) {
-    if (typeof sidecar?.referenceMeasurementsMm?.[key] !== "number" || sidecar.referenceMeasurementsMm[key] <= 0) {
-      issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm.${key} must be a positive number`);
-    }
-
-    if (!sidecar?.referenceMeasurementsMmDerivation?.measurements?.[key]) {
-      issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key} is required`);
-    }
-  }
+  issues.push(
+    ...collectAvatarMeasurementsSidecarBaseIssues(sidecar, {
+      variantId,
+      expectedSchemaVersion: avatarMeasurementsSidecarSchemaVersion,
+    }),
+  );
 
   return {
     variantId,
@@ -211,7 +164,7 @@ const report = {
 
       const flatProfile = flattenBodyProfile(entry.profile);
       const referenceComparisonMm = Object.fromEntries(
-        Object.entries(comparableReferenceMeasurements).map(([measurementKey, config]) => {
+        Object.entries(avatarComparableReferenceMeasurements).map(([measurementKey, config]) => {
           const profileValueCm = flatProfile[config.profileKey];
           const profileValueMm = typeof profileValueCm === "number" ? Math.round(profileValueCm * 10) : null;
           const referenceValueMm = calibrationReference?.referenceMeasurementsMm?.[measurementKey] ?? null;

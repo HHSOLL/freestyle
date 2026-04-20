@@ -85,4 +85,5 @@ Status: Accepted (updated)
 3. Railway production project/environment: `freestyle / production`
 4. Railway production services: `api`, `worker_importer`
 5. Supabase production project ref: `yczpjbwsszikuljstphi` (`fsp`)
-6. Active RC evidence note: `docs/qa/phase6-batch2-release-evidence-2026-04-20.md`
+6. Active RC evidence note: `docs/qa/operational-closeout-2026-04-20.md`
+7. RC tag pattern: `rc-YYYY-MM-DD-ops-closeout`

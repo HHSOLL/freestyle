@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `90%`
+- Working overall completion estimate: `92%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -36,7 +36,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
-| `Phase B` | pattern and garment metadata layer | `in_progress` | `Batch 1` and `Batch 2` are complete; starter garment authoring summaries now point at committed pattern/material sidecars that are parity-checked against the runtime catalog |
+| `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 
 ### `Phase A / Batch 1`
 
@@ -388,6 +388,34 @@ Outcome:
 
 - FreeStyle now has an explicit authoring-only pattern/material metadata layer for starter garments without reopening `PublishedGarmentAsset` or `/v1` contracts
 - garment-side measurement truth can evolve upstream with validator-backed parity against the current starter runtime catalog instead of drifting in docs or ad-hoc JSON blobs
+
+### `Phase B / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. extracted starter `pattern-spec` semantic parity checks into a shared `packages/domain-garment` helper instead of leaving them inline inside `validate:garment3d`
+2. widened the shared parity rule to cover starter `anchorIds` alongside measurements, measurement modes, size-chart rows, selected size, and physical profile
+3. rewired `validate:garment3d` to consume that shared helper so committed authoring summaries and direct domain tests now enforce the same semantic rule set
+4. added committed `authoring/garments/mpfb/specs/*.pattern-spec.json` regression coverage in `packages/domain-garment` plus a targeted mismatch test for drift detection
+5. synced active docs and marked `Phase B` complete now that schema ownership, committed sidecars, builder regeneration, validator reuse, and semantic parity ownership all live on stable boundaries
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/domain-garment/src/index.ts`
+- `packages/domain-garment/src/validation.test.ts`
+- `scripts/validate-garment-3d.mjs`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+- `docs/contract-ownership.md`
+
+Outcome:
+
+- starter garment pattern/material metadata now has a single semantic parity source in the garment domain instead of duplicated validator-only logic
+- `Phase B` is closed, so later work can start from a stable pattern/material metadata seam without reopening the public runtime or admin contracts
 
 ## Current Batch
 

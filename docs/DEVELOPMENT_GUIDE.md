@@ -167,8 +167,9 @@ Current registry:
 Every new garment asset must validate before product use. Use `npm run validate:garment3d` and keep the runtime contract aligned with [garment-fitting-contract.md](./garment-fitting-contract.md).
 
 - `validate:garment3d` now parses the committed MPFB garment authoring summaries through `packages/contracts` before it evaluates the fit-budget thresholds, so malformed source summaries fail closed instead of silently falling through to ad-hoc JSON reads
-- `validate:garment3d` now also resolves `patternSpec.relativePath` for committed starter garment summaries and checks that the authoring-only pattern/material sidecar stays in parity with starter runtime metadata before the fit-budget checks pass
+- `validate:garment3d` now also resolves `patternSpec.relativePath` for committed starter garment summaries and delegates semantic parity checks to the shared `validateGarmentPatternSpecAgainstStarterCatalog` helper in `packages/domain-garment`
 - authoring-only garment pattern/material metadata now lives in `authoring/garments/mpfb/specs/*.pattern-spec.json`; do not widen `/v1` or `PublishedGarmentAsset` just to carry that upstream metadata
+- if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 

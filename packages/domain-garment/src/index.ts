@@ -1,5 +1,6 @@
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
 import { garmentFitAssessmentSchema } from "@freestyle/contracts";
+import type { GarmentPatternSpec } from "@freestyle/contracts";
 import type {
   Asset,
   AvatarPoseId,
@@ -391,6 +392,12 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
         "male-base": "/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
       },
+      anchorBindings: [
+        { id: "waistCenter", weight: 0.34 },
+        { id: "hipCenter", weight: 0.34 },
+        { id: "leftKnee", weight: 0.16 },
+        { id: "rightKnee", weight: 0.16 },
+      ],
       collisionZones: ["hips", "legs"],
       bodyMaskZones: ["hips", "legs"],
       poseTuning: poseTuning({
@@ -671,6 +678,12 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      anchorBindings: [
+        { id: "leftAnkle", weight: 0.25 },
+        { id: "rightAnkle", weight: 0.25 },
+        { id: "leftFoot", weight: 0.25 },
+        { id: "rightFoot", weight: 0.25 },
+      ],
       collisionZones: ["feet"],
       bodyMaskZones: ["feet"],
       poseTuning: poseTuning({
@@ -728,6 +741,12 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      anchorBindings: [
+        { id: "leftAnkle", weight: 0.25 },
+        { id: "rightAnkle", weight: 0.25 },
+        { id: "leftFoot", weight: 0.25 },
+        { id: "rightFoot", weight: 0.25 },
+      ],
       collisionZones: ["feet"],
       bodyMaskZones: ["feet"],
       poseTuning: poseTuning({
@@ -785,6 +804,12 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_night_runner.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_night_runner.glb",
       },
+      anchorBindings: [
+        { id: "leftAnkle", weight: 0.25 },
+        { id: "rightAnkle", weight: 0.25 },
+        { id: "leftFoot", weight: 0.25 },
+        { id: "rightFoot", weight: 0.25 },
+      ],
       collisionZones: ["feet"],
       bodyMaskZones: ["feet"],
       poseTuning: poseTuning({
@@ -1916,6 +1941,63 @@ export const validateStarterGarment = (item: StarterGarment) => {
   if (!item.metadata?.correctiveFit) {
     issues.push(`${item.id}: starter garments must declare correctiveFit.`);
   }
+  return issues;
+};
+
+const sortGarmentPatternSpecComparable = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(sortGarmentPatternSpecComparable);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, sortGarmentPatternSpecComparable(nestedValue)]),
+    );
+  }
+  return value;
+};
+
+export const validateGarmentPatternSpecAgainstStarterCatalog = (
+  patternSpec: GarmentPatternSpec,
+  starterCatalog: readonly StarterGarment[] = starterGarmentCatalog,
+) => {
+  const issues: string[] = [];
+  const starter = starterCatalog.find((item) => item.id === patternSpec.runtimeStarterId);
+
+  if (!starter) {
+    return [`pattern spec starter id ${patternSpec.runtimeStarterId} does not exist in starter catalog.`];
+  }
+
+  if (starter.category !== patternSpec.category) {
+    issues.push(
+      `pattern spec category ${patternSpec.category} does not match starter catalog category ${starter.category}.`,
+    );
+  }
+
+  const metadata = starter.metadata ?? {};
+  const checks: Array<[label: string, runtimeValue: unknown, patternValue: unknown]> = [
+    ["measurements", metadata.measurements ?? null, patternSpec.measurements],
+    ["measurementModes", metadata.measurementModes ?? null, patternSpec.measurementModes],
+    ["sizeChart", metadata.sizeChart ?? null, patternSpec.sizeChart],
+    ["selectedSizeLabel", metadata.selectedSizeLabel ?? null, patternSpec.selectedSizeLabel],
+    ["physicalProfile", metadata.physicalProfile ?? null, patternSpec.physicalProfile],
+    [
+      "anchorIds",
+      (starter.runtime.anchorBindings ?? []).map((entry) => entry.id).sort(),
+      [...patternSpec.anchorIds].sort(),
+    ],
+  ];
+
+  for (const [label, runtimeValue, patternValue] of checks) {
+    if (
+      JSON.stringify(sortGarmentPatternSpecComparable(runtimeValue)) !==
+      JSON.stringify(sortGarmentPatternSpecComparable(patternValue))
+    ) {
+      issues.push(`pattern spec ${label} does not match starter runtime metadata.`);
+    }
+  }
+
   return issues;
 };
 

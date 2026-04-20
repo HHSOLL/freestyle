@@ -18,7 +18,7 @@ This document is intentionally about the runtime product contract.
 
 ## 1.1 Authoring Pattern Spec
 
-The current `Phase B` seam is upstream-only.
+The current `Phase B` seam stays upstream-only even though the metadata layer is now closed as a tracked phase.
 
 Each committed starter garment summary may now declare:
 
@@ -40,7 +40,17 @@ The active validator rule is:
 
 - `validate:garment3d` must be able to load the sidecar
 - the sidecar must parse through the shared schema
-- the sidecar's measurement-facing fields must stay in parity with the current starter runtime metadata
+- the sidecar's starter-facing semantic parity must be enforced through `validateGarmentPatternSpecAgainstStarterCatalog` in `packages/domain-garment`
+
+The current semantic parity scope is:
+
+- `category`
+- `measurements`
+- `measurementModes`
+- `sizeChart`
+- `selectedSizeLabel`
+- `physicalProfile`
+- `anchorIds`
 
 This keeps the new pattern/material metadata layer explicit without reopening the runtime product contract.
 

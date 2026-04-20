@@ -219,6 +219,7 @@ This layer is still derived-only.
 - it is built from `GarmentFitAssessment`
 - it does not widen current `/v1` payloads yet
 - it exists so product surfaces and future APIs can share one recommendation format instead of inventing separate summary strings
+- the first live product consumer is now `apps/web/src/components/product/V18ClosetExperience.tsx`, via the local display helper in `apps/web/src/components/product/closet-fit-report.ts`
 
 The current instant-fit report contains:
 
@@ -250,6 +251,12 @@ The current region layer normalizes measurement keys into product-facing regions
 - `hem`
 - `head`
 - `frame`
+
+Current product use:
+
+- `Closet` catalog cards now surface `overallFit`, confidence, and the top focus regions from the shared report
+- equipped-garment cards in `Closet` now use the same report for summary/explanation text instead of a separate surface-local summary formatter
+- API and persistence payloads remain unchanged in this batch
 
 ## 9. Corrective Fit Contract
 

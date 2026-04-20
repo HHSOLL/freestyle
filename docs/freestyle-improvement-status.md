@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `93%`
+- Working overall completion estimate: `94%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -37,7 +37,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
-| `Phase C` | instant fit engine | `in_progress` | `Batch 1` is complete; a product-facing instant-fit report contract and garment-domain builder now derive `overallFit / regions / confidence / explanations` from the current physical-fit assessment without widening `/v1` payloads |
+| `Phase C` | instant fit engine | `in_progress` | `Batch 1` and `Batch 2` are complete; `Closet` now consumes the shared instant-fit report locally while `/v1` payloads remain unchanged |
 
 ### `Phase A / Batch 1`
 
@@ -445,6 +445,32 @@ Outcome:
 
 - FreeStyle now has a typed, reusable instant-fit report layer above the lower-level physical-fit assessment
 - later `Phase C` batches can wire this result into product surfaces or persistence without first inventing another fit-report contract
+
+### `Phase C / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a `Closet`-local fit display helper in `apps/web` so product UI can consume the shared instant-fit report without embedding region/label/tone logic inside the page shell
+2. rewired `V18ClosetExperience` catalog tiles and equipped-item fit cards to read `overallFit / confidence / summary / focus regions` from the shared instant-fit report instead of the older assessment-specific summary path
+3. kept the API boundary unchanged by deriving the report from the already-computed local `GarmentFitAssessment` map rather than widening `/v1/closet/runtime-garments`
+4. added a targeted `apps/web` regression test for the fit display helper so primary-region ordering, tone mapping, and confidence text stay stable
+5. synced active fit docs so the first product consumer of `garmentInstantFitReportSchema` is explicitly documented
+
+Evidence:
+
+- `apps/web/src/components/product/closet-fit-report.ts`
+- `apps/web/src/components/product/closet-fit-report.test.ts`
+- `apps/web/src/components/product/V18ClosetExperience.tsx`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/garment-fitting-contract.md`
+- `docs/physical-fit-system.md`
+
+Outcome:
+
+- `Closet` now renders product-facing fit guidance from the shared instant-fit contract instead of relying on a surface-local summary formatter
+- later `Phase C` batches can move this same report into API or persistence adapters without needing to redesign the product UI language first
 
 ## Current Batch
 

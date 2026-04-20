@@ -220,6 +220,7 @@ As of `2026-04-20`:
 - `Phase B / Batch 3` closes the semantic ownership seam by moving starter pattern-spec parity checks into `packages/domain-garment`, so validator runs and domain tests now share the same rule set
 - `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the shared garment-domain parity helper detects starter drift
 - `Phase C / Batch 1` now adds a versioned instant-fit report contract above `GarmentFitAssessment`, so product-facing `overallFit / regions / confidence / explanations` can be derived from one shared schema instead of per-surface summary strings
+- `Phase C / Batch 2` now wires that report into `Closet` locally, so catalog and equipped-item fit guidance use the same derived contract without widening `/v1` or persistence payloads
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space
@@ -270,7 +271,7 @@ As of `2026-04-20`:
 4. add coarse collision volumes per garment category, including head-worn assets
 5. keep re-measuring and re-labeling garment size charts so `fit-calibration` and fallback metadata track the post-corrective geometry instead of older size contracts
 6. keep all adopted external sources tracked in `docs/OPEN_ASSET_CREDITS.md`
-7. wire the new instant-fit report into product surfaces and, later, persistence or API adapters instead of shipping one-off fit summary strings
+7. extend the current `Closet`-local instant-fit consumer into persistence or API adapters instead of shipping one-off fit summary strings
 
 ## 10. Rules For Future Adoption
 

@@ -5,17 +5,17 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   assessGarmentPhysicalFit,
-  formatGarmentFitSummary,
+  buildGarmentInstantFitReport,
   defaultHairItemIdsByVariant,
   resolveDefaultClosetLoadout,
 } from "@freestyle/domain-garment";
+import type { GarmentInstantFitReport } from "@freestyle/contracts";
 import { preloadRuntimeAssets } from "@freestyle/runtime-3d";
 import type {
   AvatarPoseId,
   BodyFrame,
   BodyProfile,
   GarmentFitAssessment,
-  GarmentFitDimensionAssessment,
   GarmentCategory,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
@@ -23,6 +23,7 @@ import { AvatarStageViewport } from "@/components/product/AvatarStageViewport";
 import { useBodyProfile } from "@/hooks/useBodyProfile";
 import { useClosetScene } from "@/hooks/useClosetScene";
 import { useWardrobeAssets } from "@/hooks/useWardrobeAssets";
+import { buildClosetFitCardDisplay } from "./closet-fit-report";
 import styles from "./v18-closet.module.css";
 
 const CM_PER_INCH = 2.54;
@@ -333,7 +334,7 @@ type DisplayItem = {
   bodyFrame?: BodyFrame;
   measurements?: MeasurementState;
   filterTags?: string[];
-  assessment?: GarmentFitAssessment | null;
+  fitReport?: GarmentInstantFitReport | null;
 };
 
 type ItemSetKey = "hair" | "top" | "outerwear" | "bottom" | "shoes" | "accessory";
@@ -609,88 +610,6 @@ function filterItemsBySubcategory(items: DisplayItem[], activeTab: TabValue, sub
   return items.filter((item) => item.filterTags?.includes(subCategory));
 }
 
-function fitStateLabel(state: GarmentFitAssessment["overallState"]) {
-  return {
-    compression: "끼는 핏",
-    snug: "슬림 핏",
-    regular: "정사이즈",
-    relaxed: "여유 핏",
-    oversized: "오버 핏",
-  }[state];
-}
-
-function fitRiskLabel(risk: NonNullable<GarmentFitAssessment["tensionRisk"]>) {
-  return {
-    low: "낮음",
-    medium: "중간",
-    high: "높음",
-  }[risk];
-}
-
-function fitStateTone(state: GarmentFitAssessment["overallState"]) {
-  return {
-    compression: "toneCompression",
-    snug: "toneSnug",
-    regular: "toneRegular",
-    relaxed: "toneRelaxed",
-    oversized: "toneOversized",
-  }[state];
-}
-
-function fitRiskTone(risk: NonNullable<GarmentFitAssessment["tensionRisk"]>) {
-  return {
-    low: "toneRegular",
-    medium: "toneSnug",
-    high: "toneCompression",
-  }[risk];
-}
-
-function fitDimensionLabel(key: GarmentFitDimensionAssessment["key"]) {
-  return {
-    chestCm: "가슴",
-    waistCm: "허리",
-    hipCm: "힙",
-    shoulderCm: "어깨",
-    sleeveLengthCm: "소매",
-    lengthCm: "총장",
-    inseamCm: "인심",
-    riseCm: "밑위",
-    hemCm: "밑단",
-    headCircumferenceCm: "머리",
-    frameWidthCm: "프레임폭",
-  }[key];
-}
-
-function fitDimensionDelta(entry: GarmentFitDimensionAssessment) {
-  if (entry.easeCm < 0) {
-    return `- ${Math.abs(entry.easeCm).toFixed(1)}cm`;
-  }
-  if (entry.easeCm > 0) {
-    return `+ ${entry.easeCm.toFixed(1)}cm`;
-  }
-  return "0.0cm";
-}
-
-function getFitFocusDimensions(assessment: GarmentFitAssessment | null, limit = 3) {
-  if (!assessment) return [];
-
-  const ordered: GarmentFitDimensionAssessment[] = [];
-  assessment.limitingKeys.forEach((key) => {
-    const match = assessment.dimensions.find((entry) => entry.key === key);
-    if (match && !ordered.some((entry) => entry.key === match.key)) {
-      ordered.push(match);
-    }
-  });
-
-  assessment.dimensions.forEach((entry) => {
-    if (!ordered.some((match) => match.key === entry.key)) {
-      ordered.push(entry);
-    }
-  });
-
-  return ordered.slice(0, limit);
-}
-
 function TopControls({
   onBack,
   onResetAll,
@@ -729,7 +648,7 @@ function LeftPanel({
   backgroundColor: string;
   setBackgroundColor: (value: string) => void;
   selectedSummary: { title: string; detail: string };
-  fitDetails: Array<{ label: string; assessment: GarmentFitAssessment | null }>;
+  fitDetails: Array<{ label: string; report: GarmentInstantFitReport | null }>;
   onOpenCustomize: () => void;
 }) {
   const handleHexChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -774,48 +693,54 @@ function LeftPanel({
         {fitDetails.length ? (
           <div className={styles["status-fit-list"]}>
             {fitDetails.map((item) => (
-              <div key={item.label} className={styles["fit-card"]}>
-                <div className={styles["fit-card-head"]}>
-                  <strong>{item.label}</strong>
-                  {item.assessment?.sizeLabel ? (
-                    <span className={styles["fit-size-chip"]}>{item.assessment.sizeLabel}</span>
-                  ) : null}
-                </div>
-                {item.assessment ? (
-                  <>
-                    <div className={styles["fit-chip-row"]}>
-                      <span className={`${styles["fit-chip"]} ${styles[fitStateTone(item.assessment.overallState)]}`}>
-                        {fitStateLabel(item.assessment.overallState)}
-                      </span>
-                      <span className={`${styles["fit-chip"]} ${styles[fitRiskTone(item.assessment.tensionRisk)]}`}>
-                        당김 {fitRiskLabel(item.assessment.tensionRisk)}
-                      </span>
-                      <span className={`${styles["fit-chip"]} ${styles[fitRiskTone(item.assessment.clippingRisk)]}`}>
-                        간섭 {fitRiskLabel(item.assessment.clippingRisk)}
-                      </span>
-                    </div>
-                    <div className={styles["fit-dimension-list"]}>
-                      {getFitFocusDimensions(item.assessment).map((dimension) => (
-                        <div key={dimension.key} className={styles["fit-dimension-row"]}>
-                          <span className={styles["fit-dimension-label"]}>{fitDimensionLabel(dimension.key)}</span>
-                          <span className={`${styles["fit-chip"]} ${styles[fitStateTone(dimension.state)]}`}>
-                            {fitStateLabel(dimension.state)}
-                          </span>
-                          <span className={styles["fit-dimension-delta"]}>{fitDimensionDelta(dimension)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <small>{formatGarmentFitSummary(item.assessment, "ko")}</small>
-                  </>
-                ) : (
-                  <small>사이즈 데이터 없음</small>
-                )}
-              </div>
+              <FitCard key={item.label} label={item.label} report={item.report} />
             ))}
           </div>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function FitCard({
+  label,
+  report,
+}: {
+  label: string;
+  report: GarmentInstantFitReport | null;
+}) {
+  const display = buildClosetFitCardDisplay(report, 3);
+
+  return (
+    <div className={styles["fit-card"]}>
+      <div className={styles["fit-card-head"]}>
+        <strong>{label}</strong>
+        {display?.sizeLabel ? <span className={styles["fit-size-chip"]}>{display.sizeLabel}</span> : null}
+      </div>
+      {display ? (
+        <>
+          <div className={styles["fit-chip-row"]}>
+            <span className={`${styles["fit-chip"]} ${styles[display.overallTone]}`}>{display.overallLabel}</span>
+            <span className={styles["fit-size-chip"]}>{display.confidenceLabel}</span>
+            <span className={`${styles["fit-chip"]} ${styles[display.tensionTone]}`}>당김 {display.tensionLabel}</span>
+            <span className={`${styles["fit-chip"]} ${styles[display.clippingTone]}`}>간섭 {display.clippingLabel}</span>
+          </div>
+          <div className={styles["fit-dimension-list"]}>
+            {display.focusRegions.map((region) => (
+              <div key={`${label}-${region.label}`} className={styles["fit-dimension-row"]}>
+                <span className={styles["fit-dimension-label"]}>{region.label}</span>
+                <span className={`${styles["fit-chip"]} ${styles[region.fitTone]}`}>{region.fitLabel}</span>
+                <span className={styles["fit-dimension-delta"]}>{region.delta}</span>
+              </div>
+            ))}
+          </div>
+          <small>{display.summary}</small>
+          {display.explanations[0] !== display.summary ? <small>{display.explanations[0]}</small> : null}
+        </>
+      ) : (
+        <small>사이즈 데이터 없음</small>
+      )}
+    </div>
   );
 }
 
@@ -1117,6 +1042,7 @@ function AssetPanel({
           <div className={styles["asset-grid"]}>
             {visibleItems.map((item) => {
               const thumbClass = styles[itemThumbClass(item.id)] ?? "";
+              const fitDisplay = buildClosetFitCardDisplay(item.fitReport ?? null, 2);
               return (
                 <button
                   key={item.id}
@@ -1137,23 +1063,21 @@ function AssetPanel({
                   <div className={`${styles["asset-copy"]} ${styles["reference-copy"]}`}>
                     <strong>{item.name}</strong>
                     <small>{item.subtitle}</small>
-                    {item.assessment ? (
+                    {fitDisplay ? (
                       <>
                         <div className={styles["asset-fit-row"]}>
-                          {item.assessment.sizeLabel ? (
-                            <span className={styles["asset-size-chip"]}>{item.assessment.sizeLabel}</span>
+                          {fitDisplay.sizeLabel ? (
+                            <span className={styles["asset-size-chip"]}>{fitDisplay.sizeLabel}</span>
                           ) : null}
-                          <span className={`${styles["asset-fit-chip"]} ${styles[fitStateTone(item.assessment.overallState)]}`}>
-                            {fitStateLabel(item.assessment.overallState)}
+                          <span className={`${styles["asset-fit-chip"]} ${styles[fitDisplay.overallTone]}`}>
+                            {fitDisplay.overallLabel}
                           </span>
-                          <span className={`${styles["asset-fit-chip"]} ${styles[fitRiskTone(item.assessment.tensionRisk)]}`}>
-                            당김 {fitRiskLabel(item.assessment.tensionRisk)}
-                          </span>
+                          <span className={styles["asset-size-chip"]}>{fitDisplay.confidenceLabel}</span>
                         </div>
                         <div className={styles["asset-fit-focus-list"]}>
-                          {getFitFocusDimensions(item.assessment, 2).map((dimension) => (
-                            <span key={dimension.key} className={styles["asset-fit-focus"]}>
-                              {fitDimensionLabel(dimension.key)} {fitDimensionDelta(dimension)}
+                          {fitDisplay.focusRegions.map((region) => (
+                            <span key={`${item.id}-${region.label}`} className={styles["asset-fit-focus"]}>
+                              {region.label} {region.delta}
                             </span>
                           ))}
                         </div>
@@ -1249,6 +1173,14 @@ export function V18ClosetExperience() {
     return next;
   }, [activeTab, baseItemSets, deferredProfile, equippedGarments, runtimeAssetById]);
 
+  const fitReports = useMemo(() => {
+    const next = new Map<string, GarmentInstantFitReport | null>();
+    fitAssessments.forEach((assessment, id) => {
+      next.set(id, buildGarmentInstantFitReport(assessment ?? null));
+    });
+    return next;
+  }, [fitAssessments]);
+
   const itemSets = useMemo<Record<ItemSetKey, DisplayItem[]>>(() => {
     const activeSetKey =
       activeTab in ITEM_SET_KEY_BY_TAB
@@ -1261,11 +1193,11 @@ export function V18ClosetExperience() {
     return {
       ...baseItemSets,
       [activeSetKey]: baseItemSets[activeSetKey].map((item: DisplayItem) => {
-        const assessment = fitAssessments.get(item.id);
-        return assessment === undefined ? item : { ...item, assessment };
+        const fitReport = fitReports.get(item.id);
+        return fitReport === undefined ? item : { ...item, fitReport };
       }),
     };
-  }, [activeTab, baseItemSets, fitAssessments]);
+  }, [activeTab, baseItemSets, fitReports]);
 
   const selection = useMemo(() => {
     const top = equippedGarments.find((item) => item.category === "tops") ?? null;
@@ -1427,9 +1359,9 @@ export function V18ClosetExperience() {
                   : item.category === "shoes"
                     ? "신발"
                     : "액세서리",
-        assessment: fitAssessments.get(item.id) ?? null,
+        report: fitReports.get(item.id) ?? null,
       })),
-    [equippedGarments, fitAssessments],
+    [equippedGarments, fitReports],
   );
 
   const handlePoseChange = (poseId: string) => {

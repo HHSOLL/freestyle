@@ -3,8 +3,13 @@
 ## Status
 
 - `Phase D / Batch 1` closed the reserved contract seam.
-- the repo now has versioned request/result schemas for offline high-quality fit simulation
-- there is still no active API create route, no worker handler, and no persistence flow for this job type
+- `Phase D / Batch 2` closed the baseline implementation seam.
+- the repo now has:
+  - versioned request/result schemas for offline high-quality fit simulation
+  - active lab create/read routes
+  - a queued worker handler
+  - persisted `fit_map_json` artifact output
+- the current worker is still a baseline snapshot-driven path, not a full cloth solver
 
 ## Purpose
 
@@ -24,8 +29,8 @@ The upstream orchestration request is versioned as `fit-simulate-hq.v1`.
 {
   "jobType": "fit_simulate_hq_v1",
   "schemaVersion": "fit-simulate-hq.v1",
-  "bodyVersionId": "uuid",
-  "garmentVariantId": "uuid",
+  "bodyVersionId": "body-profile:user-id:timestamp",
+  "garmentVariantId": "starter-top-soft-casual",
   "avatarManifestUrl": "https://...",
   "garmentManifestUrl": "https://...",
   "materialPreset": "cotton_woven_light",
@@ -62,8 +67,8 @@ Worker results are expected to use the canonical `job-result.v1` envelope with `
   "warnings": [],
   "data": {
     "schemaVersion": "fit-simulate-hq.v1",
-    "bodyVersionId": "uuid",
-    "garmentVariantId": "uuid",
+    "bodyVersionId": "body-profile:user-id:timestamp",
+    "garmentVariantId": "starter-top-soft-casual",
     "qualityTier": "high"
   }
 }
@@ -82,14 +87,44 @@ These are reserved names and should not be widened without updating `packages/co
 - request/result schemas: `packages/contracts/src/index.ts`
 - canonical queue helpers: `packages/shared/src/index.ts`
 - queue contract regression tests: `packages/shared/src/job-contracts.test.ts`
+- active API create/read path:
+  - `apps/api/src/routes/fit-simulations.routes.ts`
+  - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+  - `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- active baseline worker:
+  - `workers/fit_simulation/src/worker.ts`
+  - `workers/runtime/src/worker.ts`
 
-## Not Implemented Yet
+## Active Baseline Behavior
 
-The following are still future work:
+- `POST /v1/lab/jobs/fit-simulations`
+  - requires an authenticated user
+  - requires a persisted `BodyProfile`
+  - requires a published runtime garment id
+  - queues `fit_simulate_hq_v1`
+- `GET /v1/lab/fit-simulations/:id`
+  - returns the persisted simulation record
+  - exposes typed artifacts, warnings, and metrics
+- the current worker writes:
+  - `fit_map_json`
+- the current worker does not yet write:
+  - `draped_glb`
+  - `preview_png`
 
-- a public or admin API route that creates `fit_simulate_hq_v1` jobs
-- a worker handler that claims and processes this job type
-- storage/persistence for draped meshes and fit maps
-- product UI that requests or renders HQ simulation artifacts
+The current `fit_map_json` artifact is a baseline evidence payload built from:
 
-Until those land, this document describes a reserved contract only.
+- persisted body-profile snapshot
+- published runtime-garment snapshot
+- shared `GarmentFitAssessment`
+- shared `garmentInstantFitReport`
+
+This keeps `Phase D` honest: there is now a working async/offline artifact path, but it is still not a full cloth-simulation runtime.
+
+## Still Not Implemented
+
+- draped mesh generation (`draped_glb`)
+- preview image generation (`preview_png`)
+- true solver-backed cloth state instead of snapshot-derived fit evidence
+- product UI that requests or renders HQ simulation artifacts directly
+
+Until those land, this document describes the active baseline plus the remaining fidelity gap.

@@ -113,6 +113,76 @@
   - payload/result bodies are normalized into canonical job envelopes before emission
   - timestamp fields from remote stores are normalized into canonical ISO `...Z` strings before they hit the public response schema
 
+### Lab HQ fit-simulation boundary
+- implemented lab endpoints:
+  - `POST /v1/lab/jobs/fit-simulations`
+  - `GET /v1/lab/fit-simulations/:id`
+- auth: same as other `/v1/lab/*` routes
+- current implementation detail:
+  - the create route requires an existing persisted `BodyProfile`
+  - the create route requires a published runtime garment id
+  - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
+  - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
+  - the baseline worker currently persists `fit_map_json` only; `draped_glb` and `preview_png` remain future outputs
+- canonical response schemas are now defined in `@freestyle/contracts`:
+  - `fitSimulationCreateResponseSchema`
+  - `fitSimulationGetResponseSchema`
+
+#### `POST /v1/lab/jobs/fit-simulations`
+- request body must satisfy:
+```json
+{
+  "garment_id": "published-top-phase-d-smoke",
+  "quality_tier": "fast",
+  "material_preset": "knit_medium",
+  "idempotency_key": "fit-sim-123"
+}
+```
+- `material_preset` is optional; the current baseline service infers a conservative preset string from the published garment metadata when it is omitted
+- missing `BodyProfile` returns `409 PRECONDITION_FAILED`
+- unknown garment id returns `404 NOT_FOUND`
+- success response satisfies `fitSimulationCreateResponseSchema`
+- example:
+```json
+{
+  "job_id": "00000000-0000-4000-8000-000000000024",
+  "fit_simulation_id": "00000000-0000-4000-8000-000000000025"
+}
+```
+
+#### `GET /v1/lab/fit-simulations/:id`
+- response body satisfies `fitSimulationGetResponseSchema`
+- example:
+```json
+{
+  "fitSimulation": {
+    "id": "00000000-0000-4000-8000-000000000025",
+    "jobId": "00000000-0000-4000-8000-000000000024",
+    "status": "queued",
+    "avatarVariantId": "female-base",
+    "bodyVersionId": "body-profile:user-id:2026-04-20T10:00:00.000Z",
+    "garmentVariantId": "published-top-phase-d-smoke",
+    "avatarManifestUrl": "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",
+    "materialPreset": "knit_medium",
+    "qualityTier": "fast",
+    "instantFit": {
+      "schemaVersion": "garment-instant-fit-report.v1",
+      "overallFit": "good",
+      "confidence": 0.79,
+      "primaryRegionId": "length"
+    },
+    "artifacts": [],
+    "metrics": null,
+    "warnings": [],
+    "errorMessage": null,
+    "createdAt": "2026-04-20T10:00:00.000Z",
+    "updatedAt": "2026-04-20T10:00:00.000Z",
+    "completedAt": null
+  }
+}
+```
+
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes
 - product consumer rule:

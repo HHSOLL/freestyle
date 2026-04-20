@@ -9,6 +9,7 @@ import { registerJobRoutes } from "./routes/jobs.routes.js";
 import { registerAssetRoutes } from "./routes/assets.routes.js";
 import { registerEvaluationRoutes } from "./routes/evaluations.routes.js";
 import { registerOutfitRoutes } from "./routes/outfits.routes.js";
+import { registerFitSimulationRoutes } from "./routes/fit-simulations.routes.js";
 import { registerTryonRoutes } from "./routes/tryons.routes.js";
 import { registerAuthRoutes } from "./routes/auth.routes.js";
 import { registerProfileRoutes } from "./routes/profile.routes.js";
@@ -88,6 +89,7 @@ export const buildServer = () => {
     });
 
     registerEvaluationRoutes(lab);
+    registerFitSimulationRoutes(lab);
     registerTryonRoutes(lab);
   }, { prefix: LAB_API_PREFIX });
 

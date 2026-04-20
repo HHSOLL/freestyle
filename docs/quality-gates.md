@@ -118,8 +118,10 @@ Use these when a task changes routes, runtime boundaries, or release-facing beha
 - `/v1/legacy/assets`
 - `GET /v1/legacy/jobs/:job_id`
 - `POST /v1/lab/jobs/evaluations`
+- `POST /v1/lab/jobs/fit-simulations`
 - `POST /v1/lab/jobs/tryons`
 - `GET /v1/lab/evaluations/:id`
+- `GET /v1/lab/fit-simulations/:id`
 - `GET /v1/lab/tryons/:id`
 
 ### Namespace headers
@@ -141,6 +143,7 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - preloading stays within explicit asset budgets
 - queued jobs preserve `trace_id` and return canonical `job-result.v1` envelopes on status reads
 - remote-backed job status reads normalize timestamp formats into canonical ISO `...Z` strings before emitting public envelopes
+- `fit_simulate_hq_v1` create/read paths preserve the current persisted body-profile snapshot and emit a typed `fit_map_json` artifact or an explicit warning-backed baseline result
 
 Use `docs/MAINTENANCE_PLAYBOOK.md` for the full runtime regression checklist.
 

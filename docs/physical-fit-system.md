@@ -222,10 +222,14 @@ As of `2026-04-20`:
 - `Phase C / Batch 1` now adds a versioned instant-fit report contract above `GarmentFitAssessment`, so product-facing `overallFit / regions / confidence / explanations` can be derived from one shared schema instead of per-surface summary strings
 - `Phase C / Batch 2` now wires that report into `Closet` locally, so catalog and equipped-item fit guidance use the same derived contract without widening `/v1` or persistence payloads
 - `Phase C / Batch 3` now closes the product API seam by returning `{ item, instantFit }` entries from `/v1/closet/runtime-garments`, seeded from the current persisted `BodyProfile` while keeping `/v1/admin/garments*` on the publication contract
-- `Phase D / Batch 1` now closes the reserved offline-cloth-simulation contract seam:
+- `Phase D / Batch 1` closed the reserved offline-cloth-simulation contract seam:
   - `packages/contracts` defines the versioned `fit_simulate_hq_v1` request/result schemas
   - queue helpers recognize the reserved job type and normalize the design-facing request into canonical `job-payload.v1`
-  - there is still no active API route or worker handler for this job type
+- `Phase D / Batch 2` now closes the baseline async worker path:
+  - `POST /v1/lab/jobs/fit-simulations` creates an HQ fit-simulation job from the current persisted `BodyProfile` plus a published runtime garment snapshot
+  - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, and metrics
+  - `worker_fit_simulate_hq` now processes `fit_simulate_hq_v1` and persists `fit_map_json`
+  - this is still a baseline artifact path, not a full cloth solver; `draped_glb` and `preview_png` remain future outputs
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

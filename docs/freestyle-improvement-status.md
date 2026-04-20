@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `96%`
+- Working overall completion estimate: `97%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -38,8 +38,8 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
-| `Phase D` | offline cloth simulation worker | `in_progress` | `Batch 1` is complete; the reserved `fit_simulate_hq_v1` request/result contract now exists, but there is still no active API route or worker handler |
-| `Phase E` | fit / stress / pressure map | `pending` | blocked on the Phase D worker/artifact path |
+| `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam and `Batch 2` closed the lab create/read path, baseline worker handler, and `fit_map_json` artifact persistence |
+| `Phase E` | fit / stress / pressure map | `pending` | unblocked by the Phase D baseline worker/artifact path, but no dedicated pressure/stress map contract is implemented yet |
 
 ### `Phase A / Batch 1`
 
@@ -537,6 +537,44 @@ Outcome:
 
 - FreeStyle now has a fixed offline simulation contract seam that future worker and storage work can target without inventing another payload format
 - `Phase D` has started, but the repo still does not expose or run HQ cloth simulation yet
+
+### `Phase D / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added an active lab route pair for HQ fit simulation creation and detail reads: `POST /v1/lab/jobs/fit-simulations` and `GET /v1/lab/fit-simulations/:id`
+2. added a replaceable fit-simulation persistence port with a versioned file adapter so queued simulation state, warnings, metrics, and artifacts are stored outside the route handler
+3. wired `fit_simulate_hq_v1` into the runtime worker router with a baseline handler that processes the queued job and persists a `fit_map_json` artifact
+4. kept the batch intentionally honest by deriving the artifact from current body-profile and published-garment snapshots instead of claiming full FEM/PBD drape output
+5. synced API, worker, quality-gate, and architecture docs to the active baseline implementation
+
+Evidence:
+
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `workers/runtime/src/worker.ts`
+- `packages/contracts/src/index.ts`
+- `packages/shared/src/index.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/api-contract.md`
+- `docs/worker-playbook.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/architecture-overview.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- FreeStyle now has an active offline fit-simulation baseline path with API creation, queued worker handling, and persisted `fit_map_json` artifacts
+- the remaining Phase D gap is fidelity, not plumbing: `draped_glb` and `preview_png` remain future outputs, while the current worker emits typed fit-map evidence from snapshot-based assessment
 
 ## Current Batch
 

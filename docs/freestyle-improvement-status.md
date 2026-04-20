@@ -102,6 +102,41 @@ Outcome:
 - `validate:avatar3d` now guards the sidecar contract directly instead of only checking the summary JSON
 - the next Phase A batch can move to richer skeleton/measurement export semantics without first solving file-existence or path-parity drift
 
+### `Phase A / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. added `authoring/avatar/mpfb/source-lock.json` as the pinned source-of-truth for MPFB revision and asset-pack checksum/source URLs
+2. updated the MPFB build wrapper to resolve authoring inputs from that lock instead of floating `origin/master`
+3. taught the base-avatar summary and sidecars to carry concrete `buildProvenance` for MPFB revision, asset-pack checksum, and builder metadata
+4. tightened `validate:avatar3d` so exported provenance must match the lock file as well as the existing summary/sidecar parity checks
+5. documented the lock-file workflow in the active avatar authoring docs
+
+Evidence:
+
+- `authoring/avatar/mpfb/source-lock.json`
+- `scripts/build-mpfb-base-avatars.mjs`
+- `authoring/avatar/mpfb/scripts/build_runtime_avatar.py`
+- `authoring/avatar/exports/raw/mpfb-female-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.skeleton.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.measurements.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.morph-map.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.skeleton.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.measurements.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.morph-map.json`
+- `scripts/validate-avatar-3d.mjs`
+- `authoring/avatar/README.md`
+- `authoring/avatar/mpfb/README.md`
+- `docs/avatar-pipeline.md`
+
+Outcome:
+
+- base-avatar authoring reruns are now traceable to a concrete MPFB revision and asset-pack payload instead of an implicit moving upstream
+- the next avatar batch can work on richer semantic sidecars or shipped-GLB validation without first solving upstream input drift
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

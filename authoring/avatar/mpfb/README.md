@@ -6,6 +6,8 @@ Contents:
 
 - `presets/`
   - deterministic human info JSON used to generate base female and male avatars
+- `source-lock.json`
+  - pinned MPFB git revision and expected asset-pack checksum/source URLs
 - `scripts/`
   - Blender Python entrypoints for MPFB setup, asset-pack installation, and GLB export
 
@@ -22,6 +24,10 @@ Do not commit the downloaded MPFB source or asset-pack zip. Only commit source p
 The exported base-avatar summaries and sidecars are part of the authoring contract. They must keep:
 
 - `schemaVersion`
+- `buildProvenance.mpfb.repoUrl`
+- `buildProvenance.mpfb.revision`
+- `buildProvenance.assetPack.sha256`
+- `source-lock.json` parity for MPFB revision and asset-pack checksum
 - `authoringProvenance.variantId`
 - `authoringProvenance.presetPath`
 - `authoringProvenance.outputModelPath`

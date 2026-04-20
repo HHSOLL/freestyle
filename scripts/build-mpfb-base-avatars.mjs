@@ -20,16 +20,20 @@ const assetMirrors = [
 
 const presets = [
   {
+    variantId: "female-base",
     preset: path.join(repoRoot, "authoring", "avatar", "mpfb", "presets", "female-base.json"),
     blend: path.join(repoRoot, "authoring", "avatar", "exports", "raw", "mpfb-female-base.blend"),
     summary: path.join(repoRoot, "authoring", "avatar", "exports", "raw", "mpfb-female-base.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "avatars", "mpfb-female-base.glb"),
+    runtimeModelPath: "/assets/avatars/mpfb-female-base.glb",
   },
   {
+    variantId: "male-base",
     preset: path.join(repoRoot, "authoring", "avatar", "mpfb", "presets", "male-base.json"),
     blend: path.join(repoRoot, "authoring", "avatar", "exports", "raw", "mpfb-male-base.blend"),
     summary: path.join(repoRoot, "authoring", "avatar", "exports", "raw", "mpfb-male-base.summary.json"),
     glb: path.join(repoRoot, "apps", "web", "public", "assets", "avatars", "mpfb-male-base.glb"),
+    runtimeModelPath: "/assets/avatars/mpfb-male-base.glb",
   },
 ];
 
@@ -80,7 +84,7 @@ function ensureAssetPack() {
   throw new Error("Failed to download makehuman_system_assets pack from official mirrors");
 }
 
-function buildPreset({ preset, blend, summary, glb }) {
+function buildPreset({ variantId, preset, blend, summary, glb, runtimeModelPath }) {
   ensureDir(path.dirname(blend));
   ensureDir(path.dirname(glb));
   run(blenderBin, [
@@ -93,10 +97,14 @@ function buildPreset({ preset, blend, summary, glb }) {
     mpfbSourceDir,
     "--preset-json",
     preset,
+    "--variant-id",
+    variantId,
     "--output-blend",
     blend,
     "--output-glb",
     glb,
+    "--runtime-model-path",
+    runtimeModelPath,
     "--summary-json",
     summary,
     "--asset-pack-zip",

@@ -31,7 +31,10 @@ Every promoted mannequin asset must satisfy:
 - clean UVs and materials
 - stable bone aliases for shoulders, spine, hips, limbs, feet, head
 - mesh segmentation for body masking
-- metadata for authoring source and runtime compatibility
+- metadata for authoring source and runtime compatibility:
+  - contract schema version
+  - source provenance (preset + summary + output GLB parity)
+  - explicit variant/runtime model path coupling
 
 Current runtime source-of-truth files:
 
@@ -78,10 +81,22 @@ Current runtime behavior:
 Each render variant must declare:
 
 - `modelPath`
+- `schemaVersion`
 - `authoringSource`
+- `sourceProvenance`:
+  - `sourceSystem`
+  - `schemaVersion`
+  - `presetPath`
+  - `summaryPath`
+  - `outputModelPath`
 - stage offsets and scale
 - mesh zones
 - alias patterns
+- summary parity is validated via `scripts/validate-avatar-3d.mjs`:
+  - summary `schemaVersion` matches manifest-defined summary schema version
+  - `sourceProvenance.presetPath` resolves to the summary `preset`
+  - `sourceProvenance.outputModelPath` matches summary `outputModelPath`
+  - summary `outputGlb` resolves to manifest `modelPath`
 
 Current registry:
 

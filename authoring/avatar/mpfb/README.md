@@ -18,3 +18,12 @@ The intended command path is:
 5. promote approved GLBs into `apps/web/public/assets/avatars/*`
 
 Do not commit the downloaded MPFB source or asset-pack zip. Only commit source presets, scripts, and approved outputs.
+
+The exported base-avatar summaries are part of the authoring contract. They must keep:
+
+- `schemaVersion`
+- `authoringProvenance.variantId`
+- `authoringProvenance.presetPath`
+- `authoringProvenance.outputModelPath`
+
+in parity with `packages/runtime-3d/src/avatar-manifest.ts`.

@@ -169,6 +169,7 @@ Current remaining limitation:
 - the current raw authoring contract now emits `summary + skeleton + measurements + morph-map` sidecars for each promoted base variant
 - the current `measurements.json` sidecar is a geometry-derived reference artifact for authoring QA; it now feeds `validate:fit-calibration` as a calibration-side reference snapshot, but it is still not the final runtime calibration source
 - the current `measurements.json` sidecar parse/type contract now lives in `packages/contracts`, while calibration-specific semantic checks stay in `packages/domain-avatar`
+- the current `measurements.json` sidecar schema-version literal is also owned by `packages/contracts`, and regression coverage now reads the committed `mpfb-female-base.measurements.json` and `mpfb-male-base.measurements.json` files directly
 - the current `output/fit-calibration/latest.json` artifact is now also versioned and schema-validated through `packages/contracts`, so calibration evidence can drift only through an explicit contract change
 - the current `measurements.json` sidecar now also records the extraction method and source anchors for each reference measurement so authoring QA can diff semantic changes without reopening Blender
 - the current raw contract also records `buildProvenance` so future reruns can be traced back to a specific MPFB revision, asset-pack checksum, and Blender export toolchain

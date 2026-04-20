@@ -294,6 +294,7 @@ export const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProf
 export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
 export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
 export const qualityTierSchema = z.enum(["low", "balanced", "high"]);
+export const avatarMeasurementsSidecarSchemaVersion = "avatar-measurements-sidecar-v1";
 export const avatarMeasurementsDerivationMethodSchema = z.enum([
   "object-bounding-box-height",
   "bone-head-distance",
@@ -340,7 +341,7 @@ export const avatarMeasurementsDerivationSchema = z
 
 export const avatarMeasurementsSidecarSchema = z
   .object({
-    schemaVersion: z.literal("avatar-measurements-sidecar-v1"),
+    schemaVersion: z.literal(avatarMeasurementsSidecarSchemaVersion),
     variantId: avatarRenderVariantIdSchema,
     authoringSource: z.literal("mpfb2"),
     units: z.literal("mm"),

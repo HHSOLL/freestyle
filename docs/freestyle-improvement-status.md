@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `82%`
+- Working overall completion estimate: `86%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -35,7 +35,8 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | Track | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
-| `Phase A` | avatar authoring pipeline hardening | `in_progress` | MPFB base-avatar contract now covers summary + sidecar parity and exported reference metrics |
+| `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
+| `Phase B` | pattern and garment metadata layer | `pending` | follow-on track after avatar authoring pipeline hardening |
 
 ### `Phase A / Batch 1`
 
@@ -279,7 +280,7 @@ Completed work:
 1. added a versioned fit-calibration report schema to `packages/contracts`, covering avatar calibration references, archetype comparison rows, and garment fit rows
 2. updated `validate:fit-calibration` so the generated report now includes `schemaVersion` and is parsed through the shared contract before `latest.json` is written
 3. tightened the calibration write path by removing nullable fallbacks for already-validated avatar sidecar fields inside the generated report
-4. added a contract test that parses the committed `output/fit-calibration/latest.json` artifact shape directly
+4. added a contract test that parses the committed fit-calibration report fixture shape directly
 5. synced active docs so calibration evidence ownership now includes the versioned report contract alongside the measurements sidecar contract
 
 Evidence:
@@ -297,6 +298,35 @@ Outcome:
 
 - fit-calibration evidence is now a first-class contract artifact instead of an ad-hoc JSON blob
 - future calibration-report evolution now has an explicit schema/version seam and a committed fixture gate
+
+### `Phase A / Batch 10`
+
+Status: `completed`
+
+Completed work:
+
+1. moved `avatarMeasurementsSidecarSchemaVersion` ownership into `packages/contracts` so validators and tests no longer depend on a runtime-only duplicate literal
+2. updated `validate:avatar3d` and `validate:fit-calibration` to import the measurements-sidecar schema version from the shared contract boundary
+3. added regression tests that parse the committed `mpfb-female-base.measurements.json` and `mpfb-male-base.measurements.json` authoring files directly instead of relying only on inline sample objects
+4. added summary-parity tests for those committed measurements sidecars so the checked-in authoring files must stay aligned with the checked-in summary files
+5. synced active docs and marked `Phase A` complete now that schema-version ownership, committed artifact coverage, and calibration-report fixture coverage are all closed
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/domain-avatar/src/calibration.test.ts`
+- `packages/runtime-3d/src/avatar-manifest.ts`
+- `scripts/validate-avatar-3d.mjs`
+- `scripts/validate-fit-calibration.mjs`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/avatar-pipeline.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- avatar authoring pipeline hardening is now closed as a tracked phase instead of depending on duplicate schema literals or synthetic-only regression coverage
+- the next long-term authoring work can move to `Phase B` without carrying unresolved `Phase A` contract drift
 
 ## Current Batch
 

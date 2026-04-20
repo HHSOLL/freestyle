@@ -10,6 +10,8 @@
 - 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
 - `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.
 - 실패 시 `401 UNAUTHORIZED`
+- browser-facing product/admin clients use `NEXT_PUBLIC_SUPABASE_URL` plus a low-privilege browser key. The current repo still names that browser key `NEXT_PUBLIC_SUPABASE_ANON_KEY` for compatibility, but its intended posture is public/publishable only.
+- `SUPABASE_SERVICE_ROLE_KEY` is backend-only for Railway API / worker surfaces and must never be injected into Vercel/browser runtimes.
 - 예외:
   - `GET /v1/auth/naver/start`
   - `GET /v1/auth/naver/callback`
@@ -98,12 +100,18 @@
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
-- current RLS posture: the remote table enables RLS and exposes authenticated read only; writes remain API/service-role mediated
+- current RLS posture: the remote table enables RLS and exposes authenticated read only; writes remain API/service-role mediated and are not delegated to browser-held keys
 - local fallback: versioned JSON repository for isolated dev/test workflows
 - accessory-oriented size keys `headCircumferenceCm` and `frameWidthCm` are valid in the canonical garment measurement contract
 - current read compatibility rule:
   - malformed persisted publication rows are filtered from list responses instead of zeroing the whole catalog
   - semantically invalid persisted publication rows are filtered from list responses and treated as missing on detail reads
+
+### Job status compatibility note
+- `/v1/legacy/jobs/:job_id` remains a compatibility status-read surface for queued lab jobs.
+- current read compatibility rule:
+  - payload/result bodies are normalized into canonical job envelopes before emission
+  - timestamp fields from remote stores are normalized into canonical ISO `...Z` strings before they hit the public response schema
 
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes

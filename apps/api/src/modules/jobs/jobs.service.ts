@@ -44,6 +44,13 @@ const buildItemIdempotencyKey = (batchIdempotencyKey: string | undefined, produc
   return `${batchIdempotencyKey}:${digest}`;
 };
 
+const normalizeIsoDateTime = (value: string | null) => {
+  if (!value) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toISOString();
+};
+
 const toJobImportFailure = (productUrl: string, error: unknown) => {
   if (error instanceof Error) {
     return {
@@ -159,9 +166,9 @@ export const buildUserJobResponse = (job: JobRecord) => {
           message: job.error_message ?? "Unknown job error.",
         }
       : null,
-    created_at: job.created_at,
-    updated_at: job.updated_at,
-    completed_at: job.completed_at,
+    created_at: normalizeIsoDateTime(job.created_at),
+    updated_at: normalizeIsoDateTime(job.updated_at),
+    completed_at: normalizeIsoDateTime(job.completed_at),
   });
 };
 

@@ -73,11 +73,15 @@ Before a release:
 
 1. Capture fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`.
 2. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and screenshot paths used for that run.
-3. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
-4. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
-5. Confirm old routes are still redirected or removed from the main flow.
-6. Confirm `lab` failures do not break any main product page.
-7. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
+3. If browser smoke retries or fails, keep the Playwright trace artifact using `on-first-retry` or `retain-on-failure`.
+4. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
+5. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
+6. Confirm old routes are still redirected or removed from the main flow.
+7. Confirm `lab` failures do not break any main product page.
+8. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
+9. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+10. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
+11. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
 
 ## 4. Avatar Runtime Regression Checklist
 
@@ -135,6 +139,8 @@ If any of the above regress, stop the release.
 - verify body profile envelope compatibility
 - verify closet scene still hydrates with `qualityTier`, `poseId`, and equipped items
 - verify canvas compositions serialize and deserialize cleanly
+- verify legacy-compatible asset creation still works when a remote store lags optional `assets` columns (`name`, `brand`, `source_url`, `metadata`)
+- verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
 
 ### API namespace regression
 
@@ -166,3 +172,4 @@ When these areas change, update the paired docs:
 - physical fit model or source-adoption decisions: `physical-fit-system.md`
 - shell layout or tokens: `design-system.md`
 - deleted or quarantined features: `migration-notes.md`
+- release candidate evidence and deploy freeze notes: `docs/qa/*`, `DEPLOYMENT_STACK_DECISION.md`

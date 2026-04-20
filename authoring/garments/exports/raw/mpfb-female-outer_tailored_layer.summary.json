@@ -124,6 +124,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-female-outer_tailored_layer.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb"
 }

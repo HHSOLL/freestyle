@@ -12,8 +12,37 @@ The source-of-truth implementation lives in:
 This document is intentionally about the runtime product contract.
 
 - upstream MPFB authoring summaries now have their own versioned parse contract in `packages/contracts`
+- garment starter builds now also point at `authoring/garments/mpfb/specs/*.pattern-spec.json` sidecars for authoring-only pattern/material metadata
 - those authoring summaries are validated by `scripts/validate-garment-3d.mjs`
 - they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` API payloads
+
+## 1.1 Authoring Pattern Spec
+
+The current `Phase B` seam is upstream-only.
+
+Each committed starter garment summary may now declare:
+
+- `patternSpec.relativePath`
+
+That sidecar is parsed through `garmentPatternSpecSchema` in `packages/contracts` and currently captures:
+
+- `measurements`
+- `measurementModes`
+- `sizeChart`
+- `selectedSizeLabel`
+- `physicalProfile`
+- `materialPreset`
+- `anchorIds`
+- optional `panels`
+- optional `seams`
+
+The active validator rule is:
+
+- `validate:garment3d` must be able to load the sidecar
+- the sidecar must parse through the shared schema
+- the sidecar's measurement-facing fields must stay in parity with the current starter runtime metadata
+
+This keeps the new pattern/material metadata layer explicit without reopening the runtime product contract.
 
 ## 2. Required Contract
 

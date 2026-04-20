@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-top-soft-casual",
+  "category": "tops",
+  "measurements": {
+    "chestCm": 117,
+    "waistCm": 112,
+    "shoulderCm": 52.5,
+    "sleeveLengthCm": 21,
+    "lengthCm": 65.5
+  },
+  "measurementModes": {
+    "chestCm": "body-circumference",
+    "waistCm": "body-circumference",
+    "shoulderCm": "linear-length",
+    "sleeveLengthCm": "linear-length",
+    "lengthCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "M",
+      "measurements": {
+        "shoulderCm": 50.5,
+        "chestCm": 56,
+        "sleeveLengthCm": 20,
+        "lengthCm": 63.5
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Reference tee size chart: shoulder width / chest flat width / sleeve / total length."
+    },
+    {
+      "label": "L",
+      "measurements": {
+        "shoulderCm": 52.5,
+        "chestCm": 58.5,
+        "sleeveLengthCm": 21,
+        "lengthCm": 65.5
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "XL",
+      "measurements": {
+        "shoulderCm": 54.5,
+        "chestCm": 61,
+        "sleeveLengthCm": 22,
+        "lengthCm": 67.5
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "L",
+  "physicalProfile": {
+    "materialStretchRatio": 0.1,
+    "maxComfortStretchRatio": 0.06,
+    "compressionToleranceCm": {
+      "chestCm": 1.5,
+      "waistCm": 1.2,
+      "shoulderCm": 0.8
+    }
+  },
+  "materialPreset": {
+    "presetId": "cotton-jersey-light",
+    "fabricFamily": "knit",
+    "stretchProfile": "medium",
+    "thicknessMm": 1.1,
+    "weightGsm": 180,
+    "notes": "Lightweight jersey tee reference for the tucked soft-casual base."
+  },
+  "anchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "panels": [
+    {
+      "id": "front-body",
+      "role": "front-body",
+      "pieceCount": 1
+    },
+    {
+      "id": "back-body",
+      "role": "back-body",
+      "pieceCount": 1
+    },
+    {
+      "id": "left-sleeve",
+      "role": "left-sleeve",
+      "pieceCount": 1
+    },
+    {
+      "id": "right-sleeve",
+      "role": "right-sleeve",
+      "pieceCount": 1
+    },
+    {
+      "id": "collar-band",
+      "role": "collar",
+      "pieceCount": 1
+    }
+  ],
+  "seams": [
+    {
+      "id": "shoulder-join",
+      "construction": "overlock",
+      "panelIds": [
+        "front-body",
+        "back-body"
+      ],
+      "notes": "Collapsed shoulder join for the tee shell."
+    },
+    {
+      "id": "sleeve-set",
+      "construction": "overlock",
+      "panelIds": [
+        "front-body",
+        "back-body",
+        "left-sleeve",
+        "right-sleeve"
+      ]
+    },
+    {
+      "id": "collar-attach",
+      "construction": "coverstitch",
+      "panelIds": [
+        "front-body",
+        "back-body",
+        "collar-band"
+      ]
+    }
+  ]
+}

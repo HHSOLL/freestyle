@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-shoe-sneaker",
+  "category": "shoes",
+  "measurements": {
+    "lengthCm": 29,
+    "hemCm": 12
+  },
+  "measurementModes": {
+    "lengthCm": "linear-length",
+    "hemCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "260",
+      "measurements": {
+        "lengthCm": 26.4,
+        "hemCm": 9.8
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Reference footwear chart in cm-based last length and opening width."
+    },
+    {
+      "label": "270",
+      "measurements": {
+        "lengthCm": 27.4,
+        "hemCm": 10.6
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "280",
+      "measurements": {
+        "lengthCm": 28.4,
+        "hemCm": 11.4
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "270",
+  "physicalProfile": {
+    "materialStretchRatio": 0.01,
+    "maxComfortStretchRatio": 0.005,
+    "compressionToleranceCm": {
+      "lengthCm": 0.2,
+      "hemCm": 0.25
+    }
+  },
+  "materialPreset": {
+    "presetId": "mesh-knit-sneaker-upper",
+    "fabricFamily": "synthetic",
+    "stretchProfile": "medium",
+    "thicknessMm": 2.4,
+    "notes": "Light sneaker upper over a bonded sole package."
+  },
+  "anchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "panels": [
+    {
+      "id": "upper",
+      "role": "front-upper",
+      "pieceCount": 2
+    },
+    {
+      "id": "tongue",
+      "role": "tongue",
+      "pieceCount": 2
+    },
+    {
+      "id": "sole",
+      "role": "sole",
+      "pieceCount": 2
+    }
+  ],
+  "seams": [
+    {
+      "id": "upper-to-sole",
+      "construction": "cemented",
+      "panelIds": [
+        "upper",
+        "sole"
+      ]
+    },
+    {
+      "id": "tongue-join",
+      "construction": "joined",
+      "panelIds": [
+        "upper",
+        "tongue"
+      ]
+    }
+  ]
+}

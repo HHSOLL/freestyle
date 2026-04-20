@@ -215,6 +215,9 @@ As of `2026-04-20`:
 - the new authoring-summary contract is upstream-only:
   - it records authoring provenance and promoted artifact paths
   - it does not widen `metadata.measurements`, `measurementModes`, `sizeChart`, `physicalProfile`, `correctiveFit`, or `/v1` runtime payloads
+- `Phase B / Batch 2` now adds committed garment `pattern-spec` sidecars under `authoring/garments/mpfb/specs/*.pattern-spec.json`
+- those sidecars mirror the current starter runtime measurement truth while adding authoring-only `materialPreset`, `anchorIds`, and optional `panels` / `seams`
+- `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the sidecar drifts away from starter runtime metadata parity
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space
@@ -247,6 +250,7 @@ As of `2026-04-20`:
   - top hot-spot zones as coarse authoring hints, not canonical anatomical truth
 - `validate:garment3d` now enforces regression budgets for the measured hero-garment summaries and the default equipped `Soft Casual` top so source corrective passes cannot silently drift backward
 - hero structured garments now use a helper-aware projection target during Blender corrective passes, so fitted tops and outerwear conform against MPFB's helper-inclusive body space instead of a stripped body shell
+- the starter garment Blender build path now accepts `--pattern-spec-json`, so future raw summary reruns regenerate the same authoring-spec reference instead of relying on hand-added metadata
 - the stage now switches to a warmer avatar-review lighting pass when no garments are equipped so silhouette review is easier before dressing
 - the avatar-review mode now also uses tighter camera framing and warmer skin/hair material treatment so `Remove All` reads like a product avatar review state instead of a raw fallback scene
 - the current female MPFB preset was rebuilt around `short04 + eyebrow001 + eyelashes01` with one subdivision level in export, improving face readability in the Closet avatar review mode

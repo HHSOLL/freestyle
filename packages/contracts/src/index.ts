@@ -661,6 +661,7 @@ export const fitCalibrationReportSchema = z
   .strict();
 
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
+export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
 
 const repoRelativePathSchema = z
   .string()
@@ -672,6 +673,26 @@ const repoRelativePathSchema = z
   );
 
 const authoringSourceSchema = z.literal("mpfb2");
+export const garmentAnchorIdSchema = z.enum([
+  "neckBase",
+  "headCenter",
+  "foreheadCenter",
+  "leftTemple",
+  "rightTemple",
+  "leftShoulder",
+  "rightShoulder",
+  "chestCenter",
+  "waistCenter",
+  "hipCenter",
+  "leftKnee",
+  "rightKnee",
+  "leftAnkle",
+  "rightAnkle",
+  "leftFoot",
+  "rightFoot",
+]);
+
+export const garmentCollisionZoneSchema = z.enum(["torso", "arms", "hips", "legs", "feet"]);
 
 const garmentFitAuditHotSpotSchema = z
   .object({
@@ -728,6 +749,108 @@ const garmentAuthoringPackStateSchema = z
   })
   .strict();
 
+const garmentPatternPanelRoleSchema = z.enum([
+  "front-body",
+  "back-body",
+  "left-sleeve",
+  "right-sleeve",
+  "collar",
+  "waistband",
+  "left-leg",
+  "right-leg",
+  "front-upper",
+  "heel-counter",
+  "tongue",
+  "sole",
+  "other",
+]);
+
+const garmentPatternPanelSchema = z
+  .object({
+    id: z.string().trim().min(1).max(64),
+    role: garmentPatternPanelRoleSchema,
+    pieceCount: z.number().int().positive().max(12),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+const garmentPatternSeamConstructionSchema = z.enum([
+  "lockstitch",
+  "overlock",
+  "coverstitch",
+  "welt",
+  "cemented",
+  "joined",
+  "other",
+]);
+
+const garmentPatternSeamSchema = z
+  .object({
+    id: z.string().trim().min(1).max(64),
+    construction: garmentPatternSeamConstructionSchema,
+    panelIds: z.array(z.string().trim().min(1).max(64)).min(1).max(6),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+const garmentMaterialPresetSchema = z
+  .object({
+    presetId: z.string().trim().min(1).max(64),
+    fabricFamily: z.enum(["knit", "woven", "synthetic", "leather", "rubber", "blended"]),
+    stretchProfile: z.enum(["none", "low", "medium", "high"]),
+    thicknessMm: z.number().finite().positive().max(25),
+    weightGsm: z.number().finite().positive().max(1500).optional(),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+export const garmentPatternSpecSchema = z
+  .object({
+    schemaVersion: z.literal(garmentPatternSpecSchemaVersion),
+    intendedUse: z.literal("authoring-only"),
+    runtimeStarterId: z.string().trim().min(1).max(120),
+    category: assetCategorySchema,
+    measurements: garmentMeasurementsSchema,
+    measurementModes: garmentMeasurementModeMapSchema,
+    sizeChart: z.array(garmentSizeSpecSchema).min(1),
+    selectedSizeLabel: z.string().trim().min(1).max(64),
+    physicalProfile: garmentPhysicalProfileSchema,
+    materialPreset: garmentMaterialPresetSchema,
+    anchorIds: z.array(garmentAnchorIdSchema).min(1),
+    panels: z.array(garmentPatternPanelSchema).default([]),
+    seams: z.array(garmentPatternSeamSchema).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const sizeLabels = new Set(value.sizeChart.map((entry) => entry.label));
+    if (!sizeLabels.has(value.selectedSizeLabel)) {
+      context.addIssue({
+        code: "custom",
+        path: ["selectedSizeLabel"],
+        message: "selectedSizeLabel must exist in sizeChart",
+      });
+    }
+
+    const panelIds = new Set(value.panels.map((panel) => panel.id));
+    value.seams.forEach((seam, seamIndex) => {
+      seam.panelIds.forEach((panelId, panelIndex) => {
+        if (!panelIds.has(panelId)) {
+          context.addIssue({
+            code: "custom",
+            path: ["seams", seamIndex, "panelIds", panelIndex],
+            message: "seam panelIds must exist in panels",
+          });
+        }
+      });
+    });
+  });
+
+const garmentPatternSpecReferenceSchema = z
+  .object({
+    relativePath: repoRelativePathSchema,
+  })
+  .strict();
+
 const runtimeAuthoringObjectSummarySchema = z
   .object({
     name: z.string().trim().min(1),
@@ -748,6 +871,7 @@ export const garmentAuthoringSummarySchema = z
     preset: garmentAuthoringPresetSchema,
     clothesAsset: garmentAuthoringAssetReferenceSchema,
     packState: garmentAuthoringPackStateSchema,
+    patternSpec: garmentPatternSpecReferenceSchema.optional(),
     outputBlend: repoRelativePathSchema,
     outputGlb: repoRelativePathSchema,
   })
@@ -802,31 +926,14 @@ export const garmentRuntimeBindingSchema = z
       .array(
         z
           .object({
-            id: z.enum([
-              "neckBase",
-              "headCenter",
-              "foreheadCenter",
-              "leftTemple",
-              "rightTemple",
-              "leftShoulder",
-              "rightShoulder",
-              "chestCenter",
-              "waistCenter",
-              "hipCenter",
-              "leftKnee",
-              "rightKnee",
-              "leftAnkle",
-              "rightAnkle",
-              "leftFoot",
-              "rightFoot",
-            ]),
+            id: garmentAnchorIdSchema,
             weight: z.number(),
           })
           .strict(),
       )
       .min(1),
-    collisionZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])),
-    bodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])),
+    collisionZones: z.array(garmentCollisionZoneSchema),
+    bodyMaskZones: z.array(garmentCollisionZoneSchema),
     poseTuning: z
       .object({
         neutral: z
@@ -836,7 +943,7 @@ export const garmentRuntimeBindingSchema = z
             heightScale: z.number().positive().optional(),
             clearanceMultiplier: z.number().positive().optional(),
             offsetY: z.number().optional(),
-            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+            extraBodyMaskZones: z.array(garmentCollisionZoneSchema).optional(),
           })
           .strict()
           .optional(),
@@ -847,7 +954,7 @@ export const garmentRuntimeBindingSchema = z
             heightScale: z.number().positive().optional(),
             clearanceMultiplier: z.number().positive().optional(),
             offsetY: z.number().optional(),
-            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+            extraBodyMaskZones: z.array(garmentCollisionZoneSchema).optional(),
           })
           .strict()
           .optional(),
@@ -858,7 +965,7 @@ export const garmentRuntimeBindingSchema = z
             heightScale: z.number().positive().optional(),
             clearanceMultiplier: z.number().positive().optional(),
             offsetY: z.number().optional(),
-            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+            extraBodyMaskZones: z.array(garmentCollisionZoneSchema).optional(),
           })
           .strict()
           .optional(),
@@ -869,7 +976,7 @@ export const garmentRuntimeBindingSchema = z
             heightScale: z.number().positive().optional(),
             clearanceMultiplier: z.number().positive().optional(),
             offsetY: z.number().optional(),
-            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+            extraBodyMaskZones: z.array(garmentCollisionZoneSchema).optional(),
           })
           .strict()
           .optional(),
@@ -880,7 +987,7 @@ export const garmentRuntimeBindingSchema = z
             heightScale: z.number().positive().optional(),
             clearanceMultiplier: z.number().positive().optional(),
             offsetY: z.number().optional(),
-            extraBodyMaskZones: z.array(z.enum(["torso", "arms", "hips", "legs", "feet"])).optional(),
+            extraBodyMaskZones: z.array(garmentCollisionZoneSchema).optional(),
           })
           .strict()
           .optional(),

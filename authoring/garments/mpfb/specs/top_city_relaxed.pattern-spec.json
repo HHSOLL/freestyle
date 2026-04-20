@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-top-city-relaxed",
+  "category": "tops",
+  "measurements": {
+    "chestCm": 134,
+    "waistCm": 130,
+    "shoulderCm": 56,
+    "sleeveLengthCm": 62,
+    "lengthCm": 89
+  },
+  "measurementModes": {
+    "chestCm": "body-circumference",
+    "waistCm": "body-circumference",
+    "shoulderCm": "linear-length",
+    "sleeveLengthCm": "linear-length",
+    "lengthCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "M",
+      "measurements": {
+        "shoulderCm": 50.5,
+        "chestCm": 60,
+        "waistCm": 58,
+        "sleeveLengthCm": 56,
+        "lengthCm": 82
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Relaxed city top chart: shoulder/chest flat width, sleeve, and body length."
+    },
+    {
+      "label": "L",
+      "measurements": {
+        "shoulderCm": 56,
+        "chestCm": 67,
+        "waistCm": 65,
+        "sleeveLengthCm": 62,
+        "lengthCm": 89
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "XL",
+      "measurements": {
+        "shoulderCm": 57.5,
+        "chestCm": 69.5,
+        "waistCm": 67.5,
+        "sleeveLengthCm": 63.5,
+        "lengthCm": 90.5
+      },
+      "measurementModes": {
+        "shoulderCm": "linear-length",
+        "chestCm": "flat-half-circumference",
+        "waistCm": "flat-half-circumference",
+        "sleeveLengthCm": "linear-length",
+        "lengthCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "L",
+  "physicalProfile": {
+    "materialStretchRatio": 0.08,
+    "maxComfortStretchRatio": 0.05,
+    "compressionToleranceCm": {
+      "chestCm": 2.2,
+      "waistCm": 1.7,
+      "shoulderCm": 1.1
+    }
+  },
+  "materialPreset": {
+    "presetId": "cotton-blend-poplin",
+    "fabricFamily": "woven",
+    "stretchProfile": "low",
+    "thicknessMm": 1.3,
+    "weightGsm": 210,
+    "notes": "Relaxed city shell with woven drape and light structure."
+  },
+  "anchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "panels": [
+    {
+      "id": "front-body",
+      "role": "front-body",
+      "pieceCount": 1
+    },
+    {
+      "id": "back-body",
+      "role": "back-body",
+      "pieceCount": 1
+    },
+    {
+      "id": "left-sleeve",
+      "role": "left-sleeve",
+      "pieceCount": 1
+    },
+    {
+      "id": "right-sleeve",
+      "role": "right-sleeve",
+      "pieceCount": 1
+    }
+  ],
+  "seams": [
+    {
+      "id": "shoulder-join",
+      "construction": "lockstitch",
+      "panelIds": [
+        "front-body",
+        "back-body"
+      ]
+    },
+    {
+      "id": "side-seam",
+      "construction": "lockstitch",
+      "panelIds": [
+        "front-body",
+        "back-body"
+      ],
+      "notes": "Shared side seam entry for the relaxed shell."
+    },
+    {
+      "id": "sleeve-set",
+      "construction": "lockstitch",
+      "panelIds": [
+        "front-body",
+        "back-body",
+        "left-sleeve",
+        "right-sleeve"
+      ]
+    }
+  ]
+}

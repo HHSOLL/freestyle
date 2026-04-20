@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-bottom-soft-wool",
+  "category": "bottoms",
+  "measurements": {
+    "waistCm": 95,
+    "hipCm": 124,
+    "inseamCm": 87,
+    "riseCm": 38,
+    "hemCm": 59,
+    "lengthCm": 112
+  },
+  "measurementModes": {
+    "waistCm": "body-circumference",
+    "hipCm": "body-circumference",
+    "inseamCm": "linear-length",
+    "hemCm": "body-circumference",
+    "lengthCm": "linear-length",
+    "riseCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "M",
+      "measurements": {
+        "waistCm": 39.5,
+        "hipCm": 52,
+        "riseCm": 33,
+        "inseamCm": 76,
+        "lengthCm": 100,
+        "hemCm": 26
+      },
+      "measurementModes": {
+        "waistCm": "flat-half-circumference",
+        "hipCm": "flat-half-circumference",
+        "riseCm": "linear-length",
+        "inseamCm": "linear-length",
+        "lengthCm": "linear-length",
+        "hemCm": "flat-half-circumference"
+      },
+      "source": "product-detail",
+      "notes": "Reference trouser size chart: waist/hip/hem flat width with rise, inseam, and out length."
+    },
+    {
+      "label": "L",
+      "measurements": {
+        "waistCm": 47.5,
+        "hipCm": 62,
+        "riseCm": 38,
+        "inseamCm": 87,
+        "lengthCm": 112,
+        "hemCm": 29.5
+      },
+      "measurementModes": {
+        "waistCm": "flat-half-circumference",
+        "hipCm": "flat-half-circumference",
+        "riseCm": "linear-length",
+        "inseamCm": "linear-length",
+        "lengthCm": "linear-length",
+        "hemCm": "flat-half-circumference"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "XL",
+      "measurements": {
+        "waistCm": 49,
+        "hipCm": 64,
+        "riseCm": 39,
+        "inseamCm": 88,
+        "lengthCm": 114,
+        "hemCm": 30.5
+      },
+      "measurementModes": {
+        "waistCm": "flat-half-circumference",
+        "hipCm": "flat-half-circumference",
+        "riseCm": "linear-length",
+        "inseamCm": "linear-length",
+        "lengthCm": "linear-length",
+        "hemCm": "flat-half-circumference"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "L",
+  "physicalProfile": {
+    "materialStretchRatio": 0.04,
+    "maxComfortStretchRatio": 0.02,
+    "compressionToleranceCm": {
+      "waistCm": 1.2,
+      "hipCm": 1.5,
+      "inseamCm": 0.6
+    }
+  },
+  "materialPreset": {
+    "presetId": "wool-twill-soft",
+    "fabricFamily": "woven",
+    "stretchProfile": "low",
+    "thicknessMm": 1.4,
+    "weightGsm": 280,
+    "notes": "Soft wool trouser shell with low natural give and moderate drape."
+  },
+  "anchorIds": [
+    "waistCenter",
+    "hipCenter",
+    "leftKnee",
+    "rightKnee"
+  ],
+  "panels": [
+    {
+      "id": "left-leg",
+      "role": "left-leg",
+      "pieceCount": 1
+    },
+    {
+      "id": "right-leg",
+      "role": "right-leg",
+      "pieceCount": 1
+    },
+    {
+      "id": "waistband",
+      "role": "waistband",
+      "pieceCount": 1
+    }
+  ],
+  "seams": [
+    {
+      "id": "inseam",
+      "construction": "lockstitch",
+      "panelIds": [
+        "left-leg",
+        "right-leg"
+      ]
+    },
+    {
+      "id": "outseam",
+      "construction": "lockstitch",
+      "panelIds": [
+        "left-leg",
+        "right-leg"
+      ]
+    },
+    {
+      "id": "waistband-attach",
+      "construction": "lockstitch",
+      "panelIds": [
+        "left-leg",
+        "right-leg",
+        "waistband"
+      ]
+    }
+  ]
+}

@@ -19,7 +19,14 @@ Output layout:
 
 - `authoring/garments/exports/raw/*.blend`
 - `authoring/garments/exports/raw/*.summary.json`
+- `authoring/garments/mpfb/specs/*.pattern-spec.json`
 - `apps/web/public/assets/garments/mpfb/*/*.glb`
+
+Authoring metadata:
+
+- committed starter garments now carry a separate `pattern-spec` sidecar for authoring-only measurement, material, anchor, and optional panel/seam metadata
+- `build_runtime_garment.py` accepts `--pattern-spec-json` and writes the repo-relative reference into the raw summary as `patternSpec.relativePath`
+- `npm run validate:garment3d` now checks both the raw summary schema and the referenced `pattern-spec` parity against the starter runtime catalog
 
 Current starter mapping:
 

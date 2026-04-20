@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument("--output-blend", required=True, help="Output .blend path")
     parser.add_argument("--output-glb", required=True, help="Output .glb path")
     parser.add_argument("--summary-json", required=True, help="Output JSON summary path")
+    parser.add_argument("--pattern-spec-json", help="Optional repo-relative or absolute garment pattern/material metadata JSON")
     parser.add_argument("--asset-pack-zip", help="Optional path to makehuman_system_assets zip")
     parser.add_argument("--skin-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "ENHANCED", "ENHANCED_SSS", "LAYERED", "NONE"])
     parser.add_argument("--clothes-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "NONE"])
@@ -118,6 +119,12 @@ def to_repo_relative(path_value: Path):
         return resolved.relative_to(REPO_ROOT).as_posix()
     except ValueError as error:
         raise RuntimeError(f"Expected repo-relative path inside {REPO_ROOT}, got {resolved}") from error
+
+
+def serialize_optional_repo_relative(path_value: str | None):
+    if not path_value:
+        return None
+    return {"relativePath": to_repo_relative(Path(path_value))}
 
 
 def detect_variant_id_from_preset(preset_path: Path):
@@ -256,6 +263,7 @@ def collect_summary(
     clothes_path,
     clothes_asset_argument,
     pack_state,
+    pattern_spec_json,
 ):
     variant_id = detect_variant_id_from_preset(preset_path)
     return {
@@ -280,6 +288,7 @@ def collect_summary(
         },
         "clothesAsset": serialize_clothes_asset_reference(clothes_asset_argument, clothes_path),
         "packState": pack_state,
+        "patternSpec": serialize_optional_repo_relative(pattern_spec_json),
         "outputBlend": to_repo_relative(output_blend),
         "outputGlb": to_repo_relative(output_glb),
     }
@@ -679,6 +688,7 @@ def main():
         clothes_path,
         args.clothes_asset,
         pack_state,
+        args.pattern_spec_json,
     )
 
     summary_path = Path(args.summary_json).resolve()

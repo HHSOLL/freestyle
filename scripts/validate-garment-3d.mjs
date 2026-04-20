@@ -7,12 +7,13 @@ import {
   starterGarmentCatalog,
   validateStarterGarment,
 } from "../packages/domain-garment/src/index.ts";
-import { garmentAuthoringSummarySchema } from "../packages/contracts/src/index.ts";
+import { garmentAuthoringSummarySchema, garmentPatternSpecSchema } from "../packages/contracts/src/index.ts";
 
 const repoRoot = process.cwd();
 const issues = [];
 const seenIds = new Set();
 const rawSummaryRoot = path.join(repoRoot, "authoring/garments/exports/raw");
+const starterCatalogById = new Map(starterGarmentCatalog.map((item) => [item.id, item]));
 
 const heroFitAuditExpectations = [
   {
@@ -73,6 +74,51 @@ const resolvePublicPath = (assetPath) => {
   return path.join(repoRoot, "apps/web/public", assetPath.replace(/^\//, ""));
 };
 
+const readJson = (absolutePath) => JSON.parse(fs.readFileSync(absolutePath, "utf8"));
+
+const sortForStableCompare = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(sortForStableCompare);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, sortForStableCompare(nestedValue)]),
+    );
+  }
+  return value;
+};
+
+const comparePatternSpecWithRuntimeMetadata = (summaryLabel, patternSpec) => {
+  const starter = starterCatalogById.get(patternSpec.runtimeStarterId);
+  if (!starter) {
+    issues.push(`${summaryLabel}: pattern spec starter id ${patternSpec.runtimeStarterId} does not exist.`);
+    return;
+  }
+
+  if (starter.category !== patternSpec.category) {
+    issues.push(
+      `${summaryLabel}: pattern spec category ${patternSpec.category} does not match starter catalog category ${starter.category}.`,
+    );
+  }
+
+  const metadata = starter.metadata ?? {};
+  const checks = [
+    ["measurements", metadata.measurements ?? null, patternSpec.measurements],
+    ["measurementModes", metadata.measurementModes ?? null, patternSpec.measurementModes],
+    ["sizeChart", metadata.sizeChart ?? null, patternSpec.sizeChart],
+    ["selectedSizeLabel", metadata.selectedSizeLabel ?? null, patternSpec.selectedSizeLabel],
+    ["physicalProfile", metadata.physicalProfile ?? null, patternSpec.physicalProfile],
+  ];
+
+  for (const [label, runtimeValue, patternValue] of checks) {
+    if (JSON.stringify(sortForStableCompare(runtimeValue)) !== JSON.stringify(sortForStableCompare(patternValue))) {
+      issues.push(`${summaryLabel}: pattern spec ${label} does not match starter runtime metadata.`);
+    }
+  }
+};
+
 for (const item of starterGarmentCatalog) {
   if (seenIds.has(item.id)) {
     issues.push(`${item.id}: garment id must be unique`);
@@ -131,6 +177,52 @@ for (const expectation of heroFitAuditExpectations) {
       `${expectation.label}: penetratingVertexCount ${penetratingVertexCount} exceeds regression budget ${expectation.maxPenetrating}.`,
     );
   }
+}
+
+const committedRawSummaries = fs
+  .readdirSync(rawSummaryRoot)
+  .filter((entry) => entry.startsWith("mpfb-") && entry.endsWith(".summary.json"))
+  .sort();
+
+for (const summaryFile of committedRawSummaries) {
+  const summaryPath = path.join(rawSummaryRoot, summaryFile);
+  const summary = readJson(summaryPath);
+  if (summary?.kind !== "garment") {
+    continue;
+  }
+
+  const parsedSummary = garmentAuthoringSummarySchema.safeParse(summary);
+  if (!parsedSummary.success) {
+    issues.push(
+      `${summaryFile}: garment authoring summary failed schema validation (${parsedSummary.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+
+  if (!parsedSummary.data.patternSpec?.relativePath) {
+    issues.push(`${summaryFile}: garment authoring summary is missing patternSpec.relativePath.`);
+    continue;
+  }
+
+  const patternSpecPath = path.join(repoRoot, parsedSummary.data.patternSpec.relativePath);
+  if (!fs.existsSync(patternSpecPath)) {
+    issues.push(`${summaryFile}: missing pattern spec ${parsedSummary.data.patternSpec.relativePath}.`);
+    continue;
+  }
+
+  const parsedPatternSpec = garmentPatternSpecSchema.safeParse(readJson(patternSpecPath));
+  if (!parsedPatternSpec.success) {
+    issues.push(
+      `${summaryFile}: pattern spec failed schema validation (${parsedPatternSpec.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+
+  comparePatternSpecWithRuntimeMetadata(summaryFile, parsedPatternSpec.data);
 }
 
 if (issues.length > 0) {

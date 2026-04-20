@@ -101,6 +101,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-female-shoes_soft_sneaker.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb"
 }

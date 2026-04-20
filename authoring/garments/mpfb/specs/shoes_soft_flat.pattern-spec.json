@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "garment-pattern-spec.v1",
+  "intendedUse": "authoring-only",
+  "runtimeStarterId": "starter-shoe-soft-day",
+  "category": "shoes",
+  "measurements": {
+    "lengthCm": 27,
+    "hemCm": 10
+  },
+  "measurementModes": {
+    "lengthCm": "linear-length",
+    "hemCm": "linear-length"
+  },
+  "sizeChart": [
+    {
+      "label": "245",
+      "measurements": {
+        "lengthCm": 24.6,
+        "hemCm": 8.8
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail",
+      "notes": "Reference flat shoe chart in cm-based length and opening width."
+    },
+    {
+      "label": "250",
+      "measurements": {
+        "lengthCm": 25.1,
+        "hemCm": 9.2
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    },
+    {
+      "label": "255",
+      "measurements": {
+        "lengthCm": 25.6,
+        "hemCm": 9.6
+      },
+      "measurementModes": {
+        "lengthCm": "linear-length",
+        "hemCm": "linear-length"
+      },
+      "source": "product-detail"
+    }
+  ],
+  "selectedSizeLabel": "255",
+  "physicalProfile": {
+    "materialStretchRatio": 0.006,
+    "maxComfortStretchRatio": 0.003,
+    "compressionToleranceCm": {
+      "lengthCm": 0.15,
+      "hemCm": 0.2
+    }
+  },
+  "materialPreset": {
+    "presetId": "leatherette-flat-upper",
+    "fabricFamily": "synthetic",
+    "stretchProfile": "low",
+    "thicknessMm": 1.6,
+    "notes": "Soft flat with low-stretch upper and simple bonded sole."
+  },
+  "anchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "panels": [
+    {
+      "id": "upper",
+      "role": "front-upper",
+      "pieceCount": 2
+    },
+    {
+      "id": "sole",
+      "role": "sole",
+      "pieceCount": 2
+    }
+  ],
+  "seams": [
+    {
+      "id": "upper-to-sole",
+      "construction": "cemented",
+      "panelIds": [
+        "upper",
+        "sole"
+      ]
+    }
+  ]
+}

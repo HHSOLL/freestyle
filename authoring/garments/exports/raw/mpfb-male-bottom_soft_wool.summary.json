@@ -118,6 +118,9 @@
     "installedNow": false,
     "userDataSource": "blender-extension-user-data"
   },
+  "patternSpec": {
+    "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.pattern-spec.json"
+  },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.blend",
   "outputGlb": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
 }

@@ -1,6 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fitCalibrationReportSchema, flattenBodyProfile } from "@freestyle/contracts";
+import {
+  avatarMeasurementsSidecarSchemaVersion,
+  fitCalibrationReportSchema,
+  flattenBodyProfile,
+} from "@freestyle/contracts";
 import {
   avatarComparableReferenceMeasurements,
   fitReviewArchetypes,
@@ -14,7 +18,6 @@ import {
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
 import {
-  avatarMeasurementsSidecarSchemaVersion,
   avatarRenderManifest,
 } from "../packages/runtime-3d/src/avatar-manifest.ts";
 

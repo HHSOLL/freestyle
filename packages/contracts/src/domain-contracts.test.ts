@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  avatarMeasurementsSidecarSchemaVersion,
   avatarMeasurementsSidecarSchema,
   assetMetadataSchema,
   canvasCompositionSchema,
@@ -31,6 +32,9 @@ import {
   publishedRuntimeGarmentListResponseSchema,
   runtimeGarmentAssetSchema,
 } from './index.js';
+
+const readJsonFixture = (relativePath: string) =>
+  JSON.parse(readFileSync(new URL(relativePath, import.meta.url), 'utf8'));
 
 test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
   const parsed = bodyProfileSchema.parse({
@@ -172,7 +176,7 @@ test('body profile upsert schema accepts legacy flat payloads and normalizes the
 
 test('avatarMeasurementsSidecarSchema accepts the committed authoring artifact shape', () => {
   const parsed = avatarMeasurementsSidecarSchema.parse({
-    schemaVersion: 'avatar-measurements-sidecar-v1',
+    schemaVersion: avatarMeasurementsSidecarSchemaVersion,
     variantId: 'female-base',
     authoringSource: 'mpfb2',
     units: 'mm',
@@ -239,7 +243,7 @@ test('avatarMeasurementsSidecarSchema rejects missing derivation blocks', () => 
   assert.throws(
     () =>
       avatarMeasurementsSidecarSchema.parse({
-        schemaVersion: 'avatar-measurements-sidecar-v1',
+        schemaVersion: avatarMeasurementsSidecarSchemaVersion,
         variantId: 'male-base',
         authoringSource: 'mpfb2',
         units: 'mm',
@@ -276,10 +280,22 @@ test('avatarMeasurementsSidecarSchema rejects missing derivation blocks', () => 
   );
 });
 
-test('fitCalibrationReportSchema accepts the committed calibration artifact shape', () => {
-  const fixture = JSON.parse(
-    readFileSync(new URL('./__fixtures__/fit-calibration-report.json', import.meta.url), 'utf8'),
+test('avatarMeasurementsSidecarSchema accepts committed MPFB measurements sidecar files', () => {
+  const female = avatarMeasurementsSidecarSchema.parse(
+    readJsonFixture('../../../authoring/avatar/exports/raw/mpfb-female-base.measurements.json'),
   );
+  const male = avatarMeasurementsSidecarSchema.parse(
+    readJsonFixture('../../../authoring/avatar/exports/raw/mpfb-male-base.measurements.json'),
+  );
+
+  assert.equal(female.schemaVersion, avatarMeasurementsSidecarSchemaVersion);
+  assert.equal(female.variantId, 'female-base');
+  assert.equal(male.schemaVersion, avatarMeasurementsSidecarSchemaVersion);
+  assert.equal(male.variantId, 'male-base');
+});
+
+test('fitCalibrationReportSchema accepts the committed calibration artifact shape', () => {
+  const fixture = readJsonFixture('./__fixtures__/fit-calibration-report.json');
   const parsed = fitCalibrationReportSchema.parse(fixture);
 
   assert.equal(parsed.schemaVersion, 'fit-calibration-report.v1');

@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import type { AvatarMeasurementsSidecar } from "@freestyle/contracts";
+import { readFileSync } from "node:fs";
+import {
+  avatarMeasurementsSidecarSchemaVersion,
+  type AvatarMeasurementsSidecar,
+} from "@freestyle/contracts";
 import {
   buildAvatarReferenceMeasurementDerivationExpectations,
   collectAvatarMeasurementsSidecarBaseIssues,
@@ -8,7 +12,10 @@ import {
   parseAvatarMeasurementsSidecar,
 } from "./calibration.js";
 
-const expectedSchemaVersion = "avatar-measurements-sidecar-v1";
+const expectedSchemaVersion = avatarMeasurementsSidecarSchemaVersion;
+
+const readJsonFixture = (relativePath: string) =>
+  JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8"));
 
 const summary = {
   fullBody: "mpfb-female-base.body.fullbody",
@@ -140,4 +147,36 @@ test("measurements sidecar summary validation fails on stale derivation drift", 
       "female-base: measurements sidecar referenceMeasurementsMmDerivation.measurements.armLengthMm.bones must match the extraction chain",
     ),
   );
+});
+
+test("committed MPFB measurements sidecars stay aligned with the committed summaries", () => {
+  const fixtures = [
+    {
+      variantId: "female-base" as const,
+      sidecar: readJsonFixture("../../../authoring/avatar/exports/raw/mpfb-female-base.measurements.json"),
+      summary: readJsonFixture("../../../authoring/avatar/exports/raw/mpfb-female-base.summary.json"),
+    },
+    {
+      variantId: "male-base" as const,
+      sidecar: readJsonFixture("../../../authoring/avatar/exports/raw/mpfb-male-base.measurements.json"),
+      summary: readJsonFixture("../../../authoring/avatar/exports/raw/mpfb-male-base.summary.json"),
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const parsed = parseAvatarMeasurementsSidecar(fixture.sidecar, {
+      variantId: fixture.variantId,
+      expectedSchemaVersion,
+    });
+
+    assert.deepEqual(parsed.issues, [], `${fixture.variantId} should parse without base issues`);
+
+    const summaryIssues = collectAvatarMeasurementsSidecarSummaryIssues(parsed.sidecar, {
+      variantId: fixture.variantId,
+      expectedSchemaVersion,
+      summary: fixture.summary,
+    });
+
+    assert.deepEqual(summaryIssues, [], `${fixture.variantId} should stay aligned with its committed summary`);
+  }
 });

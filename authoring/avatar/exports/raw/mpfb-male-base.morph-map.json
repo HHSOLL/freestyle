@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "avatar-morph-map-sidecar-v1",
+  "variantId": "male-base",
+  "authoringSource": "mpfb2",
+  "shapeKeyCount": 14,
+  "basisShapeKey": "Basis",
+  "shapeKeys": [
+    {
+      "name": "Basis",
+      "tokens": [
+        "basis"
+      ],
+      "isBasis": true
+    },
+    {
+      "name": "$md-$as-$ma-$ch",
+      "tokens": [
+        "md",
+        "as",
+        "ma",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$as-$ma-$yn",
+      "tokens": [
+        "md",
+        "as",
+        "ma",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ca-$ma-$ch",
+      "tokens": [
+        "md",
+        "ca",
+        "ma",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ca-$ma-$yn",
+      "tokens": [
+        "md",
+        "ca",
+        "ma",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$af-$ma-$ch",
+      "tokens": [
+        "md",
+        "af",
+        "ma",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$af-$ma-$yn",
+      "tokens": [
+        "md",
+        "af",
+        "ma",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$ma-$ch-$av$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "ma",
+        "ch",
+        "av",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$ma-$yn-$av$mu-min$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "ma",
+        "yn",
+        "av",
+        "mu",
+        "min",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$ma-$yn-$av$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "ma",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$ma-$yn-max$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "ma",
+        "yn",
+        "max",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ma-$yn-$av$mu-$av$wg-max$hg",
+      "tokens": [
+        "md",
+        "ma",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "max",
+        "hg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ma-$ch-$av$mu-$av$wg-$id$pr",
+      "tokens": [
+        "md",
+        "ma",
+        "ch",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "id",
+        "pr"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ma-$yn-$av$mu-$av$wg-$id$pr",
+      "tokens": [
+        "md",
+        "ma",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "id",
+        "pr"
+      ],
+      "isBasis": false
+    }
+  ]
+}

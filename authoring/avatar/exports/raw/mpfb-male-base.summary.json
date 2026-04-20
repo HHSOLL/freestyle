@@ -165,6 +165,14 @@
     "exposed": 5086
   },
   "fullBody": "mpfb-male-base.body.fullbody",
+  "referenceMeasurementsMm": {
+    "statureMm": 1782,
+    "shoulderWidthMm": 393,
+    "armLengthMm": 566,
+    "inseamMm": 889,
+    "torsoLengthMm": 381,
+    "hipWidthMm": 221
+  },
   "schemaVersion": "avatar-build-summary-v1",
   "authoringProvenance": {
     "sourceSystem": "mpfb2",

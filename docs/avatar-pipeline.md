@@ -33,7 +33,7 @@ Every promoted mannequin asset must satisfy:
 - mesh segmentation for body masking
 - metadata for authoring source and runtime compatibility:
   - contract schema version
-  - source provenance (preset + summary + output GLB parity)
+  - source provenance (preset + summary + sidecar + output GLB parity)
   - explicit variant/runtime model path coupling
 
 Current runtime source-of-truth files:
@@ -88,6 +88,9 @@ Each render variant must declare:
   - `schemaVersion`
   - `presetPath`
   - `summaryPath`
+  - `skeletonPath`
+  - `measurementsPath`
+  - `morphMapPath`
   - `outputModelPath`
 - stage offsets and scale
 - mesh zones
@@ -95,8 +98,10 @@ Each render variant must declare:
 - summary parity is validated via `scripts/validate-avatar-3d.mjs`:
   - summary `schemaVersion` matches manifest-defined summary schema version
   - `sourceProvenance.presetPath` resolves to the summary `preset`
+  - `sourceProvenance.skeletonPath`, `measurementsPath`, and `morphMapPath` resolve to existing authoring sidecars
   - `sourceProvenance.outputModelPath` matches summary `outputModelPath`
   - summary `outputGlb` resolves to manifest `modelPath`
+  - body-segment object names still match the manifest mesh-zone contract used by runtime masking
 
 Current registry:
 
@@ -123,10 +128,14 @@ Recommended offline sequence:
 2. the wrapper fetches MPFB source and the official asset pack into `authoring/avatar/.cache/` if needed
 3. Blender runs `authoring/avatar/mpfb/scripts/build_runtime_avatar.py` for each preset JSON
 4. `.blend` outputs land in `authoring/avatar/exports/raw/`
-5. promoted runtime GLBs land in `apps/web/public/assets/avatars/`
-6. run `npm run optimize:runtime:assets` to apply shipped-runtime meshopt + texture recompression
-7. register or update the asset in `avatar-manifest.ts`
-8. run runtime regression checks
+5. sidecar authoring artifacts land next to the summary JSON:
+   - `*.skeleton.json`
+   - `*.measurements.json`
+   - `*.morph-map.json`
+6. promoted runtime GLBs land in `apps/web/public/assets/avatars/`
+7. run `npm run optimize:runtime:assets` to apply shipped-runtime meshopt + texture recompression
+8. register or update the asset in `avatar-manifest.ts`
+9. run runtime regression checks
 
 Current preset source-of-truth:
 
@@ -149,6 +158,8 @@ Current remaining limitation:
 - promoted runtime GLBs now ship through an explicit browser optimization pass (`meshopt + texture recompress + selective preload policy`) so the product no longer eagerly downloads the entire starter catalog on stage import
 - the `Remove All` review path now uses a warmer camera/light/material setup in runtime so the base avatar can be reviewed with more product-like fidelity before dressing
 - the current promoted female base preset uses `short04` hair with `eyebrow001` and `eyelashes01`, while the promoted male base preset uses `short02`
+- the current raw authoring contract now emits `summary + skeleton + measurements + morph-map` sidecars for each promoted base variant
+- the current `measurements.json` sidecar is a geometry-derived reference artifact for authoring QA, not yet the final runtime calibration source
 - the current default starter direction is `Soft Tucked Tee + Soft Wool Trousers + Soft Day Shoe`, built from the official MakeHuman Community `shirts01`, `pants01`, and `shoes01` packs
 - the current hero-garment authoring pass widened and dropped the `Soft Casual` top and `Tailored Layer` outerwear directly in Blender before export
 - the current hero-garment pass now also creates a helper-aware projection target before shrinkwrap/corrective fit, so structured tops and outerwear are conformed against the same helper-inclusive body space that MPFB uses during authoring

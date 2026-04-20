@@ -35,7 +35,7 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | Track | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | `Operational closeout` | formal browser smoke, RC tag cadence, frozen closeout evidence | `completed` | `npm run test:e2e:ops-closeout` now exists and the active closeout note is `docs/qa/operational-closeout-2026-04-20.md` |
-| `Phase A` | avatar authoring pipeline hardening | `in_progress` | contract hardening now started with MPFB summary ↔ manifest parity checks (schemaVersion, provenance, runtime path) |
+| `Phase A` | avatar authoring pipeline hardening | `in_progress` | MPFB base-avatar contract now covers summary + sidecar parity and exported reference metrics |
 
 ### `Phase A / Batch 1`
 
@@ -65,6 +65,42 @@ Outcome:
 
 - MPFB base-avatar contract now has explicit schema-version and source-provenance checks before runtime validation is marked passed
 - future `authoring:avatar:mpfb:build` reruns now regenerate the same contract instead of depending on hand-edited summary files
+
+### `Phase A / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. promoted `skeleton`, `measurements`, and `morph-map` JSON sidecars into the MPFB base-avatar authoring contract
+2. extended manifest provenance so each shipped base-avatar variant now declares the expected sidecar file paths next to `summaryPath`
+3. taught the Blender build path to regenerate geometry-derived reference measurements and sidecar outputs alongside the summary JSON
+4. tightened `validate:avatar3d` so sidecar existence, schema version, summary parity, and body-segment naming all fail closed
+5. corrected active docs so the current female promoted preset and sidecar contract match the shipped authoring outputs
+
+Evidence:
+
+- `authoring/avatar/README.md`
+- `authoring/avatar/mpfb/README.md`
+- `authoring/avatar/mpfb/scripts/build_runtime_avatar.py`
+- `authoring/avatar/exports/raw/mpfb-female-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.skeleton.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.measurements.json`
+- `authoring/avatar/exports/raw/mpfb-female-base.morph-map.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.skeleton.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.measurements.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.morph-map.json`
+- `packages/runtime-3d/src/avatar-manifest.ts`
+- `scripts/validate-avatar-3d.mjs`
+- `docs/avatar-pipeline.md`
+- `docs/OPEN_ASSET_CREDITS.md`
+
+Outcome:
+
+- base-avatar authoring outputs now have explicit sidecar artifacts that can be consumed by later skeleton, measurement, and morph-calibration work without scraping the large summary blob
+- `validate:avatar3d` now guards the sidecar contract directly instead of only checking the summary JSON
+- the next Phase A batch can move to richer skeleton/measurement export semantics without first solving file-existence or path-parity drift
 
 ## Current Batch
 

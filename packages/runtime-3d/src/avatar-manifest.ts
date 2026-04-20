@@ -25,6 +25,9 @@ export type AvatarRigAlias =
 
 export const avatarManifestSchemaVersion = "avatar-manifest-v1";
 export const avatarSummarySchemaVersion = "avatar-build-summary-v1";
+export const avatarSkeletonSidecarSchemaVersion = "avatar-skeleton-sidecar-v1";
+export const avatarMeasurementsSidecarSchemaVersion = "avatar-measurements-sidecar-v1";
+export const avatarMorphMapSidecarSchemaVersion = "avatar-morph-map-sidecar-v1";
 
 export type AvatarSourceSystem = "mpfb2" | "charmorph" | "runtime-fallback";
 
@@ -33,6 +36,9 @@ type AvatarSourceProvenance = {
   schemaVersion: typeof avatarSummarySchemaVersion;
   presetPath: string;
   summaryPath: string;
+  skeletonPath: string;
+  measurementsPath: string;
+  morphMapPath: string;
   outputModelPath: string;
 };
 
@@ -93,6 +99,9 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
       schemaVersion: avatarSummarySchemaVersion,
       presetPath: "authoring/avatar/mpfb/presets/female-base.json",
       summaryPath: "authoring/avatar/exports/raw/mpfb-female-base.summary.json",
+      skeletonPath: "authoring/avatar/exports/raw/mpfb-female-base.skeleton.json",
+      measurementsPath: "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+      morphMapPath: "authoring/avatar/exports/raw/mpfb-female-base.morph-map.json",
       outputModelPath: "/assets/avatars/mpfb-female-base.glb",
     },
     bodyMaskStrategy: "named-mesh-zones",
@@ -141,6 +150,9 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
       schemaVersion: avatarSummarySchemaVersion,
       presetPath: "authoring/avatar/mpfb/presets/male-base.json",
       summaryPath: "authoring/avatar/exports/raw/mpfb-male-base.summary.json",
+      skeletonPath: "authoring/avatar/exports/raw/mpfb-male-base.skeleton.json",
+      measurementsPath: "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+      morphMapPath: "authoring/avatar/exports/raw/mpfb-male-base.morph-map.json",
       outputModelPath: "/assets/avatars/mpfb-male-base.glb",
     },
     bodyMaskStrategy: "named-mesh-zones",

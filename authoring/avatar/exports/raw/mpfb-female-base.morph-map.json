@@ -1,0 +1,316 @@
+{
+  "schemaVersion": "avatar-morph-map-sidecar-v1",
+  "variantId": "female-base",
+  "authoringSource": "mpfb2",
+  "shapeKeyCount": 23,
+  "basisShapeKey": "Basis",
+  "shapeKeys": [
+    {
+      "name": "Basis",
+      "tokens": [
+        "basis"
+      ],
+      "isBasis": true
+    },
+    {
+      "name": "$md-$as-$fe-$ch",
+      "tokens": [
+        "md",
+        "as",
+        "fe",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$as-$fe-$yn",
+      "tokens": [
+        "md",
+        "as",
+        "fe",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ca-$fe-$ch",
+      "tokens": [
+        "md",
+        "ca",
+        "fe",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$ca-$fe-$yn",
+      "tokens": [
+        "md",
+        "ca",
+        "fe",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$af-$fe-$ch",
+      "tokens": [
+        "md",
+        "af",
+        "fe",
+        "ch"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$af-$fe-$yn",
+      "tokens": [
+        "md",
+        "af",
+        "fe",
+        "yn"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$fe-$ch-$av$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "fe",
+        "ch",
+        "av",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$fe-$yn-min$mu-min$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "fe",
+        "yn",
+        "min",
+        "mu",
+        "min",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$fe-$yn-min$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "fe",
+        "yn",
+        "min",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$fe-$yn-$av$mu-min$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "min",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-universal-$fe-$yn-$av$mu-$av$wg",
+      "tokens": [
+        "md",
+        "universal",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-min$mu-$av$wg-max$hg",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "min",
+        "mu",
+        "av",
+        "wg",
+        "max",
+        "hg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-min$wg-max$hg",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "min",
+        "wg",
+        "max",
+        "hg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-$av$wg-max$hg",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "max",
+        "hg"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-min$mu-$av$wg-$avcup-max$fi",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "min",
+        "mu",
+        "av",
+        "wg",
+        "avcup",
+        "max",
+        "fi"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-min$wg-$avcup-max$fi",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "min",
+        "wg",
+        "avcup",
+        "max",
+        "fi"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-$av$wg-$avcup-max$fi",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "avcup",
+        "max",
+        "fi"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-$av$wg-maxcup-$av$fi",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "maxcup",
+        "av",
+        "fi"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-$av$wg-maxcup-max$fi",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "maxcup",
+        "max",
+        "fi"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-min$mu-$av$wg-$id$pr",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "min",
+        "mu",
+        "av",
+        "wg",
+        "id",
+        "pr"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-min$wg-$id$pr",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "min",
+        "wg",
+        "id",
+        "pr"
+      ],
+      "isBasis": false
+    },
+    {
+      "name": "$md-$fe-$yn-$av$mu-$av$wg-$id$pr",
+      "tokens": [
+        "md",
+        "fe",
+        "yn",
+        "av",
+        "mu",
+        "av",
+        "wg",
+        "id",
+        "pr"
+      ],
+      "isBasis": false
+    }
+  ]
+}

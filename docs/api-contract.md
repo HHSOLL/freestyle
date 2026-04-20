@@ -123,7 +123,7 @@
   - the create route requires a published runtime garment id
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
-  - the baseline worker currently persists `fit_map_json` only; `draped_glb` and `preview_png` remain future outputs
+  - the baseline worker currently persists typed `fit_map_json` plus `preview_png`; `draped_glb` remains a future output
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
@@ -158,7 +158,7 @@
   "fitSimulation": {
     "id": "00000000-0000-4000-8000-000000000025",
     "jobId": "00000000-0000-4000-8000-000000000024",
-    "status": "queued",
+    "status": "succeeded",
     "avatarVariantId": "female-base",
     "bodyVersionId": "body-profile:user-id:2026-04-20T10:00:00.000Z",
     "garmentVariantId": "published-top-phase-d-smoke",
@@ -172,13 +172,28 @@
       "confidence": 0.79,
       "primaryRegionId": "length"
     },
-    "artifacts": [],
-    "metrics": null,
-    "warnings": [],
+    "artifacts": [
+      {
+        "kind": "fit_map_json",
+        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/fit-map.json"
+      },
+      {
+        "kind": "preview_png",
+        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/preview.png"
+      }
+    ],
+    "metrics": {
+      "durationMs": 842,
+      "penetrationRate": 0.061,
+      "maxStretchRatio": 1.02
+    },
+    "warnings": [
+      "Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending."
+    ],
     "errorMessage": null,
     "createdAt": "2026-04-20T10:00:00.000Z",
-    "updatedAt": "2026-04-20T10:00:00.000Z",
-    "completedAt": null
+    "updatedAt": "2026-04-20T10:00:00.842Z",
+    "completedAt": "2026-04-20T10:00:00.842Z"
   }
 }
 ```

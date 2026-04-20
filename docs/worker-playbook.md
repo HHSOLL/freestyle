@@ -16,7 +16,7 @@
 - active offline simulation contract: `fit_simulate_hq_v1`
   - versioned request/result schemas live in `packages/contracts`
   - the runtime router now registers a baseline handler
-  - the baseline worker currently emits `fit_map_json` only; `draped_glb` and `preview_png` remain future outputs
+  - the baseline worker now emits typed `fit_map_json` plus `preview_png`; `draped_glb` remains future work
 
 ## Job Handler Matrix
 1. `worker_importer` handler
@@ -49,12 +49,12 @@
 
 6. `worker_fit_simulate_hq` handler
 - Job type: `fit_simulate_hq_v1`
-- Output: persisted fit-simulation record plus `fit_map_json` artifact
+- Output: persisted fit-simulation record plus `fit_map_json` and `preview_png` artifacts
 - Expected artifact kind set stays reserved as `draped_glb`, `fit_map_json`, `preview_png`
 - current baseline note:
   - the handler is active
-  - `fit_map_json` is implemented
-  - `draped_glb` and `preview_png` are intentionally emitted as warnings only for now
+  - `fit_map_json` and `preview_png` are implemented
+  - `draped_glb` is intentionally still warning-backed and pending
 
 ## Recommended Railway Layout
 1. 최소 비용 운영

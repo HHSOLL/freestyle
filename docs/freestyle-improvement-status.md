@@ -14,7 +14,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - Date: `2026-04-20`
 - Current branch baseline: `main`
-- Working overall completion estimate: `97%`
+- Working overall completion estimate: `98%`
 
 The completion estimate is a planning number, not a release gate. It reflects that the repository-improvement and operational-closeout tracks are complete, while the longer avatar/fit authoring roadmap is still in progress.
 
@@ -38,8 +38,8 @@ The completion estimate is a planning number, not a release gate. It reflects th
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
-| `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam and `Batch 2` closed the lab create/read path, baseline worker handler, and `fit_map_json` artifact persistence |
-| `Phase E` | fit / stress / pressure map | `pending` | unblocked by the Phase D baseline worker/artifact path, but no dedicated pressure/stress map contract is implemented yet |
+| `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam, `Batch 2` closed the lab create/read path, and `Batch 3` added `preview_png` plus typed fit-map overlay artifacts |
+| `Phase E` | fit / stress / pressure map | `in_progress` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`) that the worker now emits |
 
 ### `Phase A / Batch 1`
 
@@ -575,6 +575,64 @@ Outcome:
 
 - FreeStyle now has an active offline fit-simulation baseline path with API creation, queued worker handling, and persisted `fit_map_json` artifacts
 - the remaining Phase D gap is fidelity, not plumbing: `draped_glb` and `preview_png` remain future outputs, while the current worker emits typed fit-map evidence from snapshot-based assessment
+
+### `Phase D / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. upgraded the active fit-simulation worker to emit a real `preview_png` artifact alongside the existing JSON artifact
+2. moved the `fit_map_json` payload onto a shared contract with typed overlay maps instead of an ad-hoc worker-local blob
+3. kept the implementation honest by deriving the preview from fit evidence rather than claiming rendered cloth output
+4. extended targeted worker and contract tests to cover the overlay schema and PNG preview generation
+5. synced API, worker, and fit-system docs to the new baseline artifact set
+
+Evidence:
+
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/api-contract.md`
+- `docs/worker-playbook.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `README.md`
+
+Outcome:
+
+- the Phase D baseline now emits both `fit_map_json` and `preview_png`
+- the main remaining Phase D fidelity gap is solver-backed `draped_glb`, not artifact plumbing
+
+### `Phase E / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. formalized the `fit_map_json` artifact as a shared `packages/contracts` schema instead of leaving it as worker-local JSON
+2. defined four typed overlay maps for downstream fit-map work: `easeMap`, `stretchMap`, `collisionRiskMap`, and `confidenceMap`
+3. wired the active Phase D worker to emit those overlays from the current `GarmentFitAssessment` and `garmentInstantFitReport`
+4. added regression coverage so overlay drift fails in contract tests before later pressure/stress-map work widens the format
+5. documented `Phase E` as starting from the shared overlay contract instead of inventing parallel pressure-map artifacts
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/physical-fit-system.md`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/freestyle-improvement-status.md`
+
+Outcome:
+
+- `Phase E` is now active on a shared typed overlay contract
+- future stress/pressure-map work can build on the existing `fit_map_json` schema instead of replacing it
 
 ## Current Batch
 

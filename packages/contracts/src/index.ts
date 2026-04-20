@@ -735,6 +735,7 @@ export const fitCalibrationReportSchema = z
 
 export const fitSimulateHQJobType = "fit_simulate_hq_v1";
 export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
+export const fitMapArtifactSchemaVersion = "fit-map-json.v1";
 const fitSimulationOpaqueIdSchema = z.string().trim().min(1).max(160);
 
 export const fitSimulationQualityTierSchema = z.enum(["fast", "balanced", "high"]);
@@ -783,6 +784,64 @@ export const fitSimulateHQMetricsSchema = z
     durationMs: z.number().int().positive(),
     penetrationRate: z.number().finite().min(0).max(1),
     maxStretchRatio: z.number().finite().positive(),
+  })
+  .strict();
+
+export const fitMapOverlayKindSchema = z.enum([
+  "easeMap",
+  "stretchMap",
+  "collisionRiskMap",
+  "confidenceMap",
+]);
+
+export const fitMapRegionScoreSchema = z
+  .object({
+    regionId: garmentFitRegionIdSchema,
+    measurementKey: garmentMeasurementKeySchema,
+    score: z.number().finite().min(0).max(1),
+    fitState: garmentFitStateSchema,
+    easeCm: z.number().finite(),
+    requiredStretchRatio: z.number().finite().nonnegative(),
+    isLimiting: z.boolean(),
+  })
+  .strict();
+
+export const fitMapOverlaySchema = z
+  .object({
+    kind: fitMapOverlayKindSchema,
+    overallScore: z.number().finite().min(0).max(1),
+    maxRegionScore: z.number().finite().min(0).max(1),
+    regions: z.array(fitMapRegionScoreSchema).min(1),
+  })
+  .strict();
+
+export const fitMapArtifactDataSchema = z
+  .object({
+    schemaVersion: z.literal(fitMapArtifactSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    fitSimulationId: z.uuid(),
+    request: z
+      .object({
+        bodyVersionId: fitSimulationOpaqueIdSchema,
+        garmentVariantId: fitSimulationOpaqueIdSchema,
+        avatarVariantId: avatarRenderVariantIdSchema,
+        avatarManifestUrl: z.url(),
+        garmentManifestUrl: z.url(),
+        materialPreset: z.string().trim().min(1).max(120),
+        qualityTier: fitSimulationQualityTierSchema,
+      })
+      .strict(),
+    garment: z
+      .object({
+        id: z.string().trim().min(1).max(160),
+        name: z.string().trim().min(1).max(160),
+        category: assetCategorySchema,
+      })
+      .strict(),
+    fitAssessment: garmentFitAssessmentSchema,
+    instantFit: garmentInstantFitReportSchema.nullable(),
+    overlays: z.array(fitMapOverlaySchema).length(4),
+    warnings: z.array(z.string().trim().min(1)).default([]),
   })
   .strict();
 
@@ -1552,6 +1611,10 @@ export type FitCalibrationReport = z.infer<typeof fitCalibrationReportSchema>;
 export type FitSimulationQualityTier = z.infer<typeof fitSimulationQualityTierSchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
+export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
+export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;
+export type FitMapOverlay = z.infer<typeof fitMapOverlaySchema>;
+export type FitMapArtifactData = z.infer<typeof fitMapArtifactDataSchema>;
 export type FitSimulateHQJobPayload = z.infer<typeof fitSimulateHQJobPayloadSchema>;
 export type FitSimulateHQRequest = z.infer<typeof fitSimulateHQRequestSchema>;
 export type FitSimulateHQJobPayloadInput = z.infer<typeof fitSimulateHQJobPayloadInputSchema>;

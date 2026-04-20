@@ -175,7 +175,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - the first product consumer now lives in `apps/web/src/components/product/closet-fit-report.ts`; if fit copy, region ordering, or tone mapping changes, update that helper and its test before touching `V18ClosetExperience.tsx`
 - `V18ClosetExperience` may seed fit guidance from the API closet catalog, but active tab and equipped-item review should still prefer locally derived reports from the current deferred body profile
 - `Phase D` now has an active baseline async path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
-- keep that baseline honest: it currently persists `fit_map_json` from snapshot-derived assessment/report data, and should not be documented or surfaced as full draped cloth output until `draped_glb` and `preview_png` are real artifacts
+- keep that baseline honest: it currently persists typed `fit_map_json` overlay evidence plus a generated `preview_png` from snapshot-derived assessment/report data, and should not be documented or surfaced as full draped cloth output until `draped_glb` is real
+- `Phase E` now starts from the typed `fit_map_json` contract in `packages/contracts`; fit, stress, pressure, and confidence overlays should evolve that shared schema instead of adding one-off worker-only JSON blobs
 
 If the work touches product fit behavior, size charts, cloth response, or external research adoption, also keep [physical-fit-system.md](./physical-fit-system.md) current with sources and license decisions.
 

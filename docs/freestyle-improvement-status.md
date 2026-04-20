@@ -137,6 +137,33 @@ Outcome:
 - base-avatar authoring reruns are now traceable to a concrete MPFB revision and asset-pack payload instead of an implicit moving upstream
 - the next avatar batch can work on richer semantic sidecars or shipped-GLB validation without first solving upstream input drift
 
+### `Phase A / Batch 4`
+
+Status: `completed`
+
+Completed work:
+
+1. extended `validate:avatar3d` so it parses the committed shipped avatar GLBs instead of only checking file existence plus summary/sidecar parity
+2. added binary-level checks for runtime optimization extensions, default-scene root naming, manifest alias resolution, segmented body-node presence, skin joint parity, and morph target names/counts
+3. added `outputArtifact` to the raw MPFB base-avatar summaries so the promoted GLB byte size and SHA-256 digest are part of the authoring contract
+4. updated the MPFB Blender build script so future summary reruns regenerate the same output digest metadata
+5. synced avatar authoring docs so the active contract now includes post-optimize binary parity
+
+Evidence:
+
+- `authoring/avatar/mpfb/scripts/build_runtime_avatar.py`
+- `authoring/avatar/exports/raw/mpfb-female-base.summary.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.summary.json`
+- `scripts/validate-avatar-3d.mjs`
+- `authoring/avatar/README.md`
+- `authoring/avatar/mpfb/README.md`
+- `docs/avatar-pipeline.md`
+
+Outcome:
+
+- `validate:avatar3d` now fails on shipped-avatar binary drift caused after export/optimization instead of trusting JSON-only parity
+- promoted base-avatar summaries now carry a recorded post-optimize digest so future reruns can prove they still describe the exact shipped GLB
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

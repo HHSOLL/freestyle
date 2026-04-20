@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -47,6 +48,7 @@ const sourceLock = readJsonFile("source-lock", sourceLockPath);
 
 const isSha256 = (value) => typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
 const isGitRevision = (value) => typeof value === "string" && /^[a-f0-9]{40}$/i.test(value);
+const requiredAvatarRuntimeExtensions = ["EXT_meshopt_compression", "EXT_texture_webp", "KHR_mesh_quantization"];
 
 const requiredAliases = Object.keys(referenceRigAliasPatterns);
 
@@ -68,6 +70,227 @@ const validateAssetPath = (label, assetPath) => {
   if (!absolute) return;
   if (!fs.existsSync(absolute)) {
     issues.push(`${label}: missing file ${assetPath}`);
+  }
+};
+
+const readAvatarGlbInspection = (label, absolutePath) => {
+  let payload;
+  try {
+    payload = fs.readFileSync(absolutePath);
+  } catch (error) {
+    issues.push(`${label}: failed to read GLB (${error instanceof Error ? error.message : "unknown"})`);
+    return null;
+  }
+
+  if (payload.length < 20) {
+    issues.push(`${label}: GLB is too small to contain a valid header`);
+    return null;
+  }
+
+  if (payload.toString("utf8", 0, 4) !== "glTF") {
+    issues.push(`${label}: GLB magic must be glTF`);
+    return null;
+  }
+
+  const version = payload.readUInt32LE(4);
+  if (version !== 2) {
+    issues.push(`${label}: GLB version must be 2`);
+    return null;
+  }
+
+  const declaredLength = payload.readUInt32LE(8);
+  if (declaredLength !== payload.length) {
+    issues.push(`${label}: GLB header length must match file size`);
+  }
+
+  const jsonChunkLength = payload.readUInt32LE(12);
+  const jsonChunkType = payload.toString("utf8", 16, 20);
+  if (jsonChunkType !== "JSON") {
+    issues.push(`${label}: first GLB chunk must be JSON`);
+    return null;
+  }
+
+  const jsonChunkEnd = 20 + jsonChunkLength;
+  if (jsonChunkEnd > payload.length) {
+    issues.push(`${label}: JSON chunk exceeds file length`);
+    return null;
+  }
+
+  let gltf;
+  try {
+    gltf = JSON.parse(payload.toString("utf8", 20, jsonChunkEnd));
+  } catch (error) {
+    issues.push(`${label}: GLB JSON parse failed (${error instanceof Error ? error.message : "unknown"})`);
+    return null;
+  }
+
+  return {
+    byteSize: payload.length,
+    sha256: createHash("sha256").update(payload).digest("hex"),
+    gltf,
+  };
+};
+
+const validateRuntimeAvatarGlb = (variantId, entry, summary) => {
+  const absoluteModelPath = resolvePublicPath(entry.modelPath);
+  if (!absoluteModelPath || !fs.existsSync(absoluteModelPath)) {
+    return;
+  }
+
+  const inspection = readAvatarGlbInspection(`${variantId}: runtime GLB`, absoluteModelPath);
+  if (!inspection) {
+    return;
+  }
+
+  const { gltf, byteSize, sha256 } = inspection;
+  const outputArtifact = summary?.outputArtifact;
+  if (!outputArtifact || typeof outputArtifact !== "object") {
+    issues.push(`${variantId}: summary outputArtifact is required`);
+  } else {
+    if (outputArtifact.relativePath !== summary?.outputGlb) {
+      issues.push(`${variantId}: summary outputArtifact.relativePath must match outputGlb`);
+    }
+    if (typeof outputArtifact.byteSize !== "number" || outputArtifact.byteSize <= 0) {
+      issues.push(`${variantId}: summary outputArtifact.byteSize must be a positive number`);
+    } else if (outputArtifact.byteSize !== byteSize) {
+      issues.push(`${variantId}: summary outputArtifact.byteSize must match shipped GLB size`);
+    }
+    if (!isSha256(outputArtifact.sha256)) {
+      issues.push(`${variantId}: summary outputArtifact.sha256 must be a SHA256`);
+    } else if (outputArtifact.sha256 !== sha256) {
+      issues.push(`${variantId}: summary outputArtifact.sha256 must match shipped GLB digest`);
+    }
+  }
+
+  const scenes = Array.isArray(gltf?.scenes) ? gltf.scenes : [];
+  if (scenes.length !== 1) {
+    issues.push(`${variantId}: shipped GLB must contain exactly one scene`);
+  }
+  const defaultSceneIndex = Number.isInteger(gltf?.scene) ? gltf.scene : 0;
+  const defaultScene = scenes[defaultSceneIndex];
+  if (!defaultScene) {
+    issues.push(`${variantId}: shipped GLB must declare a default scene`);
+    return;
+  }
+
+  const nodes = Array.isArray(gltf?.nodes) ? gltf.nodes : [];
+  const nodeNames = nodes.map((node) => node?.name).filter((name) => typeof name === "string" && name.trim().length > 0);
+  const normalizedNodeNames = nodeNames.map((name) => normalizeName(name));
+  const rootNodeNames = Array.isArray(defaultScene.nodes)
+    ? defaultScene.nodes
+        .map((nodeIndex) => nodes[nodeIndex]?.name)
+        .filter((name) => typeof name === "string" && name.trim().length > 0)
+    : [];
+
+  if (rootNodeNames.length === 0) {
+    issues.push(`${variantId}: shipped GLB default scene must reference at least one named root node`);
+  }
+  if (typeof summary?.rig?.name === "string" && !rootNodeNames.includes(summary.rig.name)) {
+    issues.push(`${variantId}: shipped GLB root node must include summary rig name`);
+  }
+
+  const extensionsRequired = Array.isArray(gltf?.extensionsRequired) ? gltf.extensionsRequired : [];
+  for (const extension of requiredAvatarRuntimeExtensions) {
+    if (!extensionsRequired.includes(extension)) {
+      issues.push(`${variantId}: shipped GLB must require ${extension}`);
+    }
+  }
+
+  const materials = Array.isArray(gltf?.materials) ? gltf.materials : [];
+  if (materials.length === 0) {
+    issues.push(`${variantId}: shipped GLB must contain at least one material`);
+  }
+
+  const images = Array.isArray(gltf?.images) ? gltf.images : [];
+  if (images.length === 0) {
+    issues.push(`${variantId}: shipped GLB must contain at least one texture image`);
+  }
+
+  const meshNodes = nodes
+    .filter((node) => Number.isInteger(node?.mesh))
+    .map((node) => ({
+      name: node.name,
+      meshIndex: node.mesh,
+      skinIndex: node.skin,
+    }))
+    .filter((node) => typeof node.name === "string" && node.name.trim().length > 0);
+  const meshNodeNames = new Set(meshNodes.map((node) => node.name));
+
+  const expectedBodyNodes = [summary?.fullBody, ...(Array.isArray(summary?.bodySegments) ? summary.bodySegments : [])]
+    .filter((name) => typeof name === "string" && name.trim().length > 0);
+  for (const expectedBodyNode of expectedBodyNodes) {
+    if (!meshNodeNames.has(expectedBodyNode)) {
+      issues.push(`${variantId}: shipped GLB must contain body node ${expectedBodyNode}`);
+    }
+  }
+
+  for (const [zone, zoneNames] of Object.entries(entry.meshZones)) {
+    const zoneMatched = meshNodes.some((node) =>
+      zoneNames.some((zoneName) => normalizeName(node.name).includes(normalizeName(zoneName))),
+    );
+    if (!zoneMatched) {
+      issues.push(`${variantId}: shipped GLB must contain a mesh node matching meshZones.${zone}`);
+    }
+  }
+
+  for (const alias of requiredAliases) {
+    const patterns = entry.aliasPatterns[alias] ?? [];
+    const matched = patterns.some((pattern) => normalizedNodeNames.some((nodeName) => nodeName.includes(normalizeName(pattern))));
+    if (!matched) {
+      issues.push(`${variantId}: shipped GLB must resolve alias ${alias}`);
+    }
+  }
+
+  const summaryBoneNames = Array.isArray(summary?.rig?.boneNames) ? summary.rig.boneNames : [];
+  if (summaryBoneNames.length === 0) {
+    issues.push(`${variantId}: summary rig.boneNames are required for GLB validation`);
+    return;
+  }
+
+  const expectedMorphNames = Array.isArray(summary?.basemesh?.shapeKeys) ? summary.basemesh.shapeKeys.slice(1) : [];
+  const meshes = Array.isArray(gltf?.meshes) ? gltf.meshes : [];
+  const skins = Array.isArray(gltf?.skins) ? gltf.skins : [];
+
+  for (const bodyNodeName of expectedBodyNodes) {
+    const meshNode = meshNodes.find((node) => node.name === bodyNodeName);
+    if (!meshNode) {
+      continue;
+    }
+
+    if (!Number.isInteger(meshNode.skinIndex) || !skins[meshNode.skinIndex]) {
+      issues.push(`${variantId}: body node ${bodyNodeName} must reference a valid skin`);
+      continue;
+    }
+
+    const skin = skins[meshNode.skinIndex];
+    const jointNames = Array.isArray(skin.joints)
+      ? skin.joints.map((jointIndex) => nodes[jointIndex]?.name)
+      : [];
+    if (
+      jointNames.length !== summaryBoneNames.length
+      || jointNames.some((jointName, index) => jointName !== summaryBoneNames[index])
+    ) {
+      issues.push(`${variantId}: skin joints for ${bodyNodeName} must match summary rig.boneNames`);
+    }
+
+    const mesh = meshes[meshNode.meshIndex];
+    const primitive = Array.isArray(mesh?.primitives) ? mesh.primitives[0] : null;
+    const targetCount = Array.isArray(primitive?.targets) ? primitive.targets.length : 0;
+    const weightCount = Array.isArray(mesh?.weights) ? mesh.weights.length : 0;
+    const targetNames = Array.isArray(mesh?.extras?.targetNames) ? mesh.extras.targetNames : [];
+
+    if (targetCount !== expectedMorphNames.length) {
+      issues.push(`${variantId}: morph target count for ${bodyNodeName} must match summary shape keys without Basis`);
+    }
+    if (weightCount !== expectedMorphNames.length) {
+      issues.push(`${variantId}: morph weight count for ${bodyNodeName} must match summary shape keys without Basis`);
+    }
+    if (
+      targetNames.length !== expectedMorphNames.length
+      || targetNames.some((targetName, index) => targetName !== expectedMorphNames[index])
+    ) {
+      issues.push(`${variantId}: morph target names for ${bodyNodeName} must match summary shape keys without Basis`);
+    }
   }
 };
 
@@ -374,6 +597,8 @@ const validateMpfbSummary = (variantId, entry) => {
     }
     spec.validate(sidecar);
   }
+
+  validateRuntimeAvatarGlb(variantId, entry, summary);
 };
 
 for (const [variantId, entry] of Object.entries(avatarRenderManifest)) {

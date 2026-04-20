@@ -164,6 +164,33 @@ Outcome:
 - `validate:avatar3d` now fails on shipped-avatar binary drift caused after export/optimization instead of trusting JSON-only parity
 - promoted base-avatar summaries now carry a recorded post-optimize digest so future reruns can prove they still describe the exact shipped GLB
 
+### `Phase A / Batch 5`
+
+Status: `completed`
+
+Completed work:
+
+1. formalized `referenceMeasurementsMmDerivation` on the MPFB measurements sidecar so each reference dimension now records its extraction method and source anchors
+2. kept the change authoring-only by leaving runtime consumers untouched and preserving the existing measurements-sidecar schema boundary
+3. tightened `validate:avatar3d` so the measurements sidecar must declare the expected derivation contract, rig anchors, and authoring QA intent
+4. updated the MPFB Blender build script so future reruns regenerate the same derivation metadata next to the existing reference measurements
+5. synced avatar authoring docs so the measurements sidecar is documented as a geometry-derived QA artifact with explicit semantic extraction metadata
+
+Evidence:
+
+- `authoring/avatar/mpfb/scripts/build_runtime_avatar.py`
+- `authoring/avatar/exports/raw/mpfb-female-base.measurements.json`
+- `authoring/avatar/exports/raw/mpfb-male-base.measurements.json`
+- `scripts/validate-avatar-3d.mjs`
+- `authoring/avatar/README.md`
+- `authoring/avatar/mpfb/README.md`
+- `docs/avatar-pipeline.md`
+
+Outcome:
+
+- authoring QA can now distinguish numeric measurement drift from semantic extraction drift
+- future calibration work can consume the measurements sidecar with explicit bone/object provenance instead of reverse-engineering the Python build path
+
 ## Current Batch
 
 ### `Phase 1 / Batch 1`

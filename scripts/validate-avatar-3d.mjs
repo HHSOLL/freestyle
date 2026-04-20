@@ -541,6 +541,75 @@ const validateMpfbSummary = (variantId, entry) => {
         if (JSON.stringify(sidecar?.referenceMeasurementsMm ?? {}) !== JSON.stringify(summary?.referenceMeasurementsMm ?? {})) {
           issues.push(`${variantId}: measurements sidecar referenceMeasurementsMm must match summary`);
         }
+        const summaryBoneNames = Array.isArray(summary?.rig?.boneNames) ? summary.rig.boneNames : [];
+        const expectedDerivations = {
+          statureMm: {
+            method: "object-bounding-box-height",
+            objectName: summary?.fullBody,
+          },
+          shoulderWidthMm: {
+            method: "bone-head-distance",
+            bones: ["upperarm_l", "upperarm_r"],
+          },
+          armLengthMm: {
+            method: "bone-chain-length",
+            bones: ["upperarm_l", "lowerarm_l", "hand_l"],
+          },
+          inseamMm: {
+            method: "bone-chain-length",
+            bones: ["thigh_l", "calf_l"],
+          },
+          torsoLengthMm: {
+            method: "bone-chain-length",
+            bones: ["spine_01", "spine_02", "spine_03", "neck_01"],
+          },
+          hipWidthMm: {
+            method: "bone-head-distance",
+            bones: ["thigh_l", "thigh_r"],
+          },
+        };
+        const measurementDerivation = sidecar?.referenceMeasurementsMmDerivation;
+        if (!measurementDerivation || typeof measurementDerivation !== "object") {
+          issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation is required`);
+        } else {
+          if (measurementDerivation.kind !== "geometry-derived-reference") {
+            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.kind must be geometry-derived-reference`);
+          }
+          if (measurementDerivation.intendedUse !== "authoring-qa") {
+            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.intendedUse must be authoring-qa`);
+          }
+          if (measurementDerivation.sourceObjectName !== summary?.fullBody) {
+            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.sourceObjectName must match summary fullBody`);
+          }
+          if (measurementDerivation.sourceRigName !== summary?.rig?.name) {
+            issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.sourceRigName must match summary rig name`);
+          }
+          for (const [key, expected] of Object.entries(expectedDerivations)) {
+            const derivation = measurementDerivation?.measurements?.[key];
+            if (!derivation || typeof derivation !== "object") {
+              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key} is required`);
+              continue;
+            }
+            if (derivation.method !== expected.method) {
+              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.method must be ${expected.method}`);
+            }
+            if (Array.isArray(expected.bones)) {
+              const boneNames = Array.isArray(derivation.bones) ? derivation.bones : [];
+              if (
+                boneNames.length !== expected.bones.length
+                || boneNames.some((boneName, index) => boneName !== expected.bones[index])
+              ) {
+                issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must match the extraction chain`);
+              }
+              if (boneNames.some((boneName) => !summaryBoneNames.includes(boneName))) {
+                issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.bones must exist in summary rig.boneNames`);
+              }
+            }
+            if (typeof expected.objectName === "string" && derivation.objectName !== expected.objectName) {
+              issues.push(`${variantId}: measurements sidecar referenceMeasurementsMmDerivation.measurements.${key}.objectName must match summary fullBody`);
+            }
+          }
+        }
         if (JSON.stringify(sidecar?.segmentationVertexCounts ?? {}) !== JSON.stringify(summary?.segmentation ?? {})) {
           issues.push(`${variantId}: measurements sidecar segmentationVertexCounts must match summary segmentation`);
         }

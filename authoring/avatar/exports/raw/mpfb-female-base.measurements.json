@@ -28,6 +28,38 @@
     "torsoLengthMm": 432,
     "hipWidthMm": 196
   },
+  "referenceMeasurementsMmDerivation": {
+    "kind": "geometry-derived-reference",
+    "intendedUse": "authoring-qa",
+    "sourceObjectName": "mpfb-female-base.body.fullbody",
+    "sourceRigName": "mpfb-female-base",
+    "measurements": {
+      "statureMm": {
+        "method": "object-bounding-box-height",
+        "objectName": "mpfb-female-base.body.fullbody"
+      },
+      "shoulderWidthMm": {
+        "method": "bone-head-distance",
+        "bones": ["upperarm_l", "upperarm_r"]
+      },
+      "armLengthMm": {
+        "method": "bone-chain-length",
+        "bones": ["upperarm_l", "lowerarm_l", "hand_l"]
+      },
+      "inseamMm": {
+        "method": "bone-chain-length",
+        "bones": ["thigh_l", "calf_l"]
+      },
+      "torsoLengthMm": {
+        "method": "bone-chain-length",
+        "bones": ["spine_01", "spine_02", "spine_03", "neck_01"]
+      },
+      "hipWidthMm": {
+        "method": "bone-head-distance",
+        "bones": ["thigh_l", "thigh_r"]
+      }
+    }
+  },
   "segmentationVertexCounts": {
     "torso": 2898,
     "arms": 5098,

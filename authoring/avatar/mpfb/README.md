@@ -36,5 +36,6 @@ The exported base-avatar summaries and sidecars are part of the authoring contra
 - `authoring/avatar/exports/raw/*.skeleton.json`
 - `authoring/avatar/exports/raw/*.measurements.json`
 - `authoring/avatar/exports/raw/*.morph-map.json`
+- `referenceMeasurementsMmDerivation` parity with the extraction rules in `build_runtime_avatar.py`
 
 in parity with `packages/runtime-3d/src/avatar-manifest.ts`.

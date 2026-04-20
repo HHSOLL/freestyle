@@ -4,11 +4,12 @@
 
 - `Phase D / Batch 1` closed the reserved contract seam.
 - `Phase D / Batch 2` closed the baseline implementation seam.
+- `Phase D / Batch 3` closed the preview artifact seam and promoted the fit-map payload into a typed overlay contract that also seeds `Phase E`.
 - the repo now has:
   - versioned request/result schemas for offline high-quality fit simulation
   - active lab create/read routes
   - a queued worker handler
-  - persisted `fit_map_json` artifact output
+  - persisted `fit_map_json` and `preview_png` artifact output
 - the current worker is still a baseline snapshot-driven path, not a full cloth solver
 
 ## Purpose
@@ -107,9 +108,9 @@ These are reserved names and should not be widened without updating `packages/co
   - exposes typed artifacts, warnings, and metrics
 - the current worker writes:
   - `fit_map_json`
+  - `preview_png`
 - the current worker does not yet write:
   - `draped_glb`
-  - `preview_png`
 
 The current `fit_map_json` artifact is a baseline evidence payload built from:
 
@@ -117,13 +118,19 @@ The current `fit_map_json` artifact is a baseline evidence payload built from:
 - published runtime-garment snapshot
 - shared `GarmentFitAssessment`
 - shared `garmentInstantFitReport`
+- typed overlay maps:
+  - `easeMap`
+  - `stretchMap`
+  - `collisionRiskMap`
+  - `confidenceMap`
+
+The current `preview_png` artifact is a generated raster summary card built from the same typed fit-map payload. It is a review artifact, not a rendered cloth-solver image.
 
 This keeps `Phase D` honest: there is now a working async/offline artifact path, but it is still not a full cloth-simulation runtime.
 
 ## Still Not Implemented
 
 - draped mesh generation (`draped_glb`)
-- preview image generation (`preview_png`)
 - true solver-backed cloth state instead of snapshot-derived fit evidence
 - product UI that requests or renders HQ simulation artifacts directly
 

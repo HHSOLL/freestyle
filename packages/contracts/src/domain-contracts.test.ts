@@ -33,6 +33,7 @@ import {
   garmentPatternSpecSchema,
   garmentPatternSpecSchemaVersion,
   fitCalibrationReportSchema,
+  fitMapArtifactDataSchema,
   fitSimulationCreateResponseSchema,
   fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
@@ -403,6 +404,201 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
 
   assert.equal(created.fit_simulation_id, '00000000-0000-4000-8000-000000000025');
   assert.equal(read.fitSimulation.materialPreset, 'knit_medium');
+});
+
+test('fitMapArtifactDataSchema accepts typed overlay evidence for phase e overlays', () => {
+  const parsed = fitMapArtifactDataSchema.parse({
+    schemaVersion: 'fit-map-json.v1',
+    generatedAt: '2026-04-20T10:00:00.000Z',
+    fitSimulationId: '00000000-0000-4000-8000-000000000025',
+    request: {
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarVariantId: 'female-base',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+    },
+    garment: {
+      id: 'starter-top-soft-casual',
+      name: 'Soft Tucked Tee',
+      category: 'tops',
+    },
+    fitAssessment: {
+      sizeLabel: 'L',
+      overallState: 'snug',
+      tensionRisk: 'medium',
+      clippingRisk: 'medium',
+      stretchLoad: 0.76,
+      limitingKeys: ['chestCm', 'waistCm'],
+      dimensions: [
+        {
+          key: 'chestCm',
+          measurementMode: 'body-circumference',
+          garmentCm: 108,
+          bodyCm: 104,
+          effectiveGarmentCm: 110,
+          easeCm: 6,
+          requiredStretchRatio: 0.02,
+          state: 'snug',
+        },
+        {
+          key: 'waistCm',
+          measurementMode: 'body-circumference',
+          garmentCm: 92,
+          bodyCm: 88,
+          effectiveGarmentCm: 94,
+          easeCm: 6,
+          requiredStretchRatio: 0.01,
+          state: 'regular',
+        },
+      ],
+    },
+    instantFit: {
+      schemaVersion: 'garment-instant-fit-report.v1',
+      sizeLabel: 'L',
+      overallFit: 'tight',
+      overallState: 'snug',
+      tensionRisk: 'medium',
+      clippingRisk: 'medium',
+      confidence: 0.74,
+      primaryRegionId: 'chest',
+      summary: {
+        ko: 'L · 가슴 기준 타이트함',
+        en: 'L · Chest tight fit',
+      },
+      explanations: [
+        {
+          ko: '가슴 여유가 제한적이다.',
+          en: 'Chest ease is limited.',
+        },
+      ],
+      limitingKeys: ['chestCm', 'waistCm'],
+      regions: [
+        {
+          regionId: 'chest',
+          measurementKey: 'chestCm',
+          fitState: 'snug',
+          easeCm: 6,
+          isLimiting: true,
+        },
+        {
+          regionId: 'waist',
+          measurementKey: 'waistCm',
+          fitState: 'regular',
+          easeCm: 6,
+          isLimiting: true,
+        },
+      ],
+    },
+    overlays: [
+      {
+        kind: 'easeMap',
+        overallScore: 0.44,
+        maxRegionScore: 0.51,
+        regions: [
+          {
+            regionId: 'chest',
+            measurementKey: 'chestCm',
+            score: 0.51,
+            fitState: 'snug',
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+          {
+            regionId: 'waist',
+            measurementKey: 'waistCm',
+            score: 0.37,
+            fitState: 'regular',
+            easeCm: 6,
+            requiredStretchRatio: 0.01,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: 'stretchMap',
+        overallScore: 0.2,
+        maxRegionScore: 0.25,
+        regions: [
+          {
+            regionId: 'chest',
+            measurementKey: 'chestCm',
+            score: 0.25,
+            fitState: 'snug',
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+          {
+            regionId: 'waist',
+            measurementKey: 'waistCm',
+            score: 0.15,
+            fitState: 'regular',
+            easeCm: 6,
+            requiredStretchRatio: 0.01,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: 'collisionRiskMap',
+        overallScore: 0.62,
+        maxRegionScore: 0.74,
+        regions: [
+          {
+            regionId: 'chest',
+            measurementKey: 'chestCm',
+            score: 0.74,
+            fitState: 'snug',
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+          {
+            regionId: 'waist',
+            measurementKey: 'waistCm',
+            score: 0.5,
+            fitState: 'regular',
+            easeCm: 6,
+            requiredStretchRatio: 0.01,
+            isLimiting: true,
+          },
+        ],
+      },
+      {
+        kind: 'confidenceMap',
+        overallScore: 0.65,
+        maxRegionScore: 0.7,
+        regions: [
+          {
+            regionId: 'chest',
+            measurementKey: 'chestCm',
+            score: 0.6,
+            fitState: 'snug',
+            easeCm: 6,
+            requiredStretchRatio: 0.02,
+            isLimiting: true,
+          },
+          {
+            regionId: 'waist',
+            measurementKey: 'waistCm',
+            score: 0.7,
+            fitState: 'regular',
+            easeCm: 6,
+            requiredStretchRatio: 0.01,
+            isLimiting: true,
+          },
+        ],
+      },
+    ],
+    warnings: ['Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending.'],
+  });
+
+  assert.equal(parsed.overlays.length, 4);
+  assert.equal(parsed.overlays[2]?.kind, 'collisionRiskMap');
 });
 
 test('authoring summary schemas accept committed garment, hair, and accessory artifacts', () => {

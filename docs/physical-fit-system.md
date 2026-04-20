@@ -229,7 +229,11 @@ As of `2026-04-20`:
   - `POST /v1/lab/jobs/fit-simulations` creates an HQ fit-simulation job from the current persisted `BodyProfile` plus a published runtime garment snapshot
   - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, and metrics
   - `worker_fit_simulate_hq` now processes `fit_simulate_hq_v1` and persists `fit_map_json`
-  - this is still a baseline artifact path, not a full cloth solver; `draped_glb` and `preview_png` remain future outputs
+  - this is still a baseline artifact path, not a full cloth solver; `draped_glb` remains the major future output
+- `Phase D / Batch 3` now extends that baseline artifact path:
+  - `worker_fit_simulate_hq` now also persists `preview_png`
+  - the `fit_map_json` payload is now typed as four overlay maps: `easeMap`, `stretchMap`, `collisionRiskMap`, and `confidenceMap`
+- `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

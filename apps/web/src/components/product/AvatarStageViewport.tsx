@@ -20,6 +20,7 @@ type AvatarStageViewportProps = {
   equippedGarments: RuntimeGarmentAsset[];
   selectedItemId: string | null;
   qualityTier?: ViewportQualityTier;
+  backgroundColor?: string;
 };
 
 type AvatarStageComponent = ComponentType<Omit<AvatarStageViewportProps, "qualityTier"> & { qualityTier: ViewportQualityTier }>;
@@ -45,6 +46,7 @@ export function AvatarStageViewport({
   equippedGarments,
   selectedItemId,
   qualityTier,
+  backgroundColor,
 }: AvatarStageViewportProps) {
   const resolvedQualityTier = useMemo(() => {
     return resolveAvatarStageViewportQualityTier(qualityTier, detectQualityTier());
@@ -137,6 +139,7 @@ export function AvatarStageViewport({
       equippedGarments={equippedGarments}
       selectedItemId={selectedItemId}
       qualityTier={resolvedQualityTier}
+      backgroundColor={backgroundColor}
     />
   );
 }

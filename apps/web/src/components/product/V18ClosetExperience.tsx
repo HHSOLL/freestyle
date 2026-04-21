@@ -1422,6 +1422,7 @@ export function V18ClosetExperience() {
             equippedGarments={equippedGarments}
             selectedItemId={scene.selectedItemId}
             qualityTier={scene.qualityTier}
+            backgroundColor={backgroundColor}
           />
         </div>
 

@@ -218,6 +218,8 @@ Rules:
 - preserve MPFB helper-hiding body mask modifiers during avatar export; removing them breaks the shipped `fullbody` silhouette even if the segmented zones still validate
 - keep torso segmentation broad enough to absorb clavicle and neck-base coverage for fitted tops before reaching for whole-arm body masking
 - keep `secondaryMotion` selective: long hair, loose tops, and loose outerwear only
+- `V18ClosetExperience` background-theme controls must flow through `AvatarStageViewport` into the runtime stage policy and backdrop; do not leave the picker as a CSS-only shell theme control
+- short-sleeve tops such as the default starter tee should not ship with permanent `arms` body masks; reserve arm masking for pose-tuned or clipping-specific cases so the mannequin does not look amputated in the default `Closet` pose
 - keep layered outfit logic explicit: structured outerwear may auto-fallback to a base inner top, and bulky tops should not remain stacked under outerwear
 - use meshopt-aware glTF loading for shipped runtime assets
 - keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable

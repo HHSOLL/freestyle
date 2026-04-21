@@ -36,9 +36,11 @@ test("resolveReferenceClosetStageScenePolicy returns avatar-only lighting and de
   assert.equal(policy.avatarOnly, true);
   assert.equal(policy.hasContinuousMotion, false);
   assert.equal(policy.frameloop, "demand");
-  assert.deepEqual(policy.dpr, [0.95, 1.25]);
+  assert.deepEqual(policy.dpr, [1, 1.4]);
   assert.equal(policy.backgroundColor, "#d7cec6");
-  assert.equal(policy.fogColor, "#d7cec6");
+  assert.equal(policy.fogColor, "#d9d1c9");
+  assert.equal(policy.backdrop.wallColor, "#dfd8d1");
+  assert.equal(policy.backdrop.floorColor, "#e4ded8");
   assert.equal(policy.controlsEnableDamping, true);
   assert.equal(policy.controlsDampingFactor, 0.06);
   assert.equal(policy.lighting.ambientIntensity, 0.48);
@@ -58,11 +60,12 @@ test("resolveReferenceClosetStageScenePolicy keeps dressed high-tier stages shad
   assert.equal(policy.hasContinuousMotion, true);
   assert.equal(policy.shadows, true);
   assert.equal(policy.antialias, true);
-  assert.deepEqual(policy.dpr, [1, 1.5]);
+  assert.deepEqual(policy.dpr, [1.15, 1.85]);
   assert.equal(policy.backgroundColor, "#d0d4db");
+  assert.equal(policy.fogColor, "#d5d8df");
   assert.equal(policy.controlsEnableDamping, true);
   assert.equal(policy.controlsDampingFactor, 0.08);
-  assert.equal(policy.lighting.directional.shadowMapSize, 1536);
+  assert.equal(policy.lighting.directional.shadowMapSize, 2048);
   assert.equal(policy.lighting.avatarOnlyAccent, null);
 });
 
@@ -81,4 +84,20 @@ test("resolveReferenceClosetStageScenePolicy disables demand-motion extras on lo
   assert.deepEqual(policy.dpr, [0.85, 1]);
   assert.equal(policy.controlsEnableDamping, false);
   assert.equal(policy.lighting.directional.shadowMapSize, 1024);
+});
+
+test("resolveReferenceClosetStageScenePolicy derives backdrop colors from an explicit background override", () => {
+  const policy = resolveReferenceClosetStageScenePolicy({
+    bodyProfile: defaultBodyProfile,
+    equippedGarments: [],
+    poseId: "neutral",
+    qualityTier: "high",
+    backgroundColorOverride: "#d3e2ff",
+  });
+
+  assert.equal(policy.backgroundColor, "#d3e2ff");
+  assert.equal(policy.fogColor, "#d6e4ff");
+  assert.equal(policy.backdrop.wallColor, "#dce8ff");
+  assert.equal(policy.backdrop.floorColor, "#e1ebff");
+  assert.equal(policy.backdrop.ringColor, "#e5eeff");
 });

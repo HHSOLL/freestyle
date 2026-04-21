@@ -574,18 +574,18 @@ function fitCamera(
   const aspect = size.width / Math.max(size.height, 1);
   const distance = avatarOnly
     ? aspect < 1.0
-      ? 6.45
+      ? 6.0
       : aspect < 1.3
-        ? 5.8
-        : 5.15
+        ? 5.35
+        : 4.75
     : aspect < 1.0
-      ? 6.85
+      ? 6.2
       : aspect < 1.3
-        ? 6.05
-        : 5.35;
-  const fov = avatarOnly ? (aspect < 1.0 ? 29 : aspect < 1.3 ? 25 : 23) : aspect < 1.0 ? 32 : aspect < 1.3 ? 28 : 25;
-  const targetY = avatarOnly ? 0.94 : 0.84;
-  const cameraY = avatarOnly ? 1.14 : 1.08;
+        ? 5.5
+        : 4.9;
+  const fov = avatarOnly ? (aspect < 1.0 ? 28 : aspect < 1.3 ? 24 : 22) : aspect < 1.0 ? 30 : aspect < 1.3 ? 26 : 23;
+  const targetY = avatarOnly ? 0.98 : 0.9;
+  const cameraY = avatarOnly ? 1.18 : 1.12;
 
   camera.fov = fov;
   camera.position.set(0, cameraY, distance);
@@ -594,8 +594,8 @@ function fitCamera(
 
   if (controls) {
     controls.target.set(0, targetY, 0);
-    controls.minDistance = distance - (avatarOnly ? 1.05 : 1.15);
-    controls.maxDistance = distance + (avatarOnly ? 2.4 : 2.0);
+    controls.minDistance = distance - (avatarOnly ? 0.9 : 1.0);
+    controls.maxDistance = distance + (avatarOnly ? 2.1 : 1.8);
     controls.minAzimuthAngle = -Math.PI * (avatarOnly ? 0.22 : 0.18);
     controls.maxAzimuthAngle = Math.PI * (avatarOnly ? 0.22 : 0.18);
     controls.maxPolarAngle = Math.PI / (avatarOnly ? 1.95 : 2.02);
@@ -615,29 +615,35 @@ function CameraRig({ controlsRef, avatarOnly }: { controlsRef: RefObject<OrbitCo
   return null;
 }
 
-function StudioBackdrop({ avatarOnly }: { avatarOnly: boolean }) {
-  const wallColor = avatarOnly ? "#ded6cf" : "#e6e8ec";
-  const floorColor = avatarOnly ? "#ece2d8" : "#edeff3";
-  const ringColor = avatarOnly ? "#f0ddd1" : "#e3e8f2";
-  const orbColor = avatarOnly ? "#efe1d6" : "#dbe2ec";
-
+function StudioBackdrop({
+  avatarOnly,
+  colors,
+}: {
+  avatarOnly: boolean;
+  colors: {
+    wallColor: string;
+    floorColor: string;
+    ringColor: string;
+    orbColor: string;
+  };
+}) {
   return (
     <group>
       <mesh position={[0, 3.3, -3.3]} receiveShadow>
         <planeGeometry args={[18, 12]} />
-        <meshStandardMaterial color={wallColor} roughness={1} metalness={0} />
+        <meshStandardMaterial color={colors.wallColor} roughness={1} metalness={0} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
         <circleGeometry args={[7.6, 96]} />
-        <meshStandardMaterial color={floorColor} roughness={1} metalness={0} />
+        <meshStandardMaterial color={colors.floorColor} roughness={1} metalness={0} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]} receiveShadow>
         <ringGeometry args={[1.8, 4.8, 96]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={avatarOnly ? 0.22 : 0.18} />
+        <meshBasicMaterial color={colors.ringColor} transparent opacity={avatarOnly ? 0.22 : 0.18} />
       </mesh>
       <mesh position={[0, 4.5, -5.2]}>
         <sphereGeometry args={[1.45, 32, 32]} />
-        <meshBasicMaterial color={orbColor} transparent opacity={avatarOnly ? 0.18 : 0.12} />
+        <meshBasicMaterial color={colors.orbColor} transparent opacity={avatarOnly ? 0.18 : 0.12} />
       </mesh>
     </group>
   );
@@ -1678,6 +1684,7 @@ export function ReferenceClosetStageCanvas({
   equippedGarments,
   selectedItemId,
   qualityTier,
+  backgroundColor,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1685,6 +1692,7 @@ export function ReferenceClosetStageCanvas({
   equippedGarments: RuntimeGarmentAsset[];
   selectedItemId: string | null;
   qualityTier: QualityTier;
+  backgroundColor?: string;
 }) {
   const scenePolicy = useMemo(
     () =>
@@ -1693,8 +1701,9 @@ export function ReferenceClosetStageCanvas({
         equippedGarments,
         poseId,
         qualityTier,
+        backgroundColorOverride: backgroundColor,
       }),
-    [bodyProfile, equippedGarments, poseId, qualityTier],
+    [backgroundColor, bodyProfile, equippedGarments, poseId, qualityTier],
   );
 
   return (
@@ -1768,7 +1777,7 @@ export function ReferenceClosetStageCanvas({
         </>
       ) : null}
 
-      <StudioBackdrop avatarOnly={scenePolicy.avatarOnly} />
+      <StudioBackdrop avatarOnly={scenePolicy.avatarOnly} colors={scenePolicy.backdrop} />
       <Suspense fallback={<ClosetStageLoadingFallback />}>
         <SceneRig
           bodyProfile={bodyProfile}

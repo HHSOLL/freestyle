@@ -115,6 +115,35 @@ export const requireAuth = async (request: FastifyRequest, reply: FastifyReply) 
   return data.user.id;
 };
 
+export const requireBearerOrDevBypassAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+  if (request.authUserId && getBearerToken(request)) return request.authUserId;
+
+  const token = getBearerToken(request);
+  if (!token) {
+    const bypassUserId = process.env.DEV_BYPASS_USER_ID?.trim();
+    if (process.env.NODE_ENV !== "production" && bypassUserId) {
+      request.authUserId = bypassUserId;
+      return bypassUserId;
+    }
+
+    reply.code(401).send({
+      error: "UNAUTHORIZED",
+      message: "Bearer token is required.",
+    });
+    return null;
+  }
+
+  const supabase = getAdminClient();
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    reply.code(401).send({ error: "UNAUTHORIZED", message: "Invalid or expired token." });
+    return null;
+  }
+
+  request.authUserId = data.user.id;
+  return data.user.id;
+};
+
 export const requireAdminAuth = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = await requireAuth(request, reply);
   if (!userId) return null;

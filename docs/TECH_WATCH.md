@@ -24,6 +24,8 @@
 - 확인 소스:
   - `ChatGPT Pulse`
     - `https://chatgpt.com/pulse`
+  - Vercel official docs:
+    - `https://vercel.com/kb/bulletin/vercel-april-2026-security-incident`
   - Supabase official docs:
     - `https://supabase.com/docs/guides/api/api-keys`
     - `https://supabase.com/docs/guides/api/securing-your-api`
@@ -34,14 +36,20 @@
     - `https://playwright.dev/docs/release-notes`
 - 신규 변화 요약:
   - `Pulse`는 오늘도 현재 인증 환경에서 접근되지 않았다.
+  - Vercel은 2026년 4월 security incident bulletin을 공지했고, 모든 고객에게 activity log 검토와 env rotation posture 재점검을 권장한다.
   - Supabase 공식 문서는 browser/client surface에는 publishable key, backend/admin/worker에는 secret 또는 service-role posture를 계속 권장하고 있고, exposed schema에는 RLS와 Security Advisor 재확인을 production 기본값으로 둔다.
   - Playwright 공식 문서는 여전히 `on-first-retry`와 `retain-on-failure` 계열 trace retention을 CI 실패 분석 기본값으로 두고, 최근 release note에서는 `retain-on-first-failure` 모드도 추가로 안내한다.
 - 우리 프로젝트 영향:
+  - Vercel-linked `freestyle` project에 대해 `vercel env ls production`과 `vercel activity --since 72h --project freestyle`를 확인한 결과, accessible CLI surface 기준 최근 actor는 `hhsoll`로 보였고, production env names는 browser-safe/public posture만 노출됐다.
+  - 현재 기준 urgent Vercel-side secret rotation 근거는 보이지 않았지만, RC 전 점검 항목에 Vercel bulletin 대응 절차를 명시적으로 넣는 편이 맞다.
+  - product anonymous flow는 유지하되, `/v1/lab/*`는 anonymous header fallback을 더 이상 허용하지 않는 것이 맞다.
   - 기존 release/security 문서 방향은 여전히 맞고, key separation / RLS / trace retention 규칙을 현재 소스 오브 트루스 기준으로 유지하면 된다.
   - 오늘 배치의 직접 적용 포인트는 새로운 외부 도입보다 `Phase E` closeout과 함께 tracker/documentation을 최신 기준으로 닫는 것이다.
 - 적용 여부:
   - 코드/문서 반영 완료:
+    - `docs/qa/vercel-security-review-2026-04-21.md`
     - `docs/TECH_WATCH.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
     - `docs/freestyle-improvement-status.md`
     - `docs/api-contract.md`
     - `docs/DEVELOPMENT_GUIDE.md`

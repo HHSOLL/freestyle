@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createTryonInputSchema } from "@freestyle/shared";
-import { requireAuth } from "../modules/auth/auth.js";
+import { requireBearerOrDevBypassAuth } from "../modules/auth/auth.js";
 import {
   createTryonJob,
   getTryonForOwner,
@@ -9,7 +9,7 @@ import {
 
 export const registerTryonRoutes = (app: FastifyInstance) => {
   app.post("/jobs/tryons", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const parsed = createTryonInputSchema.safeParse(request.body);
@@ -32,7 +32,7 @@ export const registerTryonRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/tryons/:id", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const params = request.params as { id?: string };

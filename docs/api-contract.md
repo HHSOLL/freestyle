@@ -158,9 +158,11 @@
   - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
   - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
-  - the baseline worker currently persists typed `fit_map_json` plus `preview_png`; `draped_glb` remains a future output
+  - the active worker now persists `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
+  - the current `draped_glb` is an authored-scene merge baseline for artifact persistence/cache and preview swap-in plumbing, not solver-deformed cloth truth
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
   - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
+  - the detail route returns artifacts in presentation priority order: `draped_glb`, `preview_png`, `fit_map_json`, `metrics_json`
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
@@ -229,12 +231,20 @@
     },
     "artifacts": [
       {
-        "kind": "fit_map_json",
-        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/fit-map.json"
+        "kind": "draped_glb",
+        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/draped.glb"
       },
       {
         "kind": "preview_png",
         "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/preview.png"
+      },
+      {
+        "kind": "fit_map_json",
+        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/fit-map.json"
+      },
+      {
+        "kind": "metrics_json",
+        "url": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/metrics.json"
       }
     ],
     "metrics": {
@@ -243,7 +253,7 @@
       "maxStretchRatio": 1.02
     },
     "warnings": [
-      "Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending."
+      "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work."
     ],
     "errorMessage": null,
     "createdAt": "2026-04-20T10:00:00.000Z",

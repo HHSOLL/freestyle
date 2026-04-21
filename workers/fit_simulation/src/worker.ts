@@ -1,5 +1,8 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { logger } from "@freestyle/observability";
@@ -9,6 +12,8 @@ import {
   buildJobResultEnvelope,
   fitMapArtifactSchemaVersion,
   fitMapArtifactDataSchema,
+  fitSimulationMetricsArtifactDataSchema,
+  fitSimulationMetricsArtifactSchemaVersion,
   fitSimulateHQResultEnvelopeSchema,
   JOB_TYPES,
   normalizeQueuedJobPayload,
@@ -19,6 +24,7 @@ import {
   type FitMapArtifactData,
   type FitMapOverlay,
   type FitMapRegionScore,
+  type FitSimulationMetricsArtifactData,
   type GarmentFitAssessment,
   type GarmentInstantFitReport,
   type JobRecord,
@@ -30,6 +36,8 @@ import {
 } from "@freestyle/domain-garment";
 import { getFitSimulationById } from "../../../apps/api/src/modules/fit-simulations/fit-simulations.service.js";
 import { upsertFitSimulationRecord } from "../../../apps/api/src/modules/fit-simulations/fit-simulations.repository.js";
+
+const execFileAsync = promisify(execFile);
 
 const createTerminalFitSimulationError = (code: string, message: string) => {
   const error = new Error(message) as Error & { retryable?: boolean };
@@ -95,6 +103,82 @@ const persistFitSimulationArtifact = async (
     label: fileName,
     metadata,
   };
+};
+
+const fitSimulationDrapeSource = "authored-scene-merge" as const;
+
+const getPublicAssetBaseHost = () => {
+  try {
+    return new URL(process.env.PUBLIC_ASSET_BASE_URL?.trim() || "https://freestyle.local").host;
+  } catch {
+    return "freestyle.local";
+  }
+};
+
+const runtimeAssetPathFromUrl = async (value: string) => {
+  const url = new URL(value);
+
+  if (url.protocol === "file:") {
+    return fileURLToPath(url);
+  }
+
+  if (!["http:", "https:"].includes(url.protocol)) {
+    return null;
+  }
+
+  const isLocalAssetHost =
+    url.host === getPublicAssetBaseHost() ||
+    ["freestyle.local", "localhost", "127.0.0.1"].includes(url.hostname);
+
+  if (!isLocalAssetHost || !url.pathname.startsWith("/assets/")) {
+    return null;
+  }
+
+  const absolutePath = path.join(
+    process.cwd(),
+    "apps",
+    "web",
+    "public",
+    decodeURIComponent(url.pathname).replace(/^\/+/, ""),
+  );
+
+  await fs.access(absolutePath);
+  return absolutePath;
+};
+
+const getGltfTransformBinaryPath = () =>
+  path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "gltf-transform.cmd" : "gltf-transform");
+
+export const buildFitSimulationDrapedGlbBuffer = async (input: {
+  fitSimulationId: string;
+  avatarManifestUrl: string;
+  garmentManifestUrl: string;
+}) => {
+  const workingDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "freestyle-fit-sim-"));
+  try {
+    const avatarInput =
+      (await runtimeAssetPathFromUrl(input.avatarManifestUrl).catch(() => null)) ?? input.avatarManifestUrl;
+    const garmentInput =
+      (await runtimeAssetPathFromUrl(input.garmentManifestUrl).catch(() => null)) ?? input.garmentManifestUrl;
+    const outputPath = path.join(workingDirectory, `${input.fitSimulationId}.draped.glb`);
+    const args = ["merge"];
+    if (/^https?:\/\//i.test(avatarInput) || /^https?:\/\//i.test(garmentInput)) {
+      args.push("--allow-net=true");
+    }
+    args.push(avatarInput, garmentInput, outputPath);
+
+    await execFileAsync(getGltfTransformBinaryPath(), args, {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        PATH: `/opt/homebrew/bin:${process.env.PATH ?? ""}`,
+      },
+    });
+
+    return fs.readFile(outputPath);
+  } finally {
+    await fs.rm(workingDirectory, { recursive: true, force: true }).catch(() => undefined);
+  }
 };
 
 const coercePenetrationRate = (qualityTier: FitSimulationQualityTier, limitingCount: number, stretchLoad: number) => {
@@ -254,6 +338,28 @@ export const buildFitMapArtifactPayload = (
   });
 };
 
+export const buildFitSimulationMetricsArtifactPayload = (
+  fitSimulationId: string,
+  request: FitSimulationMetricsArtifactData["request"],
+  garment: FitSimulationMetricsArtifactData["garment"],
+  fitMapSummary: FitSimulationMetricsArtifactData["fitMapSummary"],
+  metrics: FitSimulationMetricsArtifactData["metrics"],
+  warnings: string[],
+  artifactKinds: FitSimulationMetricsArtifactData["artifactKinds"],
+) =>
+  fitSimulationMetricsArtifactDataSchema.parse({
+    schemaVersion: fitSimulationMetricsArtifactSchemaVersion,
+    generatedAt: new Date().toISOString(),
+    fitSimulationId,
+    request,
+    garment,
+    fitMapSummary,
+    metrics,
+    warnings,
+    drapeSource: fitSimulationDrapeSource,
+    artifactKinds,
+  });
+
 export const buildFitSimulationPreviewSvg = (
   fitSimulationId: string,
   fitMap: FitMapArtifactData,
@@ -314,7 +420,7 @@ export const buildFitSimulationPreviewSvg = (
       <text x="70" y="404" fill="#9aa7b6" font-size="20" font-family="Arial, sans-serif">region ${svgLabel(fitMapSummary.dominantOverlayKind)} summary</text>
       ${regionRows}
 
-      <text x="70" y="612" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">Phase D baseline now persists typed fit-map overlays and a preview image. Full draped mesh output remains pending.</text>
+      <text x="70" y="612" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">Phase 4 baseline now persists typed HQ artifacts. The draped GLB is an authored-scene merge placeholder, not solver-deformed cloth.</text>
     </svg>
   `.trim();
 };
@@ -392,7 +498,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       }
 
       const warnings = [
-        "Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending.",
+        "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.",
       ];
       const metrics = {
         durationMs: Math.max(1, Date.now() - startedAt),
@@ -431,6 +537,25 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       );
       const fitMapSummary = buildFitMapSummary(fitMapArtifactPayload);
 
+      const drapedArtifact = await persistFitSimulationArtifact(
+        row.id,
+        "draped_glb",
+        "draped.glb",
+        "model/gltf-binary",
+        await buildFitSimulationDrapedGlbBuffer({
+          fitSimulationId: row.id,
+          avatarManifestUrl: row.avatarManifestUrl,
+          garmentManifestUrl: row.garmentManifestUrl,
+        }),
+        {
+          presentationRole: "hq-preview",
+          drapeSource: fitSimulationDrapeSource,
+          avatarVariantId: row.avatarVariantId,
+          garmentVariantId: row.garmentVariantId,
+          qualityTier: row.qualityTier,
+        },
+      );
+
       const fitMapArtifact = await persistFitSimulationArtifact(
         row.id,
         "fit_map_json",
@@ -452,8 +577,44 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           primaryRegionId: instantFit.primaryRegionId,
         },
       );
+      const metricsArtifactPayload = buildFitSimulationMetricsArtifactPayload(
+        row.id,
+        {
+          bodyVersionId: row.bodyVersionId,
+          bodyProfileRevision: row.bodyProfileRevision,
+          garmentVariantId: row.garmentVariantId,
+          garmentRevision: row.garmentRevision,
+          avatarVariantId: row.avatarVariantId,
+          avatarManifestUrl: row.avatarManifestUrl,
+          garmentManifestUrl: row.garmentManifestUrl,
+          materialPreset: row.materialPreset,
+          qualityTier: row.qualityTier,
+          cacheKey: row.cacheKey,
+        },
+        {
+          id: row.garmentSnapshot.id,
+          name: row.garmentSnapshot.name,
+          category: row.garmentSnapshot.category,
+        },
+        fitMapSummary,
+        metrics,
+        warnings,
+        ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
+      );
+      const metricsArtifact = await persistFitSimulationArtifact(
+        row.id,
+        "metrics_json",
+        "metrics.json",
+        "application/json",
+        Buffer.from(JSON.stringify(metricsArtifactPayload, null, 2), "utf8"),
+        {
+          drapeSource: fitSimulationDrapeSource,
+          dominantOverlayKind: fitMapSummary.dominantOverlayKind,
+        },
+      );
 
       const completedAt = new Date().toISOString();
+      const artifacts = [drapedArtifact, previewArtifact, fitMapArtifact, metricsArtifact];
       const nextRecord = await upsertFitSimulationRecord({
         ...row,
         status: "succeeded",
@@ -461,7 +622,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         instantFit,
         fitMap: fitMapArtifactPayload,
         fitMapSummary,
-        artifacts: [fitMapArtifact, previewArtifact],
+        artifacts,
         metrics,
         warnings,
         errorMessage: null,

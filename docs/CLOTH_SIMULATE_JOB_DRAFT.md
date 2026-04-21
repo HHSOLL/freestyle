@@ -5,11 +5,12 @@
 - `Phase D / Batch 1` closed the reserved contract seam.
 - `Phase D / Batch 2` closed the baseline implementation seam.
 - `Phase D / Batch 3` closed the preview artifact seam and promoted the fit-map payload into a typed overlay contract that also seeds `Phase E`.
+- `Phase D / Batch 4` closed the HQ artifact-bundle seam with a baseline `draped_glb` plus `metrics_json`.
 - the repo now has:
   - versioned request/result schemas for offline high-quality fit simulation
   - active lab create/read routes
   - a queued worker handler
-  - persisted `fit_map_json` and `preview_png` artifact output
+  - persisted `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json` artifact output
 - the current worker is still a baseline snapshot-driven path, not a full cloth solver
 
 ## Purpose
@@ -58,7 +59,8 @@ Worker results are expected to use the canonical `job-result.v1` envelope with `
   "artifacts": [
     { "kind": "draped_glb", "url": "https://..." },
     { "kind": "fit_map_json", "url": "https://..." },
-    { "kind": "preview_png", "url": "https://..." }
+    { "kind": "preview_png", "url": "https://..." },
+    { "kind": "metrics_json", "url": "https://..." }
   ],
   "metrics": {
     "durationMs": 120000,
@@ -80,6 +82,7 @@ Worker results are expected to use the canonical `job-result.v1` envelope with `
 - `draped_glb`
 - `fit_map_json`
 - `preview_png`
+- `metrics_json`
 
 These are reserved names and should not be widened without updating `packages/contracts`, job tests, and this document in the same change set.
 
@@ -107,10 +110,12 @@ These are reserved names and should not be widened without updating `packages/co
   - returns the persisted simulation record
   - exposes typed artifacts, warnings, and metrics
 - the current worker writes:
+  - `draped_glb`
   - `fit_map_json`
   - `preview_png`
-- the current worker does not yet write:
-  - `draped_glb`
+  - `metrics_json`
+
+The current `draped_glb` artifact is an authored-scene merge baseline built from the avatar and garment runtime GLBs. It is a real persisted binary artifact for cache/persistence/swap-in plumbing, but it is not yet solver-deformed cloth output.
 
 The current `fit_map_json` artifact is a baseline evidence payload built from:
 
@@ -126,12 +131,14 @@ The current `fit_map_json` artifact is a baseline evidence payload built from:
 
 The current `preview_png` artifact is a generated raster summary card built from the same typed fit-map payload. It is a review artifact, not a rendered cloth-solver image.
 
-This keeps `Phase D` honest: there is now a working async/offline artifact path, but it is still not a full cloth-simulation runtime.
+The current `metrics_json` artifact is a typed summary blob containing the recorded HQ metrics, dominant fit-map summary, artifact set, and current drape-source mode.
+
+This keeps `Phase D` honest: there is now a working async/offline artifact path with a full bundle, but it is still not a full cloth-simulation runtime.
 
 ## Still Not Implemented
 
-- draped mesh generation (`draped_glb`)
-- true solver-backed cloth state instead of snapshot-derived fit evidence
+- true solver-backed cloth state instead of authored-scene merge baseline output
+- material-calibrated draped mesh deformation rather than authored-scene merge assembly
 - product UI that requests or renders HQ simulation artifacts directly
 
 Until those land, this document describes the active baseline plus the remaining fidelity gap.

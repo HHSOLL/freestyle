@@ -445,7 +445,24 @@ test("fit-simulation read route returns the public record shape from the persist
             instantFit: null,
             fitMap: fitMapFixture,
             fitMapSummary: fitMapSummaryFixture,
-            artifacts: [],
+            artifacts: [
+              {
+                kind: "metrics_json",
+                url: "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000011/metrics.json",
+              },
+              {
+                kind: "preview_png",
+                url: "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000011/preview.png",
+              },
+              {
+                kind: "fit_map_json",
+                url: "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000011/fit-map.json",
+              },
+              {
+                kind: "draped_glb",
+                url: "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000011/draped.glb",
+              },
+            ],
             metrics: null,
             warnings: [],
             errorMessage: null,
@@ -475,6 +492,8 @@ test("fit-simulation read route returns the public record shape from the persist
   assert.equal(payload.fitSimulation.fitMap?.schemaVersion, "fit-map-json.v1");
   assert.equal(payload.fitSimulation.fitMap?.overlays[0]?.kind, "easeMap");
   assert.equal(payload.fitSimulation.fitMapSummary?.dominantOverlayKind, "confidenceMap");
+  assert.equal(payload.fitSimulation.artifacts[0]?.kind, "draped_glb");
+  assert.equal(payload.fitSimulation.artifacts[3]?.kind, "metrics_json");
 
   await app.close();
 });

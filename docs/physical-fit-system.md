@@ -233,6 +233,10 @@ As of `2026-04-20`:
 - `Phase D / Batch 3` now extends that baseline artifact path:
   - `worker_fit_simulate_hq` now also persists `preview_png`
   - the `fit_map_json` payload is now typed as four overlay maps: `easeMap`, `stretchMap`, `collisionRiskMap`, and `confidenceMap`
+- `Phase D / Batch 4` now closes the HQ artifact-bundle seam:
+  - `worker_fit_simulate_hq` now persists `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
+  - the current `draped_glb` is an authored-scene merge baseline that proves artifact persistence/cache and swap-in plumbing without overstating solver fidelity
+  - lab read-paths now return artifacts in presentation priority order so future consumers can promote `draped_glb` without reinterpreting raw artifact blobs
 - `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
 - `Phase E / Batch 2` now also carries the same typed overlay payload on the persisted fit-simulation record, so `GET /v1/lab/fit-simulations/:id` exposes `fitMap` directly instead of forcing clients to pull the JSON artifact separately
 - `Phase E / Batch 3` now adds a shared `fitMapSummary` helper and persisted summary snapshot, so preview generation and future consumers agree on the dominant overlay/region without reimplementing overlay-ranking logic

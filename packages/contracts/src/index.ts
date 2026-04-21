@@ -776,6 +776,7 @@ export const fitCalibrationReportSchema = z
 export const fitSimulateHQJobType = "fit_simulate_hq_v1";
 export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
 export const fitMapArtifactSchemaVersion = "fit-map-json.v1";
+export const fitSimulationMetricsArtifactSchemaVersion = "fit-sim-metrics-json.v1";
 export const previewSimulationFrameSchemaVersion = "preview-simulation-frame.v1";
 const fitSimulationOpaqueIdSchema = z.string().trim().min(1).max(160);
 export const fitSimulationCacheKeySchema = z.string().trim().min(1).max(160);
@@ -866,7 +867,12 @@ export const previewSimulationFrameResultSchema = z
   })
   .strict();
 
-export const fitSimulationArtifactKindSchema = z.enum(["draped_glb", "fit_map_json", "preview_png"]);
+export const fitSimulationArtifactKindSchema = z.enum([
+  "draped_glb",
+  "fit_map_json",
+  "preview_png",
+  "metrics_json",
+]);
 
 export const fitSimulationArtifactSchema = jobArtifactSchema
   .extend({
@@ -988,36 +994,55 @@ export const fitMapSummarySchema = z
   })
   .strict();
 
+const fitSimulationRequestSnapshotSchema = z
+  .object({
+    bodyVersionId: fitSimulationOpaqueIdSchema,
+    bodyProfileRevision: bodyProfileRevisionSchema.optional(),
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema.optional(),
+    avatarVariantId: avatarRenderVariantIdSchema,
+    avatarManifestUrl: z.url(),
+    garmentManifestUrl: z.url(),
+    materialPreset: z.string().trim().min(1).max(120),
+    qualityTier: fitSimulationQualityTierSchema,
+    cacheKey: fitSimulationCacheKeySchema.optional(),
+  })
+  .strict();
+
+const fitSimulationGarmentSnapshotSchema = z
+  .object({
+    id: z.string().trim().min(1).max(160),
+    name: z.string().trim().min(1).max(160),
+    category: assetCategorySchema,
+  })
+  .strict();
+
 export const fitMapArtifactDataSchema = z
   .object({
     schemaVersion: z.literal(fitMapArtifactSchemaVersion),
     generatedAt: z.iso.datetime(),
     fitSimulationId: z.uuid(),
-    request: z
-      .object({
-        bodyVersionId: fitSimulationOpaqueIdSchema,
-        bodyProfileRevision: bodyProfileRevisionSchema.optional(),
-        garmentVariantId: fitSimulationOpaqueIdSchema,
-        garmentRevision: garmentRevisionSchema.optional(),
-        avatarVariantId: avatarRenderVariantIdSchema,
-        avatarManifestUrl: z.url(),
-        garmentManifestUrl: z.url(),
-        materialPreset: z.string().trim().min(1).max(120),
-        qualityTier: fitSimulationQualityTierSchema,
-        cacheKey: fitSimulationCacheKeySchema.optional(),
-      })
-      .strict(),
-    garment: z
-      .object({
-        id: z.string().trim().min(1).max(160),
-        name: z.string().trim().min(1).max(160),
-        category: assetCategorySchema,
-      })
-      .strict(),
+    request: fitSimulationRequestSnapshotSchema,
+    garment: fitSimulationGarmentSnapshotSchema,
     fitAssessment: garmentFitAssessmentSchema,
     instantFit: garmentInstantFitReportSchema.nullable(),
     overlays: z.array(fitMapOverlaySchema).length(4),
     warnings: z.array(z.string().trim().min(1)).default([]),
+  })
+  .strict();
+
+export const fitSimulationMetricsArtifactDataSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationMetricsArtifactSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    fitSimulationId: z.uuid(),
+    request: fitSimulationRequestSnapshotSchema,
+    garment: fitSimulationGarmentSnapshotSchema,
+    fitMapSummary: fitMapSummarySchema,
+    metrics: fitSimulateHQMetricsSchema,
+    warnings: z.array(z.string().trim().min(1)).default([]),
+    drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
+    artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
   })
   .strict();
 
@@ -1966,6 +1991,7 @@ export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;
 export type FitMapOverlay = z.infer<typeof fitMapOverlaySchema>;
 export type FitMapSummary = z.infer<typeof fitMapSummarySchema>;
 export type FitMapArtifactData = z.infer<typeof fitMapArtifactDataSchema>;
+export type FitSimulationMetricsArtifactData = z.infer<typeof fitSimulationMetricsArtifactDataSchema>;
 export type FitSimulateHQJobPayload = z.infer<typeof fitSimulateHQJobPayloadSchema>;
 export type FitSimulateHQRequest = z.infer<typeof fitSimulateHQRequestSchema>;
 export type FitSimulateHQJobPayloadInput = z.infer<typeof fitSimulateHQJobPayloadInputSchema>;

@@ -3,8 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { BodyProfileRecord, BodyProfileUpsertInput } from "@freestyle/contracts";
+import { buildBodyProfileRevision, type BodyProfileRecord, type BodyProfileUpsertInput } from "@freestyle/contracts";
 import {
+  BodyProfileRevisionConflictError,
   createFileBodyProfilePersistencePort,
   createMemoryBodyProfilePersistencePort,
 } from "./body-profile.repository.js";
@@ -28,6 +29,7 @@ const createProfileInput = (): BodyProfileUpsertInput => ({
 const createProfileRecord = (): BodyProfileRecord => ({
   profile: createProfileInput().profile,
   version: 2,
+  revision: buildBodyProfileRevision(createProfileInput().profile),
   updatedAt: "2026-04-19T12:00:00.000Z",
 });
 
@@ -39,9 +41,26 @@ test("memory body-profile persistence port isolates users and round-trips canoni
   const saved = await port.upsertBodyProfileRecordForUser("user-a", createProfileInput());
   assert.equal(saved.profile.simple.heightCm, 172);
   assert.equal(saved.version, 2);
+  assert.equal(saved.revision, buildBodyProfileRevision(saved.profile));
 
   assert.equal((await port.getBodyProfileRecordForUser("user-a"))?.profile.simple.heightCm, 172);
   assert.equal(await port.getBodyProfileRecordForUser("user-b"), null);
+});
+
+test("body-profile persistence rejects stale baseRevision writes", async () => {
+  const port = createMemoryBodyProfilePersistencePort();
+  const first = await port.upsertBodyProfileRecordForUser("user-a", createProfileInput());
+
+  await assert.rejects(
+    () =>
+      port.upsertBodyProfileRecordForUser("user-a", {
+        ...createProfileInput(),
+        baseRevision: "body-profile:stale",
+      }),
+    (error: unknown) =>
+      error instanceof BodyProfileRevisionConflictError &&
+      error.currentBodyProfile?.revision === first.revision,
+  );
 });
 
 test("file body-profile persistence port reads legacy object-map stores and filters malformed rows", async () => {

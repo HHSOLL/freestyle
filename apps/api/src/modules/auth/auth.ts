@@ -91,7 +91,7 @@ export const requireAuth = async (request: FastifyRequest, reply: FastifyReply) 
     }
   }
 
-  if (!token && toBoolean(process.env.ALLOW_ANONYMOUS_USER, true)) {
+  if (!token && toBoolean(process.env.ALLOW_ANONYMOUS_USER, false)) {
     const anonymousUserId = getAnonymousUserId(request);
     if (anonymousUserId) {
       request.authUserId = anonymousUserId;

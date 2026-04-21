@@ -33,7 +33,7 @@ export const buildOriginPolicy = (
         return true;
       }
       if (exactOrigins.length === 0 && patterns.length === 0) {
-        return true;
+        return false;
       }
       return exactOrigins.includes(origin) || patterns.some((pattern) => pattern.test(origin));
     },

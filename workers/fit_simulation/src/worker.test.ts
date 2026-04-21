@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildFitSimulationCacheKey,
+  buildPublishedGarmentRevision,
   buildJobPayloadEnvelope,
+  buildBodyProfileRevision,
   fitMapArtifactDataSchema,
   garmentFitAssessmentSchema,
   garmentInstantFitReportSchema,
@@ -38,6 +41,35 @@ const baseJob = (payload: Record<string, unknown>): JobRecord => ({
   completed_at: null,
 });
 
+const bodyProfileRevision = buildBodyProfileRevision({
+  gender: "female",
+  bodyFrame: "balanced",
+  simple: {
+    heightCm: 166,
+    shoulderCm: 40,
+    chestCm: 88,
+    waistCm: 70,
+    hipCm: 96,
+    inseamCm: 79,
+  },
+});
+
+const garmentRevision = buildPublishedGarmentRevision({
+  id: "starter-top-soft-casual",
+  publication: {
+    assetVersion: "starter-top-soft-casual@1.0.0",
+  },
+});
+
+const fitSimulationCacheKey = buildFitSimulationCacheKey({
+  avatarVariantId: "female-base",
+  bodyProfileRevision,
+  garmentVariantId: "starter-top-soft-casual",
+  garmentRevision,
+  materialPreset: "knit_medium",
+  qualityTier: "balanced",
+});
+
 test("parseFitSimulationJobPayload preserves canonical fit-simulation envelopes", () => {
   const parsed = parseFitSimulationJobPayload(
     baseJob(
@@ -45,12 +77,21 @@ test("parseFitSimulationJobPayload preserves canonical fit-simulation envelopes"
         JOB_TYPES.FIT_SIMULATE_HQ,
         {
           fit_simulation_id: "00000000-0000-4000-8000-000000000083",
-          bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+          bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+          bodyProfileRevision,
           garmentVariantId: "starter-top-soft-casual",
+          garmentRevision,
           avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
           garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
           materialPreset: "knit_medium",
           qualityTier: "fast",
+          cacheKey: buildFitSimulationCacheKey({
+            bodyProfileRevision,
+            garmentVariantId: "starter-top-soft-casual",
+            garmentRevision,
+            materialPreset: "knit_medium",
+            qualityTier: "fast",
+          }),
         },
         {
           traceId: "00000000-0000-4000-8000-000000000084",
@@ -69,7 +110,7 @@ test("parseFitSimulationJobPayload upgrades legacy fit-simulation payloads", () 
   const parsed = parseFitSimulationJobPayload(
     baseJob({
       fit_simulation_id: "00000000-0000-4000-8000-000000000083",
-      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
       garmentVariantId: "starter-top-soft-casual",
       avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
       garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
@@ -80,6 +121,8 @@ test("parseFitSimulationJobPayload upgrades legacy fit-simulation payloads", () 
 
   assert.equal(parsed.trace_id, "00000000-0000-4000-8000-000000000081");
   assert.equal(parsed.data.qualityTier, "balanced");
+  assert.equal(parsed.data.bodyProfileRevision, bodyProfileRevision);
+  assert.equal(parsed.data.garmentRevision, "starter-top-soft-casual");
 });
 
 test("buildFitMapArtifactPayload emits typed Phase E overlay evidence", () => {
@@ -154,13 +197,16 @@ test("buildFitMapArtifactPayload emits typed Phase E overlay evidence", () => {
   const payload = buildFitMapArtifactPayload(
     "00000000-0000-4000-8000-000000000083",
     {
-      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+      bodyProfileRevision,
       garmentVariantId: "starter-top-soft-casual",
+      garmentRevision,
       avatarVariantId: "female-base",
       avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
       garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
       materialPreset: "knit_medium",
       qualityTier: "balanced",
+      cacheKey: fitSimulationCacheKey,
     },
     {
       id: "starter-top-soft-casual",
@@ -232,13 +278,16 @@ test("buildFitSimulationPreviewPngBuffer rasterizes a PNG preview artifact", asy
   const fitMap = buildFitMapArtifactPayload(
     "00000000-0000-4000-8000-000000000083",
     {
-      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+      bodyProfileRevision,
       garmentVariantId: "starter-top-soft-casual",
+      garmentRevision,
       avatarVariantId: "female-base",
       avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
       garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
       materialPreset: "knit_medium",
       qualityTier: "balanced",
+      cacheKey: fitSimulationCacheKey,
     },
     {
       id: "starter-top-soft-casual",

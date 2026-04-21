@@ -410,12 +410,15 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         row.id,
         {
           bodyVersionId: row.bodyVersionId,
+          bodyProfileRevision: row.bodyProfileRevision,
           garmentVariantId: row.garmentVariantId,
+          garmentRevision: row.garmentRevision,
           avatarVariantId: row.avatarVariantId,
           avatarManifestUrl: row.avatarManifestUrl,
           garmentManifestUrl: row.garmentManifestUrl,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
+          cacheKey: row.cacheKey,
         },
         {
           id: row.garmentSnapshot.id,
@@ -472,8 +475,11 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           {
             schemaVersion: "fit-simulate-hq.v1",
             bodyVersionId: nextRecord.bodyVersionId,
+            bodyProfileRevision: nextRecord.bodyProfileRevision,
             garmentVariantId: nextRecord.garmentVariantId,
+            garmentRevision: nextRecord.garmentRevision,
             qualityTier: nextRecord.qualityTier,
+            cacheKey: nextRecord.cacheKey,
           },
           {
             traceId: payloadEnvelope.trace_id,

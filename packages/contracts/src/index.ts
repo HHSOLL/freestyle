@@ -30,6 +30,40 @@ export {
   setSimpleBodyMeasurement,
 } from "./domain-types.js";
 
+const sortComparableValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sortComparableValue(entry));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, sortComparableValue(entry)]),
+  );
+};
+
+const stableSerializeValue = (value: unknown) => JSON.stringify(sortComparableValue(value));
+
+const stableHashBase36 = (value: string) => {
+  let left = 0xdeadbeef;
+  let right = 0x41c6ce57;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    left = Math.imul(left ^ code, 2654435761);
+    right = Math.imul(right ^ code, 1597334677);
+  }
+
+  left = Math.imul(left ^ (left >>> 16), 2246822507) ^ Math.imul(right ^ (right >>> 13), 3266489909);
+  right = Math.imul(right ^ (right >>> 16), 2246822507) ^ Math.imul(left ^ (left >>> 13), 3266489909);
+
+  return (4294967296 * (2097151 & right) + (left >>> 0)).toString(36);
+};
+
 export const widgetErrorCodeSchema = z.enum([
   "WIDGET_CONFIG_NOT_FOUND",
   "WIDGET_ORIGIN_DENIED",
@@ -290,6 +324,12 @@ export const bodyProfileSchema = z
 export const bodyProfileInputSchema = z.union([bodyProfileSchema, legacyBodyProfileFlatSchema]).transform((profile) =>
   normalizeBodyProfile(profile),
 );
+
+export const bodyProfileRevisionSchema = z.string().trim().min(1).max(160);
+export const garmentRevisionSchema = z.string().trim().min(1).max(160);
+
+export const buildBodyProfileRevision = (profile: unknown) =>
+  bodyProfileRevisionSchema.parse(`body-profile:${stableHashBase36(stableSerializeValue(normalizeBodyProfile(profile)))}`);
 
 export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
 export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
@@ -737,6 +777,7 @@ export const fitSimulateHQJobType = "fit_simulate_hq_v1";
 export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
 export const fitMapArtifactSchemaVersion = "fit-map-json.v1";
 const fitSimulationOpaqueIdSchema = z.string().trim().min(1).max(160);
+export const fitSimulationCacheKeySchema = z.string().trim().min(1).max(160);
 
 export const fitSimulationQualityTierSchema = z.enum(["fast", "balanced", "high"]);
 
@@ -749,14 +790,38 @@ export const fitSimulationArtifactSchema = jobArtifactSchema
   })
   .strict();
 
+export const buildFitSimulationCacheKey = (input: {
+  avatarVariantId?: string;
+  bodyProfileRevision: string;
+  garmentVariantId: string;
+  garmentRevision: string;
+  materialPreset: string;
+  qualityTier: z.infer<typeof fitSimulationQualityTierSchema>;
+}) =>
+  fitSimulationCacheKeySchema.parse(
+    `fit-sim:${stableHashBase36(
+      stableSerializeValue({
+        avatarVariantId: input.avatarVariantId ?? null,
+        bodyProfileRevision: input.bodyProfileRevision,
+        garmentVariantId: input.garmentVariantId,
+        garmentRevision: input.garmentRevision,
+        materialPreset: input.materialPreset,
+        qualityTier: input.qualityTier,
+      }),
+    )}`,
+  );
+
 export const fitSimulateHQJobPayloadSchema = z
   .object({
     bodyVersionId: fitSimulationOpaqueIdSchema,
+    bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    cacheKey: fitSimulationCacheKeySchema.optional(),
   })
   .strict();
 
@@ -771,11 +836,14 @@ export const fitSimulateHQJobPayloadInputSchema = z.union([
   fitSimulateHQJobPayloadSchema,
   fitSimulateHQRequestSchema.transform((value) => ({
     bodyVersionId: value.bodyVersionId,
+    bodyProfileRevision: value.bodyProfileRevision,
     garmentVariantId: value.garmentVariantId,
+    garmentRevision: value.garmentRevision,
     avatarManifestUrl: value.avatarManifestUrl,
     garmentManifestUrl: value.garmentManifestUrl,
     materialPreset: value.materialPreset,
     qualityTier: value.qualityTier,
+    cacheKey: value.cacheKey,
   })),
 ]);
 
@@ -843,12 +911,15 @@ export const fitMapArtifactDataSchema = z
     request: z
       .object({
         bodyVersionId: fitSimulationOpaqueIdSchema,
+        bodyProfileRevision: bodyProfileRevisionSchema.optional(),
         garmentVariantId: fitSimulationOpaqueIdSchema,
+        garmentRevision: garmentRevisionSchema.optional(),
         avatarVariantId: avatarRenderVariantIdSchema,
         avatarManifestUrl: z.url(),
         garmentManifestUrl: z.url(),
         materialPreset: z.string().trim().min(1).max(120),
         qualityTier: fitSimulationQualityTierSchema,
+        cacheKey: fitSimulationCacheKeySchema.optional(),
       })
       .strict(),
     garment: z
@@ -869,8 +940,11 @@ export const fitSimulateHQResultDataSchema = z
   .object({
     schemaVersion: z.literal(fitSimulateHQSchemaVersion),
     bodyVersionId: fitSimulationOpaqueIdSchema,
+    bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema.optional(),
     qualityTier: fitSimulationQualityTierSchema,
+    cacheKey: fitSimulationCacheKeySchema.optional(),
   })
   .strict();
 
@@ -892,11 +966,14 @@ export const fitSimulationRecordSchema = z
     status: fitSimulationStatusSchema,
     avatarVariantId: avatarRenderVariantIdSchema,
     bodyVersionId: fitSimulationOpaqueIdSchema,
+    bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    cacheKey: fitSimulationCacheKeySchema.optional(),
     instantFit: garmentInstantFitReportSchema.nullable(),
     fitMap: fitMapArtifactDataSchema.nullable().default(null),
     fitMapSummary: fitMapSummarySchema.nullable().default(null),
@@ -1290,6 +1367,13 @@ export const garmentPublicationRecordSchema = z
   })
   .strict();
 
+export const buildPublishedGarmentRevision = (item: {
+  id: string;
+  publication: {
+    assetVersion: string;
+  };
+}) => garmentRevisionSchema.parse(`garment:${item.id}:${item.publication.assetVersion}`);
+
 export const garmentProfileSchema = z
   .object({
     version: z.literal(1),
@@ -1566,12 +1650,14 @@ export const bodyProfileRecordSchema = z
   .object({
     profile: bodyProfileInputSchema,
     version: bodyProfileRecordVersionSchema,
+    revision: bodyProfileRevisionSchema.optional(),
     updatedAt: z.iso.datetime().optional(),
   })
   .strict()
-  .transform(({ profile, updatedAt }) => ({
+  .transform(({ profile, revision, updatedAt }) => ({
     profile,
     version: 2 as const,
+    revision: revision ?? buildBodyProfileRevision(profile),
     updatedAt,
   }));
 
@@ -1579,6 +1665,7 @@ export const bodyProfileRecordSchema = z
 export const bodyProfileUpsertInputSchema = z
   .object({
     profile: bodyProfileInputSchema,
+    baseRevision: bodyProfileRevisionSchema.optional(),
   })
   .strict();
 
@@ -1591,6 +1678,14 @@ export const bodyProfileGetResponseSchema = z
 export const bodyProfilePutResponseSchema = z
   .object({
     bodyProfile: bodyProfileRecordSchema,
+  })
+  .strict();
+
+export const bodyProfileConflictResponseSchema = z
+  .object({
+    error: z.literal("REVISION_CONFLICT"),
+    message: z.string().trim().min(1),
+    currentBodyProfile: bodyProfileRecordSchema.nullable(),
   })
   .strict();
 
@@ -1610,10 +1705,12 @@ export type BodyFrame = z.infer<typeof bodyFrameSchema>;
 export type BodyProfile = z.infer<typeof bodyProfileSchema>;
 export type BodyProfileSimple = z.infer<typeof bodyProfileSimpleSchema>;
 export type BodyProfileDetailed = z.infer<typeof bodyProfileDetailedSchema>;
+export type BodyProfileRevision = z.infer<typeof bodyProfileRevisionSchema>;
 export type BodyProfileRecord = z.infer<typeof bodyProfileRecordSchema>;
 export type BodyProfileUpsertInput = z.infer<typeof bodyProfileUpsertInputSchema>;
 export type BodyProfileGetResponse = z.infer<typeof bodyProfileGetResponseSchema>;
 export type BodyProfilePutResponse = z.infer<typeof bodyProfilePutResponseSchema>;
+export type BodyProfileConflictResponse = z.infer<typeof bodyProfileConflictResponseSchema>;
 export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
 export type AvatarRenderVariantId = z.infer<typeof avatarRenderVariantIdSchema>;
 export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
@@ -1631,6 +1728,7 @@ export type FitCalibrationGarmentArchetype = z.infer<typeof fitCalibrationGarmen
 export type FitCalibrationGarment = z.infer<typeof fitCalibrationGarmentSchema>;
 export type FitCalibrationReport = z.infer<typeof fitCalibrationReportSchema>;
 export type FitSimulationQualityTier = z.infer<typeof fitSimulationQualityTierSchema>;
+export type FitSimulationCacheKey = z.infer<typeof fitSimulationCacheKeySchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
 export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
@@ -1662,6 +1760,7 @@ export type GarmentFitOverall = z.infer<typeof garmentFitOverallSchema>;
 export type GarmentFitRegionId = z.infer<typeof garmentFitRegionIdSchema>;
 export type GarmentInstantFitRegion = z.infer<typeof garmentInstantFitRegionSchema>;
 export type GarmentInstantFitReport = z.infer<typeof garmentInstantFitReportSchema>;
+export type GarmentRevision = z.infer<typeof garmentRevisionSchema>;
 export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySchema>;
 export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
 export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;

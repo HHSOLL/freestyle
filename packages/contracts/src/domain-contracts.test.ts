@@ -15,6 +15,9 @@ import {
   canvasLookInputSchema,
   canvasLookListResponseSchema,
   canvasLookRecordSchema,
+  buildBodyProfileRevision,
+  buildFitSimulationCacheKey,
+  buildPublishedGarmentRevision,
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
   bodyProfileSchema,
@@ -168,6 +171,7 @@ test('body profile product schemas accept current web payloads and normalize sto
   assert.equal(record.profile.simple.waistCm, 78);
   assert.equal(record.profile.gender, 'female');
   assert.equal(record.profile.bodyFrame, 'balanced');
+  assert.equal(record.revision, buildBodyProfileRevision(record.profile));
   assert.equal(getResponse.bodyProfile?.version, 2);
   assert.equal(putResponse.bodyProfile.version, 2);
 });
@@ -320,19 +324,48 @@ test('fitCalibrationReportSchema accepts the committed calibration artifact shap
 });
 
 test('fitSimulateHQRequestSchema accepts the reserved offline simulation request contract', () => {
+  const bodyProfileRevision = buildBodyProfileRevision({
+    gender: 'female',
+    bodyFrame: 'balanced',
+    simple: {
+      heightCm: 166,
+      shoulderCm: 40,
+      chestCm: 88,
+      waistCm: 70,
+      hipCm: 96,
+      inseamCm: 79,
+    },
+  });
+  const garmentRevision = buildPublishedGarmentRevision({
+    id: 'starter-top-soft-casual',
+    publication: {
+      assetVersion: 'starter-top-soft-casual@1.0.0',
+    },
+  });
   const parsed = fitSimulateHQRequestSchema.parse({
     jobType: fitSimulateHQJobType,
     schemaVersion: 'fit-simulate-hq.v1',
-    bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+    bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+    bodyProfileRevision,
     garmentVariantId: 'starter-top-soft-casual',
+    garmentRevision,
     avatarManifestUrl: 'https://cdn.freestyle.test/assets/avatars/female-base.glb',
     garmentManifestUrl: 'https://cdn.freestyle.test/assets/garments/soft-casual.glb',
     materialPreset: 'cotton_woven_light',
     qualityTier: 'balanced',
+    cacheKey: buildFitSimulationCacheKey({
+      bodyProfileRevision,
+      garmentVariantId: 'starter-top-soft-casual',
+      garmentRevision,
+      materialPreset: 'cotton_woven_light',
+      qualityTier: 'balanced',
+    }),
   });
 
   assert.equal(parsed.jobType, fitSimulateHQJobType);
   assert.equal(parsed.qualityTier, 'balanced');
+  assert.equal(parsed.bodyProfileRevision, bodyProfileRevision);
+  assert.equal(parsed.garmentRevision, garmentRevision);
 });
 
 test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result envelopes', () => {

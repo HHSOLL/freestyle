@@ -3,7 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fitSimulationGetResponseSchema, normalizeBodyProfile } from "@freestyle/contracts";
+import {
+  buildBodyProfileRevision,
+  buildFitSimulationCacheKey,
+  buildPublishedGarmentRevision,
+  fitSimulationGetResponseSchema,
+  normalizeBodyProfile,
+} from "@freestyle/contracts";
 import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-fit-simulation-routes-"));
@@ -93,13 +99,62 @@ const fitMapFixture = {
   generatedAt: "2026-04-20T10:02:00.000Z",
   fitSimulationId: "00000000-0000-4000-8000-000000000011",
   request: {
-    bodyVersionId: "body-profile:user-id:2026-04-20T10:00:00.000Z",
+    bodyVersionId: `body-profile:user-id:${buildBodyProfileRevision(
+      normalizeBodyProfile({
+        gender: "female",
+        bodyFrame: "balanced",
+        simple: {
+          heightCm: 172,
+          shoulderCm: 44,
+          chestCm: 91,
+          waistCm: 74,
+          hipCm: 95,
+          inseamCm: 79,
+        },
+      }),
+    )}`,
+    bodyProfileRevision: buildBodyProfileRevision(
+      normalizeBodyProfile({
+        gender: "female",
+        bodyFrame: "balanced",
+        simple: {
+          heightCm: 172,
+          shoulderCm: 44,
+          chestCm: 91,
+          waistCm: 74,
+          hipCm: 95,
+          inseamCm: 79,
+        },
+      }),
+    ),
     garmentVariantId: publishedGarmentFixture.id,
+    garmentRevision: buildPublishedGarmentRevision(publishedGarmentFixture),
     avatarVariantId: "female-base",
     avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
     garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
     materialPreset: "knit_medium",
     qualityTier: "fast",
+    cacheKey: buildFitSimulationCacheKey({
+      avatarVariantId: "female-base",
+      bodyProfileRevision: buildBodyProfileRevision(
+        normalizeBodyProfile({
+          gender: "female",
+          bodyFrame: "balanced",
+          simple: {
+            heightCm: 172,
+            shoulderCm: 44,
+            chestCm: 91,
+            waistCm: 74,
+            hipCm: 95,
+            inseamCm: 79,
+          },
+        }),
+      ),
+      garmentVariantId: publishedGarmentFixture.id,
+      garmentRevision: buildPublishedGarmentRevision(publishedGarmentFixture),
+      materialPreset: "knit_medium",
+      qualityTier: "fast",
+    }),
   },
   garment: {
     id: publishedGarmentFixture.id,
@@ -310,6 +365,20 @@ test("fit-simulation create route rejects unknown garment ids before touching th
               },
             }),
             version: 2,
+            revision: buildBodyProfileRevision(
+              normalizeBodyProfile({
+                gender: "female",
+                bodyFrame: "balanced",
+                simple: {
+                  heightCm: 172,
+                  shoulderCm: 44,
+                  chestCm: 91,
+                  waistCm: 74,
+                  hipCm: 95,
+                  inseamCm: 79,
+                },
+              }),
+            ),
             updatedAt: "2026-04-20T10:00:00.000Z",
           },
         },
@@ -350,12 +419,15 @@ test("fit-simulation read route returns the public record shape from the persist
             userId: "00000000-0000-4000-8000-000000000001",
             status: "queued",
             avatarVariantId: "female-base",
-            bodyVersionId: "body-profile:user-id:2026-04-20T10:00:00.000Z",
+            bodyVersionId: fitMapFixture.request.bodyVersionId,
+            bodyProfileRevision: fitMapFixture.request.bodyProfileRevision,
             garmentVariantId: publishedGarmentFixture.id,
+            garmentRevision: fitMapFixture.request.garmentRevision,
             avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
             garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
             materialPreset: "knit_medium",
             qualityTier: "fast",
+            cacheKey: fitMapFixture.request.cacheKey,
             bodyProfile: normalizeBodyProfile({
               gender: "female",
               bodyFrame: "balanced",

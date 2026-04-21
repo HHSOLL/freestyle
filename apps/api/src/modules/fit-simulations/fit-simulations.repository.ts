@@ -183,11 +183,14 @@ export const upsertFitSimulationRecord = async (record: {
   status: FitSimulationRecord["status"];
   avatarVariantId: FitSimulationRecord["avatarVariantId"];
   bodyVersionId: string;
+  bodyProfileRevision?: FitSimulationRecord["bodyProfileRevision"];
   garmentVariantId: string;
+  garmentRevision?: FitSimulationRecord["garmentRevision"];
   avatarManifestUrl: string;
   garmentManifestUrl: string;
   materialPreset: string;
   qualityTier: FitSimulationRecord["qualityTier"];
+  cacheKey?: FitSimulationRecord["cacheKey"];
   bodyProfile: BodyProfile;
   garmentSnapshot: PublishedGarmentAsset;
   fitAssessment: GarmentFitAssessment | null;

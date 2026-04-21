@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   JOB_TYPES,
+  buildBodyProfileRevision,
+  buildFitSimulationCacheKey,
+  buildPublishedGarmentRevision,
   buildJobPayloadEnvelope,
   buildJobResultEnvelope,
   fitSimulateHQJobPayloadInputSchema,
@@ -60,17 +63,44 @@ test("queued payload helpers preserve canonical envelopes", () => {
 });
 
 test("normalizeQueuedJobPayload upgrades reserved simulation requests into canonical envelopes", () => {
+  const bodyProfileRevision = buildBodyProfileRevision({
+    gender: "female",
+    bodyFrame: "balanced",
+    simple: {
+      heightCm: 166,
+      shoulderCm: 40,
+      chestCm: 88,
+      waistCm: 70,
+      hipCm: 96,
+      inseamCm: 79,
+    },
+  });
+  const garmentRevision = buildPublishedGarmentRevision({
+    id: "starter-top-soft-casual",
+    publication: {
+      assetVersion: "starter-top-soft-casual@1.0.0",
+    },
+  });
   const payload = normalizeQueuedJobPayload({
     jobType: JOB_TYPES.FIT_SIMULATE_HQ,
     payload: {
       jobType: fitSimulateHQJobType,
       schemaVersion: "fit-simulate-hq.v1",
-      bodyVersionId: "body-profile:user-1:2026-04-20T10:00:00.000Z",
+      bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+      bodyProfileRevision,
       garmentVariantId: "starter-top-soft-casual",
+      garmentRevision,
       avatarManifestUrl: "https://cdn.freestyle.test/assets/avatars/female-base.glb",
       garmentManifestUrl: "https://cdn.freestyle.test/assets/garments/soft-casual.glb",
       materialPreset: "cotton_woven_light",
       qualityTier: "fast",
+      cacheKey: buildFitSimulationCacheKey({
+        bodyProfileRevision,
+        garmentVariantId: "starter-top-soft-casual",
+        garmentRevision,
+        materialPreset: "cotton_woven_light",
+        qualityTier: "fast",
+      }),
     },
     schema: fitSimulateHQJobPayloadInputSchema,
     fallbackTraceId: traceId,
@@ -80,7 +110,9 @@ test("normalizeQueuedJobPayload upgrades reserved simulation requests into canon
   assert.equal(payload.schema_version, "job-payload.v1");
   assert.equal(payload.job_type, JOB_TYPES.FIT_SIMULATE_HQ);
   assert.equal(payload.idempotency_key, "fit-sim-123");
-  assert.equal(payload.data.bodyVersionId, "body-profile:user-1:2026-04-20T10:00:00.000Z");
+  assert.equal(payload.data.bodyVersionId, `body-profile:user-1:${bodyProfileRevision}`);
+  assert.equal(payload.data.bodyProfileRevision, bodyProfileRevision);
+  assert.equal(payload.data.garmentRevision, garmentRevision);
   assert.equal("schemaVersion" in payload.data, false);
 });
 

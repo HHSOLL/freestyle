@@ -1,9 +1,13 @@
 import { z } from "zod";
 import {
   type AssetMetadata,
+  bodyProfileRevisionSchema,
+  buildFitSimulationCacheKey,
+  fitSimulationCacheKeySchema,
   fitSimulationQualityTierSchema,
   fitSimulateHQJobPayloadSchema,
   fitSimulateHQJobType,
+  garmentRevisionSchema,
   jobArtifactSchema,
   jobPayloadEnvelopeSchema,
   jobResultEnvelopeSchema,
@@ -161,7 +165,28 @@ export const fitSimulationJobPayloadSchema = fitSimulateHQJobPayloadSchema
   .extend({
     fit_simulation_id: z.uuid(),
   })
-  .strict();
+  .strict()
+  .transform((value) => {
+    const bodyProfileRevision =
+      value.bodyProfileRevision ?? bodyProfileRevisionSchema.parse(deriveBodyProfileRevisionFromBodyVersionId(value.bodyVersionId));
+    const garmentRevision = value.garmentRevision ?? garmentRevisionSchema.parse(value.garmentVariantId);
+    return {
+      ...value,
+      bodyProfileRevision,
+      garmentRevision,
+      cacheKey:
+        value.cacheKey ??
+        fitSimulationCacheKeySchema.parse(
+          buildFitSimulationCacheKey({
+            bodyProfileRevision,
+            garmentVariantId: value.garmentVariantId,
+            garmentRevision,
+            materialPreset: value.materialPreset,
+            qualityTier: value.qualityTier,
+          }),
+        ),
+    };
+  });
 
 export type ImportProductJobPayload = z.infer<typeof importProductJobPayloadSchema>;
 export type ImportCartJobPayload = z.infer<typeof importCartJobPayloadSchema>;
@@ -230,6 +255,11 @@ const coerceArtifacts = (value: unknown) => {
 };
 
 const coerceMetrics = (value: unknown) => asUnknownRecord(value) ?? {};
+
+const deriveBodyProfileRevisionFromBodyVersionId = (bodyVersionId: string) => {
+  const match = /^body-profile:[^:]+:(.+)$/.exec(bodyVersionId);
+  return match?.[1] ?? bodyVersionId;
+};
 
 export const buildJobPayloadEnvelope = <TData extends Record<string, unknown>>(
   jobType: JobType,

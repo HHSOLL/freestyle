@@ -104,6 +104,7 @@ Verify these after any mannequin or asset change:
 - garments respect pose-aware clearance tuning
 - long hair pieces (`ponytail`, `braid`, `long fall`) still sway without clipping through the head or shoulders
 - loose hero garments (`City Relaxed`, `Tailored Layer`) still show secondary drape without jitter or exploding transforms
+- the reduced preview backend still downgrades cleanly: `worker-reduced` falls back to `cpu-reduced` when `/workers/reference-closet-stage-preview.worker.js` is unavailable or Worker support is missing
 - meshopt-compressed runtime GLBs still load in browser builds; a missing `MeshoptDecoder` is now a release blocker
 - repeated avatar / garment swaps should not leave clone-owned runtime materials without cleanup; cleanup must target only stage-owned material clones
 - secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
@@ -121,6 +122,7 @@ If any of the above regress, stop the release.
 - check runtime console errors first
 - verify asset path and manifest entry
 - verify `preloadRuntimeAssets` still references the correct files
+- verify `/workers/reference-closet-stage-preview.worker.js` is still served from the same origin; if it is missing, preview motion should degrade to CPU instead of freezing or crashing
 - verify runtime clone cleanup did not dispose shared loader-cache resources
 - confirm `AvatarStageViewport` still shows a visible loading, error, or WebGL fallback instead of a blank route shell
 - confirm `closet-stage` still shows an in-canvas loading placeholder instead of backdrop-only emptiness while runtime assets suspend

@@ -236,6 +236,11 @@ As of `2026-04-20`:
 - `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
 - `Phase E / Batch 2` now also carries the same typed overlay payload on the persisted fit-simulation record, so `GET /v1/lab/fit-simulations/:id` exposes `fitMap` directly instead of forcing clients to pull the JSON artifact separately
 - `Phase E / Batch 3` now adds a shared `fitMapSummary` helper and persisted summary snapshot, so preview generation and future consumers agree on the dominant overlay/region without reimplementing overlay-ranking logic
+- `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
+  - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
+  - `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` owns backend selection, frame stepping, and demand-driven invalidation thresholds
+  - `apps/web/public/workers/reference-closet-stage-preview.worker.js` provides the same-origin `worker-reduced` path for long-hair and loose-garment preview motion
+  - this is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

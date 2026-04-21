@@ -134,5 +134,17 @@
     "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.pattern-spec.json"
   },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_city_relaxed.blend",
-  "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+  "materialProfile": {
+    "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.material-profile.json"
+  },
+  "simProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.sim-proxy.json"
+  },
+  "collisionProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.collision-proxy.json"
+  },
+  "hqArtifact": {
+    "relativePath": "authoring/garments/mpfb/specs/top_city_relaxed.hq-artifact.json"
+  }
 }

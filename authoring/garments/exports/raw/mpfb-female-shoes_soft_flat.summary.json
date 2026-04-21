@@ -110,5 +110,17 @@
     "relativePath": "authoring/garments/mpfb/specs/shoes_soft_flat.pattern-spec.json"
   },
   "outputBlend": "authoring/garments/exports/raw/mpfb-female-shoes_soft_flat.blend",
-  "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb"
+  "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+  "materialProfile": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_soft_flat.material-profile.json"
+  },
+  "simProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_soft_flat.sim-proxy.json"
+  },
+  "collisionProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_soft_flat.collision-proxy.json"
+  },
+  "hqArtifact": {
+    "relativePath": "authoring/garments/mpfb/specs/shoes_soft_flat.hq-artifact.json"
+  }
 }

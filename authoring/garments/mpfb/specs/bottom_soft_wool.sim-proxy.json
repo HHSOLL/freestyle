@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-bottom-soft-wool",
+  "category": "bottoms",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+    "male-base": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
+  },
+  "triangleBudget": 4200,
+  "pinnedAnchorIds": [
+    "waistCenter",
+    "hipCenter",
+    "leftKnee",
+    "rightKnee"
+  ],
+  "selfCollision": true,
+  "notes": "Auto-generated simulation proxy for starter-bottom-soft-wool."
+}

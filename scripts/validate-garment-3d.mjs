@@ -5,10 +5,18 @@ import path from "node:path";
 import {
   collectGarmentRuntimeModelPaths,
   starterGarmentCatalog,
+  validateGarmentAuthoringBundleAgainstStarterCatalog,
   validateGarmentPatternSpecAgainstStarterCatalog,
   validateStarterGarment,
 } from "../packages/domain-garment/src/index.ts";
-import { garmentAuthoringSummarySchema, garmentPatternSpecSchema } from "../packages/contracts/src/index.ts";
+import {
+  garmentAuthoringSummarySchema,
+  garmentCollisionProxySchema,
+  garmentHQArtifactSpecSchema,
+  garmentMaterialProfileSchema,
+  garmentPatternSpecSchema,
+  garmentSimProxySchema,
+} from "../packages/contracts/src/index.ts";
 
 const repoRoot = process.cwd();
 const issues = [];
@@ -162,17 +170,89 @@ for (const summaryFile of committedRawSummaries) {
     issues.push(`${summaryFile}: garment authoring summary is missing patternSpec.relativePath.`);
     continue;
   }
+  if (!parsedSummary.data.materialProfile?.relativePath) {
+    issues.push(`${summaryFile}: garment authoring summary is missing materialProfile.relativePath.`);
+    continue;
+  }
+  if (!parsedSummary.data.simProxy?.relativePath) {
+    issues.push(`${summaryFile}: garment authoring summary is missing simProxy.relativePath.`);
+    continue;
+  }
+  if (!parsedSummary.data.collisionProxy?.relativePath) {
+    issues.push(`${summaryFile}: garment authoring summary is missing collisionProxy.relativePath.`);
+    continue;
+  }
+  if (!parsedSummary.data.hqArtifact?.relativePath) {
+    issues.push(`${summaryFile}: garment authoring summary is missing hqArtifact.relativePath.`);
+    continue;
+  }
 
   const patternSpecPath = path.join(repoRoot, parsedSummary.data.patternSpec.relativePath);
+  const materialProfilePath = path.join(repoRoot, parsedSummary.data.materialProfile.relativePath);
+  const simProxyPath = path.join(repoRoot, parsedSummary.data.simProxy.relativePath);
+  const collisionProxyPath = path.join(repoRoot, parsedSummary.data.collisionProxy.relativePath);
+  const hqArtifactPath = path.join(repoRoot, parsedSummary.data.hqArtifact.relativePath);
   if (!fs.existsSync(patternSpecPath)) {
     issues.push(`${summaryFile}: missing pattern spec ${parsedSummary.data.patternSpec.relativePath}.`);
     continue;
   }
+  if (!fs.existsSync(materialProfilePath)) {
+    issues.push(`${summaryFile}: missing material profile ${parsedSummary.data.materialProfile.relativePath}.`);
+    continue;
+  }
+  if (!fs.existsSync(simProxyPath)) {
+    issues.push(`${summaryFile}: missing sim proxy ${parsedSummary.data.simProxy.relativePath}.`);
+    continue;
+  }
+  if (!fs.existsSync(collisionProxyPath)) {
+    issues.push(`${summaryFile}: missing collision proxy ${parsedSummary.data.collisionProxy.relativePath}.`);
+    continue;
+  }
+  if (!fs.existsSync(hqArtifactPath)) {
+    issues.push(`${summaryFile}: missing HQ artifact spec ${parsedSummary.data.hqArtifact.relativePath}.`);
+    continue;
+  }
 
   const parsedPatternSpec = garmentPatternSpecSchema.safeParse(readJson(patternSpecPath));
+  const parsedMaterialProfile = garmentMaterialProfileSchema.safeParse(readJson(materialProfilePath));
+  const parsedSimProxy = garmentSimProxySchema.safeParse(readJson(simProxyPath));
+  const parsedCollisionProxy = garmentCollisionProxySchema.safeParse(readJson(collisionProxyPath));
+  const parsedHQArtifact = garmentHQArtifactSpecSchema.safeParse(readJson(hqArtifactPath));
   if (!parsedPatternSpec.success) {
     issues.push(
       `${summaryFile}: pattern spec failed schema validation (${parsedPatternSpec.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+  if (!parsedMaterialProfile.success) {
+    issues.push(
+      `${summaryFile}: material profile failed schema validation (${parsedMaterialProfile.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+  if (!parsedSimProxy.success) {
+    issues.push(
+      `${summaryFile}: sim proxy failed schema validation (${parsedSimProxy.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+  if (!parsedCollisionProxy.success) {
+    issues.push(
+      `${summaryFile}: collision proxy failed schema validation (${parsedCollisionProxy.error.issues
+        .map((issue) => issue.path.join(".") || "(root)")
+        .join(", ")}).`,
+    );
+    continue;
+  }
+  if (!parsedHQArtifact.success) {
+    issues.push(
+      `${summaryFile}: HQ artifact spec failed schema validation (${parsedHQArtifact.error.issues
         .map((issue) => issue.path.join(".") || "(root)")
         .join(", ")}).`,
     );
@@ -183,6 +263,18 @@ for (const summaryFile of committedRawSummaries) {
     ...validateGarmentPatternSpecAgainstStarterCatalog(parsedPatternSpec.data, starterGarmentCatalog).map(
       (issue) => `${summaryFile}: ${issue}`,
     ),
+  );
+  issues.push(
+    ...validateGarmentAuthoringBundleAgainstStarterCatalog(
+      {
+        patternSpec: parsedPatternSpec.data,
+        materialProfile: parsedMaterialProfile.data,
+        simProxy: parsedSimProxy.data,
+        collisionProxy: parsedCollisionProxy.data,
+        hqArtifact: parsedHQArtifact.data,
+      },
+      starterGarmentCatalog,
+    ).map((issue) => `${summaryFile}: ${issue}`),
   );
 }
 

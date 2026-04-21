@@ -122,5 +122,17 @@
     "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.pattern-spec.json"
   },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.blend",
-  "outputGlb": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+  "materialProfile": {
+    "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.material-profile.json"
+  },
+  "simProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.sim-proxy.json"
+  },
+  "collisionProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.collision-proxy.json"
+  },
+  "hqArtifact": {
+    "relativePath": "authoring/garments/mpfb/specs/bottom_soft_wool.hq-artifact.json"
+  }
 }

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-material-profile.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-shoe-night-runner",
+  "category": "shoes",
+  "materialPresetId": "mesh-runner-upper",
+  "fabricFamily": "synthetic",
+  "stretchProfile": "medium",
+  "thicknessMm": 2.2,
+  "arealDensityGsm": 220,
+  "solver": {
+    "warpStretchRatio": 0.12,
+    "weftStretchRatio": 0.15,
+    "biasStretchRatio": 0.18,
+    "bendStiffness": 28,
+    "shearStiffness": 32,
+    "damping": 0.9,
+    "friction": 0.5
+  },
+  "notes": "Auto-generated material profile for starter-shoe-night-runner."
+}

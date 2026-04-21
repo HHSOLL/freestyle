@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-material-profile.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-top-soft-casual",
+  "category": "tops",
+  "materialPresetId": "cotton-jersey-light",
+  "fabricFamily": "knit",
+  "stretchProfile": "medium",
+  "thicknessMm": 1.1,
+  "arealDensityGsm": 180,
+  "solver": {
+    "warpStretchRatio": 0.18,
+    "weftStretchRatio": 0.24,
+    "biasStretchRatio": 0.3,
+    "bendStiffness": 18,
+    "shearStiffness": 22,
+    "damping": 0.92,
+    "friction": 0.55
+  },
+  "notes": "Auto-generated material profile for starter-top-soft-casual."
+}

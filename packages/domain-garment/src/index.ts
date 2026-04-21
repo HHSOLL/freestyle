@@ -2,10 +2,14 @@ import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-
 import {
   fitMapSummarySchema,
   garmentFitAssessmentSchema,
+  type GarmentCollisionProxy,
   type FitMapArtifactData,
   type FitMapSummary,
   garmentInstantFitReportSchema,
   garmentInstantFitSchemaVersion,
+  type GarmentHQArtifactSpec,
+  type GarmentMaterialProfile,
+  type GarmentSimProxy,
 } from "@freestyle/contracts";
 import type {
   GarmentFitOverall,
@@ -2216,6 +2220,84 @@ export const validateGarmentPatternSpecAgainstStarterCatalog = (
     ) {
       issues.push(`pattern spec ${label} does not match starter runtime metadata.`);
     }
+  }
+
+  return issues;
+};
+
+export const validateGarmentAuthoringBundleAgainstStarterCatalog = (
+  bundle: {
+    patternSpec: GarmentPatternSpec;
+    materialProfile: GarmentMaterialProfile;
+    simProxy: GarmentSimProxy;
+    collisionProxy: GarmentCollisionProxy;
+    hqArtifact: GarmentHQArtifactSpec;
+  },
+  starterCatalog: readonly StarterGarment[] = starterGarmentCatalog,
+) => {
+  const issues = validateGarmentPatternSpecAgainstStarterCatalog(bundle.patternSpec, starterCatalog);
+  const starter = starterCatalog.find((item) => item.id === bundle.patternSpec.runtimeStarterId);
+
+  if (!starter) {
+    return issues;
+  }
+
+  const sidecars = [
+    ["materialProfile", bundle.materialProfile.runtimeStarterId, bundle.materialProfile.category],
+    ["simProxy", bundle.simProxy.runtimeStarterId, bundle.simProxy.category],
+    ["collisionProxy", bundle.collisionProxy.runtimeStarterId, bundle.collisionProxy.category],
+    ["hqArtifact", bundle.hqArtifact.runtimeStarterId, bundle.hqArtifact.category],
+  ] as const;
+
+  sidecars.forEach(([label, starterId, category]) => {
+    if (starterId !== bundle.patternSpec.runtimeStarterId) {
+      issues.push(`${label} starter id ${starterId} does not match pattern spec starter id ${bundle.patternSpec.runtimeStarterId}.`);
+    }
+    if (category !== bundle.patternSpec.category) {
+      issues.push(`${label} category ${category} does not match pattern spec category ${bundle.patternSpec.category}.`);
+    }
+  });
+
+  if (bundle.materialProfile.materialPresetId !== bundle.patternSpec.materialPreset.presetId) {
+    issues.push("materialProfile materialPresetId does not match pattern spec material preset.");
+  }
+  if (bundle.materialProfile.fabricFamily !== bundle.patternSpec.materialPreset.fabricFamily) {
+    issues.push("materialProfile fabricFamily does not match pattern spec material preset.");
+  }
+  if (bundle.materialProfile.stretchProfile !== bundle.patternSpec.materialPreset.stretchProfile) {
+    issues.push("materialProfile stretchProfile does not match pattern spec material preset.");
+  }
+  if (Math.abs(bundle.materialProfile.thicknessMm - bundle.patternSpec.materialPreset.thicknessMm) > 0.0001) {
+    issues.push("materialProfile thicknessMm does not match pattern spec material preset.");
+  }
+
+  const patternAnchors = [...bundle.patternSpec.anchorIds].sort();
+  const simAnchors = [...bundle.simProxy.pinnedAnchorIds].sort();
+  const collisionAnchors = [...bundle.collisionProxy.anchorIds].sort();
+  if (JSON.stringify(patternAnchors) !== JSON.stringify(simAnchors)) {
+    issues.push("simProxy pinnedAnchorIds do not match pattern spec anchorIds.");
+  }
+  if (JSON.stringify(patternAnchors) !== JSON.stringify(collisionAnchors)) {
+    issues.push("collisionProxy anchorIds do not match pattern spec anchorIds.");
+  }
+
+  const runtimeZones = new Set(starter.runtime.collisionZones);
+  bundle.collisionProxy.colliders.forEach((collider) => {
+    if (!runtimeZones.has(collider.zone)) {
+      issues.push(`collisionProxy collider zone ${collider.zone} is not present in starter runtime collision zones.`);
+    }
+  });
+
+  const expectedArtifacts = ["draped_glb", "fit_map_json", "preview_png", "metrics_json"];
+  expectedArtifacts.forEach((kind) => {
+    if (!bundle.hqArtifact.expectedArtifacts.includes(kind as (typeof bundle.hqArtifact.expectedArtifacts)[number])) {
+      issues.push(`hqArtifact expectedArtifacts is missing ${kind}.`);
+    }
+  });
+
+  const expectedCacheNamespace = `fit-sim:${bundle.patternSpec.runtimeStarterId}`;
+  if (bundle.hqArtifact.cacheNamespace !== expectedCacheNamespace) {
+    issues.push(`hqArtifact cacheNamespace ${bundle.hqArtifact.cacheNamespace} does not match ${expectedCacheNamespace}.`);
   }
 
   return issues;

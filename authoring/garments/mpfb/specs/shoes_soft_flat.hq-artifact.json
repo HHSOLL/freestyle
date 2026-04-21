@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "garment-hq-artifact-spec.v1",
+  "intendedUse": "hq-worker-output",
+  "runtimeStarterId": "starter-shoe-soft-day",
+  "category": "shoes",
+  "expectedArtifacts": [
+    "draped_glb",
+    "fit_map_json",
+    "preview_png",
+    "metrics_json"
+  ],
+  "cacheNamespace": "fit-sim:starter-shoe-soft-day",
+  "targetQualityTier": "balanced",
+  "correctiveMaps": [],
+  "notes": "Auto-generated HQ artifact baseline for starter-shoe-soft-day."
+}

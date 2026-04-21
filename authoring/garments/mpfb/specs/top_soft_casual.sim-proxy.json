@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-top-soft-casual",
+  "category": "tops",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+    "male-base": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb"
+  },
+  "triangleBudget": 3200,
+  "pinnedAnchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "selfCollision": true,
+  "notes": "Auto-generated simulation proxy for starter-top-soft-casual."
+}

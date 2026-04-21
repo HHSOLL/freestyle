@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "garment-hq-artifact-spec.v1",
+  "intendedUse": "hq-worker-output",
+  "runtimeStarterId": "starter-outer-tailored-layer",
+  "category": "outerwear",
+  "expectedArtifacts": [
+    "draped_glb",
+    "fit_map_json",
+    "preview_png",
+    "metrics_json"
+  ],
+  "cacheNamespace": "fit-sim:starter-outer-tailored-layer",
+  "targetQualityTier": "hero",
+  "correctiveMaps": [],
+  "notes": "Auto-generated HQ artifact baseline for starter-outer-tailored-layer."
+}

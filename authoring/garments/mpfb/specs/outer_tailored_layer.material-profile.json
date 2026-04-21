@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-material-profile.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-outer-tailored-layer",
+  "category": "outerwear",
+  "materialPresetId": "wool-suiting-structured",
+  "fabricFamily": "woven",
+  "stretchProfile": "low",
+  "thicknessMm": 1.8,
+  "arealDensityGsm": 320,
+  "solver": {
+    "warpStretchRatio": 0.08,
+    "weftStretchRatio": 0.1,
+    "biasStretchRatio": 0.14,
+    "bendStiffness": 36,
+    "shearStiffness": 40,
+    "damping": 0.9,
+    "friction": 0.62
+  },
+  "notes": "Auto-generated material profile for starter-outer-tailored-layer."
+}

@@ -23,6 +23,10 @@ The current `Phase B` seam stays upstream-only even though the metadata layer is
 Each committed starter garment summary may now declare:
 
 - `patternSpec.relativePath`
+- `materialProfile.relativePath`
+- `simProxy.relativePath`
+- `collisionProxy.relativePath`
+- `hqArtifact.relativePath`
 
 That sidecar is parsed through `garmentPatternSpecSchema` in `packages/contracts` and currently captures:
 
@@ -36,11 +40,25 @@ That sidecar is parsed through `garmentPatternSpecSchema` in `packages/contracts
 - optional `panels`
 - optional `seams`
 
+The new `Phase 2` authoring-contract v2 sidecars are also parsed through `packages/contracts`:
+
+- `garmentMaterialProfileSchema`
+- `garmentSimProxySchema`
+- `garmentCollisionProxySchema`
+- `garmentHQArtifactSpecSchema`
+
+Their current role is still upstream-only:
+
+- they are committed under `authoring/garments/mpfb/specs/*.material-profile.json`, `*.sim-proxy.json`, `*.collision-proxy.json`, and `*.hq-artifact.json`
+- they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` product/admin payloads
+- they are regenerated through `npm run authoring:garments:mpfb:sidecars`
+
 The active validator rule is:
 
 - `validate:garment3d` must be able to load the sidecar
 - the sidecar must parse through the shared schema
 - the sidecar's starter-facing semantic parity must be enforced through `validateGarmentPatternSpecAgainstStarterCatalog` in `packages/domain-garment`
+- the full authoring bundle parity (`patternSpec + materialProfile + simProxy + collisionProxy + hqArtifact`) must be enforced through `validateGarmentAuthoringBundleAgainstStarterCatalog` in `packages/domain-garment`
 
 The current semantic parity scope is:
 

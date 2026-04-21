@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "garment-hq-artifact-spec.v1",
+  "intendedUse": "hq-worker-output",
+  "runtimeStarterId": "starter-top-soft-casual",
+  "category": "tops",
+  "expectedArtifacts": [
+    "draped_glb",
+    "fit_map_json",
+    "preview_png",
+    "metrics_json"
+  ],
+  "cacheNamespace": "fit-sim:starter-top-soft-casual",
+  "targetQualityTier": "balanced",
+  "correctiveMaps": [],
+  "notes": "Auto-generated HQ artifact baseline for starter-top-soft-casual."
+}

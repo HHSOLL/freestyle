@@ -122,5 +122,17 @@
     "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json"
   },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_soft_casual.blend",
-  "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb"
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+  "materialProfile": {
+    "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.material-profile.json"
+  },
+  "simProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.sim-proxy.json"
+  },
+  "collisionProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.collision-proxy.json"
+  },
+  "hqArtifact": {
+    "relativePath": "authoring/garments/mpfb/specs/top_soft_casual.hq-artifact.json"
+  }
 }

@@ -1,10 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { bodyProfileToAvatarMorphPlan } from "@freestyle/domain-avatar";
 import {
@@ -21,8 +20,6 @@ import type {
   AvatarRenderVariantId,
   BodyProfile,
   GarmentCollisionZone,
-  GarmentFitAssessment,
-  GarmentMeasurementKey,
   QualityTier,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
@@ -32,33 +29,26 @@ import {
   getFitLoosenessMultiplier,
   resolveReferenceClosetStageScenePolicy,
 } from "./reference-closet-stage-policy.js";
+import {
+  getAdaptiveCollisionClearanceMultiplier,
+  getAdaptiveGarmentAdjustment,
+  getFitVisualCue,
+  type GarmentLayerContext,
+} from "./reference-closet-stage-sim-adapter.js";
+import {
+  CameraRig,
+  ReferenceClosetStageView,
+  type ReferenceClosetStageOrbitControls,
+} from "./reference-closet-stage-view.js";
 import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
-type OrbitControlsImpl = ComponentRef<typeof OrbitControls>;
+type OrbitControlsImpl = ReferenceClosetStageOrbitControls;
 type RigTargetPlan = AvatarMorphPlan["rigTargets"];
 
 type AliasKey = AvatarRigAlias;
 type AliasMap = Partial<Record<AliasKey, THREE.Bone | null>>;
 type InitialStateMap = Partial<Record<AliasKey, { position: THREE.Vector3; scale: THREE.Vector3; rotation: THREE.Euler }>>;
-type FitVisualCue = {
-  scaleMultiplier: number;
-  emissiveColor: string;
-  emissiveIntensity: number;
-};
-
-type AdaptiveGarmentAdjustment = {
-  widthScale: number;
-  depthScale: number;
-  heightScale: number;
-  offsetY: number;
-};
-
-type GarmentLayerContext = {
-  layeredUnderOuterwear: boolean;
-  hasTopUnderneath: boolean;
-};
-
 type SecondaryMotionState = {
   initialized: boolean;
   lastAnchorWorld: THREE.Vector3;
@@ -576,132 +566,6 @@ function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolea
   });
 }
 
-function fitCamera(
-  camera: THREE.PerspectiveCamera,
-  controls: OrbitControlsImpl | null,
-  size: { width: number; height: number },
-  avatarOnly: boolean,
-) {
-  const aspect = size.width / Math.max(size.height, 1);
-  const distance = avatarOnly
-    ? aspect < 1.0
-      ? 5.45
-      : aspect < 1.3
-        ? 4.85
-        : 4.35
-    : aspect < 1.0
-      ? 5.7
-      : aspect < 1.3
-        ? 4.95
-        : 4.45;
-  const fov = avatarOnly ? (aspect < 1.0 ? 26 : aspect < 1.3 ? 23 : 21) : aspect < 1.0 ? 28 : aspect < 1.3 ? 24 : 22;
-  const targetY = avatarOnly ? 0.92 : 0.84;
-  const cameraY = avatarOnly ? 1.12 : 1.02;
-
-  camera.fov = fov;
-  camera.position.set(0, cameraY, distance);
-  camera.lookAt(0, targetY, 0);
-  camera.updateProjectionMatrix();
-
-  if (controls) {
-    controls.target.set(0, targetY, 0);
-    controls.minDistance = distance - (avatarOnly ? 0.8 : 0.9);
-    controls.maxDistance = distance + (avatarOnly ? 1.9 : 1.6);
-    controls.minAzimuthAngle = -Math.PI * (avatarOnly ? 0.22 : 0.18);
-    controls.maxAzimuthAngle = Math.PI * (avatarOnly ? 0.22 : 0.18);
-    controls.maxPolarAngle = Math.PI / (avatarOnly ? 1.95 : 2.02);
-    controls.minPolarAngle = Math.PI / (avatarOnly ? 3.15 : 2.9);
-    controls.enablePan = false;
-    controls.update();
-  }
-}
-
-function CameraRig({ controlsRef, avatarOnly }: { controlsRef: RefObject<OrbitControlsImpl | null>; avatarOnly: boolean }) {
-  const { camera, size } = useThree();
-
-  useLayoutEffect(() => {
-    fitCamera(camera as THREE.PerspectiveCamera, controlsRef.current, size, avatarOnly);
-  }, [avatarOnly, camera, size, controlsRef]);
-
-  return null;
-}
-
-function StageEnvironment({
-  avatarOnly,
-  qualityTier,
-  exposure,
-}: {
-  avatarOnly: boolean;
-  qualityTier: QualityTier;
-  exposure: number;
-}) {
-  const gl = useThree((state) => state.gl);
-  const environmentTexture = useMemo(() => {
-    const pmremGenerator = new THREE.PMREMGenerator(gl);
-    const texture = pmremGenerator.fromScene(
-      new RoomEnvironment(),
-      avatarOnly ? 0.05 : qualityTier === "high" ? 0.08 : 0.07,
-    ).texture;
-    pmremGenerator.dispose();
-    return texture;
-  }, [avatarOnly, gl, qualityTier]);
-
-  useEffect(() => {
-    const previousToneMapping = gl.toneMapping;
-    const previousExposure = gl.toneMappingExposure;
-    // eslint-disable-next-line react-hooks/immutability
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = exposure;
-
-    return () => {
-      gl.toneMapping = previousToneMapping;
-      gl.toneMappingExposure = previousExposure;
-    };
-  }, [exposure, gl]);
-
-  useEffect(() => {
-    return () => {
-      environmentTexture.dispose();
-    };
-  }, [environmentTexture]);
-
-  return <primitive object={environmentTexture} attach="environment" />;
-}
-
-function StudioBackdrop({
-  avatarOnly,
-  colors,
-}: {
-  avatarOnly: boolean;
-  colors: {
-    wallColor: string;
-    floorColor: string;
-    ringColor: string;
-    orbColor: string;
-  };
-}) {
-  return (
-    <group>
-      <mesh position={[0, 3.3, -3.3]} receiveShadow>
-        <planeGeometry args={[18, 12]} />
-        <meshStandardMaterial color={colors.wallColor} roughness={1} metalness={0} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
-        <circleGeometry args={[7.6, 96]} />
-        <meshStandardMaterial color={colors.floorColor} roughness={1} metalness={0} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]} receiveShadow>
-        <ringGeometry args={[1.8, 4.8, 96]} />
-        <meshBasicMaterial color={colors.ringColor} transparent opacity={avatarOnly ? 0.22 : 0.18} />
-      </mesh>
-      <mesh position={[0, 4.5, -5.2]}>
-        <sphereGeometry args={[1.45, 32, 32]} />
-        <meshBasicMaterial color={colors.orbColor} transparent opacity={avatarOnly ? 0.18 : 0.12} />
-      </mesh>
-    </group>
-  );
-}
-
 function computeBodyFitInfo(root: THREE.Object3D) {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3();
@@ -894,246 +758,6 @@ function applySceneFit(
     -fitInfo.minY * scale + (options.extraOffsetY ?? 0),
     -fitInfo.centerZ * scale,
   );
-}
-
-function collisionZonesFromLimitingKeys(
-  category: RuntimeGarmentAsset["category"],
-  keys: readonly GarmentMeasurementKey[],
-) {
-  const zones = new Set<GarmentCollisionZone>();
-
-  keys.forEach((key) => {
-    switch (key) {
-      case "chestCm":
-      case "waistCm":
-        zones.add("torso");
-        if (category === "tops" || category === "outerwear") {
-          zones.add("hips");
-        }
-        break;
-      case "shoulderCm":
-      case "sleeveLengthCm":
-        zones.add("arms");
-        if (category === "tops" || category === "outerwear") {
-          zones.add("torso");
-        }
-        break;
-      case "hipCm":
-      case "riseCm":
-        zones.add("hips");
-        if (category === "outerwear") {
-          zones.add("torso");
-        }
-        break;
-      case "inseamCm":
-        zones.add(category === "shoes" ? "feet" : "legs");
-        break;
-      case "hemCm":
-        zones.add(category === "shoes" ? "feet" : "legs");
-        if (category === "bottoms") {
-          zones.add("hips");
-        }
-        break;
-      case "lengthCm":
-        if (category === "shoes") {
-          zones.add("feet");
-        } else if (category === "bottoms") {
-          zones.add("legs");
-        } else {
-          zones.add("torso");
-        }
-        break;
-      default:
-        break;
-    }
-  });
-
-  return zones;
-}
-
-function getAdaptiveCollisionClearanceMultiplier(
-  item: RuntimeGarmentAsset,
-  assessment: GarmentFitAssessment | null,
-) {
-  if (!assessment) {
-    return 1;
-  }
-
-  let next = 1;
-  if (assessment.clippingRisk === "medium") next += 0.012;
-  if (assessment.clippingRisk === "high") next += 0.028;
-  if (assessment.tensionRisk === "medium") next += 0.008;
-  if (assessment.tensionRisk === "high") next += 0.018;
-
-  const adaptiveZoneCount = collisionZonesFromLimitingKeys(item.category, assessment.limitingKeys).size;
-  next += adaptiveZoneCount * 0.0025;
-
-  if (assessment.limitingKeys.includes("shoulderCm") || assessment.limitingKeys.includes("sleeveLengthCm")) {
-    next += item.category === "tops" || item.category === "outerwear" ? 0.006 : 0;
-  }
-  if (assessment.limitingKeys.includes("hipCm") || assessment.limitingKeys.includes("riseCm")) {
-    next += item.category === "bottoms" || item.category === "outerwear" ? 0.006 : 0;
-  }
-  if (assessment.limitingKeys.includes("inseamCm") || assessment.limitingKeys.includes("hemCm")) {
-    next += item.category === "bottoms" ? 0.005 : item.category === "shoes" ? 0.004 : 0;
-  }
-
-  if (item.category === "outerwear") {
-    next += assessment.overallState === "compression" ? 0.024 : assessment.overallState === "snug" ? 0.014 : 0;
-  }
-
-  if (item.category === "bottoms") {
-    next += assessment.overallState === "compression" ? 0.018 : 0;
-  }
-
-  if (item.category === "shoes") {
-    next += assessment.overallState === "compression" ? 0.012 : 0;
-  }
-
-  return next;
-}
-
-function fitToneColor(overallState: "compression" | "snug" | "regular" | "relaxed" | "oversized") {
-  return {
-    compression: "#ef7d72",
-    snug: "#f0bf72",
-    regular: "#ffffff",
-    relaxed: "#94bbeb",
-    oversized: "#b2a4ef",
-  }[overallState];
-}
-
-function getFitVisualCue(
-  assessment: GarmentFitAssessment | null,
-  isSelected: boolean,
-): FitVisualCue {
-  if (!assessment) {
-    return {
-      scaleMultiplier: isSelected ? 1.008 : 1,
-      emissiveColor: "#ffffff",
-      emissiveIntensity: isSelected ? 0.02 : 0,
-    };
-  }
-
-  const fitScale =
-    assessment.overallState === "compression"
-      ? 0.996
-      : assessment.overallState === "snug"
-        ? 1
-        : assessment.overallState === "regular"
-          ? 1.004
-          : assessment.overallState === "relaxed"
-            ? 1.012
-            : 1.02;
-  const clippingBoost =
-    assessment.clippingRisk === "high" ? 0.012 : assessment.clippingRisk === "medium" ? 0.006 : 0;
-  const selectedBoost = isSelected ? 0.008 : 0;
-  const baseIntensity =
-    assessment.overallState === "regular"
-      ? 0.01
-      : assessment.overallState === "compression"
-        ? 0.08
-        : assessment.overallState === "snug"
-          ? 0.045
-          : assessment.overallState === "relaxed"
-            ? 0.035
-            : 0.04;
-
-  return {
-    scaleMultiplier: fitScale + clippingBoost + selectedBoost,
-    emissiveColor: fitToneColor(assessment.overallState),
-    emissiveIntensity: baseIntensity + (assessment.tensionRisk === "high" ? 0.03 : assessment.tensionRisk === "medium" ? 0.01 : 0) + (isSelected ? 0.04 : 0),
-  };
-}
-
-function getAdaptiveGarmentAdjustment(
-  item: RuntimeGarmentAsset,
-  assessment: GarmentFitAssessment | null,
-  poseId: AvatarPoseId,
-  layerContext: GarmentLayerContext,
-): AdaptiveGarmentAdjustment {
-  if (!assessment) {
-    return { widthScale: 1, depthScale: 1, heightScale: 1, offsetY: 0 };
-  }
-
-  const has = (key: GarmentMeasurementKey) => assessment.limitingKeys.includes(key);
-  const highClip = assessment.clippingRisk === "high";
-  const mediumClip = assessment.clippingRisk === "medium";
-  const highTension = assessment.tensionRisk === "high";
-  const compressionLike = assessment.overallState === "compression" || assessment.overallState === "snug";
-  const next: AdaptiveGarmentAdjustment = { widthScale: 1, depthScale: 1, heightScale: 1, offsetY: 0 };
-
-  if (item.category === "outerwear") {
-    if (has("shoulderCm") || has("chestCm") || has("waistCm")) {
-      next.widthScale += compressionLike ? 0.012 : mediumClip || highTension ? 0.007 : 0.004;
-      next.depthScale += highClip || has("chestCm") ? 0.014 : 0.008;
-    }
-    if (layerContext.hasTopUnderneath) {
-      next.widthScale += 0.018;
-      next.depthScale += 0.02;
-      next.heightScale += 0.006;
-      next.offsetY += 0.004;
-    }
-    if (poseId === "stride") {
-      next.heightScale += 0.008;
-      next.offsetY += 0.004;
-    } else if (poseId === "tailored") {
-      next.widthScale += 0.006;
-      next.depthScale += 0.006;
-      next.offsetY += 0.002;
-    }
-  }
-
-  if (item.category === "tops" && item.runtime.renderPriority >= 2) {
-    if (has("shoulderCm") || has("chestCm")) {
-      next.widthScale += compressionLike ? 0.008 : 0.004;
-      next.depthScale += highClip ? 0.01 : 0.005;
-    }
-    if (layerContext.layeredUnderOuterwear) {
-      next.widthScale -= 0.012;
-      next.depthScale -= 0.014;
-      next.heightScale -= 0.008;
-      next.offsetY -= 0.004;
-    }
-    if (poseId === "stride") {
-      next.heightScale += 0.004;
-    }
-  }
-
-  if (item.category === "bottoms") {
-    if (has("hipCm") || has("riseCm")) {
-      next.widthScale += compressionLike ? 0.01 : 0.005;
-      next.depthScale += highClip || has("hipCm") ? 0.012 : 0.006;
-    }
-    if (has("inseamCm") || has("hemCm")) {
-      next.heightScale += compressionLike ? 0.006 : 0.003;
-      next.offsetY += 0.003;
-    }
-    if (poseId === "stride") {
-      next.depthScale += 0.006;
-      next.heightScale += 0.004;
-      next.offsetY += 0.002;
-    }
-  }
-
-  if (item.category === "shoes" && (has("lengthCm") || has("hemCm"))) {
-    next.widthScale += compressionLike ? 0.004 : 0.002;
-    next.depthScale += highClip ? 0.006 : 0.003;
-  }
-
-  if (item.category === "accessories" || item.category === "hair") {
-    if (has("headCircumferenceCm")) {
-      next.widthScale += compressionLike ? 0.003 : 0.001;
-      next.depthScale += highClip || highTension ? 0.004 : 0.0015;
-      next.heightScale += highClip ? 0.002 : 0.001;
-    }
-    if (has("frameWidthCm")) {
-      next.widthScale += compressionLike ? 0.002 : 0.001;
-      next.depthScale += highClip || highTension ? 0.003 : 0.001;
-    }
-  }
-
-  return next;
 }
 
 function matchesMeshPattern(objectName: string, patterns: string[]) {
@@ -1760,82 +1384,7 @@ export function ReferenceClosetStageCanvas({
   );
 
   return (
-    <Canvas
-      shadows={scenePolicy.shadows ? "soft" : false}
-      camera={{ position: [0, 1.18, 5.45], fov: 22, near: 0.1, far: 100 }}
-      frameloop={scenePolicy.frameloop}
-      gl={{ antialias: scenePolicy.antialias, alpha: true, powerPreference: "high-performance" }}
-      dpr={scenePolicy.dpr}
-      style={{ height: "100%", width: "100%" }}
-    >
-      <color attach="background" args={[scenePolicy.backgroundColor]} />
-      <fog attach="fog" args={[scenePolicy.fogColor, 5.4, 13.8]} />
-      <StageEnvironment
-        avatarOnly={scenePolicy.avatarOnly}
-        qualityTier={qualityTier}
-        exposure={scenePolicy.exposure}
-      />
-
-      <ambientLight intensity={scenePolicy.lighting.ambientIntensity} />
-      <hemisphereLight
-        args={[
-          scenePolicy.lighting.hemisphere.skyColor,
-          scenePolicy.lighting.hemisphere.groundColor,
-          scenePolicy.lighting.hemisphere.intensity,
-        ]}
-      />
-      <directionalLight
-        position={[3.8, 5.9, 4.4]}
-        intensity={scenePolicy.lighting.directional.intensity}
-        color={scenePolicy.lighting.directional.color}
-        castShadow={scenePolicy.shadows}
-        shadow-mapSize-width={scenePolicy.lighting.directional.shadowMapSize}
-        shadow-mapSize-height={scenePolicy.lighting.directional.shadowMapSize}
-        shadow-camera-near={0.5}
-        shadow-camera-far={16}
-        shadow-camera-left={-6}
-        shadow-camera-right={6}
-        shadow-camera-top={6.4}
-        shadow-camera-bottom={-3.8}
-      />
-      <spotLight
-        position={[-3.4, 5.0, 3.4]}
-        angle={0.48}
-        penumbra={0.94}
-        intensity={scenePolicy.lighting.leftSpot.intensity}
-        color={scenePolicy.lighting.leftSpot.color}
-      />
-      <spotLight
-        position={[3.3, 4.7, 2.8]}
-        angle={0.44}
-        penumbra={0.94}
-        intensity={scenePolicy.lighting.rightSpot.intensity}
-        color={scenePolicy.lighting.rightSpot.color}
-      />
-      <pointLight
-        position={[0, 4.8, -2.6]}
-        intensity={scenePolicy.lighting.point.intensity}
-        distance={14}
-        color={scenePolicy.lighting.point.color}
-      />
-      {scenePolicy.lighting.avatarOnlyAccent ? (
-        <>
-          <directionalLight
-            position={[-2.6, 2.4, 4.6]}
-            intensity={scenePolicy.lighting.avatarOnlyAccent.directionalIntensity}
-            color={scenePolicy.lighting.avatarOnlyAccent.directionalColor}
-          />
-          <spotLight
-            position={[0, 2.2, 5.8]}
-            angle={0.34}
-            penumbra={0.92}
-            intensity={scenePolicy.lighting.avatarOnlyAccent.spotIntensity}
-            color={scenePolicy.lighting.avatarOnlyAccent.spotColor}
-          />
-        </>
-      ) : null}
-
-      <StudioBackdrop avatarOnly={scenePolicy.avatarOnly} colors={scenePolicy.backdrop} />
+    <ReferenceClosetStageView scenePolicy={scenePolicy} qualityTier={qualityTier}>
       <Suspense fallback={<ClosetStageLoadingFallback />}>
         <SceneRig
           bodyProfile={bodyProfile}
@@ -1849,6 +1398,6 @@ export function ReferenceClosetStageCanvas({
           controlsDampingFactor={scenePolicy.controlsDampingFactor}
         />
       </Suspense>
-    </Canvas>
+    </ReferenceClosetStageView>
   );
 }

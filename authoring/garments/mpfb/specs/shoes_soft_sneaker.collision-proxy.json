@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "garment-collision-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-shoe-sneaker",
+  "category": "shoes",
+  "colliderBudget": {
+    "capsules": 0,
+    "spheres": 1,
+    "proxyMeshes": 0
+  },
+  "anchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "colliders": [
+    {
+      "id": "feet-proxy",
+      "zone": "feet",
+      "kind": "sphere",
+      "radiusCm": 7.5
+    }
+  ],
+  "notes": "Auto-generated collider envelope for starter-shoe-sneaker."
+}

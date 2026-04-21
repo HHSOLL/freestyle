@@ -170,6 +170,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `validate:garment3d` now also resolves `patternSpec.relativePath` for committed starter garment summaries and delegates semantic parity checks to the shared `validateGarmentPatternSpecAgainstStarterCatalog` helper in `packages/domain-garment`
 - authoring-only garment pattern/material metadata now lives in `authoring/garments/mpfb/specs/*.pattern-spec.json`; do not widen `/v1` or `PublishedGarmentAsset` just to carry that upstream metadata
 - if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
+- `Phase 2` authoring contract v2 now also includes `*.material-profile.json`, `*.sim-proxy.json`, `*.collision-proxy.json`, and `*.hq-artifact.json` sidecars next to each committed `pattern-spec`; regenerate and sync them with `npm run authoring:garments:mpfb:sidecars`
+- keep authoring bundle parity inside `packages/domain-garment` via `validateGarmentAuthoringBundleAgainstStarterCatalog`; do not add one-off validator-only comparisons for material, proxy, collider, or HQ artifact drift
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
 - the first product consumer now lives in `apps/web/src/components/product/closet-fit-report.ts`; if fit copy, region ordering, or tone mapping changes, update that helper and its test before touching `V18ClosetExperience.tsx`
@@ -200,7 +202,9 @@ Current source-of-truth files:
 - `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/runtime-3d/src/closet-stage-fallback.tsx`
 - `packages/runtime-3d/src/preload-runtime-assets.ts`
+- `packages/runtime-3d/src/reference-closet-stage-sim-adapter.ts`
 - `packages/runtime-3d/src/reference-closet-stage-policy.ts`
+- `packages/runtime-3d/src/reference-closet-stage-view.tsx`
 - `packages/runtime-3d/src/runtime-gltf-loader.ts`
 - `packages/runtime-3d/src/runtime-disposal.ts`
 - `packages/runtime-3d/src/runtime-model-paths.ts`
@@ -209,6 +213,7 @@ Rules:
 
 - keep humanoid alias patterns with the avatar manifest
 - keep the live `Closet` stage aligned with the shared manifest and garment contract
+- keep `closet-stage.tsx` focused on scene logic; view/light/canvas ownership belongs in `reference-closet-stage-view.tsx`, while fit-driven adaptive adjustment belongs in `reference-closet-stage-sim-adapter.ts`
 - preserve quality tiers: `low`, `balanced`, `high`
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
@@ -218,6 +223,12 @@ Rules:
 - preserve MPFB helper-hiding body mask modifiers during avatar export; removing them breaks the shipped `fullbody` silhouette even if the segmented zones still validate
 - keep torso segmentation broad enough to absorb clavicle and neck-base coverage for fitted tops before reaching for whole-arm body masking
 - keep `secondaryMotion` selective: long hair, loose tops, and loose outerwear only
+
+`V18ClosetExperience.tsx` rule:
+
+- keep orchestration and interaction flow in `V18ClosetExperience.tsx`
+- keep large static preset/config registries in `apps/web/src/components/product/v18-closet-config.ts`
+- if mannequin presets, tab metadata, pose labels, or category maps change, update the config module first instead of re-growing the page component
 - keep the current `Closet` studio look on the generated room environment + ACES filmic tone mapping path; do not drop back to flat background-only lighting without visual evidence that the replacement is better
 - keep camera and stage-policy tuning biased toward a centered full-body editorial frame rather than a distant fitting-room preview
 - default mannequin presentation should prefer stable, authoring-safe starter pieces; do not promote a starter hair/accessory asset into the reset/default loadout unless it is visually verified in the live `Closet` stage

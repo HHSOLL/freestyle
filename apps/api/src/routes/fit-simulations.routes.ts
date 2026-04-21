@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createFitSimulationInputSchema } from "@freestyle/shared";
-import { requireAuth } from "../modules/auth/auth.js";
+import { requireBearerOrDevBypassAuth } from "../modules/auth/auth.js";
 import {
   createFitSimulationJob,
   FitSimulationCreateError,
@@ -9,7 +9,7 @@ import {
 
 export const registerFitSimulationRoutes = (app: FastifyInstance) => {
   app.post("/jobs/fit-simulations", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const parsed = createFitSimulationInputSchema.safeParse(request.body);
@@ -39,7 +39,7 @@ export const registerFitSimulationRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/fit-simulations/:id", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const params = request.params as { id?: string };
@@ -58,4 +58,3 @@ export const registerFitSimulationRoutes = (app: FastifyInstance) => {
     });
   });
 };
-

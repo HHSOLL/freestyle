@@ -9,6 +9,7 @@
 ## Auth
 - 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
 - `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.
+- 단, `/v1/lab/*`는 예외다. 이 surface는 anonymous header fallback을 허용하지 않고, explicit bearer auth 또는 non-production `DEV_BYPASS_USER_ID`로만 접근한다.
 - 실패 시 `401 UNAUTHORIZED`
 - browser-facing product/admin clients use `NEXT_PUBLIC_SUPABASE_URL` plus a low-privilege browser key. The current repo still names that browser key `NEXT_PUBLIC_SUPABASE_ANON_KEY` for compatibility, but its intended posture is public/publishable only.
 - `SUPABASE_SERVICE_ROLE_KEY` is backend-only for Railway API / worker surfaces and must never be injected into Vercel/browser runtimes.
@@ -117,7 +118,10 @@
 - implemented lab endpoints:
   - `POST /v1/lab/jobs/fit-simulations`
   - `GET /v1/lab/fit-simulations/:id`
-- auth: same as other `/v1/lab/*` routes
+- auth:
+  - explicit bearer auth required
+  - non-production only: `DEV_BYPASS_USER_ID` may satisfy auth for smoke/dev workflows
+  - anonymous header fallback is rejected even when `ALLOW_ANONYMOUS_USER=true`
 - current implementation detail:
   - the create route requires an existing persisted `BodyProfile`
   - the create route requires a published runtime garment id

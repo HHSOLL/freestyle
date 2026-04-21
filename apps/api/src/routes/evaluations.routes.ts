@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { evaluateOutfitInputSchema } from "@freestyle/shared";
-import { requireAuth } from "../modules/auth/auth.js";
+import { requireBearerOrDevBypassAuth } from "../modules/auth/auth.js";
 import {
   createEvaluationJob,
   getEvaluationForUser,
@@ -8,7 +8,7 @@ import {
 
 export const registerEvaluationRoutes = (app: FastifyInstance) => {
   app.post("/jobs/evaluations", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const parsed = evaluateOutfitInputSchema.safeParse(request.body);
@@ -24,7 +24,7 @@ export const registerEvaluationRoutes = (app: FastifyInstance) => {
   });
 
   app.get("/evaluations/:id", async (request, reply) => {
-    const userId = await requireAuth(request, reply);
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
     if (!userId) return;
 
     const params = request.params as { id?: string };

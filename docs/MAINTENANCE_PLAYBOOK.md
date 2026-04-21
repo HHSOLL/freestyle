@@ -65,6 +65,7 @@ Also confirm namespace headers:
 - product routes return `x-freestyle-surface: product`
 - legacy routes return `x-freestyle-surface: legacy` and `deprecation: true`
 - lab routes return `x-freestyle-surface: lab`
+- lab routes reject anonymous-header fallback and require bearer-backed auth outside non-production `DEV_BYPASS_USER_ID`
 - admin garment routes reject anonymous-header fallback and non-admin callers
 
 ## 3. Release Checklist
@@ -84,7 +85,8 @@ Before a release:
 11. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
 12. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
 13. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
-14. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
+14. When a Vercel security bulletin is active, run `vercel env ls production` and `vercel activity --since 72h --project freestyle`, then record the findings in a dated QA note before RC signoff.
+15. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
 
 ## 4. Avatar Runtime Regression Checklist
 

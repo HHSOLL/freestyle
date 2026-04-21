@@ -333,6 +333,59 @@ test("legacy and lab namespaces stay isolated from the main product surface", as
   await app.close();
 });
 
+test("lab routes reject anonymous-header fallback even when product anonymous auth is enabled", async () => {
+  delete process.env.DEV_BYPASS_USER_ID;
+  process.env.ALLOW_ANONYMOUS_USER = "true";
+  const app = buildServer();
+
+  const anonymousHeaders = {
+    "x-anonymous-user-id": "00000000-0000-4000-8000-000000000123",
+  };
+
+  const [evaluationCreateResponse, fitSimulationCreateResponse, tryonCreateResponse] = await Promise.all([
+    app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/evaluations",
+      headers: anonymousHeaders,
+      payload: {
+        request_payload: { smoke: true },
+        idempotency_key: `anon-evaluation-${randomUUID()}`,
+      },
+    }),
+    app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/fit-simulations",
+      headers: anonymousHeaders,
+      payload: {
+        garment_id: publishedGarmentFixture.id,
+        quality_tier: "fast",
+        idempotency_key: `anon-fit-sim-${randomUUID()}`,
+      },
+    }),
+    app.inject({
+      method: "POST",
+      url: "/v1/lab/jobs/tryons",
+      headers: anonymousHeaders,
+      payload: {
+        asset_id: "missing-asset",
+        input_image_url:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5Wf8sAAAAASUVORK5CYII=",
+        idempotency_key: `anon-tryon-${randomUUID()}`,
+      },
+    }),
+  ]);
+
+  assert.equal(evaluationCreateResponse.statusCode, 401);
+  assert.equal(fitSimulationCreateResponse.statusCode, 401);
+  assert.equal(tryonCreateResponse.statusCode, 401);
+  assert.equal(evaluationCreateResponse.headers["x-freestyle-surface"], "lab");
+  assert.equal(fitSimulationCreateResponse.headers["x-freestyle-surface"], "lab");
+  assert.equal(tryonCreateResponse.headers["x-freestyle-surface"], "lab");
+
+  await app.close();
+  delete process.env.ALLOW_ANONYMOUS_USER;
+});
+
 test(
   "lab smoke covers evaluation, try-on, and fit-simulation creation plus legacy job status reads",
   { skip: !hasSupabaseAdminEnv },

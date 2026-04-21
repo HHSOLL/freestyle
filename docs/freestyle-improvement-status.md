@@ -12,11 +12,12 @@ It is separate from `docs/replatform-v2/**`.
 
 ## As Of
 
-- Date: `2026-04-21`
+- Date: `2026-04-22`
 - Current branch baseline: `main`
 - Working overall completion estimate: `100%`
 
 The completion estimate is a planning number, not a release gate. It now reflects that the repository-improvement, operational-closeout, and baseline follow-on roadmap tracked in this document are complete. Higher-fidelity cloth solving and richer pressure semantics remain future R&D, but are no longer open seams in this execution program.
+As of `2026-04-22`, release-grade Playwright visual baselines also exist for the current IA plus `Closet` low / balanced / high quality tiers, and the maintenance docs treat them as RC evidence.
 
 ## Phase Map
 

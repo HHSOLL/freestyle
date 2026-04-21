@@ -2,19 +2,21 @@
 
 ## Purpose
 - Provides a fixed screenshot baseline for visual regression checks before canary rollout.
-- The snapshot bundle is an operator artifact, not a design draft. Every capture must be reproducible from the recorded route, viewport, language, and auth state.
+- The primary baseline is now the committed Playwright golden set under `apps/web/e2e/visual-regression.spec.ts-snapshots/`.
+- Optional exported bundles remain useful for rollout tickets, but the repo-committed goldens are the CI blocking source of truth.
 
 ## Preconditions
 - Use the same production build or staging-parity build that the rollout ticket references.
 - Freeze language (`ko` or `en`) and auth state before the first capture and keep them constant for the entire run.
 - Clear transient banners, debug overlays, and local feature toggles before capture.
 - Record the artifact bundle location in `docs/rollout-governance/baseline-metrics-template.md`.
+- When refreshing the repo-committed baseline, run `PATH="/opt/homebrew/bin:$PATH" PLAYWRIGHT_BASE_URL=<url> npm run test:e2e:visual -- --update-snapshots`.
 
 ## Capture Order
-1. Capture core public surface in this order: `/`, `/app/closet`, `/studio`, `/app/discover`, `/app/profile`.
-2. Capture secondary informational/redirect surfaces in this order: `/app/looks`, `/app/decide`, `/app/journal`, `/examples`, `/how-it-works`.
-3. For each route, capture desktop first and mobile second.
-4. After each route pair, verify that the file paths are correct before moving to the next route.
+1. Capture core public surface in this order: `/`, `/app/canvas`, `/app/community`, `/app/profile`.
+2. Capture `Closet` quality-tier baselines in this order: `low`, `balanced`, `high`.
+3. For each route or tier, capture desktop first.
+4. If rollout requires a separate exported bundle, verify the file paths immediately after capture.
 5. Complete the review table below before coordinator approval.
 
 ## Capture Matrix
@@ -22,17 +24,16 @@
 | --- | --- | --- |
 | `/` | required | required |
 | `/app/closet` | required | required |
-| `/studio` | required | required |
-| `/app/discover` | required | required |
+| `/app/canvas` | required | required |
+| `/app/community` | required | required |
 | `/app/profile` | required | required |
-| `/app/looks` | required | required |
-| `/app/decide` | required | required |
-| `/app/journal` | required | required |
-| `/examples` | required | required |
-| `/how-it-works` | required | required |
+| `Closet low tier` | required | optional |
+| `Closet balanced tier` | required | optional |
+| `Closet high tier` | required | optional |
 
 ## Storage Convention
-- Save under: `output/baseline-snapshots/<YYYY-MM-DD>/<route>/<viewport>.png`
+- Repo-committed goldens live under: `apps/web/e2e/visual-regression.spec.ts-snapshots/`
+- Optional exported bundle: `output/baseline-snapshots/<YYYY-MM-DD>/<route>/<viewport>.png`
 - Viewport keys:
   - `desktop-1440x900`
   - `mobile-390x844`
@@ -45,28 +46,27 @@
    - Set the chosen language.
    - Sign in or remain signed out according to the baseline record.
    - Use a clean session; if reusing a browser profile, document that fact in the note field below.
+   - For current CI parity, seed the same deterministic local storage used by `apps/web/e2e/visual-regression.spec.ts`.
 3. Capture each route.
    - Save desktop as `desktop-1440x900.png`.
-   - Save mobile as `mobile-390x844.png`.
+   - Save mobile as `mobile-390x844.png` when a mobile baseline is needed.
    - Do not overwrite an existing approved baseline without updating the capture date folder.
 4. Review immediately after capture.
    - Check top bar, typography, spacing, major CTA placement, empty/error states, and any unexpected modal or login prompt.
+   - For `Closet` tiers, also check that the stage rendered with the expected quality tier instead of a WebGL unsupported placeholder.
    - Mark `needs_retake` if the route is visually unstable or loaded partial content.
 5. Publish the artifact bundle and copy the bundle link into the rollout ticket and baseline record.
 
 ## Capture Worksheet
 | Route | Desktop artifact path | Mobile artifact path | Captured by | Reviewed by | Status | Note |
 | --- | --- | --- | --- | --- | --- | --- |
-| `/` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/closet` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/studio` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/discover` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/profile` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/looks` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/decide` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/app/journal` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/examples` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
-| `/how-it-works` | `PENDING_PATH` | `PENDING_PATH` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `/` | `apps/web/e2e/visual-regression.spec.ts-snapshots/home-shell-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `/app/canvas` | `apps/web/e2e/visual-regression.spec.ts-snapshots/canvas-empty-shell-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `/app/community` | `apps/web/e2e/visual-regression.spec.ts-snapshots/community-feed-shell-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `/app/profile` | `apps/web/e2e/visual-regression.spec.ts-snapshots/profile-summary-shell-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `Closet low tier` | `apps/web/e2e/visual-regression.spec.ts-snapshots/closet-low-tier-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `Closet balanced tier` | `apps/web/e2e/visual-regression.spec.ts-snapshots/closet-balanced-tier-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
+| `Closet high tier` | `apps/web/e2e/visual-regression.spec.ts-snapshots/closet-high-tier-chromium-darwin.png` | `PENDING_PATH_OR_NA` | `PENDING_OWNER` | `PENDING_OWNER` | `pending` | `PENDING_NOTE` |
 
 ## Capture Run Status
 | Item | Status | Owner | Note |

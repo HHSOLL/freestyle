@@ -17,9 +17,43 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-21
+- 2026-04-22
 
 ## 점검 로그
+### 2026-04-22
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Playwright official docs:
+    - `https://playwright.dev/docs/test-snapshots`
+    - `https://playwright.dev/docs/trace-viewer-intro`
+    - `https://playwright.dev/docs/release-notes`
+  - Vercel official docs:
+    - `https://vercel.com/kb/bulletin/vercel-april-2026-security-incident`
+- 신규 변화 요약:
+  - `Pulse`는 오늘도 현재 인증 환경에서 접근되지 않았다.
+  - Playwright 공식 문서는 `toHaveScreenshot()` baseline을 repo에 커밋하고, `stylePath`와 `maxDiffPixels`를 명시해서 screenshot determinism을 높이는 방식을 계속 권장한다.
+  - 같은 문서군은 trace를 `on-first-retry` 기반으로 남겨 실패 원인 분석을 빠르게 하는 구성을 유지한다.
+  - Vercel bulletin은 여전히 activity log 점검, env rotation posture 검토, sensitive env 사용을 권장한다.
+- 우리 프로젝트 영향:
+  - `Phase 5`는 ad-hoc 캡처가 아니라 committed Playwright goldens로 닫는 편이 맞다.
+  - `Closet` stage는 headless Chromium에서도 WebGL unsupported placeholder가 아니라 실제 stage를 렌더링해야 하므로 software WebGL (`swiftshader`) launch args가 필요하다.
+  - RC/release evidence는 `ops-closeout` smoke 외에 visual regression baseline 경로와 trace retention 규칙까지 같이 적는 편이 맞다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `playwright.config.ts`
+    - `package.json`
+    - `apps/web/e2e/screenshot.css`
+    - `apps/web/e2e/visual-regression.spec.ts`
+    - `apps/web/e2e/visual-regression.spec.ts-snapshots/*`
+    - `README.md`
+    - `docs/DEVELOPMENT_GUIDE.md`
+    - `docs/MAINTENANCE_PLAYBOOK.md`
+    - `docs/quality-gates.md`
+    - `docs/rollout-governance/baseline-snapshots.md`
+    - `docs/rollout-governance/baseline-metrics-template.md`
+    - `docs/qa/phase5-visual-regression-2026-04-22.md`
+
 ### 2026-04-21
 - 확인 소스:
   - `ChatGPT Pulse`

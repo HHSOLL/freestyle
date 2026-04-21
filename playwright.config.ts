@@ -9,6 +9,15 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: [["list"]],
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      scale: "css",
+      maxDiffPixels: 320,
+      stylePath: "./apps/web/e2e/screenshot.css",
+    },
+  },
   use: {
     baseURL,
     headless: true,
@@ -19,6 +28,9 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: ["--enable-webgl", "--ignore-gpu-blocklist", "--use-gl=swiftshader"],
+        },
       },
     },
   ],

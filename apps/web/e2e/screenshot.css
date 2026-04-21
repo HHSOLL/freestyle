@@ -1,0 +1,20 @@
+*,
+*::before,
+*::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  caret-color: transparent !important;
+}
+
+html {
+  scroll-behavior: auto !important;
+}
+
+nextjs-portal,
+[data-next-badge-root],
+[data-nextjs-toast],
+[data-sonner-toaster] {
+  display: none !important;
+}

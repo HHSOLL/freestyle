@@ -65,6 +65,7 @@ Run this when freezing an RC or closing an operations batch.
 
 - `PATH="/opt/homebrew/bin:$PATH" npm run check`
 - `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:ops-closeout`
+- `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:visual`
 - `PATH="/opt/homebrew/bin:$PATH" vercel env ls production`
 - `PATH="/opt/homebrew/bin:$PATH" railway variable list --json`
 
@@ -72,6 +73,7 @@ Expected evidence:
 
 - one dated release or operational closeout note under `docs/qa/`
 - route/browser smoke result plus any retained Playwright trace artifact
+- committed Playwright visual baseline coverage for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers
 - explicit browser-vs-backend Supabase key posture
 - explicit RC tag name if the run is used to freeze `main`
 
@@ -169,6 +171,7 @@ Every batch should record:
 Release-oriented work should also capture:
 
 - fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`
+- the current committed Playwright snapshot set under `apps/web/e2e/visual-regression.spec.ts-snapshots/`
 - any required route or API smoke evidence
 - any browser trace artifact kept from `on-first-retry` or `retain-on-failure` smoke runs when a retry/failure occurs
 - docs synced with the changed boundary

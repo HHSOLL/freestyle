@@ -56,7 +56,7 @@
 | Phase | `0.5` -> `4` -> `5` |
 | Baseline window | `PENDING_WINDOW_START ~ PENDING_WINDOW_END (KST)` |
 | Environment | `production` |
-| Audience used for baseline | `Core surfaces (/ , /app/closet, /studio, /app/discover, /app/profile) + widget traffic` |
+| Audience used for baseline | `Core surfaces (/ , /app/closet, /app/canvas, /app/community, /app/profile) + widget traffic` |
 | Language/auth state | `PENDING_CAPTURE_STATE` |
 | Qualified-session definition | `PENDING_QUERY_DEFINITION` |
 | Analyst | `sol (data-analytics-owner)` |

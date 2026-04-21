@@ -75,19 +75,20 @@ Before a release:
 
 1. Run `PATH="/opt/homebrew/bin:$PATH" npm run check`.
 2. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:ops-closeout`.
-3. Capture fresh screenshots for `Home`, `Closet`, `Canvas`, `Community`, and `Profile`.
-4. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and screenshot paths used for that run.
+3. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:visual`.
+4. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and the committed snapshot paths or exported screenshot paths used for that run.
 5. If browser smoke retries or fails, keep the Playwright trace artifact using `on-first-retry` or `retain-on-failure`.
 6. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
 7. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
-8. Confirm old routes are still redirected or removed from the main flow.
-9. Confirm `lab` failures do not break any main product page.
-10. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
-11. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
-12. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
-13. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
-14. When a Vercel security bulletin is active, run `vercel env ls production` and `vercel activity --since 72h --project freestyle`, then record the findings in a dated QA note before RC signoff.
-15. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
+8. Confirm the committed visual baseline set under `apps/web/e2e/visual-regression.spec.ts-snapshots/` is current for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers.
+9. Confirm old routes are still redirected or removed from the main flow.
+10. Confirm `lab` failures do not break any main product page.
+11. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
+12. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+13. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
+14. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
+15. When a Vercel security bulletin is active, run `vercel env ls production` and `vercel activity --since 72h --project freestyle`, then record the findings in a dated QA note before RC signoff.
+16. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
 
 ## 4. Avatar Runtime Regression Checklist
 

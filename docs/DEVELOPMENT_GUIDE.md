@@ -179,6 +179,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `Phase D` now has an active HQ artifact path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
 - keep that baseline honest: it currently persists `draped_glb`, typed `fit_map_json`, generated `preview_png`, and `metrics_json`, but the `draped_glb` is still an authored-scene merge placeholder rather than solver-deformed cloth truth
 - lab/detail consumers should treat the artifact list as presentation-ordered: `draped_glb`, then `preview_png`, then `fit_map_json`, then `metrics_json`
+- `Phase 5` now uses committed Playwright visual baselines for route-shell and closet-tier regression; when changing route chrome, stage framing, or closet quality tiers, update `apps/web/e2e/visual-regression.spec.ts` and its snapshot directory in the same PR
 - `Phase 3` of the deep-research runtime plan now owns the interactive preview seam through `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` plus the same-origin worker script at `apps/web/public/workers/reference-closet-stage-preview.worker.js`
 - keep preview backend selection truthful: `static-fit`, `cpu-reduced`, and `worker-reduced` are current product paths; `experimental-webgpu` is only a reserved selector and must not be documented as solver-grade cloth unless a real compute path exists
 - `Phase E` now starts from the typed `fit_map_json` contract in `packages/contracts`; fit, stress, pressure, and confidence overlays should evolve that shared schema instead of adding one-off worker-only JSON blobs
@@ -237,6 +238,7 @@ Rules:
 - if mannequin presets, tab metadata, pose labels, or category maps change, update the config module first instead of re-growing the page component
 - keep the current `Closet` studio look on the generated room environment + ACES filmic tone mapping path; do not drop back to flat background-only lighting without visual evidence that the replacement is better
 - keep camera and stage-policy tuning biased toward a centered full-body editorial frame rather than a distant fitting-room preview
+- keep headless-browser stage evidence WebGL-capable; Playwright Chromium now launches with software WebGL (`swiftshader`) so route and tier baselines can render the stage instead of falling back to the unsupported placeholder
 - default mannequin presentation should prefer stable, authoring-safe starter pieces; do not promote a starter hair/accessory asset into the reset/default loadout unless it is visually verified in the live `Closet` stage
 - `V18ClosetExperience` background-theme controls must flow through `AvatarStageViewport` into the runtime stage policy and backdrop; do not leave the picker as a CSS-only shell theme control
 - short-sleeve tops such as the default starter tee should not ship with permanent `arms` body masks; reserve arm masking for pose-tuned or clipping-specific cases so the mannequin does not look amputated in the default `Closet` pose

@@ -178,6 +178,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `V18ClosetExperience` may seed fit guidance from the API closet catalog, but active tab and equipped-item review should still prefer locally derived reports from the current deferred body profile
 - `Phase D` now has an active baseline async path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
 - keep that baseline honest: it currently persists typed `fit_map_json` overlay evidence plus a generated `preview_png` from snapshot-derived assessment/report data, and should not be documented or surfaced as full draped cloth output until `draped_glb` is real
+- `Phase 3` of the deep-research runtime plan now owns the interactive preview seam through `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` plus the same-origin worker script at `apps/web/public/workers/reference-closet-stage-preview.worker.js`
+- keep preview backend selection truthful: `static-fit`, `cpu-reduced`, and `worker-reduced` are current product paths; `experimental-webgpu` is only a reserved selector and must not be documented as solver-grade cloth unless a real compute path exists
 - `Phase E` now starts from the typed `fit_map_json` contract in `packages/contracts`; fit, stress, pressure, and confidence overlays should evolve that shared schema instead of adding one-off worker-only JSON blobs
 - the current `Phase E` lab read-path should prefer the persisted `fitMap` snapshot carried on `fitSimulation` records; do not make every consumer refetch and reparsed the artifact URL before the solver-backed pipeline exists
 - the current `Phase E` closeout helper is `buildFitMapSummary` in `packages/domain-garment`; worker previews and future lab/product consumers should reuse that summary instead of inventing a second dominant-overlay heuristic
@@ -203,6 +205,7 @@ Current source-of-truth files:
 - `packages/runtime-3d/src/closet-stage-fallback.tsx`
 - `packages/runtime-3d/src/preload-runtime-assets.ts`
 - `packages/runtime-3d/src/reference-closet-stage-sim-adapter.ts`
+- `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts`
 - `packages/runtime-3d/src/reference-closet-stage-policy.ts`
 - `packages/runtime-3d/src/reference-closet-stage-view.tsx`
 - `packages/runtime-3d/src/runtime-gltf-loader.ts`
@@ -214,10 +217,12 @@ Rules:
 - keep humanoid alias patterns with the avatar manifest
 - keep the live `Closet` stage aligned with the shared manifest and garment contract
 - keep `closet-stage.tsx` focused on scene logic; view/light/canvas ownership belongs in `reference-closet-stage-view.tsx`, while fit-driven adaptive adjustment belongs in `reference-closet-stage-sim-adapter.ts`
+- keep reduced preview backend selection and frame stepping in `reference-closet-stage-preview-simulation.ts`; `closet-stage.tsx` may orchestrate the active backend, but it should not re-declare spring/invalidation math inline again
 - preserve quality tiers: `low`, `balanced`, `high`
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
 - keep body masking and render-order rules aligned with garment bindings
+- keep the preview worker same-origin and static-served from `apps/web/public/workers`; if that worker path changes, update the stage wiring and the maintenance docs in the same PR
 - treat effective body masking as the union of authored `bodyMaskZones`, pose-specific mask zones, and fit-driven adaptive expansion zones
 - `feet`-only masks must still activate segmented-body rendering so shoe assets can actually hide feet
 - preserve MPFB helper-hiding body mask modifiers during avatar export; removing them breaks the shipped `fullbody` silhouette even if the segmented zones still validate

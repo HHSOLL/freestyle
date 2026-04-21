@@ -30,6 +30,19 @@ import {
   resolveReferenceClosetStageScenePolicy,
 } from "./reference-closet-stage-policy.js";
 import {
+  buildReferenceClosetStagePreviewFrameRequest,
+  createReferenceClosetStagePreviewFrameState,
+  detectReferenceClosetStagePreviewFeatures,
+  resolveReferenceClosetStagePreviewBackend,
+  stepReferenceClosetStagePreviewFrame,
+  type ReferenceClosetStagePreviewBackendId,
+  type ReferenceClosetStagePreviewFeatureSnapshot,
+  type ReferenceClosetStagePreviewFrameConfig,
+  type ReferenceClosetStagePreviewFrameRequest,
+  type ReferenceClosetStagePreviewFrameResult,
+  type ReferenceClosetStagePreviewFrameState,
+} from "./reference-closet-stage-preview-simulation.js";
+import {
   getAdaptiveCollisionClearanceMultiplier,
   getAdaptiveGarmentAdjustment,
   getFitVisualCue,
@@ -49,28 +62,9 @@ type RigTargetPlan = AvatarMorphPlan["rigTargets"];
 type AliasKey = AvatarRigAlias;
 type AliasMap = Partial<Record<AliasKey, THREE.Bone | null>>;
 type InitialStateMap = Partial<Record<AliasKey, { position: THREE.Vector3; scale: THREE.Vector3; rotation: THREE.Euler }>>;
-type SecondaryMotionState = {
-  initialized: boolean;
-  lastAnchorWorld: THREE.Vector3;
-  rotation: THREE.Euler;
-  rotationVelocity: THREE.Vector3;
-  position: THREE.Vector3;
-  positionVelocity: THREE.Vector3;
-};
 
 function normalizeBoneName(name: string) {
   return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function createSecondaryMotionState(): SecondaryMotionState {
-  return {
-    initialized: false,
-    lastAnchorWorld: new THREE.Vector3(),
-    rotation: new THREE.Euler(),
-    rotationVelocity: new THREE.Vector3(),
-    position: new THREE.Vector3(),
-    positionVelocity: new THREE.Vector3(),
-  };
 }
 
 function findSkinnedMeshes(root: THREE.Object3D) {
@@ -736,12 +730,20 @@ function sampleWeightedAnchorWorld(targets: WeightedAnchorTarget[], out: THREE.V
   return out;
 }
 
-function springAxis(current: number, velocity: number, target: number, stiffness: number, damping: number, dt: number) {
-  const nextVelocity = (velocity + (target - current) * stiffness * dt) * damping;
-  return {
-    velocity: nextVelocity,
-    value: current + nextVelocity * dt,
-  };
+function vectorToPreviewTuple(vector: THREE.Vector3): [number, number, number] {
+  return [vector.x, vector.y, vector.z];
+}
+
+function applyPreviewFrameResult(
+  motionTarget: THREE.Group | null,
+  result: ReferenceClosetStagePreviewFrameResult,
+) {
+  if (!motionTarget) {
+    return;
+  }
+
+  motionTarget.rotation.set(result.rotationRad[0], result.rotationRad[1], result.rotationRad[2]);
+  motionTarget.position.set(result.position[0], result.position[1], result.position[2]);
 }
 
 function applySceneFit(
@@ -844,6 +846,8 @@ function BoundGarment({
   poseId,
   selected,
   qualityTier,
+  previewBackend,
+  previewFeatureSnapshot,
   layerContext,
   avatarAliasMap,
   avatarSceneScale,
@@ -855,6 +859,8 @@ function BoundGarment({
   poseId: AvatarPoseId;
   selected: boolean;
   qualityTier: QualityTier;
+  previewBackend: ReferenceClosetStagePreviewBackendId;
+  previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   layerContext: GarmentLayerContext;
   avatarAliasMap: AliasMap;
   avatarSceneScale: number;
@@ -865,7 +871,12 @@ function BoundGarment({
   const invalidate = useThree((state) => state.invalidate);
   const fitRef = useRef<THREE.Group>(null);
   const motionRef = useRef<THREE.Group>(null);
-  const motionStateRef = useRef<SecondaryMotionState>(createSecondaryMotionState());
+  const motionStateRef = useRef<ReferenceClosetStagePreviewFrameState>(createReferenceClosetStagePreviewFrameState());
+  const previewWorkerRef = useRef<Worker | null>(null);
+  const previewWorkerPendingRef = useRef(false);
+  const queuedPreviewRequestRef = useRef<ReferenceClosetStagePreviewFrameRequest | null>(null);
+  const previewSessionRef = useRef(0);
+  const previewSequenceRef = useRef(0);
   const garmentScene = useMemo(() => clone(gltf.scene) as THREE.Group, [gltf.scene]);
   const garmentSkinned = useMemo(() => findSkinnedMeshes(garmentScene)[0], [garmentScene]);
   const aliasMap = useMemo(
@@ -919,19 +930,82 @@ function BoundGarment({
       verticalBobCm: (binding.verticalBobCm ?? 0) * scaleCompensation,
       looseness: looseness * poseMultiplier * profileMultiplier,
       scaleCompensation,
-    };
+      baseOffsetY: 0,
+    } satisfies ReferenceClosetStagePreviewFrameConfig;
   }, [avatarSceneScale, bodyProfile, item, poseId, qualityTier]);
   const motionAnchorTargets = useMemo(
     () => resolveRuntimeAnchorTargets(avatarAliasMap, item.runtime.anchorBindings, item.category),
     [avatarAliasMap, item.category, item.runtime.anchorBindings],
   );
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
+  const effectivePreviewBackend = secondaryMotionConfig ? previewBackend : "static-fit";
 
   useEffect(() => {
     return () => {
       disposeRuntimeOwnedMaterials(garmentScene);
     };
   }, [garmentScene]);
+
+  useEffect(() => {
+    queuedPreviewRequestRef.current = null;
+    previewWorkerPendingRef.current = false;
+
+    if (effectivePreviewBackend !== "worker-reduced" || typeof Worker === "undefined") {
+      previewWorkerRef.current?.terminate();
+      previewWorkerRef.current = null;
+      return;
+    }
+
+    const worker = new Worker("/workers/reference-closet-stage-preview.worker.js");
+    previewWorkerRef.current = worker;
+
+    const flushQueuedRequest = () => {
+      if (!previewWorkerRef.current || previewWorkerPendingRef.current) {
+        return;
+      }
+      const nextRequest = queuedPreviewRequestRef.current;
+      if (!nextRequest) {
+        return;
+      }
+      queuedPreviewRequestRef.current = null;
+      previewWorkerPendingRef.current = true;
+      previewWorkerRef.current.postMessage(nextRequest);
+    };
+
+    worker.onmessage = (event: MessageEvent<ReferenceClosetStagePreviewFrameResult>) => {
+      const result = event.data;
+      previewWorkerPendingRef.current = false;
+      if (!result || result.sessionId !== String(previewSessionRef.current)) {
+        flushQueuedRequest();
+        return;
+      }
+      motionStateRef.current = result.state;
+      applyPreviewFrameResult(motionRef.current, result);
+      if (result.shouldContinue) {
+        invalidate();
+      }
+      flushQueuedRequest();
+    };
+
+    worker.onerror = (error) => {
+      console.error("Reduced preview worker failed", error);
+      previewWorkerPendingRef.current = false;
+      queuedPreviewRequestRef.current = null;
+      worker.terminate();
+      if (previewWorkerRef.current === worker) {
+        previewWorkerRef.current = null;
+      }
+    };
+
+    return () => {
+      queuedPreviewRequestRef.current = null;
+      previewWorkerPendingRef.current = false;
+      worker.terminate();
+      if (previewWorkerRef.current === worker) {
+        previewWorkerRef.current = null;
+      }
+    };
+  }, [effectivePreviewBackend, invalidate]);
 
   useLayoutEffect(() => {
     configureMaterials(garmentScene, { qualityTier });
@@ -1004,7 +1078,11 @@ function BoundGarment({
     applyGarmentRigTargets(aliasMap, initialState, morphPlan.rigTargets, item.category);
     applyPose(aliasMap, initialState, poseId, manifest.authoringSource);
     garmentSkinned?.skeleton?.update();
-    motionStateRef.current = createSecondaryMotionState();
+    previewSessionRef.current += 1;
+    previewSequenceRef.current = 0;
+    queuedPreviewRequestRef.current = null;
+    previewWorkerPendingRef.current = false;
+    motionStateRef.current = createReferenceClosetStagePreviewFrameState();
     if (secondaryMotionConfig) {
       invalidate();
     }
@@ -1049,124 +1127,45 @@ function BoundGarment({
   ]);
 
   useFrame((frameState, delta) => {
-    if (!motionRef.current || !secondaryMotionConfig || motionAnchorTargets.length === 0) {
+    if (!motionRef.current || !secondaryMotionConfig || motionAnchorTargets.length === 0 || effectivePreviewBackend === "static-fit") {
       return;
     }
 
     garmentSkinned?.skeleton?.update();
-
-    const state = motionStateRef.current;
-    const dt = Math.min(1 / 24, Math.max(1 / 240, delta || 1 / 60));
     const time = frameState.clock.getElapsedTime();
     const anchorWorld = sampleWeightedAnchorWorld(motionAnchorTargets, new THREE.Vector3());
-    if (!state.initialized) {
-      state.initialized = true;
-      state.lastAnchorWorld.copy(anchorWorld);
+    const request = buildReferenceClosetStagePreviewFrameRequest({
+      sessionId: String(previewSessionRef.current),
+      sequence: (previewSequenceRef.current += 1),
+      backend: effectivePreviewBackend,
+      elapsedTimeSeconds: time,
+      deltaSeconds: delta || 1 / 60,
+      featureSnapshot: previewFeatureSnapshot,
+      currentAnchorWorld: vectorToPreviewTuple(anchorWorld),
+      state: motionStateRef.current,
+      config: {
+        ...secondaryMotionConfig,
+        baseOffsetY: baseMotionOffsetY,
+      },
+    });
+
+    if (effectivePreviewBackend === "worker-reduced" && previewWorkerRef.current) {
+      queuedPreviewRequestRef.current = request;
+      if (!previewWorkerPendingRef.current) {
+        const nextRequest = queuedPreviewRequestRef.current;
+        queuedPreviewRequestRef.current = null;
+        if (nextRequest) {
+          previewWorkerPendingRef.current = true;
+          previewWorkerRef.current.postMessage(nextRequest);
+        }
+      }
+      return;
     }
-    const velocityX = (anchorWorld.x - state.lastAnchorWorld.x) / dt;
-    const velocityY = (anchorWorld.y - state.lastAnchorWorld.y) / dt;
-    const velocityZ = (anchorWorld.z - state.lastAnchorWorld.z) / dt;
-    state.lastAnchorWorld.copy(anchorWorld);
 
-    const idlePhase = time * (secondaryMotionConfig.idleFrequencyHz ?? 0.9) * Math.PI * 2;
-    const idleSin = Math.sin(idlePhase);
-    const idleCos = Math.cos(idlePhase * 0.83 + 0.6);
-    const idleAmplitudeRad = THREE.MathUtils.degToRad(secondaryMotionConfig.idleAmplitudeDeg ?? 0.4);
-    const looseness = secondaryMotionConfig.looseness;
-    const targetYaw = THREE.MathUtils.clamp(
-      -velocityX * 0.028 * secondaryMotionConfig.influence + idleSin * idleAmplitudeRad * looseness,
-      -THREE.MathUtils.degToRad(secondaryMotionConfig.maxYawDeg),
-      THREE.MathUtils.degToRad(secondaryMotionConfig.maxYawDeg),
-    );
-    const targetPitch = THREE.MathUtils.clamp(
-      velocityZ * 0.022 * secondaryMotionConfig.influence + idleCos * idleAmplitudeRad * 0.72 * looseness,
-      -THREE.MathUtils.degToRad(secondaryMotionConfig.maxPitchDeg),
-      THREE.MathUtils.degToRad(secondaryMotionConfig.maxPitchDeg),
-    );
-    const targetRoll = THREE.MathUtils.clamp(
-      -velocityX * 0.018 * secondaryMotionConfig.influence + idleSin * idleAmplitudeRad * 0.48 * looseness,
-      -THREE.MathUtils.degToRad(secondaryMotionConfig.maxRollDeg),
-      THREE.MathUtils.degToRad(secondaryMotionConfig.maxRollDeg),
-    );
-
-    const yawAxis = springAxis(
-      state.rotation.y,
-      state.rotationVelocity.y,
-      targetYaw,
-      secondaryMotionConfig.stiffness,
-      secondaryMotionConfig.damping,
-      dt,
-    );
-    const pitchAxis = springAxis(
-      state.rotation.x,
-      state.rotationVelocity.x,
-      targetPitch,
-      secondaryMotionConfig.stiffness,
-      secondaryMotionConfig.damping,
-      dt,
-    );
-    const rollAxis = springAxis(
-      state.rotation.z,
-      state.rotationVelocity.z,
-      targetRoll,
-      secondaryMotionConfig.stiffness,
-      secondaryMotionConfig.damping,
-      dt,
-    );
-    state.rotation.set(pitchAxis.value, yawAxis.value, rollAxis.value);
-    state.rotationVelocity.set(pitchAxis.velocity, yawAxis.velocity, rollAxis.velocity);
-
-    const targetPosX = THREE.MathUtils.clamp(
-      idleSin *
-        ((secondaryMotionConfig.lateralSwingCm ?? 0) / 100) *
-        looseness *
-        (secondaryMotionConfig.profileId.startsWith("hair") ? 1 : 0.74),
-      -0.06 * secondaryMotionConfig.scaleCompensation,
-      0.06 * secondaryMotionConfig.scaleCompensation,
-    );
-    const targetPosY = THREE.MathUtils.clamp(
-      Math.abs(idleCos) *
-        ((secondaryMotionConfig.verticalBobCm ?? 0) / 100) *
-        looseness +
-      Math.max(velocityY, 0) * 0.0025,
-      0,
-      0.08 * secondaryMotionConfig.scaleCompensation,
-    );
-    const posXAxis = springAxis(
-      state.position.x,
-      state.positionVelocity.x,
-      targetPosX,
-      secondaryMotionConfig.stiffness * 0.8,
-      secondaryMotionConfig.damping,
-      dt,
-    );
-    const posYAxis = springAxis(
-      state.position.y,
-      state.positionVelocity.y,
-      targetPosY,
-      secondaryMotionConfig.stiffness * 0.72,
-      secondaryMotionConfig.damping,
-      dt,
-    );
-    state.position.set(posXAxis.value, posYAxis.value, 0);
-    state.positionVelocity.set(posXAxis.velocity, posYAxis.velocity, 0);
-
-    motionRef.current.rotation.copy(state.rotation);
-    motionRef.current.position.set(state.position.x, baseMotionOffsetY + state.position.y, 0);
-
-    const angularEnergy =
-      Math.abs(state.rotationVelocity.x) + Math.abs(state.rotationVelocity.y) + Math.abs(state.rotationVelocity.z);
-    const positionalEnergy = Math.abs(state.positionVelocity.x) + Math.abs(state.positionVelocity.y);
-    const anchorEnergy = Math.abs(velocityX) + Math.abs(velocityY) + Math.abs(velocityZ);
-    const shouldContinue =
-      angularEnergy > 0.02 ||
-      positionalEnergy > 0.006 ||
-      anchorEnergy > 0.02 ||
-      Math.abs(targetYaw - state.rotation.y) > 0.002 ||
-      Math.abs(targetPitch - state.rotation.x) > 0.002 ||
-      Math.abs(targetRoll - state.rotation.z) > 0.002;
-
-    if (shouldContinue) {
+    const result = stepReferenceClosetStagePreviewFrame(request);
+    motionStateRef.current = result.state;
+    applyPreviewFrameResult(motionRef.current, result);
+    if (result.shouldContinue) {
       invalidate();
     }
   });
@@ -1187,6 +1186,8 @@ function AvatarRig({
   equippedGarments,
   selectedItemId,
   qualityTier,
+  previewBackend,
+  previewFeatureSnapshot,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1194,6 +1195,8 @@ function AvatarRig({
   equippedGarments: RuntimeGarmentAsset[];
   selectedItemId: string | null;
   qualityTier: QualityTier;
+  previewBackend: ReferenceClosetStagePreviewBackendId;
+  previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
   const avatarGltf = useRuntimeGLTF(manifest.modelPath);
@@ -1298,6 +1301,8 @@ function AvatarRig({
             poseId={poseId}
             selected={selectedItemId === item.id}
             qualityTier={qualityTier}
+            previewBackend={previewBackend}
+            previewFeatureSnapshot={previewFeatureSnapshot}
             layerContext={{
               layeredUnderOuterwear: item.category === "tops" && Boolean(outerwearGarment),
               hasTopUnderneath: item.category === "outerwear" && Boolean(topGarment),
@@ -1318,6 +1323,8 @@ function SceneRig({
   selectedItemId,
   avatarOnly,
   qualityTier,
+  previewBackend,
+  previewFeatureSnapshot,
   controlsEnableDamping,
   controlsDampingFactor,
 }: {
@@ -1328,6 +1335,8 @@ function SceneRig({
   selectedItemId: string | null;
   avatarOnly: boolean;
   qualityTier: QualityTier;
+  previewBackend: ReferenceClosetStagePreviewBackendId;
+  previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   controlsEnableDamping: boolean;
   controlsDampingFactor: number;
 }) {
@@ -1349,6 +1358,8 @@ function SceneRig({
         equippedGarments={equippedGarments}
         selectedItemId={selectedItemId}
         qualityTier={qualityTier}
+        previewBackend={previewBackend}
+        previewFeatureSnapshot={previewFeatureSnapshot}
       />
     </>
   );
@@ -1382,6 +1393,17 @@ export function ReferenceClosetStageCanvas({
       }),
     [backgroundColor, bodyProfile, equippedGarments, poseId, qualityTier],
   );
+  const previewFeatureSnapshot = useMemo(() => detectReferenceClosetStagePreviewFeatures(), []);
+  const previewBackend = useMemo(
+    () =>
+      resolveReferenceClosetStagePreviewBackend({
+        qualityTier,
+        hasContinuousMotion: scenePolicy.hasContinuousMotion,
+        featureSnapshot: previewFeatureSnapshot,
+        experimentalWebGPU: process.env.NEXT_PUBLIC_EXPERIMENTAL_WEBGPU_PREVIEW === "1",
+      }),
+    [previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
+  );
 
   return (
     <ReferenceClosetStageView scenePolicy={scenePolicy} qualityTier={qualityTier}>
@@ -1394,6 +1416,8 @@ export function ReferenceClosetStageCanvas({
           selectedItemId={selectedItemId}
           avatarOnly={scenePolicy.avatarOnly}
           qualityTier={qualityTier}
+          previewBackend={previewBackend}
+          previewFeatureSnapshot={previewFeatureSnapshot}
           controlsEnableDamping={scenePolicy.controlsEnableDamping}
           controlsDampingFactor={scenePolicy.controlsDampingFactor}
         />

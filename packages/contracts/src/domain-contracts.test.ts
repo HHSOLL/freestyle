@@ -50,6 +50,9 @@ import {
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
   publishedGarmentAssetSchema,
+  previewSimulationFrameRequestSchema,
+  previewSimulationFrameResultSchema,
+  previewSimulationFrameSchemaVersion,
   publishedRuntimeGarmentItemResponseSchema,
   publishedRuntimeGarmentListResponseSchema,
   runtimeAssetAuthoringSummarySchema,
@@ -443,6 +446,68 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
 
   assert.equal(created.fit_simulation_id, '00000000-0000-4000-8000-000000000025');
   assert.equal(read.fitSimulation.materialPreset, 'knit_medium');
+});
+
+test("preview simulation frame schemas accept worker-offload request and result payloads", () => {
+  const request = previewSimulationFrameRequestSchema.parse({
+    schemaVersion: previewSimulationFrameSchemaVersion,
+    sessionId: "session-1",
+    sequence: 3,
+    backend: "worker-reduced",
+    elapsedTimeSeconds: 1.25,
+    deltaSeconds: 1 / 60,
+    featureSnapshot: {
+      hasWorker: true,
+      hasOffscreenCanvas: false,
+      hasWebGPU: false,
+      crossOriginIsolated: false,
+    },
+    currentAnchorWorld: [0.1, 1.4, 0.2],
+    state: {
+      initialized: true,
+      lastAnchorWorld: [0.08, 1.4, 0.19],
+      rotationRad: [0, 0, 0],
+      rotationVelocity: [0, 0, 0],
+      positionOffset: [0, 0, 0],
+      positionVelocity: [0, 0, 0],
+    },
+    config: {
+      profileId: "garment-loose",
+      stiffness: 8,
+      damping: 2.8,
+      influence: 0.9,
+      looseness: 1.12,
+      scaleCompensation: 1,
+      maxYawDeg: 16,
+      maxPitchDeg: 12,
+      maxRollDeg: 8,
+      idleAmplitudeDeg: 0.4,
+      idleFrequencyHz: 0.9,
+      verticalBobCm: 1.2,
+      lateralSwingCm: 1.8,
+      baseOffsetY: 0.03,
+    },
+  });
+
+  const result = previewSimulationFrameResultSchema.parse({
+    schemaVersion: previewSimulationFrameSchemaVersion,
+    sessionId: request.sessionId,
+    sequence: request.sequence,
+    backend: request.backend,
+    state: request.state,
+    rotationRad: [0.01, 0.02, 0.01],
+    position: [0.002, 0.034, 0],
+    targetRotationRad: [0.015, 0.021, 0.011],
+    targetPosition: [0.003, 0.036, 0],
+    angularEnergy: 0.08,
+    positionalEnergy: 0.01,
+    anchorEnergy: 0.12,
+    shouldContinue: true,
+  });
+
+  assert.equal(request.backend, "worker-reduced");
+  assert.equal(result.schemaVersion, previewSimulationFrameSchemaVersion);
+  assert.equal(result.shouldContinue, true);
 });
 
 test('fitMapArtifactDataSchema accepts typed overlay evidence for phase e overlays', () => {

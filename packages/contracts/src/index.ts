@@ -776,10 +776,95 @@ export const fitCalibrationReportSchema = z
 export const fitSimulateHQJobType = "fit_simulate_hq_v1";
 export const fitSimulateHQSchemaVersion = "fit-simulate-hq.v1";
 export const fitMapArtifactSchemaVersion = "fit-map-json.v1";
+export const previewSimulationFrameSchemaVersion = "preview-simulation-frame.v1";
 const fitSimulationOpaqueIdSchema = z.string().trim().min(1).max(160);
 export const fitSimulationCacheKeySchema = z.string().trim().min(1).max(160);
 
 export const fitSimulationQualityTierSchema = z.enum(["fast", "balanced", "high"]);
+export const previewSimulationBackendSchema = z.enum([
+  "static-fit",
+  "cpu-reduced",
+  "worker-reduced",
+  "experimental-webgpu",
+]);
+
+export const previewSimulationFeatureSnapshotSchema = z
+  .object({
+    hasWorker: z.boolean(),
+    hasOffscreenCanvas: z.boolean(),
+    hasWebGPU: z.boolean(),
+    crossOriginIsolated: z.boolean(),
+  })
+  .strict();
+
+const previewSimulationVector3Schema = z.tuple([
+  z.number().finite(),
+  z.number().finite(),
+  z.number().finite(),
+]);
+
+export const previewSimulationFrameStateSchema = z
+  .object({
+    initialized: z.boolean(),
+    lastAnchorWorld: previewSimulationVector3Schema,
+    rotationRad: previewSimulationVector3Schema,
+    rotationVelocity: previewSimulationVector3Schema,
+    positionOffset: previewSimulationVector3Schema,
+    positionVelocity: previewSimulationVector3Schema,
+  })
+  .strict();
+
+export const previewSimulationFrameConfigSchema = z
+  .object({
+    profileId: z.enum(["hair-sway", "hair-long", "hair-bob", "garment-soft", "garment-loose"]),
+    stiffness: z.number().finite().positive(),
+    damping: z.number().finite().positive(),
+    influence: z.number().finite().positive(),
+    looseness: z.number().finite().positive(),
+    scaleCompensation: z.number().finite().positive(),
+    maxYawDeg: z.number().finite().nonnegative(),
+    maxPitchDeg: z.number().finite().nonnegative(),
+    maxRollDeg: z.number().finite().nonnegative(),
+    idleAmplitudeDeg: z.number().finite().nonnegative().optional(),
+    idleFrequencyHz: z.number().finite().positive().optional(),
+    verticalBobCm: z.number().finite().nonnegative().optional(),
+    lateralSwingCm: z.number().finite().nonnegative().optional(),
+    baseOffsetY: z.number().finite(),
+  })
+  .strict();
+
+export const previewSimulationFrameRequestSchema = z
+  .object({
+    schemaVersion: z.literal(previewSimulationFrameSchemaVersion),
+    sessionId: z.string().trim().min(1).max(64),
+    sequence: z.number().int().nonnegative(),
+    backend: previewSimulationBackendSchema,
+    elapsedTimeSeconds: z.number().finite().nonnegative(),
+    deltaSeconds: z.number().finite().positive(),
+    featureSnapshot: previewSimulationFeatureSnapshotSchema,
+    currentAnchorWorld: previewSimulationVector3Schema,
+    state: previewSimulationFrameStateSchema,
+    config: previewSimulationFrameConfigSchema,
+  })
+  .strict();
+
+export const previewSimulationFrameResultSchema = z
+  .object({
+    schemaVersion: z.literal(previewSimulationFrameSchemaVersion),
+    sessionId: z.string().trim().min(1).max(64),
+    sequence: z.number().int().nonnegative(),
+    backend: previewSimulationBackendSchema,
+    state: previewSimulationFrameStateSchema,
+    rotationRad: previewSimulationVector3Schema,
+    position: previewSimulationVector3Schema,
+    targetRotationRad: previewSimulationVector3Schema,
+    targetPosition: previewSimulationVector3Schema,
+    angularEnergy: z.number().finite().nonnegative(),
+    positionalEnergy: z.number().finite().nonnegative(),
+    anchorEnergy: z.number().finite().nonnegative(),
+    shouldContinue: z.boolean(),
+  })
+  .strict();
 
 export const fitSimulationArtifactKindSchema = z.enum(["draped_glb", "fit_map_json", "preview_png"]);
 
@@ -1867,6 +1952,12 @@ export type FitCalibrationGarmentArchetype = z.infer<typeof fitCalibrationGarmen
 export type FitCalibrationGarment = z.infer<typeof fitCalibrationGarmentSchema>;
 export type FitCalibrationReport = z.infer<typeof fitCalibrationReportSchema>;
 export type FitSimulationQualityTier = z.infer<typeof fitSimulationQualityTierSchema>;
+export type PreviewSimulationBackend = z.infer<typeof previewSimulationBackendSchema>;
+export type PreviewSimulationFeatureSnapshot = z.infer<typeof previewSimulationFeatureSnapshotSchema>;
+export type PreviewSimulationFrameState = z.infer<typeof previewSimulationFrameStateSchema>;
+export type PreviewSimulationFrameConfig = z.infer<typeof previewSimulationFrameConfigSchema>;
+export type PreviewSimulationFrameRequest = z.infer<typeof previewSimulationFrameRequestSchema>;
+export type PreviewSimulationFrameResult = z.infer<typeof previewSimulationFrameResultSchema>;
 export type FitSimulationCacheKey = z.infer<typeof fitSimulationCacheKeySchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;

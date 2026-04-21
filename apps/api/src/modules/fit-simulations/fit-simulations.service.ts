@@ -34,6 +34,22 @@ import {
   upsertFitSimulationRecord,
 } from "./fit-simulations.repository.js";
 
+const fitSimulationArtifactPriority = {
+  draped_glb: 0,
+  preview_png: 1,
+  fit_map_json: 2,
+  metrics_json: 3,
+} as const satisfies Record<PublicFitSimulationRecord["artifacts"][number]["kind"], number>;
+
+const sortFitSimulationArtifactsForPresentation = (
+  artifacts: PublicFitSimulationRecord["artifacts"],
+) =>
+  [...artifacts].sort((left, right) => {
+    const leftRank = fitSimulationArtifactPriority[left.kind] ?? Number.MAX_SAFE_INTEGER;
+    const rightRank = fitSimulationArtifactPriority[right.kind] ?? Number.MAX_SAFE_INTEGER;
+    return leftRank - rightRank || left.kind.localeCompare(right.kind);
+  });
+
 const publicAssetBaseUrl = () => process.env.PUBLIC_ASSET_BASE_URL?.trim() || "https://freestyle.local";
 
 const resolvePublicAssetUrl = (value: string) => {
@@ -289,7 +305,7 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     instantFit: row.instantFit,
     fitMap: row.fitMap,
     fitMapSummary: row.fitMapSummary,
-    artifacts: row.artifacts,
+    artifacts: sortFitSimulationArtifactsForPresentation(row.artifacts),
     metrics: row.metrics,
     warnings: row.warnings,
     errorMessage: row.errorMessage,

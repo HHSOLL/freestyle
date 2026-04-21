@@ -16,7 +16,8 @@
 - active offline simulation contract: `fit_simulate_hq_v1`
   - versioned request/result schemas live in `packages/contracts`
   - the runtime router now registers a baseline handler
-  - the baseline worker now emits typed `fit_map_json` plus `preview_png`; `draped_glb` remains future work
+  - the baseline worker now emits `draped_glb`, typed `fit_map_json`, `preview_png`, and `metrics_json`
+  - the current `draped_glb` is an authored-scene merge baseline, not solver-deformed cloth truth
 
 ## Job Handler Matrix
 1. `worker_importer` handler
@@ -49,12 +50,13 @@
 
 6. `worker_fit_simulate_hq` handler
 - Job type: `fit_simulate_hq_v1`
-- Output: persisted fit-simulation record plus `fit_map_json` and `preview_png` artifacts
-- Expected artifact kind set stays reserved as `draped_glb`, `fit_map_json`, `preview_png`
+- Output: persisted fit-simulation record plus `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json` artifacts
+- Expected artifact kind set stays reserved as `draped_glb`, `fit_map_json`, `preview_png`, `metrics_json`
 - current baseline note:
   - the handler is active
-  - `fit_map_json` and `preview_png` are implemented
-  - `draped_glb` is intentionally still warning-backed and pending
+  - `draped_glb` is implemented as an authored-scene merge baseline
+  - `fit_map_json`, `preview_png`, and `metrics_json` are implemented
+  - solver-deformed cloth output is still future work
 
 ## Recommended Railway Layout
 1. 최소 비용 운영

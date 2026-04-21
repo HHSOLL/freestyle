@@ -41,6 +41,7 @@ import {
   garmentSimProxySchema,
   fitCalibrationReportSchema,
   fitMapArtifactDataSchema,
+  fitSimulationMetricsArtifactDataSchema,
   fitSimulationCreateResponseSchema,
   fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
@@ -394,6 +395,10 @@ test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result enve
         kind: 'preview_png',
         url: 'https://cdn.freestyle.test/jobs/fit/preview.png',
       },
+      {
+        kind: 'metrics_json',
+        url: 'https://cdn.freestyle.test/jobs/fit/metrics.json',
+      },
     ],
     metrics: {
       durationMs: 120000,
@@ -411,6 +416,85 @@ test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result enve
 
   assert.equal(parsed.artifacts[0]?.kind, 'draped_glb');
   assert.equal(parsed.metrics.durationMs, 120000);
+});
+
+test('fitSimulationMetricsArtifactDataSchema accepts typed HQ metrics artifacts', () => {
+  const bodyProfileRevision = buildBodyProfileRevision(
+    normalizeBodyProfile({
+      gender: 'female',
+      bodyFrame: 'balanced',
+      simple: {
+        heightCm: 166,
+        shoulderCm: 40,
+        chestCm: 88,
+        waistCm: 70,
+        hipCm: 96,
+        inseamCm: 79,
+      },
+    }),
+  );
+  const garmentRevision = buildPublishedGarmentRevision({
+    id: 'starter-top-soft-casual',
+    publication: {
+      assetVersion: 'starter-top-soft-casual@1.0.0',
+    },
+  });
+
+  const parsed = fitSimulationMetricsArtifactDataSchema.parse({
+    schemaVersion: 'fit-sim-metrics-json.v1',
+    generatedAt: '2026-04-21T03:00:00.000Z',
+    fitSimulationId: '00000000-0000-4000-8000-000000000035',
+    request: {
+      bodyVersionId: `body-profile:user-1:${bodyProfileRevision}`,
+      bodyProfileRevision,
+      garmentVariantId: 'starter-top-soft-casual',
+      garmentRevision,
+      avatarVariantId: 'female-base',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      cacheKey: buildFitSimulationCacheKey({
+        avatarVariantId: 'female-base',
+        bodyProfileRevision,
+        garmentVariantId: 'starter-top-soft-casual',
+        garmentRevision,
+        materialPreset: 'knit_medium',
+        qualityTier: 'balanced',
+      }),
+    },
+    garment: {
+      id: 'starter-top-soft-casual',
+      name: 'Soft Casual',
+      category: 'tops',
+    },
+    fitMapSummary: {
+      dominantOverlayKind: 'collisionRiskMap',
+      dominantRegionId: 'chest',
+      dominantMeasurementKey: 'chestCm',
+      dominantScore: 0.61,
+      overlayScores: [
+        { kind: 'easeMap', overallScore: 0.12, maxRegionScore: 0.12 },
+        { kind: 'stretchMap', overallScore: 0.08, maxRegionScore: 0.08 },
+        { kind: 'collisionRiskMap', overallScore: 0.61, maxRegionScore: 0.61 },
+        { kind: 'confidenceMap', overallScore: 0.79, maxRegionScore: 0.79 },
+      ],
+    },
+    metrics: {
+      durationMs: 820,
+      penetrationRate: 0.021,
+      maxStretchRatio: 1.04,
+    },
+    warnings: [
+      'Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.',
+    ],
+    drapeSource: 'authored-scene-merge',
+    artifactKinds: ['draped_glb', 'preview_png', 'fit_map_json', 'metrics_json'],
+  });
+
+  assert.equal(parsed.drapeSource, 'authored-scene-merge');
+  assert.equal(parsed.artifactKinds[1], 'preview_png');
+  assert.equal(parsed.artifactKinds[3], 'metrics_json');
 });
 
 test('fitSimulation response schemas accept the active lab record shape', () => {
@@ -698,7 +782,7 @@ test('fitMapArtifactDataSchema accepts typed overlay evidence for phase e overla
         ],
       },
     ],
-    warnings: ['Baseline Phase D worker emits fit_map_json plus preview_png; draped_glb remains pending.'],
+    warnings: ['Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.'],
   });
 
   assert.equal(parsed.overlays.length, 4);

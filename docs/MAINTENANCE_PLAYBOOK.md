@@ -153,6 +153,14 @@ If any of the above regress, stop the release.
 - verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
 - verify fit-simulation jobs dedupe on canonical `cacheKey` when the caller omits an explicit `idempotency_key`
 - verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, and `cacheKey` consistently through API and worker reads
+- verify succeeded fit-simulation records now persist the full artifact bundle: `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
+- verify lab fit-simulation reads return artifacts in presentation order with `draped_glb` first
+
+### HQ fit-simulation artifact failure
+
+- verify `workers/fit_simulation/src/worker.ts` can resolve avatar and garment manifest URLs into readable runtime assets under `apps/web/public/assets`
+- verify `node_modules/.bin/gltf-transform` is available to the worker runtime; `draped_glb` generation now depends on the merge command
+- if `draped_glb` is missing but the job succeeded, treat it as a release blocker for the Phase D artifact path
 
 ### API namespace regression
 

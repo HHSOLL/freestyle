@@ -12,7 +12,7 @@ It is separate from `docs/replatform-v2/**`.
 
 ## As Of
 
-- Date: `2026-04-20`
+- Date: `2026-04-21`
 - Current branch baseline: `main`
 - Working overall completion estimate: `100%`
 
@@ -38,7 +38,7 @@ The completion estimate is a planning number, not a release gate. It now reflect
 | `Phase A` | avatar authoring pipeline hardening | `completed` | base-avatar contract, sidecar/report schemas, shipped GLB validation, provenance, and committed regression fixtures are now closed |
 | `Phase B` | pattern and garment metadata layer | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; committed starter pattern-spec parity is now owned by a shared garment-domain helper instead of ad-hoc validator logic |
 | `Phase C` | instant fit engine | `completed` | `Batch 1`, `Batch 2`, and `Batch 3` are complete; the product `Closet` route now ships user-scoped instant-fit seeds while local fit review remains the live override path |
-| `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam, `Batch 2` closed the lab create/read path, and `Batch 3` added `preview_png` plus typed fit-map overlay artifacts |
+| `Phase D` | offline cloth simulation worker | `completed` | `Batch 1` reserved the contract seam, `Batch 2` closed the lab create/read path, `Batch 3` added `preview_png` plus typed fit-map overlay artifacts, and `Batch 4` closed the HQ artifact bundle with baseline `draped_glb` and `metrics_json` |
 | `Phase E` | fit / stress / pressure map | `completed` | `Batch 1` promoted the current `fit_map_json` payload into a typed overlay contract (`ease`, `stretch`, `collisionRisk`, `confidence`), `Batch 2` carried that `fitMap` snapshot through the lab read-path, and `Batch 3` closed the summary/consumer seam |
 
 ### `Phase A / Batch 1`

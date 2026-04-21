@@ -67,6 +67,7 @@ Also confirm namespace headers:
 - lab routes return `x-freestyle-surface: lab`
 - lab routes reject anonymous-header fallback and require bearer-backed auth outside non-production `DEV_BYPASS_USER_ID`
 - admin garment routes reject anonymous-header fallback and non-admin callers
+- explicit browser origins are rejected unless they match deployed `CORS_ORIGIN` / `CORS_ORIGIN_PATTERNS`
 
 ## 3. Release Checklist
 
@@ -142,10 +143,14 @@ If any of the above regress, stop the release.
 ### Persistence regression
 
 - verify body profile envelope compatibility
+- verify body profile reads and writes preserve canonical `revision`
+- verify stale `baseRevision` writes return `409 REVISION_CONFLICT` and surface the current server profile
 - verify closet scene still hydrates with `qualityTier`, `poseId`, and equipped items
 - verify canvas compositions serialize and deserialize cleanly
 - verify legacy-compatible asset creation still works when a remote store lags optional `assets` columns (`name`, `brand`, `source_url`, `metadata`)
 - verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
+- verify fit-simulation jobs dedupe on canonical `cacheKey` when the caller omits an explicit `idempotency_key`
+- verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, and `cacheKey` consistently through API and worker reads
 
 ### API namespace regression
 
@@ -166,6 +171,8 @@ If any of the above regress, stop the release.
 - Do not land new 3D assets without updating credits and pipeline documentation.
 - Do not add new large page files when the logic belongs in a domain package or UI component.
 - Do not leave stale redirects, stale docs, or stale storage keys untracked.
+- Do not deploy browser-facing environments without an explicit CORS allowlist once requests carry an `Origin` header.
+- Do not re-enable anonymous-header auth in production unless the owning route is explicitly designed and reviewed for that posture.
 
 ## 7. Required Document Sync
 

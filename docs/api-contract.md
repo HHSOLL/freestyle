@@ -8,11 +8,12 @@
 
 ## Auth
 - 기본적으로 `Authorization: Bearer <supabase_jwt>`를 사용한다.
-- `ALLOW_ANONYMOUS_USER=true`일 때는 브라우저가 보내는 `x-anonymous-user-id: <uuid>`로도 user-owned endpoint를 사용할 수 있다.
+- 브라우저가 보내는 `x-anonymous-user-id: <uuid>` fallback은 `ALLOW_ANONYMOUS_USER=true`일 때만 허용된다. 기본 운영값은 fail-closed이며, anonymous header auth는 명시적 opt-in이다.
 - 단, `/v1/lab/*`는 예외다. 이 surface는 anonymous header fallback을 허용하지 않고, explicit bearer auth 또는 non-production `DEV_BYPASS_USER_ID`로만 접근한다.
 - 실패 시 `401 UNAUTHORIZED`
 - browser-facing product/admin clients use `NEXT_PUBLIC_SUPABASE_URL` plus a low-privilege browser key. The current repo still names that browser key `NEXT_PUBLIC_SUPABASE_ANON_KEY` for compatibility, but its intended posture is public/publishable only.
 - `SUPABASE_SERVICE_ROLE_KEY` is backend-only for Railway API / worker surfaces and must never be injected into Vercel/browser runtimes.
+- explicit `Origin` header가 들어오는 cross-origin request는 `CORS_ORIGIN` 또는 `CORS_ORIGIN_PATTERNS` allowlist를 통과해야 한다. 현재 구현은 no-origin server-to-server traffic만 allow-by-default이며, configured allowlist가 없는 explicit browser origin은 fail-closed로 거부한다.
 - 예외:
   - `GET /v1/auth/naver/start`
   - `GET /v1/auth/naver/callback`
@@ -66,18 +67,46 @@
       }
     },
     "version": 2,
+    "revision": "br_1z7w8c5m2s",
     "updatedAt": "2026-04-19T10:00:00.000Z"
   }
 }
 ```
 - when no persisted record exists, `bodyProfile` is `null`
+- `revision` is canonical and derived from the normalized persisted profile; reads backfill it even for older records that predate revision storage
 
 #### `PUT /v1/profile/body-profile`
 - auth: same as other `/v1/profile/*` routes
 - request body must satisfy the active `BodyProfileUpsertInput` contract from `@freestyle/contracts`
 - current compatibility rule: both canonical envelope payloads and legacy flat body-profile payloads are normalized into the canonical envelope before persistence
+- request body may include optional `baseRevision`; when present it must match the current persisted profile revision or the write fails with `409 REVISION_CONFLICT`
 - current implementation detail: server persistence is now behind an API-side `BodyProfile` persistence port with a versioned file adapter, so backing-store replacement does not require route contract changes
 - response body satisfies the active `BodyProfileRecord` contract from `@freestyle/contracts`
+- stale write example:
+```json
+{
+  "error": "REVISION_CONFLICT",
+  "message": "Body profile revision is stale.",
+  "currentBodyProfile": {
+    "profile": {
+      "version": 2,
+      "gender": "female",
+      "bodyFrame": "balanced",
+      "simple": {
+        "heightCm": 172,
+        "shoulderCm": 44,
+        "chestCm": 91,
+        "waistCm": 74,
+        "hipCm": 95,
+        "inseamCm": 79
+      }
+    },
+    "version": 2,
+    "revision": "br_1z7w8c5m2s",
+    "updatedAt": "2026-04-21T08:15:00.000Z"
+  }
+}
+```
 
 ### Admin garment publication boundary
 - garment generation itself should happen in a separate admin/publishing surface, not in `Closet`.
@@ -126,6 +155,8 @@
   - the create route requires an existing persisted `BodyProfile`
   - the create route requires a published runtime garment id
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
+  - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
+  - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
   - the baseline worker currently persists typed `fit_map_json` plus `preview_png`; `draped_glb` remains a future output
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
@@ -166,7 +197,10 @@
     "jobId": "00000000-0000-4000-8000-000000000024",
     "status": "succeeded",
     "avatarVariantId": "female-base",
-    "bodyVersionId": "body-profile:user-id:2026-04-20T10:00:00.000Z",
+    "bodyVersionId": "body-profile:user-id:br_1z7w8c5m2s",
+    "bodyProfileRevision": "br_1z7w8c5m2s",
+    "garmentRevision": "gr_5q94jz62w1",
+    "cacheKey": "fsk_7q0mp3r8d5",
     "garmentVariantId": "published-top-phase-d-smoke",
     "avatarManifestUrl": "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
     "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",

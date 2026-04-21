@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
+  buildBodyProfileRevision,
   bodyProfileRecordSchema,
   bodyProfileUpsertInputSchema,
 } from "@freestyle/contracts";
@@ -28,6 +29,16 @@ export type BodyProfilePersistencePort = {
   getBodyProfileRecordForUser: (userId: string) => Promise<BodyProfileRecord | null>;
   upsertBodyProfileRecordForUser: (userId: string, input: BodyProfileUpsertInput) => Promise<BodyProfileRecord>;
 };
+
+export class BodyProfileRevisionConflictError extends Error {
+  readonly currentBodyProfile: BodyProfileRecord | null;
+
+  constructor(currentBodyProfile: BodyProfileRecord | null) {
+    super("Body profile revision mismatch.");
+    this.name = "BodyProfileRevisionConflictError";
+    this.currentBodyProfile = currentBodyProfile;
+  }
+}
 
 const emptyStore = (): BodyProfileStoreShape => ({
   version: 1,
@@ -118,9 +129,14 @@ export const createFileBodyProfilePersistencePort = (options?: {
     async upsertBodyProfileRecordForUser(userId, input) {
       const parsed = bodyProfileUpsertInputSchema.parse(input);
       const store = await readStoreFromPath(resolveStorePath());
+      const currentRecord = store.items[userId] ?? null;
+      if ((parsed.baseRevision ?? null) !== (currentRecord?.revision ?? null)) {
+        throw new BodyProfileRevisionConflictError(currentRecord);
+      }
       const nextRecord: BodyProfileRecord = {
         profile: parsed.profile,
         version: 2,
+        revision: buildBodyProfileRevision(parsed.profile),
         updatedAt: new Date().toISOString(),
       };
 
@@ -148,9 +164,14 @@ export const createMemoryBodyProfilePersistencePort = (
     },
     async upsertBodyProfileRecordForUser(userId, input) {
       const parsed = bodyProfileUpsertInputSchema.parse(input);
+      const currentRecord = store.get(userId) ?? null;
+      if ((parsed.baseRevision ?? null) !== (currentRecord?.revision ?? null)) {
+        throw new BodyProfileRevisionConflictError(currentRecord);
+      }
       const nextRecord: BodyProfileRecord = {
         profile: parsed.profile,
         version: 2,
+        revision: buildBodyProfileRevision(parsed.profile),
         updatedAt: new Date().toISOString(),
       };
 

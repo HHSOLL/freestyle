@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import {
+  bodyProfileConflictResponseSchema,
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
   bodyProfileUpsertInputSchema,
 } from "@freestyle/contracts";
 import { requireAuth } from "../modules/auth/auth.js";
 import {
+  BodyProfileRevisionConflictError,
   getBodyProfileRecordForUser,
   upsertBodyProfileRecordForUser,
 } from "../modules/profile/body-profile.repository.js";
@@ -31,7 +33,21 @@ export const registerProfileRoutes = (app: FastifyInstance) => {
       });
     }
 
-    const bodyProfile = await upsertBodyProfileRecordForUser(userId, parsed.data);
+    let bodyProfile;
+    try {
+      bodyProfile = await upsertBodyProfileRecordForUser(userId, parsed.data);
+    } catch (error) {
+      if (error instanceof BodyProfileRevisionConflictError) {
+        return reply.code(409).send(
+          bodyProfileConflictResponseSchema.parse({
+            error: "REVISION_CONFLICT",
+            message: "Body profile revision mismatch.",
+            currentBodyProfile: error.currentBodyProfile,
+          }),
+        );
+      }
+      throw error;
+    }
     return reply.code(200).send(bodyProfilePutResponseSchema.parse({ bodyProfile }));
   });
 };

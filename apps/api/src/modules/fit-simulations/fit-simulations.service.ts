@@ -10,10 +10,13 @@ import {
 } from "@freestyle/domain-garment";
 import { resolveAvatarVariantFromProfile } from "@freestyle/domain-avatar";
 import {
+  buildFitSimulationCacheKey,
+  buildPublishedGarmentRevision,
   JOB_TYPES,
   createFitSimulationInputSchema,
   fitSimulationJobPayloadSchema,
   normalizeQueuedJobPayload,
+  type BodyProfileRecord,
   type CreateFitSimulationInput,
   type FitSimulationJobPayload,
   type JobRecord,
@@ -47,8 +50,8 @@ const avatarModelPathByVariant = {
   "male-base": "/assets/avatars/mpfb-male-base.glb",
 } as const;
 
-const buildBodyVersionId = (userId: string, updatedAt: string | undefined) =>
-  `body-profile:${userId}:${updatedAt ?? "current"}`;
+const buildBodyVersionId = (userId: string, revision: BodyProfileRecord["revision"]) =>
+  `body-profile:${userId}:${revision}`;
 
 const inferFitSimulationMaterialPreset = (item: PublishedGarmentAsset) => {
   const stretchRatio =
@@ -74,21 +77,36 @@ const buildSimulationRequest = (
 ) => {
   const profile = bodyProfileRecord.profile;
   const avatarVariantId = resolveAvatarVariantFromProfile(profile);
-  const bodyVersionId = buildBodyVersionId(userId, bodyProfileRecord.updatedAt);
+  const bodyProfileRevision = bodyProfileRecord.revision;
+  const bodyVersionId = buildBodyVersionId(userId, bodyProfileRevision);
   const garmentVariantId = garment.id;
+  const garmentRevision = buildPublishedGarmentRevision(garment);
   const avatarManifestUrl = resolvePublicAssetUrl(avatarModelPathByVariant[avatarVariantId]);
   const garmentManifestUrl = resolvePublicAssetUrl(
     resolveGarmentRuntimeModelPath(garment.runtime, avatarVariantId),
   );
+  const materialPreset = input.material_preset ?? inferFitSimulationMaterialPreset(garment);
+  const qualityTier = input.quality_tier ?? "balanced";
+  const cacheKey = buildFitSimulationCacheKey({
+    avatarVariantId,
+    bodyProfileRevision,
+    garmentVariantId,
+    garmentRevision,
+    materialPreset,
+    qualityTier,
+  });
 
   return {
     avatarVariantId,
+    bodyProfileRevision,
     bodyVersionId,
     garmentVariantId,
+    garmentRevision,
     avatarManifestUrl,
     garmentManifestUrl,
-    materialPreset: input.material_preset ?? inferFitSimulationMaterialPreset(garment),
-    qualityTier: input.quality_tier ?? "balanced",
+    materialPreset,
+    qualityTier,
+    cacheKey,
   } as const;
 };
 
@@ -160,6 +178,22 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
   }
 
   const { bodyProfileRecord, garment, request } = await buildCreateInput(userId, parsedInput);
+  const idempotencyKey = parsedInput.idempotency_key ?? request.cacheKey;
+
+  if (!parsedInput.idempotency_key) {
+    const existingJob = await getJobByIdempotencyKeyForUser({
+      userId,
+      jobType: JOB_TYPES.FIT_SIMULATE_HQ,
+      idempotencyKey,
+    });
+
+    if (existingJob) {
+      const existingFitSimulation = await getFitSimulationRecordForUser(getFitSimulationIdFromJob(existingJob), userId);
+      if (existingFitSimulation) {
+        return { fitSimulation: existingFitSimulation, job: existingJob };
+      }
+    }
+  }
   const now = new Date().toISOString();
   const fitSimulationId = randomUUID();
   const fitAssessment = assessGarmentPhysicalFit(garment, bodyProfileRecord.profile);
@@ -172,11 +206,14 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
     status: "queued",
     avatarVariantId: request.avatarVariantId,
     bodyVersionId: request.bodyVersionId,
+    bodyProfileRevision: request.bodyProfileRevision,
     garmentVariantId: request.garmentVariantId,
+    garmentRevision: request.garmentRevision,
     avatarManifestUrl: request.avatarManifestUrl,
     garmentManifestUrl: request.garmentManifestUrl,
     materialPreset: request.materialPreset,
     qualityTier: request.qualityTier,
+    cacheKey: request.cacheKey,
     bodyProfile: bodyProfileRecord.profile,
     garmentSnapshot: garment,
     fitAssessment,
@@ -198,13 +235,16 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
     payload: {
       fit_simulation_id: fitSimulation.id,
       bodyVersionId: request.bodyVersionId,
+      bodyProfileRevision: request.bodyProfileRevision,
       garmentVariantId: request.garmentVariantId,
+      garmentRevision: request.garmentRevision,
       avatarManifestUrl: request.avatarManifestUrl,
       garmentManifestUrl: request.garmentManifestUrl,
       materialPreset: request.materialPreset,
       qualityTier: request.qualityTier,
+      cacheKey: request.cacheKey,
     } satisfies FitSimulationJobPayload,
-    idempotencyKey: parsedInput.idempotency_key,
+    idempotencyKey,
   });
 
   const boundFitSimulationId = getFitSimulationIdFromJob(job);
@@ -238,11 +278,14 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     status: row.status,
     avatarVariantId: row.avatarVariantId,
     bodyVersionId: row.bodyVersionId,
+    bodyProfileRevision: row.bodyProfileRevision,
     garmentVariantId: row.garmentVariantId,
+    garmentRevision: row.garmentRevision,
     avatarManifestUrl: row.avatarManifestUrl,
     garmentManifestUrl: row.garmentManifestUrl,
     materialPreset: row.materialPreset,
     qualityTier: row.qualityTier,
+    cacheKey: row.cacheKey,
     instantFit: row.instantFit,
     fitMap: row.fitMap,
     fitMapSummary: row.fitMapSummary,

@@ -256,10 +256,13 @@ Keep separate repositories for:
 Compatibility rules:
 
 - old flat body profile payloads must normalize into the current envelope shape
+- canonical body-profile records now carry a derived `revision`; clients should treat that revision as the optimistic-concurrency token for writes
+- API `PUT /v1/profile/body-profile` writes may include `baseRevision`; stale writes must fail with `409 REVISION_CONFLICT` instead of silently clobbering newer server state
 - storage keys must stay versioned
 - API-side body-profile persistence must stay behind a replaceable port so the file adapter can be swapped for a remote store without rewriting routes
 - API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move between the file fallback and the Supabase-backed `published_runtime_garments` store without changing route contracts
 - use `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` when the API should write and read from the remote publication table
+- fit-simulation identity must stay revision-based, not timestamp-based; use canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey` instead of ad-hoc `updatedAt` snapshots for dedupe
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules
@@ -286,6 +289,13 @@ Legacy and lab must remain isolated:
 - `/v1/lab/*` for experimental evaluation and try-on paths
 
 If a surface needs legacy or lab data, the page must present it as secondary or quarantined behavior, never as the primary product loop.
+
+Auth and origin defaults:
+
+- `ALLOW_ANONYMOUS_USER` is explicit opt-in only; do not rely on anonymous-header fallback unless the environment intentionally enables it
+- `/v1/lab/*` must reject anonymous-header fallback even when product routes allow it
+- explicit browser `Origin` headers are fail-closed unless they match `CORS_ORIGIN` or `CORS_ORIGIN_PATTERNS`
+- no-origin server-to-server traffic may still pass without an allowlist, but that should not be used as a substitute for deployed browser origin configuration
 
 ## 10. Design System Rules
 

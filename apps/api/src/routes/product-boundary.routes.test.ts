@@ -5,8 +5,10 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  bodyProfileConflictResponseSchema,
   bodyProfileGetResponseSchema,
   bodyProfilePutResponseSchema,
+  buildBodyProfileRevision,
   closetRuntimeGarmentListResponseSchema,
   fitSimulationCreateResponseSchema,
   fitSimulationGetResponseSchema,
@@ -185,6 +187,7 @@ test("product surface persists body profile through the profile namespace", asyn
   assert.equal(putPayload.bodyProfile.version, 2);
   assert.equal(putPayload.bodyProfile.profile.gender, "female");
   assert.equal(putPayload.bodyProfile.profile.bodyFrame, "balanced");
+  assert.equal(putPayload.bodyProfile.revision, buildBodyProfileRevision(putPayload.bodyProfile.profile));
 
   const getResponse = await app.inject({
     method: "GET",
@@ -197,6 +200,60 @@ test("product surface persists body profile through the profile namespace", asyn
   assert.equal(getPayload.bodyProfile?.profile.gender, "female");
   assert.equal(getPayload.bodyProfile?.profile.bodyFrame, "balanced");
   assert.equal(getPayload.bodyProfile?.version, 2);
+  assert.equal(getPayload.bodyProfile?.revision, putPayload.bodyProfile.revision);
+
+  await app.close();
+});
+
+test("profile namespace returns 409 when a stale baseRevision attempts to overwrite the current body profile", async () => {
+  const app = buildServer();
+
+  const firstPut = await app.inject({
+    method: "PUT",
+    url: "/v1/profile/body-profile",
+    payload: {
+      profile: {
+        version: 2,
+        gender: "female",
+        bodyFrame: "balanced",
+        simple: {
+          heightCm: 172,
+          shoulderCm: 44,
+          chestCm: 91,
+          waistCm: 74,
+          hipCm: 95,
+          inseamCm: 79,
+        },
+      },
+    },
+  });
+
+  const firstRecord = bodyProfilePutResponseSchema.parse(firstPut.json()).bodyProfile;
+  const response = await app.inject({
+    method: "PUT",
+    url: "/v1/profile/body-profile",
+    payload: {
+      profile: {
+        version: 2,
+        gender: "female",
+        bodyFrame: "athletic",
+        simple: {
+          heightCm: 172,
+          shoulderCm: 45,
+          chestCm: 92,
+          waistCm: 74,
+          hipCm: 95,
+          inseamCm: 79,
+        },
+      },
+      baseRevision: "body-profile:stale",
+    },
+  });
+
+  assert.equal(response.statusCode, 409);
+  const conflict = bodyProfileConflictResponseSchema.parse(response.json());
+  assert.equal(conflict.error, "REVISION_CONFLICT");
+  assert.equal(conflict.currentBodyProfile?.revision, firstRecord.revision);
 
   await app.close();
 });

@@ -315,7 +315,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "male-base": "/assets/garments/mpfb/male/top_soft_casual_v4.glb",
       },
       collisionZones: ["torso", "arms", "hips"],
-      bodyMaskZones: ["torso", "arms"],
+      bodyMaskZones: ["torso"],
       poseTuning: poseTuning({
         stride: {
           clearanceMultiplier: 1.02,

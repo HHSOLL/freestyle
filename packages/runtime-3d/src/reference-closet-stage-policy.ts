@@ -42,10 +42,75 @@ export type ReferenceClosetStageScenePolicy = {
   dpr: [number, number];
   backgroundColor: string;
   fogColor: string;
+  backdrop: {
+    wallColor: string;
+    floorColor: string;
+    ringColor: string;
+    orbColor: string;
+  };
   controlsEnableDamping: boolean;
   controlsDampingFactor: number;
   lighting: ReferenceClosetStageLightingPolicy;
 };
+
+type Rgb = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function hexToRgb(hex: string): Rgb {
+  const normalized = hex.replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return { r: 208, g: 212, b: 219 };
+  }
+
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex({ r, g, b }: Rgb) {
+  const toHex = (value: number) => clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function mixRgb(a: Rgb, b: Rgb, ratio: number): Rgb {
+  return {
+    r: a.r + (b.r - a.r) * ratio,
+    g: a.g + (b.g - a.g) * ratio,
+    b: a.b + (b.b - a.b) * ratio,
+  };
+}
+
+function normalizeStageColorOverride(color: string | undefined) {
+  if (!color) return null;
+  const normalized = color.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toLowerCase() : null;
+}
+
+function createBackdropPalette(baseColor: string, avatarOnly: boolean) {
+  const base = hexToRgb(baseColor);
+  const white = { r: 255, g: 255, b: 255 };
+  const black = { r: 18, g: 22, b: 28 };
+
+  return {
+    backgroundColor: baseColor,
+    fogColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.06 : 0.1)),
+    backdrop: {
+      wallColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.2 : 0.24)),
+      floorColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.32 : 0.36)),
+      ringColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.42 : 0.46)),
+      orbColor: rgbToHex(mixRgb(mixRgb(base, white, 0.3), black, avatarOnly ? 0.03 : 0.06)),
+    },
+  };
+}
 
 const avatarOnlyLightingPolicy: ReferenceClosetStageLightingPolicy = {
   ambientIntensity: 0.48,
@@ -159,17 +224,24 @@ export function resolveReferenceClosetStageScenePolicy({
   equippedGarments,
   poseId,
   qualityTier,
+  backgroundColorOverride,
 }: {
   bodyProfile: BodyProfile;
   equippedGarments: RuntimeGarmentAsset[];
   poseId: AvatarPoseId;
   qualityTier: QualityTier;
+  backgroundColorOverride?: string;
 }): ReferenceClosetStageScenePolicy {
   const avatarOnly = equippedGarments.length === 0;
   const hasContinuousMotion = equippedGarments.some((item) =>
     hasSignificantContinuousMotion(item, bodyProfile, poseId, qualityTier),
   );
   const lighting = avatarOnly ? avatarOnlyLightingPolicy : dressedLightingPolicy;
+  const defaultBackgroundColor = avatarOnly ? "#d7cec6" : "#d0d4db";
+  const scenePalette = createBackdropPalette(
+    normalizeStageColorOverride(backgroundColorOverride) ?? defaultBackgroundColor,
+    avatarOnly,
+  );
 
   return {
     avatarOnly,
@@ -177,16 +249,17 @@ export function resolveReferenceClosetStageScenePolicy({
     frameloop: "demand",
     shadows: qualityTier !== "low",
     antialias: qualityTier !== "low",
-    dpr: qualityTier === "low" ? [0.85, 1] : qualityTier === "high" ? [1, 1.5] : [0.95, 1.25],
-    backgroundColor: avatarOnly ? "#d7cec6" : "#d0d4db",
-    fogColor: avatarOnly ? "#d7cec6" : "#d0d4db",
+    dpr: qualityTier === "low" ? [0.85, 1] : qualityTier === "high" ? [1.15, 1.85] : [1, 1.4],
+    backgroundColor: scenePalette.backgroundColor,
+    fogColor: scenePalette.fogColor,
+    backdrop: scenePalette.backdrop,
     controlsEnableDamping: qualityTier !== "low" || hasContinuousMotion,
     controlsDampingFactor: qualityTier === "high" ? 0.08 : 0.06,
     lighting: {
       ...lighting,
       directional: {
         ...lighting.directional,
-        shadowMapSize: qualityTier === "high" ? 1536 : lighting.directional.shadowMapSize,
+        shadowMapSize: qualityTier === "high" ? 2048 : lighting.directional.shadowMapSize,
       },
     },
   };

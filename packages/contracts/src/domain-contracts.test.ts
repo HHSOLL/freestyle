@@ -30,11 +30,15 @@ import {
   garmentFitAssessmentSchema,
   garmentFitOverallSchema,
   garmentInstantFitReportSchema,
+  garmentMaterialProfileSchema,
   garmentFitProfileSchema,
   garmentFitStateSchema,
   garmentMeasurementsSchema,
+  garmentCollisionProxySchema,
+  garmentHQArtifactSpecSchema,
   garmentPatternSpecSchema,
   garmentPatternSpecSchemaVersion,
+  garmentSimProxySchema,
   fitCalibrationReportSchema,
   fitMapArtifactDataSchema,
   fitSimulationCreateResponseSchema,
@@ -651,6 +655,10 @@ test('authoring summary schemas accept committed garment, hair, and accessory ar
   assert.equal(garment.kind, 'garment');
   assert.equal(garment.variantId, 'female-base');
   assert.equal(garment.patternSpec?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json');
+  assert.equal(garment.materialProfile?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.material-profile.json');
+  assert.equal(garment.simProxy?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.sim-proxy.json');
+  assert.equal(garment.collisionProxy?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.collision-proxy.json');
+  assert.equal(garment.hqArtifact?.relativePath, 'authoring/garments/mpfb/specs/top_soft_casual.hq-artifact.json');
   assert.equal(hair.schemaVersion, assetAuthoringSummarySchemaVersion);
   assert.equal(hair.kind, 'hair');
   assert.equal(accessory.schemaVersion, assetAuthoringSummarySchemaVersion);
@@ -679,6 +687,33 @@ test('garmentPatternSpecSchema accepts committed starter authoring specs', () =>
   assert.equal(trousers.selectedSizeLabel, 'L');
   assert.equal(runner.category, 'shoes');
   assert.ok(runner.anchorIds.includes('leftFoot'));
+});
+
+test('authoring sidecar schemas accept committed garment solver artifacts', () => {
+  const materialProfile = garmentMaterialProfileSchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/top_soft_casual.material-profile.json'),
+  );
+  const simProxy = garmentSimProxySchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/top_soft_casual.sim-proxy.json'),
+  );
+  const collisionProxy = garmentCollisionProxySchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/top_soft_casual.collision-proxy.json'),
+  );
+  const hqArtifact = garmentHQArtifactSpecSchema.parse(
+    readJsonFixture('../../../authoring/garments/mpfb/specs/top_soft_casual.hq-artifact.json'),
+  );
+
+  assert.equal(materialProfile.runtimeStarterId, 'starter-top-soft-casual');
+  assert.equal(materialProfile.materialPresetId, 'cotton-jersey-light');
+  assert.equal(simProxy.meshRelativePathByVariant['female-base'], 'apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb');
+  assert.deepEqual(collisionProxy.anchorIds, [
+    'leftShoulder',
+    'rightShoulder',
+    'chestCenter',
+    'waistCenter',
+    'hipCenter',
+  ]);
+  assert.deepEqual(hqArtifact.expectedArtifacts, ['draped_glb', 'fit_map_json', 'preview_png', 'metrics_json']);
 });
 
 test('authoring summary schemas reject checkout-specific absolute paths', () => {

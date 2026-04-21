@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "garment-collision-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-bottom-soft-wool",
+  "category": "bottoms",
+  "colliderBudget": {
+    "capsules": 2,
+    "spheres": 0,
+    "proxyMeshes": 0
+  },
+  "anchorIds": [
+    "waistCenter",
+    "hipCenter",
+    "leftKnee",
+    "rightKnee"
+  ],
+  "colliders": [
+    {
+      "id": "hips-proxy",
+      "zone": "hips",
+      "kind": "capsule",
+      "radiusCm": 13,
+      "halfHeightCm": 18
+    },
+    {
+      "id": "legs-proxy",
+      "zone": "legs",
+      "kind": "capsule",
+      "radiusCm": 7.5,
+      "halfHeightCm": 29
+    }
+  ],
+  "notes": "Auto-generated collider envelope for starter-bottom-soft-wool."
+}

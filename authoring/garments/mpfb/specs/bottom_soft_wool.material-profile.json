@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-material-profile.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-bottom-soft-wool",
+  "category": "bottoms",
+  "materialPresetId": "wool-twill-soft",
+  "fabricFamily": "woven",
+  "stretchProfile": "low",
+  "thicknessMm": 1.4,
+  "arealDensityGsm": 280,
+  "solver": {
+    "warpStretchRatio": 0.08,
+    "weftStretchRatio": 0.1,
+    "biasStretchRatio": 0.14,
+    "bendStiffness": 36,
+    "shearStiffness": 40,
+    "damping": 0.9,
+    "friction": 0.62
+  },
+  "notes": "Auto-generated material profile for starter-bottom-soft-wool."
+}

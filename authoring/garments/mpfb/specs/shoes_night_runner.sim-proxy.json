@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-shoe-night-runner",
+  "category": "shoes",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+    "male-base": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb"
+  },
+  "triangleBudget": 2200,
+  "pinnedAnchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "selfCollision": false,
+  "notes": "Auto-generated simulation proxy for starter-shoe-night-runner."
+}

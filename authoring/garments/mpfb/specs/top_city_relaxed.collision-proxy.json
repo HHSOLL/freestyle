@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "garment-collision-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-top-city-relaxed",
+  "category": "tops",
+  "colliderBudget": {
+    "capsules": 4,
+    "spheres": 0,
+    "proxyMeshes": 0
+  },
+  "anchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "colliders": [
+    {
+      "id": "torso-proxy",
+      "zone": "torso",
+      "kind": "capsule",
+      "radiusCm": 14,
+      "halfHeightCm": 23
+    },
+    {
+      "id": "arms-proxy",
+      "zone": "arms",
+      "kind": "capsule",
+      "radiusCm": 6.5,
+      "halfHeightCm": 21
+    },
+    {
+      "id": "hips-proxy",
+      "zone": "hips",
+      "kind": "capsule",
+      "radiusCm": 13,
+      "halfHeightCm": 18
+    },
+    {
+      "id": "legs-proxy",
+      "zone": "legs",
+      "kind": "capsule",
+      "radiusCm": 7.5,
+      "halfHeightCm": 29
+    }
+  ],
+  "notes": "Auto-generated collider envelope for starter-top-city-relaxed."
+}

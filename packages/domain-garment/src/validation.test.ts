@@ -3,10 +3,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  garmentCollisionProxySchema,
+  garmentHQArtifactSpecSchema,
+  garmentMaterialProfileSchema,
   fitMapArtifactDataSchema,
   garmentFitAssessmentSchema,
   garmentInstantFitReportSchema,
   garmentPatternSpecSchema,
+  garmentSimProxySchema,
 } from "@freestyle/contracts";
 import {
   assessGarmentPhysicalFit,
@@ -26,6 +30,7 @@ import {
   resolveLayeredEquippedItemIds,
   resolveDefaultClosetLoadout,
   starterGarmentCatalog,
+  validateGarmentAuthoringBundleAgainstStarterCatalog,
   validateGarmentPatternSpecAgainstStarterCatalog,
   validateGarmentRuntimeBinding,
   validateStarterGarment,
@@ -80,6 +85,35 @@ test("pattern spec parity validation flags starter metadata drift", () => {
       anchorIds: ["leftShoulder"],
     }),
     ["pattern spec anchorIds does not match starter runtime metadata."],
+  );
+});
+
+test("committed garment authoring sidecars stay aligned with starter runtime metadata", () => {
+  const patternSpec = garmentPatternSpecSchema.parse(
+    JSON.parse(fs.readFileSync(path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json"), "utf8")),
+  );
+  const materialProfile = garmentMaterialProfileSchema.parse(
+    JSON.parse(fs.readFileSync(path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.material-profile.json"), "utf8")),
+  );
+  const simProxy = garmentSimProxySchema.parse(
+    JSON.parse(fs.readFileSync(path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.sim-proxy.json"), "utf8")),
+  );
+  const collisionProxy = garmentCollisionProxySchema.parse(
+    JSON.parse(fs.readFileSync(path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.collision-proxy.json"), "utf8")),
+  );
+  const hqArtifact = garmentHQArtifactSpecSchema.parse(
+    JSON.parse(fs.readFileSync(path.join(repoRoot, "authoring/garments/mpfb/specs/top_soft_casual.hq-artifact.json"), "utf8")),
+  );
+
+  assert.deepEqual(
+    validateGarmentAuthoringBundleAgainstStarterCatalog({
+      patternSpec,
+      materialProfile,
+      simProxy,
+      collisionProxy,
+      hqArtifact,
+    }),
+    [],
   );
 });
 

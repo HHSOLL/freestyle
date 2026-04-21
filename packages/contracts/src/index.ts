@@ -1002,6 +1002,10 @@ export const fitSimulationGetResponseSchema = z
 
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
+export const garmentMaterialProfileSchemaVersion = "garment-material-profile.v1";
+export const garmentSimProxySchemaVersion = "garment-sim-proxy.v1";
+export const garmentCollisionProxySchemaVersion = "garment-collision-proxy.v1";
+export const garmentHQArtifactSpecSchemaVersion = "garment-hq-artifact-spec.v1";
 
 const repoRelativePathSchema = z
   .string()
@@ -1144,6 +1148,139 @@ const garmentMaterialPresetSchema = z
   })
   .strict();
 
+const garmentAuthoringReferenceSchema = z
+  .object({
+    relativePath: repoRelativePathSchema,
+  })
+  .strict();
+
+const garmentPatternSpecReferenceSchema = garmentAuthoringReferenceSchema;
+
+const garmentMaterialConstraintSchema = z
+  .object({
+    warpStretchRatio: z.number().finite().nonnegative().max(1.5),
+    weftStretchRatio: z.number().finite().nonnegative().max(1.5),
+    biasStretchRatio: z.number().finite().nonnegative().max(1.5),
+    bendStiffness: z.number().finite().positive().max(1000),
+    shearStiffness: z.number().finite().positive().max(1000),
+    damping: z.number().finite().positive().max(1000),
+    friction: z.number().finite().nonnegative().max(10),
+  })
+  .strict();
+
+export const garmentMaterialProfileSchema = z
+  .object({
+    schemaVersion: z.literal(garmentMaterialProfileSchemaVersion),
+    intendedUse: z.literal("solver-authoring"),
+    runtimeStarterId: z.string().trim().min(1).max(120),
+    category: assetCategorySchema,
+    materialPresetId: z.string().trim().min(1).max(64),
+    fabricFamily: z.enum(["knit", "woven", "synthetic", "leather", "rubber", "blended"]),
+    stretchProfile: z.enum(["none", "low", "medium", "high"]),
+    thicknessMm: z.number().finite().positive().max(25),
+    arealDensityGsm: z.number().finite().positive().max(2000),
+    solver: garmentMaterialConstraintSchema,
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+const garmentSimProxyVariantMeshSchema = z
+  .object({
+    "female-base": repoRelativePathSchema.optional(),
+    "male-base": repoRelativePathSchema.optional(),
+  })
+  .strict()
+  .refine((value) => Boolean(value["female-base"] || value["male-base"]), {
+    message: "at least one variant mesh path is required",
+  });
+
+export const garmentSimProxySchema = z
+  .object({
+    schemaVersion: z.literal(garmentSimProxySchemaVersion),
+    intendedUse: z.literal("solver-authoring"),
+    runtimeStarterId: z.string().trim().min(1).max(120),
+    category: assetCategorySchema,
+    proxyStrategy: z.enum(["decimated-runtime-mesh", "panel-derived-shell", "hybrid"]),
+    meshRelativePathByVariant: garmentSimProxyVariantMeshSchema,
+    triangleBudget: z.number().int().positive().max(50000),
+    pinnedAnchorIds: z.array(garmentAnchorIdSchema).min(1),
+    selfCollision: z.boolean(),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+const garmentCollisionProxyBodySchema = z
+  .object({
+    id: z.string().trim().min(1).max(64),
+    zone: garmentCollisionZoneSchema,
+    kind: z.enum(["capsule", "sphere", "mesh"]),
+    radiusCm: z.number().finite().positive().max(50).optional(),
+    halfHeightCm: z.number().finite().positive().max(100).optional(),
+    meshRelativePathByVariant: garmentSimProxyVariantMeshSchema.optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.kind === "capsule" && (value.radiusCm === undefined || value.halfHeightCm === undefined)) {
+      context.addIssue({
+        code: "custom",
+        message: "capsule colliders require radiusCm and halfHeightCm",
+      });
+    }
+    if (value.kind === "sphere" && value.radiusCm === undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "sphere colliders require radiusCm",
+      });
+    }
+    if (value.kind === "mesh" && !value.meshRelativePathByVariant) {
+      context.addIssue({
+        code: "custom",
+        message: "mesh colliders require meshRelativePathByVariant",
+      });
+    }
+  });
+
+export const garmentCollisionProxySchema = z
+  .object({
+    schemaVersion: z.literal(garmentCollisionProxySchemaVersion),
+    intendedUse: z.literal("solver-authoring"),
+    runtimeStarterId: z.string().trim().min(1).max(120),
+    category: assetCategorySchema,
+    colliderBudget: z
+      .object({
+        capsules: z.number().int().nonnegative().max(48),
+        spheres: z.number().int().nonnegative().max(48),
+        proxyMeshes: z.number().int().nonnegative().max(8),
+      })
+      .strict(),
+    anchorIds: z.array(garmentAnchorIdSchema).min(1),
+    colliders: z.array(garmentCollisionProxyBodySchema).min(1),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+const garmentHQArtifactKindSchema = z.enum(["draped_glb", "fit_map_json", "preview_png", "metrics_json"]);
+const garmentCorrectiveArtifactSchema = z
+  .object({
+    kind: z.enum(["normal_map", "wrinkle_map", "clearance_map"]),
+    relativePath: repoRelativePathSchema,
+  })
+  .strict();
+
+export const garmentHQArtifactSpecSchema = z
+  .object({
+    schemaVersion: z.literal(garmentHQArtifactSpecSchemaVersion),
+    intendedUse: z.literal("hq-worker-output"),
+    runtimeStarterId: z.string().trim().min(1).max(120),
+    category: assetCategorySchema,
+    expectedArtifacts: z.array(garmentHQArtifactKindSchema).min(1),
+    cacheNamespace: z.string().trim().min(1).max(120),
+    targetQualityTier: z.enum(["fast", "balanced", "hero"]),
+    correctiveMaps: z.array(garmentCorrectiveArtifactSchema).default([]),
+    notes: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
 export const garmentPatternSpecSchema = z
   .object({
     schemaVersion: z.literal(garmentPatternSpecSchemaVersion),
@@ -1186,12 +1323,10 @@ export const garmentPatternSpecSchema = z
   });
 
 export type GarmentPatternSpec = z.infer<typeof garmentPatternSpecSchema>;
-
-const garmentPatternSpecReferenceSchema = z
-  .object({
-    relativePath: repoRelativePathSchema,
-  })
-  .strict();
+export type GarmentMaterialProfile = z.infer<typeof garmentMaterialProfileSchema>;
+export type GarmentSimProxy = z.infer<typeof garmentSimProxySchema>;
+export type GarmentCollisionProxy = z.infer<typeof garmentCollisionProxySchema>;
+export type GarmentHQArtifactSpec = z.infer<typeof garmentHQArtifactSpecSchema>;
 
 const runtimeAuthoringObjectSummarySchema = z
   .object({
@@ -1214,6 +1349,10 @@ export const garmentAuthoringSummarySchema = z
     clothesAsset: garmentAuthoringAssetReferenceSchema,
     packState: garmentAuthoringPackStateSchema,
     patternSpec: garmentPatternSpecReferenceSchema.optional(),
+    materialProfile: garmentAuthoringReferenceSchema.optional(),
+    simProxy: garmentAuthoringReferenceSchema.optional(),
+    collisionProxy: garmentAuthoringReferenceSchema.optional(),
+    hqArtifact: garmentAuthoringReferenceSchema.optional(),
     outputBlend: repoRelativePathSchema,
     outputGlb: repoRelativePathSchema,
   })

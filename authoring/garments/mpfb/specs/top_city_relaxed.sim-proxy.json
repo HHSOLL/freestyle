@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-top-city-relaxed",
+  "category": "tops",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+    "male-base": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
+  },
+  "triangleBudget": 3200,
+  "pinnedAnchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "selfCollision": true,
+  "notes": "Auto-generated simulation proxy for starter-top-city-relaxed."
+}

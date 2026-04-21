@@ -27,6 +27,10 @@ def parse_args():
     parser.add_argument("--output-glb", required=True, help="Output .glb path")
     parser.add_argument("--summary-json", required=True, help="Output JSON summary path")
     parser.add_argument("--pattern-spec-json", help="Optional repo-relative or absolute garment pattern/material metadata JSON")
+    parser.add_argument("--material-profile-json", help="Optional repo-relative or absolute garment material profile JSON")
+    parser.add_argument("--sim-proxy-json", help="Optional repo-relative or absolute garment simulation proxy JSON")
+    parser.add_argument("--collision-proxy-json", help="Optional repo-relative or absolute garment collision proxy JSON")
+    parser.add_argument("--hq-artifact-json", help="Optional repo-relative or absolute garment HQ artifact spec JSON")
     parser.add_argument("--asset-pack-zip", help="Optional path to makehuman_system_assets zip")
     parser.add_argument("--skin-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "ENHANCED", "ENHANCED_SSS", "LAYERED", "NONE"])
     parser.add_argument("--clothes-model", default="GAMEENGINE", choices=["PRESET", "GAMEENGINE", "MAKESKIN", "NONE"])
@@ -264,6 +268,10 @@ def collect_summary(
     clothes_asset_argument,
     pack_state,
     pattern_spec_json,
+    material_profile_json,
+    sim_proxy_json,
+    collision_proxy_json,
+    hq_artifact_json,
 ):
     variant_id = detect_variant_id_from_preset(preset_path)
     return {
@@ -289,6 +297,10 @@ def collect_summary(
         "clothesAsset": serialize_clothes_asset_reference(clothes_asset_argument, clothes_path),
         "packState": pack_state,
         "patternSpec": serialize_optional_repo_relative(pattern_spec_json),
+        "materialProfile": serialize_optional_repo_relative(material_profile_json),
+        "simProxy": serialize_optional_repo_relative(sim_proxy_json),
+        "collisionProxy": serialize_optional_repo_relative(collision_proxy_json),
+        "hqArtifact": serialize_optional_repo_relative(hq_artifact_json),
         "outputBlend": to_repo_relative(output_blend),
         "outputGlb": to_repo_relative(output_glb),
     }
@@ -689,6 +701,10 @@ def main():
         args.clothes_asset,
         pack_state,
         args.pattern_spec_json,
+        args.material_profile_json,
+        args.sim_proxy_json,
+        args.collision_proxy_json,
+        args.hq_artifact_json,
     )
 
     summary_path = Path(args.summary_json).resolve()

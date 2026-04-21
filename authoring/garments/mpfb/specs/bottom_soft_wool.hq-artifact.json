@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "garment-hq-artifact-spec.v1",
+  "intendedUse": "hq-worker-output",
+  "runtimeStarterId": "starter-bottom-soft-wool",
+  "category": "bottoms",
+  "expectedArtifacts": [
+    "draped_glb",
+    "fit_map_json",
+    "preview_png",
+    "metrics_json"
+  ],
+  "cacheNamespace": "fit-sim:starter-bottom-soft-wool",
+  "targetQualityTier": "hero",
+  "correctiveMaps": [],
+  "notes": "Auto-generated HQ artifact baseline for starter-bottom-soft-wool."
+}

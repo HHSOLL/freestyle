@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-shoe-soft-day",
+  "category": "shoes",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb"
+  },
+  "triangleBudget": 2200,
+  "pinnedAnchorIds": [
+    "leftAnkle",
+    "rightAnkle",
+    "leftFoot",
+    "rightFoot"
+  ],
+  "selfCollision": false,
+  "notes": "Auto-generated simulation proxy for starter-shoe-soft-day."
+}

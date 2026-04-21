@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-sim-proxy.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-outer-tailored-layer",
+  "category": "outerwear",
+  "proxyStrategy": "decimated-runtime-mesh",
+  "meshRelativePathByVariant": {
+    "female-base": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+    "male-base": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb"
+  },
+  "triangleBudget": 4800,
+  "pinnedAnchorIds": [
+    "leftShoulder",
+    "rightShoulder",
+    "chestCenter",
+    "waistCenter",
+    "hipCenter"
+  ],
+  "selfCollision": true,
+  "notes": "Auto-generated simulation proxy for starter-outer-tailored-layer."
+}

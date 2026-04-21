@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "garment-material-profile.v1",
+  "intendedUse": "solver-authoring",
+  "runtimeStarterId": "starter-top-city-relaxed",
+  "category": "tops",
+  "materialPresetId": "cotton-blend-poplin",
+  "fabricFamily": "woven",
+  "stretchProfile": "low",
+  "thicknessMm": 1.3,
+  "arealDensityGsm": 210,
+  "solver": {
+    "warpStretchRatio": 0.08,
+    "weftStretchRatio": 0.1,
+    "biasStretchRatio": 0.14,
+    "bendStiffness": 36,
+    "shearStiffness": 40,
+    "damping": 0.9,
+    "friction": 0.62
+  },
+  "notes": "Auto-generated material profile for starter-top-city-relaxed."
+}

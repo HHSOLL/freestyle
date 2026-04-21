@@ -134,5 +134,17 @@
     "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.pattern-spec.json"
   },
   "outputBlend": "authoring/garments/exports/raw/mpfb-male-outer_tailored_layer.blend",
-  "outputGlb": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb"
+  "outputGlb": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+  "materialProfile": {
+    "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.material-profile.json"
+  },
+  "simProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.sim-proxy.json"
+  },
+  "collisionProxy": {
+    "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.collision-proxy.json"
+  },
+  "hqArtifact": {
+    "relativePath": "authoring/garments/mpfb/specs/outer_tailored_layer.hq-artifact.json"
+  }
 }

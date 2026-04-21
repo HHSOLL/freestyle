@@ -40,6 +40,7 @@ export type ReferenceClosetStageScenePolicy = {
   shadows: boolean;
   antialias: boolean;
   dpr: [number, number];
+  exposure: number;
   backgroundColor: string;
   fogColor: string;
   backdrop: {
@@ -102,70 +103,70 @@ function createBackdropPalette(baseColor: string, avatarOnly: boolean) {
 
   return {
     backgroundColor: baseColor,
-    fogColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.06 : 0.1)),
+    fogColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.04 : 0.06)),
     backdrop: {
-      wallColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.2 : 0.24)),
-      floorColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.32 : 0.36)),
-      ringColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.42 : 0.46)),
-      orbColor: rgbToHex(mixRgb(mixRgb(base, white, 0.3), black, avatarOnly ? 0.03 : 0.06)),
+      wallColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.16 : 0.18)),
+      floorColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.26 : 0.24)),
+      ringColor: rgbToHex(mixRgb(base, white, avatarOnly ? 0.34 : 0.3)),
+      orbColor: rgbToHex(mixRgb(mixRgb(base, white, 0.16), black, avatarOnly ? 0.12 : 0.16)),
     },
   };
 }
 
 const avatarOnlyLightingPolicy: ReferenceClosetStageLightingPolicy = {
-  ambientIntensity: 0.48,
+  ambientIntensity: 0.4,
   hemisphere: {
-    skyColor: "#fff7ef",
-    groundColor: "#c8bcaf",
-    intensity: 0.7,
+    skyColor: "#fff8f1",
+    groundColor: "#cabfae",
+    intensity: 0.62,
   },
   directional: {
-    intensity: 1.28,
-    color: "#fff8ef",
-    shadowMapSize: 1024,
+    intensity: 1.46,
+    color: "#fff9f2",
+    shadowMapSize: 2048,
   },
   leftSpot: {
-    intensity: 0.46,
+    intensity: 0.56,
     color: "#f3e6d8",
   },
   rightSpot: {
-    intensity: 0.5,
+    intensity: 0.62,
     color: "#efe2d6",
   },
   point: {
-    intensity: 0.1,
-    color: "#eedfd1",
+    intensity: 0.14,
+    color: "#f3e6da",
   },
   avatarOnlyAccent: {
-    directionalIntensity: 0.42,
+    directionalIntensity: 0.46,
     directionalColor: "#fff2e6",
-    spotIntensity: 0.22,
+    spotIntensity: 0.26,
     spotColor: "#fff7f0",
   },
 };
 
 const dressedLightingPolicy: ReferenceClosetStageLightingPolicy = {
-  ambientIntensity: 0.42,
+  ambientIntensity: 0.34,
   hemisphere: {
-    skyColor: "#f3f6fb",
-    groundColor: "#c7cfdb",
-    intensity: 0.62,
+    skyColor: "#edf2fb",
+    groundColor: "#bcc5d2",
+    intensity: 0.56,
   },
   directional: {
-    intensity: 1.18,
+    intensity: 1.42,
     color: "#ffffff",
-    shadowMapSize: 1024,
+    shadowMapSize: 2048,
   },
   leftSpot: {
-    intensity: 0.4,
+    intensity: 0.5,
     color: "#e0e8f7",
   },
   rightSpot: {
-    intensity: 0.44,
+    intensity: 0.58,
     color: "#dbe3f5",
   },
   point: {
-    intensity: 0.08,
+    intensity: 0.14,
     color: "#d9e2f0",
   },
   avatarOnlyAccent: null,
@@ -249,7 +250,8 @@ export function resolveReferenceClosetStageScenePolicy({
     frameloop: "demand",
     shadows: qualityTier !== "low",
     antialias: qualityTier !== "low",
-    dpr: qualityTier === "low" ? [0.85, 1] : qualityTier === "high" ? [1.15, 1.85] : [1, 1.4],
+    dpr: qualityTier === "low" ? [0.9, 1.05] : qualityTier === "high" ? [1.2, 2] : [1.05, 1.55],
+    exposure: avatarOnly ? (qualityTier === "high" ? 1.16 : 1.1) : qualityTier === "high" ? 1.12 : 1.06,
     backgroundColor: scenePalette.backgroundColor,
     fogColor: scenePalette.fogColor,
     backdrop: scenePalette.backdrop,

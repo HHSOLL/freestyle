@@ -1451,14 +1451,28 @@ export const createLocalPublishedGarmentRepository = (): PublishedGarmentReposit
 });
 
 export const defaultHairItemIdsByVariant: Record<AvatarRenderVariantId, string | null> = {
-  "female-base": "starter-hair-soft-bob",
+  "female-base": null,
   "male-base": "starter-hair-textured-crop",
 };
 
 export const defaultEquippedItems: Partial<Record<GarmentCategory, string>> = {
   tops: "starter-top-soft-casual",
   bottoms: "starter-bottom-soft-wool",
-  shoes: "starter-shoe-sneaker",
+};
+
+const defaultClosetLoadoutByVariant: Record<AvatarRenderVariantId, Partial<Record<GarmentCategory, string>>> = {
+  "female-base": {
+    tops: "starter-top-soft-casual",
+    bottoms: "starter-bottom-soft-wool",
+    shoes: "starter-shoe-soft-day",
+    hair: defaultHairItemIdsByVariant["female-base"] ?? undefined,
+  },
+  "male-base": {
+    tops: "starter-top-soft-casual",
+    bottoms: "starter-bottom-soft-wool",
+    shoes: "starter-shoe-sneaker",
+    hair: defaultHairItemIdsByVariant["male-base"] ?? undefined,
+  },
 };
 
 const defaultLayeredTopId = "starter-top-soft-casual";
@@ -1466,10 +1480,9 @@ const defaultLayeredTopId = "starter-top-soft-casual";
 export const resolveDefaultClosetLoadout = (
   variantId: AvatarRenderVariantId,
 ): Partial<Record<GarmentCategory, string>> => {
-  const defaultHair = defaultHairItemIdsByVariant[variantId];
   return {
     ...defaultEquippedItems,
-    ...(defaultHair ? { hair: defaultHair } : {}),
+    ...(defaultClosetLoadoutByVariant[variantId] ?? {}),
   };
 };
 

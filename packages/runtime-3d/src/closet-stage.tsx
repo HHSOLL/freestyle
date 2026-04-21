@@ -4,6 +4,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRe
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { bodyProfileToAvatarMorphPlan } from "@freestyle/domain-avatar";
 import {
@@ -513,26 +514,36 @@ function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolea
         shadedMaterial.roughness = eyeLike
           ? Math.min(0.08, shadedMaterial.roughness)
           : bodyLike
-            ? Math.min(1, Math.max(avatarOnly ? 0.34 : 0.4, shadedMaterial.roughness))
+            ? Math.min(1, Math.max(avatarOnly ? 0.26 : 0.3, shadedMaterial.roughness))
             : hairLike
-              ? Math.min(1, Math.max(0.26, shadedMaterial.roughness))
+              ? Math.min(1, Math.max(0.18, shadedMaterial.roughness))
             : alphaCard
-              ? Math.min(1, Math.max(0.44, shadedMaterial.roughness))
-              : Math.min(1, Math.max(0.28, shadedMaterial.roughness));
+              ? Math.min(1, Math.max(0.42, shadedMaterial.roughness))
+              : Math.min(1, Math.max(0.34, shadedMaterial.roughness));
       }
       if (typeof shadedMaterial.metalness === "number") {
         shadedMaterial.metalness = eyeLike ? Math.min(0.02, shadedMaterial.metalness) : Math.min(0.1, shadedMaterial.metalness);
       }
       if (typeof shadedMaterial.envMapIntensity === "number") {
-        shadedMaterial.envMapIntensity = eyeLike ? 1.42 : bodyLike ? (avatarOnly ? 0.88 : 0.64) : hairLike ? 0.84 : alphaCard ? 0.56 : 0.9;
+        shadedMaterial.envMapIntensity = eyeLike
+          ? 1.68
+          : bodyLike
+            ? avatarOnly
+              ? 1.12
+              : 0.92
+            : hairLike
+              ? 1.08
+              : alphaCard
+                ? 0.62
+                : 1.04;
       }
       if (shadedMaterial.color) {
         if (bodyLike) {
-          shadedMaterial.color.offsetHSL(0.006, avatarOnly ? 0.03 : 0.014, avatarOnly ? 0.042 : 0.02);
+          shadedMaterial.color.offsetHSL(0.008, avatarOnly ? 0.038 : 0.02, avatarOnly ? 0.05 : 0.026);
         } else if (hairLike) {
-          shadedMaterial.color.offsetHSL(0.004, 0.014, avatarOnly ? -0.012 : -0.004);
+          shadedMaterial.color.offsetHSL(0.006, 0.02, avatarOnly ? -0.008 : 0);
         } else if (eyeLike) {
-          shadedMaterial.color.offsetHSL(0, 0.01, avatarOnly ? 0.016 : 0.008);
+          shadedMaterial.color.offsetHSL(0, 0.012, avatarOnly ? 0.022 : 0.012);
         }
       }
       if (shadedMaterial.emissive) {
@@ -574,18 +585,18 @@ function fitCamera(
   const aspect = size.width / Math.max(size.height, 1);
   const distance = avatarOnly
     ? aspect < 1.0
-      ? 6.0
+      ? 5.45
       : aspect < 1.3
-        ? 5.35
-        : 4.75
+        ? 4.85
+        : 4.35
     : aspect < 1.0
-      ? 6.2
+      ? 5.7
       : aspect < 1.3
-        ? 5.5
-        : 4.9;
-  const fov = avatarOnly ? (aspect < 1.0 ? 28 : aspect < 1.3 ? 24 : 22) : aspect < 1.0 ? 30 : aspect < 1.3 ? 26 : 23;
-  const targetY = avatarOnly ? 0.98 : 0.9;
-  const cameraY = avatarOnly ? 1.18 : 1.12;
+        ? 4.95
+        : 4.45;
+  const fov = avatarOnly ? (aspect < 1.0 ? 26 : aspect < 1.3 ? 23 : 21) : aspect < 1.0 ? 28 : aspect < 1.3 ? 24 : 22;
+  const targetY = avatarOnly ? 0.92 : 0.84;
+  const cameraY = avatarOnly ? 1.12 : 1.02;
 
   camera.fov = fov;
   camera.position.set(0, cameraY, distance);
@@ -594,8 +605,8 @@ function fitCamera(
 
   if (controls) {
     controls.target.set(0, targetY, 0);
-    controls.minDistance = distance - (avatarOnly ? 0.9 : 1.0);
-    controls.maxDistance = distance + (avatarOnly ? 2.1 : 1.8);
+    controls.minDistance = distance - (avatarOnly ? 0.8 : 0.9);
+    controls.maxDistance = distance + (avatarOnly ? 1.9 : 1.6);
     controls.minAzimuthAngle = -Math.PI * (avatarOnly ? 0.22 : 0.18);
     controls.maxAzimuthAngle = Math.PI * (avatarOnly ? 0.22 : 0.18);
     controls.maxPolarAngle = Math.PI / (avatarOnly ? 1.95 : 2.02);
@@ -613,6 +624,48 @@ function CameraRig({ controlsRef, avatarOnly }: { controlsRef: RefObject<OrbitCo
   }, [avatarOnly, camera, size, controlsRef]);
 
   return null;
+}
+
+function StageEnvironment({
+  avatarOnly,
+  qualityTier,
+  exposure,
+}: {
+  avatarOnly: boolean;
+  qualityTier: QualityTier;
+  exposure: number;
+}) {
+  const gl = useThree((state) => state.gl);
+  const environmentTexture = useMemo(() => {
+    const pmremGenerator = new THREE.PMREMGenerator(gl);
+    const texture = pmremGenerator.fromScene(
+      new RoomEnvironment(),
+      avatarOnly ? 0.05 : qualityTier === "high" ? 0.08 : 0.07,
+    ).texture;
+    pmremGenerator.dispose();
+    return texture;
+  }, [avatarOnly, gl, qualityTier]);
+
+  useEffect(() => {
+    const previousToneMapping = gl.toneMapping;
+    const previousExposure = gl.toneMappingExposure;
+    // eslint-disable-next-line react-hooks/immutability
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = exposure;
+
+    return () => {
+      gl.toneMapping = previousToneMapping;
+      gl.toneMappingExposure = previousExposure;
+    };
+  }, [exposure, gl]);
+
+  useEffect(() => {
+    return () => {
+      environmentTexture.dispose();
+    };
+  }, [environmentTexture]);
+
+  return <primitive object={environmentTexture} attach="environment" />;
 }
 
 function StudioBackdrop({
@@ -1708,7 +1761,7 @@ export function ReferenceClosetStageCanvas({
 
   return (
     <Canvas
-      shadows={scenePolicy.shadows}
+      shadows={scenePolicy.shadows ? "soft" : false}
       camera={{ position: [0, 1.18, 5.45], fov: 22, near: 0.1, far: 100 }}
       frameloop={scenePolicy.frameloop}
       gl={{ antialias: scenePolicy.antialias, alpha: true, powerPreference: "high-performance" }}
@@ -1717,6 +1770,11 @@ export function ReferenceClosetStageCanvas({
     >
       <color attach="background" args={[scenePolicy.backgroundColor]} />
       <fog attach="fog" args={[scenePolicy.fogColor, 5.4, 13.8]} />
+      <StageEnvironment
+        avatarOnly={scenePolicy.avatarOnly}
+        qualityTier={qualityTier}
+        exposure={scenePolicy.exposure}
+      />
 
       <ambientLight intensity={scenePolicy.lighting.ambientIntensity} />
       <hemisphereLight

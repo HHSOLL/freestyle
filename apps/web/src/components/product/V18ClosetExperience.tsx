@@ -27,7 +27,7 @@ import { buildClosetFitCardDisplay } from "./closet-fit-report";
 import styles from "./v18-closet.module.css";
 
 const CM_PER_INCH = 2.54;
-const DEFAULT_BG = "#d8dbdf";
+const DEFAULT_BG = "#c8ccd2";
 
 const TAB_META = {
   마네킹: { title: "Mannequin", short: "👤", rail: "Base Bodies" },
@@ -1258,9 +1258,13 @@ export function V18ClosetExperience() {
     if (variantDefaults.shoes && !selection.shoes.id) {
       equipItem("shoes", variantDefaults.shoes);
     }
+    if (variantDefaults.accessories && !selection.accessory.id) {
+      equipItem("accessories", variantDefaults.accessories);
+    }
   }, [
     defaultHairIds,
     equipItem,
+    selection.accessory.id,
     selection.bottom.id,
     selection.hair.id,
     selection.shoes.id,
@@ -1286,22 +1290,18 @@ export function V18ClosetExperience() {
   const handleApplyMannequinPreset = (item: DisplayItem) => {
     if (!item.measurements || !item.gender) return;
     applyGenderAndMeasurements(item.gender, item.measurements, item.bodyFrame ?? "balanced");
-    if (item.gender === "male") {
-      setSelectedPreviewMannequinId("male_standard");
-      const nextHair = defaultHairItemIdsByVariant["male-base"];
-      if (nextHair) {
-        equipItem("hair", nextHair);
-      } else {
-        clearCategory("hair");
-      }
-      return;
-    }
-    setSelectedPreviewMannequinId("female_standard");
-    const nextHair = defaultHairItemIdsByVariant["female-base"];
-    if (nextHair) {
-      equipItem("hair", nextHair);
+    const nextVariantId = item.gender === "male" ? "male-base" : "female-base";
+    const nextLoadout = resolveDefaultClosetLoadout(nextVariantId);
+    setSelectedPreviewMannequinId(item.gender === "male" ? "male_standard" : "female_standard");
+    if (nextLoadout.hair) {
+      equipItem("hair", nextLoadout.hair);
     } else {
       clearCategory("hair");
+    }
+    if (nextLoadout.accessories) {
+      equipItem("accessories", nextLoadout.accessories);
+    } else {
+      clearCategory("accessories");
     }
   };
 
@@ -1322,6 +1322,9 @@ export function V18ClosetExperience() {
     clearCategory("hair");
     if (defaultLoadout.hair) {
       equipItem("hair", defaultLoadout.hair);
+    }
+    if (defaultLoadout.accessories) {
+      equipItem("accessories", defaultLoadout.accessories);
     }
     if (defaultLoadout.shoes) {
       equipItem("shoes", defaultLoadout.shoes);

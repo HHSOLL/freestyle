@@ -7,10 +7,10 @@ import {
   defaultClosetSceneState,
 } from "@freestyle/domain-avatar";
 import {
-  defaultEquippedItems,
   createRuntimeGarmentLookup,
   getCatalogByCategory,
   resolveLayeredEquippedItemIds,
+  resolveDefaultClosetLoadout,
   starterGarmentCatalog,
 } from "@freestyle/domain-garment";
 import type {
@@ -28,11 +28,13 @@ export function useClosetScene(catalog: RuntimeGarmentAsset[] = starterGarmentCa
   const catalogLookup = useMemo(() => createRuntimeGarmentLookup(catalog), [catalog]);
   const [scene, setScene] = useState<ClosetSceneState>(() => {
     const next = repository.load();
+    const initialVariantId = next.avatarVariantId ?? defaultClosetSceneState.avatarVariantId;
+    const defaultLoadout = resolveDefaultClosetLoadout(initialVariantId);
     return {
       ...defaultClosetSceneState,
       ...next,
       equippedItemIds: {
-        ...defaultEquippedItems,
+        ...defaultLoadout,
         ...(next.equippedItemIds ?? {}),
       },
     };

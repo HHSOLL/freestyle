@@ -218,6 +218,9 @@ Rules:
 - preserve MPFB helper-hiding body mask modifiers during avatar export; removing them breaks the shipped `fullbody` silhouette even if the segmented zones still validate
 - keep torso segmentation broad enough to absorb clavicle and neck-base coverage for fitted tops before reaching for whole-arm body masking
 - keep `secondaryMotion` selective: long hair, loose tops, and loose outerwear only
+- keep the current `Closet` studio look on the generated room environment + ACES filmic tone mapping path; do not drop back to flat background-only lighting without visual evidence that the replacement is better
+- keep camera and stage-policy tuning biased toward a centered full-body editorial frame rather than a distant fitting-room preview
+- default mannequin presentation should prefer stable, authoring-safe starter pieces; do not promote a starter hair/accessory asset into the reset/default loadout unless it is visually verified in the live `Closet` stage
 - `V18ClosetExperience` background-theme controls must flow through `AvatarStageViewport` into the runtime stage policy and backdrop; do not leave the picker as a CSS-only shell theme control
 - short-sleeve tops such as the default starter tee should not ship with permanent `arms` body masks; reserve arm masking for pose-tuned or clipping-specific cases so the mannequin does not look amputated in the default `Closet` pose
 - keep layered outfit logic explicit: structured outerwear may auto-fallback to a base inner top, and bulky tops should not remain stacked under outerwear

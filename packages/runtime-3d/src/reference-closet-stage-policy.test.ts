@@ -36,16 +36,18 @@ test("resolveReferenceClosetStageScenePolicy returns avatar-only lighting and de
   assert.equal(policy.avatarOnly, true);
   assert.equal(policy.hasContinuousMotion, false);
   assert.equal(policy.frameloop, "demand");
-  assert.deepEqual(policy.dpr, [1, 1.4]);
+  assert.deepEqual(policy.dpr, [1.05, 1.55]);
+  assert.equal(policy.exposure, 1.1);
   assert.equal(policy.backgroundColor, "#d7cec6");
-  assert.equal(policy.fogColor, "#d9d1c9");
-  assert.equal(policy.backdrop.wallColor, "#dfd8d1");
-  assert.equal(policy.backdrop.floorColor, "#e4ded8");
+  assert.equal(policy.fogColor, "#d9d0c8");
+  assert.equal(policy.backdrop.wallColor, "#ddd6cf");
+  assert.equal(policy.backdrop.floorColor, "#e1dbd5");
   assert.equal(policy.controlsEnableDamping, true);
   assert.equal(policy.controlsDampingFactor, 0.06);
-  assert.equal(policy.lighting.ambientIntensity, 0.48);
-  assert.equal(policy.lighting.directional.color, "#fff8ef");
-  assert.equal(policy.lighting.avatarOnlyAccent?.directionalIntensity, 0.42);
+  assert.equal(policy.lighting.ambientIntensity, 0.4);
+  assert.equal(policy.lighting.directional.color, "#fff9f2");
+  assert.equal(policy.lighting.directional.shadowMapSize, 2048);
+  assert.equal(policy.lighting.avatarOnlyAccent?.directionalIntensity, 0.46);
 });
 
 test("resolveReferenceClosetStageScenePolicy keeps dressed high-tier stages shadowed and motion-aware", () => {
@@ -60,9 +62,10 @@ test("resolveReferenceClosetStageScenePolicy keeps dressed high-tier stages shad
   assert.equal(policy.hasContinuousMotion, true);
   assert.equal(policy.shadows, true);
   assert.equal(policy.antialias, true);
-  assert.deepEqual(policy.dpr, [1.15, 1.85]);
+  assert.deepEqual(policy.dpr, [1.2, 2]);
+  assert.equal(policy.exposure, 1.12);
   assert.equal(policy.backgroundColor, "#d0d4db");
-  assert.equal(policy.fogColor, "#d5d8df");
+  assert.equal(policy.fogColor, "#d3d7dd");
   assert.equal(policy.controlsEnableDamping, true);
   assert.equal(policy.controlsDampingFactor, 0.08);
   assert.equal(policy.lighting.directional.shadowMapSize, 2048);
@@ -81,9 +84,10 @@ test("resolveReferenceClosetStageScenePolicy disables demand-motion extras on lo
   assert.equal(policy.hasContinuousMotion, false);
   assert.equal(policy.shadows, false);
   assert.equal(policy.antialias, false);
-  assert.deepEqual(policy.dpr, [0.85, 1]);
+  assert.deepEqual(policy.dpr, [0.9, 1.05]);
+  assert.equal(policy.exposure, 1.06);
   assert.equal(policy.controlsEnableDamping, false);
-  assert.equal(policy.lighting.directional.shadowMapSize, 1024);
+  assert.equal(policy.lighting.directional.shadowMapSize, 2048);
 });
 
 test("resolveReferenceClosetStageScenePolicy derives backdrop colors from an explicit background override", () => {
@@ -96,8 +100,8 @@ test("resolveReferenceClosetStageScenePolicy derives backdrop colors from an exp
   });
 
   assert.equal(policy.backgroundColor, "#d3e2ff");
-  assert.equal(policy.fogColor, "#d6e4ff");
-  assert.equal(policy.backdrop.wallColor, "#dce8ff");
-  assert.equal(policy.backdrop.floorColor, "#e1ebff");
-  assert.equal(policy.backdrop.ringColor, "#e5eeff");
+  assert.equal(policy.fogColor, "#d5e3ff");
+  assert.equal(policy.backdrop.wallColor, "#dae7ff");
+  assert.equal(policy.backdrop.floorColor, "#deeaff");
+  assert.equal(policy.backdrop.ringColor, "#e2ecff");
 });

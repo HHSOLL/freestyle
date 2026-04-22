@@ -11,6 +11,7 @@
   - active lab create/read routes
   - a queued worker handler
   - persisted `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json` artifact output
+  - a first-party `Closet` consumer seam that can request a run, poll the persisted record, render `preview_png`, and expose the ordered artifact bundle
 - the current worker is still a baseline snapshot-driven path, not a full cloth solver
 
 ## Purpose
@@ -139,6 +140,6 @@ This keeps `Phase D` honest: there is now a working async/offline artifact path 
 
 - true solver-backed cloth state instead of authored-scene merge baseline output
 - material-calibrated draped mesh deformation rather than authored-scene merge assembly
-- product UI that requests or renders HQ simulation artifacts directly
+- live stage swap-in that renders `draped_glb` directly inside the active `Closet` scene instead of the current preview-image + artifact-link surface
 
 Until those land, this document describes the active baseline plus the remaining fidelity gap.

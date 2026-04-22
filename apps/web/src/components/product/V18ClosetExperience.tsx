@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   assessGarmentPhysicalFit,
   buildGarmentInstantFitReport,
@@ -12,14 +12,17 @@ import {
 import type { GarmentInstantFitReport } from "@freestyle/contracts";
 import { preloadRuntimeAssets } from "@freestyle/runtime-3d";
 import type {
+  AssetCategory,
   BodyFrame,
   BodyProfile,
   GarmentFitAssessment,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
 import { AvatarStageViewport } from "@/components/product/AvatarStageViewport";
+import { HqFitSimulationPanel } from "@/components/product/closet-fit-simulation";
 import { useBodyProfile } from "@/hooks/useBodyProfile";
 import { useClosetScene } from "@/hooks/useClosetScene";
+import { useFitSimulation } from "@/hooks/useFitSimulation";
 import { useWardrobeAssets } from "@/hooks/useWardrobeAssets";
 import { buildClosetFitCardDisplay } from "./closet-fit-report";
 import {
@@ -340,12 +343,14 @@ function LeftPanel({
   setBackgroundColor,
   selectedSummary,
   fitDetails,
+  hqFitSimulation,
   onOpenCustomize,
 }: {
   backgroundColor: string;
   setBackgroundColor: (value: string) => void;
   selectedSummary: { title: string; detail: string };
   fitDetails: Array<{ label: string; report: GarmentInstantFitReport | null }>;
+  hqFitSimulation: ReactNode;
   onOpenCustomize: () => void;
 }) {
   const handleHexChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,6 +385,8 @@ function LeftPanel({
       <button type="button" className={styles["hero-button"]} onClick={onOpenCustomize}>
         마네킹 커스텀
       </button>
+
+      {hqFitSimulation}
 
       <div className={styles["left-bottom-spacer"]} />
 
@@ -794,8 +801,16 @@ function AssetPanel({
 export function V18ClosetExperience() {
   const router = useRouter();
   const { profile, avatarVariantId, setProfile } = useBodyProfile();
-  const { closetRuntimeAssets, publishedInstantFitReportsById } = useWardrobeAssets();
+  const { closetRuntimeAssets, publishedAssets, publishedInstantFitReportsById } = useWardrobeAssets();
   const { scene, equippedGarments, setPose, equipItem, clearCategory, setSelectedItemId } = useClosetScene(closetRuntimeAssets);
+  const {
+    fitSimulation,
+    state: fitSimulationState,
+    error: fitSimulationError,
+    startFitSimulation,
+    refresh: refreshFitSimulation,
+    clear: clearFitSimulation,
+  } = useFitSimulation();
 
   const [unit, setUnit] = useState<"cm" | "inch">("cm");
   const [activeTab, setActiveTab] = useState<TabValue>("상의");
@@ -817,6 +832,8 @@ export function V18ClosetExperience() {
     () => new Set(Object.values(defaultHairItemIdsByVariant).filter((value): value is string => Boolean(value))),
     [],
   );
+  const publishedAssetIds = useMemo(() => new Set(publishedAssets.map((item) => item.id)), [publishedAssets]);
+  const [preferredFitSimulationGarmentId, setPreferredFitSimulationGarmentId] = useState<string | null>(null);
 
   const setMeasurements = (next: MeasurementState) => {
     setProfile((current) => applyMeasurementsToProfile(current, next, genderState, current.bodyFrame ?? bodyFrameState));
@@ -896,6 +913,43 @@ export function V18ClosetExperience() {
       }),
     };
   }, [activeTab, baseItemSets, fitReports]);
+
+  const hqSimulationCategories = useMemo<AssetCategory[]>(() => ["tops", "outerwear", "bottoms", "shoes"], []);
+  const hqFitCandidates = useMemo(() => {
+    const next = new Map<string, RuntimeGarmentAsset>();
+    const selectedRuntimeItem = scene.selectedItemId ? runtimeAssetById.get(scene.selectedItemId) ?? null : null;
+    if (
+      selectedRuntimeItem &&
+      publishedAssetIds.has(selectedRuntimeItem.id) &&
+      hqSimulationCategories.includes(selectedRuntimeItem.category)
+    ) {
+      next.set(selectedRuntimeItem.id, selectedRuntimeItem);
+    }
+    equippedGarments.forEach((item) => {
+      if (publishedAssetIds.has(item.id) && hqSimulationCategories.includes(item.category)) {
+        next.set(item.id, item);
+      }
+    });
+    return Array.from(next.values());
+  }, [equippedGarments, hqSimulationCategories, publishedAssetIds, runtimeAssetById, scene.selectedItemId]);
+
+  const selectedFitSimulationGarmentId = useMemo(() => {
+    if (preferredFitSimulationGarmentId && hqFitCandidates.some((item) => item.id === preferredFitSimulationGarmentId)) {
+      return preferredFitSimulationGarmentId;
+    }
+    return hqFitCandidates[0]?.id ?? null;
+  }, [hqFitCandidates, preferredFitSimulationGarmentId]);
+
+  useEffect(() => {
+    if (!fitSimulation) return;
+    if (hqFitCandidates.length === 0) {
+      clearFitSimulation();
+      return;
+    }
+    if (selectedFitSimulationGarmentId && fitSimulation.garmentVariantId !== selectedFitSimulationGarmentId) {
+      clearFitSimulation();
+    }
+  }, [clearFitSimulation, fitSimulation, hqFitCandidates.length, selectedFitSimulationGarmentId]);
 
   const selection = useMemo(() => {
     const top = equippedGarments.find((item) => item.category === "tops") ?? null;
@@ -1065,6 +1119,35 @@ export function V18ClosetExperience() {
     [equippedGarments, fitReports],
   );
 
+  const fitSimulationQualityTier = useMemo(
+    () => (scene.qualityTier === "low" ? "fast" : scene.qualityTier),
+    [scene.qualityTier],
+  );
+
+  const handleRunFitSimulation = async () => {
+    if (!selectedFitSimulationGarmentId) return;
+    await startFitSimulation({
+      garmentId: selectedFitSimulationGarmentId,
+      qualityTier: fitSimulationQualityTier,
+    });
+  };
+
+  const hqFitSimulationNode = (
+    <HqFitSimulationPanel
+      availableGarments={hqFitCandidates.map((item) => ({ id: item.id, name: item.name }))}
+      selectedGarmentId={selectedFitSimulationGarmentId}
+      onSelectGarment={setPreferredFitSimulationGarmentId}
+      onRun={handleRunFitSimulation}
+      onRefresh={() => {
+        refreshFitSimulation().catch(() => undefined);
+      }}
+      onClear={clearFitSimulation}
+      state={fitSimulationState}
+      error={fitSimulationError}
+      fitSimulation={fitSimulation}
+    />
+  );
+
   const handlePoseChange = (poseId: string) => {
     setPose(PRODUCT_POSE_FROM_V18[poseId] ?? "neutral");
   };
@@ -1112,7 +1195,7 @@ export function V18ClosetExperience() {
   };
 
   return (
-    <div className={styles["app-shell"]} style={theme.cssVars as CSSProperties}>
+    <div className={styles["app-shell"]} style={theme.cssVars as CSSProperties} data-closet-visual-root>
       <div className={styles["scene-shell"]}>
         <div className={styles["scene-surface"]}>
           <AvatarStageViewport
@@ -1138,6 +1221,7 @@ export function V18ClosetExperience() {
           setBackgroundColor={setBackgroundColor}
           selectedSummary={selectedSummary}
           fitDetails={fitDetails}
+          hqFitSimulation={hqFitSimulationNode}
           onOpenCustomize={() => setIsModalOpen(true)}
         />
 

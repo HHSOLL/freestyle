@@ -117,13 +117,13 @@ test.describe("closet quality tier visual baselines", () => {
 
       await page.goto("/app/closet");
       await expect(page.getByText("Outfit", { exact: true })).toBeVisible();
-      const stageCanvas = page.locator("canvas").first();
-      await expect(stageCanvas).toBeVisible();
+      const closetRoot = page.locator("[data-closet-visual-root]").first();
+      await expect(closetRoot).toBeVisible();
       await page.waitForTimeout(1200);
       await settlePage(page);
 
-      await expect(await stageCanvas.screenshot()).toMatchSnapshot(`closet-${qualityTier}-tier.png`, {
-        maxDiffPixels: qualityTier === "high" ? 420 : 320,
+      await expect(await closetRoot.screenshot()).toMatchSnapshot(`closet-${qualityTier}-tier.png`, {
+        maxDiffPixels: qualityTier === "high" ? 620 : 480,
       });
     });
   }

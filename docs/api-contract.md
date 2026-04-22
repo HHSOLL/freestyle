@@ -163,6 +163,7 @@
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
   - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
   - the detail route returns artifacts in presentation priority order: `draped_glb`, `preview_png`, `fit_map_json`, `metrics_json`
+  - the current first-party web consumer is `apps/web/src/hooks/useFitSimulation.ts`, used by the `Closet` HQ fit panel
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`

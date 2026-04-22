@@ -375,6 +375,19 @@ export type GarmentPublicationRecord = {
   assetVersion: string;
   measurementStandard: "body-garment-v1";
   provenanceUrl?: string;
+  approvalState?:
+    | "DRAFT"
+    | "TECH_CANDIDATE"
+    | "VISUAL_CANDIDATE"
+    | "FIT_CANDIDATE"
+    | "CERTIFIED"
+    | "PUBLISHED"
+    | "DEPRECATED"
+    | "REJECTED";
+  approvedAt?: string;
+  approvedBy?: string;
+  certificationNotes?: string[];
+  viewerManifestVersion?: string;
 };
 
 export type SkeletonProfile = {

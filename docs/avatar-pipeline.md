@@ -11,6 +11,12 @@ The preferred authoring pipeline is:
 
 The Blender addon itself is not part of the web product. It is an offline authoring step.
 
+The production-grade avatar acceptance rules now also live in:
+
+- `docs/asset-quality-contract.md`
+- `docs/avatar-production-contract.md`
+- `packages/asset-schema/src/index.ts`
+
 ## 2. Current Repo Truth
 
 Current shipped runtime assets:
@@ -36,7 +42,9 @@ Every promoted mannequin asset must satisfy:
   - source provenance (preset + summary + sidecar + output GLB parity)
   - build provenance (MPFB repo revision + asset-pack checksum + builder version)
   - output artifact digest (post-optimize byte size + SHA-256)
-  - explicit variant/runtime model path coupling
+- explicit variant/runtime model path coupling
+- separate `render body`, `fit body`, and `collision body` artifacts before certification
+- quality reports for visual fit, fit compatibility, and budget compliance before `PUBLISHED`
 
 Current runtime source-of-truth files:
 

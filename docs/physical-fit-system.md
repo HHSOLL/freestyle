@@ -18,6 +18,7 @@ Current runtime interpretation:
 - measured fit remains the first truth source
 - lightweight secondary motion is allowed for long hair and loose garments
 - full cloth simulation remains an offline authoring/reference tool, not the default browser runtime
+- production fit certification is defined separately in `docs/fit-quality-contract.md` and `packages/asset-schema/src/index.ts`
 
 ## 2. Product Decision
 

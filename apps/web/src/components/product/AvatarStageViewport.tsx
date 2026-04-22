@@ -4,6 +4,11 @@ import { startTransition, useEffect, useMemo, useReducer, useState, type Compone
 import type { BodyProfile, RuntimeGarmentAsset } from "@freestyle/shared-types";
 import { AvatarStageViewportFallback } from "./AvatarStageViewportFallback.js";
 import {
+  loadConfiguredAvatarStageModule,
+  resolveAvatarStageComponent,
+  resolveViewerHost,
+} from "@/lib/viewer-host";
+import {
   avatarStageViewportInitialLifecycleState,
   detectAvatarStageViewportSupport,
   reduceAvatarStageViewportLifecycle,
@@ -48,6 +53,7 @@ export function AvatarStageViewport({
   qualityTier,
   backgroundColor,
 }: AvatarStageViewportProps) {
+  const viewerHost = useMemo(() => resolveViewerHost(), []);
   const resolvedQualityTier = useMemo(() => {
     return resolveAvatarStageViewportQualityTier(qualityTier, detectQualityTier());
   }, [qualityTier]);
@@ -72,9 +78,8 @@ export function AvatarStageViewport({
     let cancelled = false;
     const attempt = lifecycleState.attempt;
     dispatchLifecycle({ type: "load-started", attempt });
-    setStageComponent(null);
 
-    void import("@freestyle/runtime-3d")
+    void loadConfiguredAvatarStageModule(viewerHost)
       .then((module) => {
         if (
           !shouldApplyAvatarStageViewportLoadResult({
@@ -86,7 +91,11 @@ export function AvatarStageViewport({
         ) {
           return;
         }
-        setStageComponent(() => module.ReferenceClosetStageCanvas as AvatarStageComponent);
+        const nextStageComponent = resolveAvatarStageComponent(module, viewerHost);
+        if (!nextStageComponent) {
+          throw new Error(`Configured viewer host "${viewerHost}" did not expose a stage component.`);
+        }
+        setStageComponent(() => nextStageComponent as AvatarStageComponent);
         dispatchLifecycle({ type: "load-resolved", attempt, loadState: "ready" });
       })
       .catch((error) => {
@@ -100,7 +109,7 @@ export function AvatarStageViewport({
         ) {
           return;
         }
-        console.error("Failed to load runtime closet stage", error);
+        console.error(`Failed to load configured viewer host "${viewerHost}"`, error);
         setStageComponent(null);
         dispatchLifecycle({ type: "load-resolved", attempt, loadState: "error" });
       });
@@ -108,7 +117,7 @@ export function AvatarStageViewport({
     return () => {
       cancelled = true;
     };
-  }, [lifecycleState.attempt, lifecycleState.supportState]);
+  }, [lifecycleState.attempt, lifecycleState.supportState, viewerHost]);
 
   const handleRetry = () => {
     startTransition(() => {

@@ -4,6 +4,14 @@
 
 This document defines the minimum runtime contract for garments that participate in the mannequin fitting flow.
 
+The production-grade authoring and certification contracts now also live in:
+
+- `docs/asset-quality-contract.md`
+- `docs/garment-production-contract.md`
+- `docs/material-contract.md`
+- `docs/fit-quality-contract.md`
+- `packages/asset-schema/src/index.ts`
+
 The source-of-truth implementation lives in:
 
 - `packages/domain-garment/src/index.ts`
@@ -94,6 +102,8 @@ Every runtime garment needs:
 - `metadata.fitProfile`
 
 The current runtime binding type is `GarmentRuntimeBinding`.
+
+Production-grade garments additionally require explicit approval-state and certification metadata before the product viewer should treat them as publishable.
 
 ## 3. Coordinate And Pose Rules
 

@@ -39,6 +39,7 @@ Run these when the scope touches the matching area.
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
 | promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
+| asset-quality, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `apps/web/src/lib/viewer-host.test.ts`, and `packages/contracts/src/domain-contracts.test.ts` plus `npm run build:services` |
 
 ### L2. Full Local Gate
 
@@ -58,6 +59,19 @@ This includes:
 - `npm run build:services`
 - `npm run build`
 - `npm run build:admin`
+
+## Progressive Gate Rollout
+
+The viewer-platform refactor grows gates forward instead of leaving everything for one final hardening batch:
+
+- `Phase 0`: benchmark harness and baseline reports start as non-blocking evidence
+- `Phase 2.5`: approval-state, body-signature, material, and fit-contract tests start
+- `Phase 3`: asset budget gate becomes non-blocking
+- `Phase 5 / Phase 6`: avatar and garment certification gates become blocking
+- `Phase 7`: preview fit performance gate becomes blocking
+- `Phase 8`: HQ artifact validity and lineage gate becomes blocking
+- `Phase 9`: UX latency gate becomes blocking
+- `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set
 
 ### L3. Operational Closeout Gate
 

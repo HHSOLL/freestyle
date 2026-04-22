@@ -20,6 +20,11 @@ Before changing the product, read these in order:
 14. `docs/contract-ownership.md`
 15. `docs/ai-agent-playbook.md`
 16. `docs/quality-gates.md`
+17. `docs/asset-quality-contract.md`
+18. `docs/avatar-production-contract.md`
+19. `docs/garment-production-contract.md`
+20. `docs/material-contract.md`
+21. `docs/fit-quality-contract.md`
 
 ## 1.1 Git Workflow
 
@@ -89,12 +94,28 @@ The minimum domain structure is fixed:
   - avatar render manifest
   - runtime asset budget
   - pose, rig, and scene control
+- `packages/asset-schema`
+  - production-grade avatar / garment / material / fit-artifact schemas
+  - approval-state and certification contracts
+- `packages/viewer-core`
+  - imperative viewer lifecycle
+  - shared loader registry and future render ownership
+- `packages/viewer-react`
+  - React host seam only
+  - app-facing bridge for staged cutover
+- `packages/viewer-protocol`
+  - viewer commands
+  - preview worker messages
+  - HQ artifact and telemetry envelopes
+- `packages/fit-kernel`
+  - preview solver execution-mode and transport seam
 - `packages/shared-types`
   - canonical types shared across app boundaries
 - `packages/shared-utils`
   - shared utilities only
 
 Cross-domain imports should remain narrow and directional. `runtime-3d` may consume domain packages, but `domain-avatar` and `domain-garment` must not depend on page or shell code.
+During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibility shim. New product-facing viewer features belong in `viewer-core`, `viewer-react`, `viewer-protocol`, `fit-kernel`, and `asset-schema`. Do not make `packages/runtime-3d` depend on `viewer-core`.
 
 ## 4. Page Rules
 

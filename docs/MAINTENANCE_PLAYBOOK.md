@@ -175,11 +175,14 @@ If any of the above regress, stop the release.
 - verify the archetype fit preview updates when size rows or measurement modes change
 - verify guided form edits still round-trip through the raw manifest inspector
 - verify `POST` and `PUT` reject schema-valid but semantically invalid garments before they reach persistence
+- verify product routes still default to `PUBLISHED` assets while admin surfaces can inspect candidate approval states
+- verify `approvalState`, `approvedAt/by`, and certification notes survive admin save/load without affecting legacy upload asset statuses
 
 ## 6. Operational Rules
 
 - Do not promote legacy or lab surfaces into the product shell without a documented IA decision.
 - Do not land new 3D assets without updating credits and pipeline documentation.
+- Do not treat legacy converted assets as production-certified without passing the new asset-quality and fit-quality contracts.
 - Do not add new large page files when the logic belongs in a domain package or UI component.
 - Do not leave stale redirects, stale docs, or stale storage keys untracked.
 - Do not deploy browser-facing environments without an explicit CORS allowlist once requests carry an `Origin` header.
@@ -193,6 +196,7 @@ When these areas change, update the paired docs:
 - avatar asset authoring or rig rules: `avatar-pipeline.md`
 - garment contract or fit logic: `garment-fitting-contract.md`
 - physical fit model or source-adoption decisions: `physical-fit-system.md`
+- asset production / certification criteria: `asset-quality-contract.md`, `avatar-production-contract.md`, `garment-production-contract.md`, `material-contract.md`, `fit-quality-contract.md`
 - shell layout or tokens: `design-system.md`
 - deleted or quarantined features: `migration-notes.md`
 - release candidate evidence and deploy freeze notes: `docs/qa/*`, `DEPLOYMENT_STACK_DECISION.md`

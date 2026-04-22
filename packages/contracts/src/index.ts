@@ -1,4 +1,14 @@
 import { z } from "zod";
+import {
+  assetApprovalStateSchema,
+  assetApprovalStates,
+  bodyRegionIdSchema,
+  bodyRegionIds,
+  bodySignatureSchema,
+  fitMetricsJsonSchema,
+  materialClassSchema,
+  materialClasses,
+} from "../../asset-schema/src/index.js";
 import { normalizeBodyProfile } from "./domain-types.js";
 export type {
   BodyProfileDetailedKey,
@@ -15,6 +25,16 @@ export type {
   RuntimeGarmentAsset,
   GarmentSizeSpec,
 } from "./domain-types.js";
+export {
+  assetApprovalStateSchema,
+  assetApprovalStates,
+  bodyRegionIdSchema,
+  bodyRegionIds,
+  bodySignatureSchema,
+  fitMetricsJsonSchema,
+  materialClassSchema,
+  materialClasses,
+};
 export {
   bodyProfileDetailedKeys,
   bodyProfileSimpleKeys,
@@ -1613,6 +1633,11 @@ export const garmentPublicationRecordSchema = z
     assetVersion: z.string().trim().min(1).max(64),
     measurementStandard: z.literal("body-garment-v1"),
     provenanceUrl: z.url().optional(),
+    approvalState: assetApprovalStateSchema.optional(),
+    approvedAt: z.iso.datetime().optional(),
+    approvedBy: z.string().trim().min(1).max(160).optional(),
+    certificationNotes: z.array(z.string().trim().min(1)).optional(),
+    viewerManifestVersion: z.string().trim().min(1).max(64).optional(),
   })
   .strict();
 

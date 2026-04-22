@@ -87,6 +87,11 @@ packages/domain-avatar   body profile normalization and avatar mapping
 packages/domain-garment  garment runtime contract and starter closet data
 packages/domain-canvas   canvas composition models and persistence helpers
 packages/runtime-3d      R3F stage runtime, avatar manifest, asset budgets
+packages/asset-schema    production-grade asset, material, and fit-artifact schemas
+packages/viewer-core     imperative viewer lifecycle and shared loader registry seam
+packages/viewer-react    React viewer host shim for staged cutover
+packages/viewer-protocol typed viewer commands, worker messages, and artifact envelopes
+packages/fit-kernel      preview solver execution-mode and transport seam
 packages/ui              shared wardrobe UI primitives
 packages/shared-types    canonical product types
 packages/shared-utils    shared helpers
@@ -183,6 +188,11 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/contract-ownership.md](docs/contract-ownership.md)
 - [docs/ai-agent-playbook.md](docs/ai-agent-playbook.md)
 - [docs/quality-gates.md](docs/quality-gates.md)
+- [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
+- [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
+- [docs/garment-production-contract.md](docs/garment-production-contract.md)
+- [docs/material-contract.md](docs/material-contract.md)
+- [docs/fit-quality-contract.md](docs/fit-quality-contract.md)
 - [docs/avatar-pipeline.md](docs/avatar-pipeline.md)
 - [docs/garment-fitting-contract.md](docs/garment-fitting-contract.md)
 - [docs/physical-fit-system.md](docs/physical-fit-system.md)

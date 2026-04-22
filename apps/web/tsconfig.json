@@ -10,7 +10,12 @@
       "@freestyle/domain-avatar": ["../../packages/domain-avatar/src/index.ts"],
       "@freestyle/domain-garment": ["../../packages/domain-garment/src/index.ts"],
       "@freestyle/domain-canvas": ["../../packages/domain-canvas/src/index.ts"],
+      "@freestyle/asset-schema": ["../../packages/asset-schema/src/index.ts"],
+      "@freestyle/fit-kernel": ["../../packages/fit-kernel/src/index.ts"],
       "@freestyle/runtime-3d": ["../../packages/runtime-3d/src/index.tsx"],
+      "@freestyle/viewer-core": ["../../packages/viewer-core/src/index.ts"],
+      "@freestyle/viewer-protocol": ["../../packages/viewer-protocol/src/index.ts"],
+      "@freestyle/viewer-react": ["../../packages/viewer-react/src/index.tsx"],
       "@freestyle/ui": ["../../packages/ui/src/index.tsx"]
     }
   },

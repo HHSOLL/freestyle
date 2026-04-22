@@ -1,0 +1,14 @@
+{
+  "name": "@freestyle/asset-schema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./approval-state": "./src/approval-state.ts",
+    "./quality": "./src/quality.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  }
+}

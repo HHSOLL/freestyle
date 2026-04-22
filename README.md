@@ -89,7 +89,7 @@ packages/domain-canvas   canvas composition models and persistence helpers
 packages/runtime-3d      R3F stage runtime, avatar manifest, asset budgets
 packages/asset-schema    production-grade asset, material, and fit-artifact schemas
 packages/viewer-core     imperative viewer lifecycle, renderer ownership, and shared loader registry seam
-packages/viewer-react    React thin host that creates viewer-core and forwards scene updates across the staged cutover seam
+packages/viewer-react    canonical product-facing viewer adapter; owns host selection, preload delegation, fallback/retry lifecycle, and forwards scene updates across the staged cutover seam
 packages/viewer-protocol typed viewer commands, worker messages, and artifact envelopes
 packages/fit-kernel      preview solver execution-mode and transport seam
 packages/ui              shared wardrobe UI primitives

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@freestyle/contracts": "file:../contracts",
+    "@freestyle/runtime-3d": "file:../runtime-3d",
     "@freestyle/shared-types": "file:../shared-types",
     "@freestyle/viewer-core": "file:../viewer-core",
     "react": "19.2.4"

@@ -2,7 +2,7 @@
 
 import React from "react";
 
-type AvatarStageViewportFallbackProps = {
+type ViewerStageFallbackProps = {
   state: "loading" | "error" | "unsupported";
   onRetry?: () => void;
 };
@@ -22,7 +22,7 @@ const fallbackCopy = {
   },
 } as const;
 
-export function AvatarStageViewportFallback({ state, onRetry }: AvatarStageViewportFallbackProps) {
+export function ViewerStageFallback({ state, onRetry }: ViewerStageFallbackProps) {
   const copy = fallbackCopy[state];
 
   return (

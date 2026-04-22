@@ -10,7 +10,7 @@ import {
   resolveDefaultClosetLoadout,
 } from "@freestyle/domain-garment";
 import type { GarmentInstantFitReport } from "@freestyle/contracts";
-import { preloadRuntimeAssets } from "@freestyle/runtime-3d";
+import { preloadViewerAssets } from "@freestyle/viewer-react";
 import type {
   AssetCategory,
   BodyFrame,
@@ -989,7 +989,7 @@ export function V18ClosetExperience() {
   }, [activeTab, closetRuntimeAssets, equippedGarments]);
 
   useEffect(() => {
-    preloadRuntimeAssets({
+    void preloadViewerAssets({
       avatarVariantIds: [avatarVariantId],
       garmentAssets: preloadCandidates,
       garmentVariantId: avatarVariantId,

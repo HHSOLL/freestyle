@@ -17,9 +17,30 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-22
+- 2026-04-23
 
 ## 점검 로그
+### 2026-04-23
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Three.js official docs:
+    - `https://threejs.org/docs/pages/GLTFLoader.html`
+    - `https://threejs.org/docs/pages/KTX2Loader.html`
+  - MDN official docs:
+    - `https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated`
+- 신규 변화 요약:
+  - `Pulse`는 오늘도 현재 인증 환경에서 접근되지 않았다.
+  - Three.js 공식 문서는 `GLTFLoader#setDRACOLoader`, `setKTX2Loader`, `setMeshoptDecoder` 조합과 `KTX2Loader.detectSupport(renderer)` 선행 호출, `KTX2Loader.dispose()` 정리를 계속 권장한다.
+  - 같은 문서군은 glTF image bitmap disposal 주의를 유지하고 있어 shared loader registry + explicit runtime disposal 방향이 여전히 맞다.
+  - MDN은 `SharedArrayBuffer` fast path가 필요한 경우 `crossOriginIsolated` 전제와 `COOP/COEP` 헤더 조합이 여전히 필요하다고 안내한다.
+- 우리 프로젝트 영향:
+  - `viewer-core` shared loader registry, renderer-owned disposal, `KTX2` 지원 감지, `viewer-protocol`의 `Transferable ArrayBuffer default / SharedArrayBuffer optional` 방향은 그대로 유지하는 편이 맞다.
+  - 오늘 배치는 새로운 외부 아이디어를 채택하기보다 `viewer-react`를 canonical product adapter로 승격하는 현재 계획을 계속 진행하면 된다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `docs/TECH_WATCH.md`
+
 ### 2026-04-22
 - 확인 소스:
   - `ChatGPT Pulse`

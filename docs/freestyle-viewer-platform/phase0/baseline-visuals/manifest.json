@@ -1,0 +1,55 @@
+{
+  "status": "partial",
+  "capturedAt": "2026-04-23T01:19:36+0900",
+  "sourceCommit": "4bf4038",
+  "sourceBranch": "codex/freestyle-viewer-platform-refactor",
+  "snapshotSuite": "apps/web/e2e/visual-regression.spec.ts",
+  "snapshotDirectory": "apps/web/e2e/visual-regression.spec.ts-snapshots",
+  "evidenceDocs": [
+    "docs/qa/phase5-visual-regression-2026-04-22.md",
+    "docs/rollout-governance/baseline-snapshots.md"
+  ],
+  "snapshots": [
+    {
+      "name": "canvas-empty-shell-chromium-darwin.png",
+      "bytes": 492525,
+      "coverage": "Canvas shell empty-state baseline"
+    },
+    {
+      "name": "closet-balanced-tier-chromium-darwin.png",
+      "bytes": 543150,
+      "coverage": "Closet balanced quality tier"
+    },
+    {
+      "name": "closet-high-tier-chromium-darwin.png",
+      "bytes": 545425,
+      "coverage": "Closet high quality tier"
+    },
+    {
+      "name": "closet-low-tier-chromium-darwin.png",
+      "bytes": 540649,
+      "coverage": "Closet low quality tier"
+    },
+    {
+      "name": "community-feed-shell-chromium-darwin.png",
+      "bytes": 941071,
+      "coverage": "Community shell"
+    },
+    {
+      "name": "home-shell-chromium-darwin.png",
+      "bytes": 597352,
+      "coverage": "Home shell"
+    },
+    {
+      "name": "profile-summary-shell-chromium-darwin.png",
+      "bytes": 173532,
+      "coverage": "Profile shell"
+    }
+  ],
+  "missingCoverage": [
+    "Full-page desktop closet certification captures beyond the current tier snapshots",
+    "Mobile visual baselines",
+    "Fit-critical zoom views for waist, shoulder, foot, and hem",
+    "Hardware-backed GPU render captures separate from SwiftShader-backed route regression"
+  ]
+}

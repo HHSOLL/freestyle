@@ -102,7 +102,7 @@ The minimum domain structure is fixed:
   - shared loader registry and future render ownership
 - `packages/viewer-react`
   - React host seam only
-  - app-facing bridge for staged cutover
+  - creates one imperative `viewer-core` controller and pushes a single `setScene(...)` payload across the staged cutover boundary
 - `packages/viewer-protocol`
   - viewer commands
   - preview worker messages
@@ -116,6 +116,8 @@ The minimum domain structure is fixed:
 
 Cross-domain imports should remain narrow and directional. `runtime-3d` may consume domain packages, but `domain-avatar` and `domain-garment` must not depend on page or shell code.
 During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibility shim. New product-facing viewer features belong in `viewer-core`, `viewer-react`, `viewer-protocol`, `fit-kernel`, and `asset-schema`. Do not make `packages/runtime-3d` depend on `viewer-core`.
+`viewer-react` must stay thin: it may translate product viewport props into a canonical scene payload and own the controller lifecycle, but it must not rebuild renderer logic or reintroduce direct product-path imports from `runtime-3d/src/**`.
+The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
 
 ## 4. Page Rules
 

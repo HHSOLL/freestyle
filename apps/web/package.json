@@ -20,6 +20,8 @@
     "@freestyle/shared-types": "file:../../packages/shared-types",
     "@freestyle/shared-utils": "file:../../packages/shared-utils",
     "@freestyle/ui": "file:../../packages/ui",
+    "@freestyle/viewer-core": "file:../../packages/viewer-core",
+    "@freestyle/viewer-react": "file:../../packages/viewer-react",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",

@@ -9,6 +9,7 @@ export {
   type CreateFreestyleViewerOptions,
   type FreestyleViewer,
   type FreestyleViewerEventMap,
+  type FreestyleViewerSceneInput,
   type LoadAvatarInput,
 } from "./FreestyleViewer.js";
 

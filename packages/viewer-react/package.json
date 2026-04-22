@@ -7,6 +7,9 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
+    "@freestyle/contracts": "file:../contracts",
+    "@freestyle/shared-types": "file:../shared-types",
+    "@freestyle/viewer-core": "file:../viewer-core",
     "react": "19.2.4"
   }
 }

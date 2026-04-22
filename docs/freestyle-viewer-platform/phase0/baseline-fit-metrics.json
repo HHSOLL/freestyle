@@ -1,0 +1,40 @@
+{
+  "status": "partial",
+  "capturedAt": "2026-04-23T01:19:36+0900",
+  "sourceCommit": "4bf4038",
+  "sourceBranch": "codex/freestyle-viewer-platform-refactor",
+  "sources": {
+    "fitCalibrationReport": "output/fit-calibration/latest.json",
+    "hqMetricsFixture": "workers/fit_simulation/src/worker.test.ts",
+    "fitArtifactContract": "packages/contracts/src/index.ts",
+    "fitSystemNotes": "docs/physical-fit-system.md"
+  },
+  "fitCalibration": {
+    "schemaVersion": "fit-calibration-report.v1",
+    "generatedAt": "2026-04-22T01:46:26.899Z",
+    "avatarCalibrationReferenceCount": 2,
+    "archetypeCount": 6,
+    "garmentCount": 17,
+    "assessmentCount": 0
+  },
+  "hqArtifactBaseline": {
+    "artifactKinds": [
+      "draped_glb",
+      "preview_png",
+      "fit_map_json",
+      "metrics_json"
+    ],
+    "exampleMetricsFixture": {
+      "durationMs": 820,
+      "penetrationRate": 0.021,
+      "maxStretchRatio": 1.04
+    },
+    "note": "Current HQ fit artifacts prove queueing, persistence, and typed payload seams. The persisted draped_glb is still an authored-scene merge baseline, not solver-deformed cloth truth."
+  },
+  "gaps": [
+    "The committed fit-calibration report currently has zero assessments, so no production-grade region risk rollup can be derived from it yet.",
+    "No canonical Phase 0 body-region penetration or clearance histogram exists on the product route.",
+    "No golden body matrix or golden pose matrix artifact bundle exists yet for certification-grade gating.",
+    "Preview-fit metrics are still seam-level evidence, not end-to-end product latency measurements."
+  ]
+}

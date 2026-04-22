@@ -32,6 +32,15 @@ export type ApplyGarmentsInput = Array<{
   size?: string;
 }>;
 
+export type FreestyleViewerSceneInput = {
+  avatar: LoadAvatarInput;
+  garments: ApplyGarmentsInput;
+  cameraPreset: string;
+  qualityMode: "low" | "balanced" | "high";
+  selectedItemId?: string | null;
+  backgroundColor?: string;
+};
+
 export type CreateFreestyleViewerOptions = {
   renderBackend?: "webgl2" | "webgpu";
   devicePolicy?: Record<string, unknown>;
@@ -47,6 +56,7 @@ export type CreateFreestyleViewerOptions = {
 export interface FreestyleViewer {
   loadAvatar(input: LoadAvatarInput): Promise<void>;
   applyGarments(input: ApplyGarmentsInput): Promise<void>;
+  setScene(input: FreestyleViewerSceneInput): Promise<void>;
   setCameraPreset(preset: string): void;
   setQualityMode(mode: "low" | "balanced" | "high"): void;
   requestHighQualityFit(): Promise<void>;
@@ -60,6 +70,7 @@ export class FreestyleViewerController implements FreestyleViewer {
 
   private readonly listeners = new Map<ViewerEventName, Set<ViewerListener<ViewerEventName>>>();
   private garments: ApplyGarmentsInput = [];
+  private scene: FreestyleViewerSceneInput | null = null;
   private disposed = false;
 
   constructor(canvas: HTMLCanvasElement, options: CreateFreestyleViewerOptions = {}) {
@@ -82,6 +93,22 @@ export class FreestyleViewerController implements FreestyleViewer {
       garments: input,
       source: "static-fit",
     });
+  }
+
+  async setScene(input: FreestyleViewerSceneInput) {
+    this.assertActive();
+    this.scene = input;
+    this.emit("metrics", {
+      name: "viewer.scene.updated",
+      tags: {
+        selectedItemId: input.selectedItemId ?? "none",
+        backgroundColor: input.backgroundColor ?? "default",
+      },
+    });
+    this.setQualityMode(input.qualityMode);
+    this.setCameraPreset(input.cameraPreset);
+    await this.loadAvatar(input.avatar);
+    await this.applyGarments(input.garments);
   }
 
   setCameraPreset(preset: string) {

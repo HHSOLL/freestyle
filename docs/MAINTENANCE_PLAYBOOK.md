@@ -176,7 +176,9 @@ If any of the above regress, stop the release.
 - verify guided form edits still round-trip through the raw manifest inspector
 - verify `POST` and `PUT` reject schema-valid but semantically invalid garments before they reach persistence
 - verify product routes still default to `PUBLISHED` assets while admin surfaces can inspect candidate approval states
+- verify `/v1/admin/garments?approval_state=...` still filters certification candidates without leaking those assets into `/v1/closet/runtime-garments`
 - verify `approvalState`, `approvedAt/by`, and certification notes survive admin save/load without affecting legacy upload asset statuses
+- verify legacy published rows with missing approval metadata normalize to `PUBLISHED` on read only; re-saved records must persist an explicit approval state
 
 ## 6. Operational Rules
 

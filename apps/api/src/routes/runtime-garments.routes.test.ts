@@ -91,6 +91,10 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
     assetVersion: "precision-tee@1.0.0",
     measurementStandard: "body-garment-v1",
     provenanceUrl: "https://partner.example.com/garments/precision-tee",
+    approvalState: "PUBLISHED",
+    approvedAt: "2026-04-14T12:00:00.000Z",
+    approvedBy: "qa@freestyle.app",
+    certificationNotes: ["Legacy starter passed first certification sweep."],
   },
 };
 
@@ -177,6 +181,7 @@ test("published runtime garments can be upserted through admin routes and consum
   assert.equal(getAdminDetailResponse.statusCode, 200);
   const adminDetailPayload = publishedRuntimeGarmentItemResponseSchema.parse(getAdminDetailResponse.json());
   assert.equal(adminDetailPayload.item.publication.sourceSystem, "admin-domain");
+  assert.equal(adminDetailPayload.item.publication.approvalState, "PUBLISHED");
 
   const getClosetResponse = await app.inject({
     method: "GET",
@@ -187,6 +192,7 @@ test("published runtime garments can be upserted through admin routes and consum
   assert.equal(getClosetResponse.headers["x-freestyle-surface"], "product");
   const closetPayload = closetRuntimeGarmentListResponseSchema.parse(getClosetResponse.json());
   assert.equal(closetPayload.items[0]?.item.publication.sourceSystem, "admin-domain");
+  assert.equal(closetPayload.items[0]?.item.publication.approvalState, "PUBLISHED");
   assert.equal(closetPayload.items[0]?.item.metadata?.selectedSizeLabel, "L");
   assert.equal(closetPayload.items[0]?.instantFit, null);
 
@@ -356,6 +362,7 @@ test("persisted mixed runtime garment rows keep valid entries while filtering ma
     adminPayload.items.map((item) => item.id),
     [publishedGarmentFixture.id],
   );
+  assert.equal(adminPayload.items[0]?.publication.approvalState, "PUBLISHED");
 
   await app.close();
 });
@@ -440,6 +447,94 @@ test("admin detail route treats semantically invalid persisted garments as missi
     publishedRuntimeGarmentItemResponseSchema.parse(validDetailResponse.json()).item.id,
     publishedGarmentFixture.id,
   );
+
+  await app.close();
+});
+
+test("closet runtime route hides non-published garments while admin routes still expose certification candidates", async () => {
+  const app = buildServer();
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: {
+      ...publishedGarmentFixture,
+      id: "draft-top-certification-candidate",
+      name: "Certification Candidate Tee",
+      publication: {
+        ...publishedGarmentFixture.publication,
+        assetVersion: "draft-top-certification-candidate@1.0.0",
+        approvalState: "FIT_CANDIDATE",
+        approvedAt: undefined,
+        approvedBy: undefined,
+        certificationNotes: ["Waiting on visible waist penetration review."],
+      },
+    },
+  });
+
+  assert.equal(createResponse.statusCode, 201);
+  const createdPayload = publishedRuntimeGarmentItemResponseSchema.parse(createResponse.json());
+  assert.equal(createdPayload.item.publication.approvalState, "FIT_CANDIDATE");
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 200);
+  assert.equal(closetRuntimeGarmentListResponseSchema.parse(closetResponse.json()).total, 0);
+
+  const adminResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments?approval_state=FIT_CANDIDATE",
+  });
+
+  assert.equal(adminResponse.statusCode, 200);
+  const adminPayload = publishedRuntimeGarmentListResponseSchema.parse(adminResponse.json());
+  assert.equal(adminPayload.total, 1);
+  assert.equal(adminPayload.items[0]?.publication.approvalState, "FIT_CANDIDATE");
+
+  await app.close();
+});
+
+test("legacy published runtime garments without approval metadata are normalized to PUBLISHED on read", async () => {
+  writeRuntimeGarmentStore({
+    version: 1,
+    items: [
+      {
+        ...publishedGarmentFixture,
+        id: "legacy-published-top",
+        publication: {
+          sourceSystem: "admin-domain",
+          publishedAt: "2026-04-12T12:00:00.000Z",
+          assetVersion: "legacy-published-top@1.0.0",
+          measurementStandard: "body-garment-v1",
+        },
+      },
+    ],
+  });
+
+  const app = buildServer();
+
+  const adminResponse = await app.inject({
+    method: "GET",
+    url: "/v1/admin/garments",
+  });
+
+  assert.equal(adminResponse.statusCode, 200);
+  const adminPayload = publishedRuntimeGarmentListResponseSchema.parse(adminResponse.json());
+  assert.equal(adminPayload.items[0]?.publication.approvalState, "PUBLISHED");
+  assert.equal(adminPayload.items[0]?.publication.approvedAt, "2026-04-12T12:00:00.000Z");
+
+  const closetResponse = await app.inject({
+    method: "GET",
+    url: "/v1/closet/runtime-garments",
+  });
+
+  assert.equal(closetResponse.statusCode, 200);
+  const closetPayload = closetRuntimeGarmentListResponseSchema.parse(closetResponse.json());
+  assert.equal(closetPayload.total, 1);
+  assert.equal(closetPayload.items[0]?.item.publication.approvalState, "PUBLISHED");
 
   await app.close();
 });

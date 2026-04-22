@@ -1,5 +1,6 @@
 import type {
   AssetCategory,
+  AssetApprovalState,
   AvatarAnchorId,
   GarmentCollisionZone,
   GarmentMeasurementKey,
@@ -37,6 +38,22 @@ export const SOURCE_FILTERS: Array<{ id: GarmentPublicationRecord["sourceSystem"
   { id: "admin-domain", label: "Admin Domain" },
   { id: "starter-catalog", label: "Starter" },
   { id: "api-published", label: "API Published" },
+];
+
+export const APPROVAL_STATE_OPTIONS: Array<{ id: AssetApprovalState; label: string }> = [
+  { id: "DRAFT", label: "Draft" },
+  { id: "TECH_CANDIDATE", label: "Tech Candidate" },
+  { id: "VISUAL_CANDIDATE", label: "Visual Candidate" },
+  { id: "FIT_CANDIDATE", label: "Fit Candidate" },
+  { id: "CERTIFIED", label: "Certified" },
+  { id: "PUBLISHED", label: "Published" },
+  { id: "DEPRECATED", label: "Deprecated" },
+  { id: "REJECTED", label: "Rejected" },
+];
+
+export const APPROVAL_STATE_FILTERS: Array<{ id: AssetApprovalState | "all"; label: string }> = [
+  { id: "all", label: "All States" },
+  ...APPROVAL_STATE_OPTIONS,
 ];
 
 export const PUBLISHED_SOURCE_OPTIONS: Array<{ id: PublishedGarmentAsset["source"]; label: string }> = [
@@ -234,6 +251,8 @@ export const buildBlankPublishedGarment = (category: AssetCategory = "tops"): Pu
       assetVersion: `${id}@1.0.0`,
       measurementStandard: "body-garment-v1",
       provenanceUrl: "https://partner.example.com/garments/new-garment",
+      approvalState: "DRAFT",
+      certificationNotes: [],
     },
   };
 };

@@ -155,6 +155,7 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - body masks still hide covered geometry correctly
 - low-quality mode still renders
 - load failure shows a fallback instead of a blank scene
+- product closet catalog hides non-`PUBLISHED` certification candidates while admin catalog queries may filter approval states explicitly
 - host chunk/WebGL fallback and in-canvas asset-loading placeholder remain visible on the closet stage
 - preloading stays within explicit asset budgets
 - queued jobs preserve `trace_id` and return canonical `job-result.v1` envelopes on status reads

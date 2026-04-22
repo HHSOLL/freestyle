@@ -369,21 +369,23 @@ export type GarmentRuntimeBinding = {
   renderPriority: number;
 };
 
+export type AssetApprovalState =
+  | "DRAFT"
+  | "TECH_CANDIDATE"
+  | "VISUAL_CANDIDATE"
+  | "FIT_CANDIDATE"
+  | "CERTIFIED"
+  | "PUBLISHED"
+  | "DEPRECATED"
+  | "REJECTED";
+
 export type GarmentPublicationRecord = {
   sourceSystem: "starter-catalog" | "admin-domain" | "api-published";
   publishedAt: string;
   assetVersion: string;
   measurementStandard: "body-garment-v1";
   provenanceUrl?: string;
-  approvalState?:
-    | "DRAFT"
-    | "TECH_CANDIDATE"
-    | "VISUAL_CANDIDATE"
-    | "FIT_CANDIDATE"
-    | "CERTIFIED"
-    | "PUBLISHED"
-    | "DEPRECATED"
-    | "REJECTED";
+  approvalState?: AssetApprovalState;
   approvedAt?: string;
   approvedBy?: string;
   certificationNotes?: string[];

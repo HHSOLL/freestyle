@@ -14,6 +14,7 @@ import {
 import { publishedGarmentAssetSchema } from "@freestyle/shared";
 import type {
   AssetCategory,
+  AssetApprovalState,
   GarmentCollisionZone,
   GarmentMeasurementMode,
   GarmentPublicationRecord,
@@ -25,6 +26,8 @@ import { DenseCatalogCard, Eyebrow, PillButton, SurfacePanel } from "@freestyle/
 import { adminApiFetchJson, getApiErrorMessage } from "@/lib/adminApi";
 import { buildAdminFitReview, fitStateTone } from "@/lib/fitReview";
 import {
+  APPROVAL_STATE_FILTERS,
+  APPROVAL_STATE_OPTIONS,
   buildBlankPublishedGarment,
   CATEGORY_FILTERS,
   COLLISION_ZONE_OPTIONS,
@@ -251,6 +254,30 @@ function NumberInputField(props: {
   );
 }
 
+function TextAreaField(props: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: wardrobeTokens.color.textFaint }}>
+        {props.label}
+      </span>
+      <textarea
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+        placeholder={props.placeholder}
+        rows={props.rows ?? 4}
+        className="w-full rounded-[18px] border bg-white/82 px-4 py-3 text-[13px] outline-none"
+        style={{ borderColor: wardrobeTokens.color.dividerStrong, color: wardrobeTokens.color.text }}
+      />
+    </label>
+  );
+}
+
 function SelectInputField<T extends string>(props: {
   label: string;
   value: T;
@@ -283,6 +310,7 @@ export function AdminWorkspace() {
   const [items, setItems] = useState<PublishedGarmentAsset[]>([]);
   const [category, setCategory] = useState<AssetCategory | "all">("all");
   const [sourceSystem, setSourceSystem] = useState<GarmentPublicationRecord["sourceSystem"] | "all">("all");
+  const [approvalState, setApprovalState] = useState<AssetApprovalState | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorValue, setEditorValue] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -347,6 +375,7 @@ export function AdminWorkspace() {
     const query = new URLSearchParams();
     if (category !== "all") query.set("category", category);
     if (sourceSystem !== "all") query.set("source_system", sourceSystem);
+    if (approvalState !== "all") query.set("approval_state", approvalState);
 
     const { response, data } = await adminApiFetchJson<{ items?: PublishedGarmentAsset[] }>(
       `/v1/admin/garments${query.size ? `?${query.toString()}` : ""}`,
@@ -366,7 +395,7 @@ export function AdminWorkspace() {
       return current && nextItems.some((item) => item.id === current) ? current : nextItems[0]?.id ?? null;
     });
     setIsFetching(false);
-  }, [category, sourceSystem, user]);
+  }, [approvalState, category, sourceSystem, user]);
 
   useEffect(() => {
     void loadItems();
@@ -631,6 +660,18 @@ export function AdminWorkspace() {
                   </PillButton>
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {APPROVAL_STATE_FILTERS.map((filter) => (
+                  <PillButton
+                    key={filter.id}
+                    active={approvalState === filter.id}
+                    onClick={() => setApprovalState(filter.id)}
+                    className="px-3 py-1.5 text-[11px]"
+                  >
+                    {filter.label}
+                  </PillButton>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
@@ -658,12 +699,14 @@ export function AdminWorkspace() {
                 <DenseCatalogCard
                   key={item.id}
                   title={item.name}
-                  subtitle={`${item.category} · ${item.publication.sourceSystem}`}
+                  subtitle={`${item.category} · ${item.publication.sourceSystem} · ${item.publication.approvalState ?? "PUBLISHED"}`}
                   thumbnail={item.imageSrc}
                   active={selectedId === item.id}
                   onClick={() => setSelectedId(item.id)}
                   footer={
                     <div className="flex flex-wrap gap-2">
+                      <span>{item.publication.approvalState ?? "PUBLISHED"}</span>
+                      <span>·</span>
                       <span>{item.metadata?.selectedSizeLabel ?? "No size"}</span>
                       <span>·</span>
                       <span>{formatDate(item.publication.publishedAt)}</span>
@@ -694,6 +737,8 @@ export function AdminWorkspace() {
                     <span>{workingItem?.id ?? "No selection"}</span>
                     {workingItem ? <span>·</span> : null}
                     <span>{workingItem?.publication.sourceSystem ?? "No source"}</span>
+                    {workingItem ? <span>·</span> : null}
+                    <span>{workingItem?.publication.approvalState ?? "PUBLISHED"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -712,6 +757,7 @@ export function AdminWorkspace() {
                   { label: "Category", value: workingItem?.category ?? "-" },
                   { label: "Selected Size", value: workingItem?.metadata?.selectedSizeLabel ?? "-" },
                   { label: "Asset Version", value: workingItem?.publication.assetVersion ?? "-" },
+                  { label: "Approval State", value: workingItem?.publication.approvalState ?? "PUBLISHED" },
                   { label: "Published", value: formatDate(workingItem?.publication.publishedAt) },
                 ].map((card) => (
                   <div
@@ -829,7 +875,7 @@ export function AdminWorkspace() {
                   <SectionFrame
                     eyebrow="Step 2"
                     title="Publication Metadata"
-                    description="Railway API로 저장되는 published contract 메타데이터다. asset version과 provenance는 partner 협업 시 추적 기준이 된다."
+                    description="Railway API로 저장되는 published contract 메타데이터다. approval state가 `PUBLISHED`인 garment만 closet product route에 기본 노출된다."
                   >
                     <div className="grid gap-4 xl:grid-cols-2">
                       <SelectInputField
@@ -846,6 +892,24 @@ export function AdminWorkspace() {
                           }))
                         }
                       />
+                      <SelectInputField
+                        label="Approval State"
+                        value={(workingItem.publication.approvalState ?? "PUBLISHED") as AssetApprovalState}
+                        options={APPROVAL_STATE_OPTIONS}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvalState: value,
+                              approvedAt:
+                                value === "PUBLISHED"
+                                  ? current.publication.approvedAt ?? current.publication.publishedAt
+                                  : current.publication.approvedAt,
+                            },
+                          }))
+                        }
+                      />
                       <TextInputField
                         label="Asset Version"
                         value={workingItem.publication.assetVersion}
@@ -855,6 +919,45 @@ export function AdminWorkspace() {
                             publication: {
                               ...current.publication,
                               assetVersion: value,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Approved At"
+                        value={workingItem.publication.approvedAt ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvedAt: value || undefined,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Approved By"
+                        value={workingItem.publication.approvedBy ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvedBy: value || undefined,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Viewer Manifest Version"
+                        value={workingItem.publication.viewerManifestVersion ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              viewerManifestVersion: value || undefined,
                             },
                           }))
                         }
@@ -886,6 +989,24 @@ export function AdminWorkspace() {
                         }
                       />
                     </div>
+                    <TextAreaField
+                      label="Certification Notes"
+                      rows={5}
+                      value={(workingItem.publication.certificationNotes ?? []).join("\n")}
+                      placeholder="One note per line"
+                      onChange={(value) =>
+                        updateDraft((current) => ({
+                          ...current,
+                          publication: {
+                            ...current.publication,
+                            certificationNotes: value
+                              .split("\n")
+                              .map((entry) => entry.trim())
+                              .filter(Boolean),
+                          },
+                        }))
+                      }
+                    />
                     <div className="rounded-[18px] border px-4 py-3 text-[13px]" style={{ borderColor: wardrobeTokens.color.divider }}>
                       Measurement standard: <span style={{ color: wardrobeTokens.color.text }}>{workingItem.publication.measurementStandard}</span>
                     </div>

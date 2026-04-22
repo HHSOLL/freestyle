@@ -99,7 +99,7 @@ The minimum domain structure is fixed:
   - approval-state and certification contracts
 - `packages/viewer-core`
   - imperative viewer lifecycle
-  - shared loader registry and future render ownership
+  - shared loader registry, renderer ownership, and demand-driven scheduler ownership
 - `packages/viewer-react`
   - React host seam only
   - creates one imperative `viewer-core` controller and pushes a single `setScene(...)` payload across the staged cutover boundary

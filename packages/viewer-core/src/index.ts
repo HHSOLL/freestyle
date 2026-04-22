@@ -4,12 +4,26 @@ export {
   type SharedLoaderRegistryOptions,
 } from "./loader-registry.js";
 export {
+  createRenderScheduler,
+  type RenderFrame,
+  type RenderScheduler,
+  type RenderSchedulerAdapter,
+} from "./render-scheduler.js";
+export {
+  createViewerRendererRuntime,
+  type ViewerRendererBackend,
+  type ViewerRendererFactory,
+  type ViewerRendererMetrics,
+  type ViewerRendererRuntime,
+} from "./renderer-runtime.js";
+export {
   FreestyleViewerController,
   type ApplyGarmentsInput,
   type CreateFreestyleViewerOptions,
   type FreestyleViewer,
   type FreestyleViewerEventMap,
   type FreestyleViewerSceneInput,
+  type FreestyleViewerViewportInput,
   type LoadAvatarInput,
 } from "./FreestyleViewer.js";
 
@@ -19,6 +33,16 @@ export const createFreestyleViewer = async (
   canvas: HTMLCanvasElement,
   options: CreateFreestyleViewerOptions = {},
 ) => {
+  if (options.renderBackend === "webgpu") {
+    options.telemetry?.emit({
+      name: "viewer.backend.unsupported",
+      tags: {
+        renderBackend: "webgpu",
+      },
+    });
+    throw new Error('Render backend "webgpu" is not implemented in viewer-core yet.');
+  }
+
   const viewer = new FreestyleViewerController(canvas, options);
   options.telemetry?.emit({
     name: "viewer.created",

@@ -9,6 +9,7 @@ import type {
 } from "@freestyle/shared-types";
 import { createFreestyleViewer, type FreestyleViewer } from "@freestyle/viewer-core";
 import { buildViewerSceneInput } from "./bridge.js";
+import { hasViewerViewportChanged, measureViewerViewport } from "./viewport.js";
 
 export type ViewerQualityTier = "low" | "balanced" | "high";
 
@@ -87,9 +88,11 @@ export function FreestyleViewerHost({
   qualityTier,
   backgroundColor,
 }: FreestyleViewerHostProps) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<FreestyleViewer | null>(null);
   const releaseErrorListenerRef = useRef<(() => void) | null>(null);
+  const viewportRef = useRef<ReturnType<typeof measureViewerViewport> | null>(null);
   const [hostState, setHostState] = useState<HostState>("booting");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const sceneInput = useMemo(
@@ -152,6 +155,39 @@ export function FreestyleViewerHost({
   }, []);
 
   useEffect(() => {
+    if (hostState !== "ready" || !viewerRef.current || !hostRef.current) {
+      return;
+    }
+
+    const element = hostRef.current;
+
+    const syncViewport = () => {
+      const nextViewport = measureViewerViewport(element);
+      if (!hasViewerViewportChanged(viewportRef.current, nextViewport)) {
+        return;
+      }
+
+      viewportRef.current = nextViewport;
+      viewerRef.current?.setViewport(nextViewport);
+    };
+
+    syncViewport();
+
+    if (typeof ResizeObserver !== "function") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      syncViewport();
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hostState]);
+
+  useEffect(() => {
     if (hostState !== "ready" || !viewerRef.current) {
       return;
     }
@@ -173,6 +209,7 @@ export function FreestyleViewerHost({
 
   return (
     <div
+      ref={hostRef}
       style={{
         position: "relative",
         width: "100%",

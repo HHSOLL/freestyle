@@ -94,3 +94,13 @@ test("setScene updates the viewer through one idempotent scene payload", async (
     source: "static-fit",
   });
 });
+
+test('createFreestyleViewer fails closed for the reserved "webgpu" backend', async () => {
+  await assert.rejects(
+    () =>
+      createFreestyleViewer({} as HTMLCanvasElement, {
+        renderBackend: "webgpu",
+      }),
+    /not implemented/,
+  );
+});

@@ -1,3 +1,6 @@
+import { createViewerRendererRuntime, type ViewerRendererFactory, type ViewerRendererRuntime } from "./renderer-runtime.js";
+import type { RenderSchedulerAdapter } from "./render-scheduler.js";
+
 export type FreestyleViewerEventMap = {
   "fit:preview-ready": {
     garments: Array<{ garmentId: string; size?: string }>;
@@ -41,6 +44,12 @@ export type FreestyleViewerSceneInput = {
   backgroundColor?: string;
 };
 
+export type FreestyleViewerViewportInput = {
+  widthCssPx: number;
+  heightCssPx: number;
+  devicePixelRatio?: number;
+};
+
 export type CreateFreestyleViewerOptions = {
   renderBackend?: "webgl2" | "webgpu";
   devicePolicy?: Record<string, unknown>;
@@ -51,12 +60,16 @@ export type CreateFreestyleViewerOptions = {
     emit: (event: { name: string; value?: number; tags?: Record<string, string> }) => void;
   };
   cachePolicy?: Record<string, unknown>;
+  rendererFactory?: ViewerRendererFactory;
+  schedulerAdapter?: RenderSchedulerAdapter;
 };
 
 export interface FreestyleViewer {
   loadAvatar(input: LoadAvatarInput): Promise<void>;
   applyGarments(input: ApplyGarmentsInput): Promise<void>;
   setScene(input: FreestyleViewerSceneInput): Promise<void>;
+  setViewport(input: FreestyleViewerViewportInput): void;
+  invalidate(reason?: string): void;
   setCameraPreset(preset: string): void;
   setQualityMode(mode: "low" | "balanced" | "high"): void;
   requestHighQualityFit(): Promise<void>;
@@ -69,13 +82,16 @@ export class FreestyleViewerController implements FreestyleViewer {
   readonly options: CreateFreestyleViewerOptions;
 
   private readonly listeners = new Map<ViewerEventName, Set<ViewerListener<ViewerEventName>>>();
+  private readonly rendererRuntime: ViewerRendererRuntime;
   private garments: ApplyGarmentsInput = [];
   private scene: FreestyleViewerSceneInput | null = null;
+  private viewport: FreestyleViewerViewportInput | null = null;
   private disposed = false;
 
   constructor(canvas: HTMLCanvasElement, options: CreateFreestyleViewerOptions = {}) {
     this.canvas = canvas;
     this.options = options;
+    this.rendererRuntime = (options.rendererFactory ?? createViewerRendererRuntime)(canvas, options);
   }
 
   async loadAvatar(input: LoadAvatarInput) {
@@ -84,6 +100,7 @@ export class FreestyleViewerController implements FreestyleViewer {
       name: "viewer.avatar.load.requested",
       tags: { avatarId: input.avatarId },
     });
+    this.rendererRuntime.invalidate("avatar-load");
   }
 
   async applyGarments(input: ApplyGarmentsInput) {
@@ -93,11 +110,13 @@ export class FreestyleViewerController implements FreestyleViewer {
       garments: input,
       source: "static-fit",
     });
+    this.rendererRuntime.invalidate("garment-apply");
   }
 
   async setScene(input: FreestyleViewerSceneInput) {
     this.assertActive();
     this.scene = input;
+    this.rendererRuntime.setBackgroundColor(input.backgroundColor);
     this.emit("metrics", {
       name: "viewer.scene.updated",
       tags: {
@@ -111,16 +130,37 @@ export class FreestyleViewerController implements FreestyleViewer {
     await this.applyGarments(input.garments);
   }
 
+  setViewport(input: FreestyleViewerViewportInput) {
+    this.assertActive();
+    this.viewport = input;
+    this.rendererRuntime.setViewport(input);
+    this.emit("metrics", {
+      name: "viewer.viewport.updated",
+      tags: {
+        widthCssPx: String(input.widthCssPx),
+        heightCssPx: String(input.heightCssPx),
+      },
+      value: input.devicePixelRatio,
+    });
+  }
+
+  invalidate(reason = "viewer.invalidate") {
+    this.assertActive();
+    this.rendererRuntime.invalidate(reason);
+  }
+
   setCameraPreset(preset: string) {
     this.assertActive();
     this.emit("metrics", {
       name: "viewer.camera.preset",
       tags: { preset },
     });
+    this.rendererRuntime.invalidate("camera-preset");
   }
 
   setQualityMode(mode: "low" | "balanced" | "high") {
     this.assertActive();
+    this.rendererRuntime.syncQualityMode(mode);
     this.emit("metrics", {
       name: "viewer.quality.mode",
       tags: { mode },
@@ -132,6 +172,7 @@ export class FreestyleViewerController implements FreestyleViewer {
     this.emit("fit:hq-ready", {
       cacheKey: this.garments.map((item) => `${item.garmentId}:${item.size ?? "default"}`).join("|"),
     });
+    this.rendererRuntime.invalidate("hq-fit");
   }
 
   on<TName extends ViewerEventName>(eventName: TName, listener: ViewerListener<TName>) {
@@ -153,6 +194,7 @@ export class FreestyleViewerController implements FreestyleViewer {
     }
 
     this.disposed = true;
+    this.rendererRuntime.dispose();
     this.listeners.clear();
   }
 

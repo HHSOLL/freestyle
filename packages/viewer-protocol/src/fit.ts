@@ -2,12 +2,19 @@ import { z } from "zod";
 import { bodySignatureSchema, fitMetricsJsonSchema } from "@freestyle/asset-schema";
 import {
   defaultFitKernelBufferTransport,
+  fitKernelExecutionModes,
+  fitKernelPreviewBackendIds,
+  fitKernelPreviewFrameSchemaVersion,
+  fitKernelPreviewSolverKinds,
   fitKernelBufferTransports,
   type FitKernelBufferTransport,
 } from "@freestyle/fit-kernel";
 
 export const previewTransportBackendSchema = z.enum(fitKernelBufferTransports);
 export const previewTransportBackendDefault = defaultFitKernelBufferTransport;
+export const previewKernelExecutionModeSchema = z.enum(fitKernelExecutionModes);
+export const previewKernelBackendSchema = z.enum(fitKernelPreviewBackendIds);
+export const previewKernelSolverKindSchema = z.enum(fitKernelPreviewSolverKinds);
 
 export const previewWorkerMessageSchema = z.discriminatedUnion("type", [
   z
@@ -67,6 +74,73 @@ export const previewWorkerMessageSchema = z.discriminatedUnion("type", [
     .strict(),
 ]);
 
+export const previewFrameResultSchema = z
+  .object({
+    schemaVersion: z.literal(fitKernelPreviewFrameSchemaVersion),
+    sessionId: z.string().trim().min(1).max(160),
+    sequence: z.number().int().nonnegative(),
+    backend: previewKernelBackendSchema,
+    state: z
+      .object({
+        initialized: z.boolean(),
+        lastAnchorWorld: z.tuple([z.number(), z.number(), z.number()]),
+        rotationRad: z.tuple([z.number(), z.number(), z.number()]),
+        rotationVelocity: z.tuple([z.number(), z.number(), z.number()]),
+        positionOffset: z.tuple([z.number(), z.number(), z.number()]),
+        positionVelocity: z.tuple([z.number(), z.number(), z.number()]),
+      })
+      .strict(),
+    rotationRad: z.tuple([z.number(), z.number(), z.number()]),
+    position: z.tuple([z.number(), z.number(), z.number()]),
+    targetRotationRad: z.tuple([z.number(), z.number(), z.number()]),
+    targetPosition: z.tuple([z.number(), z.number(), z.number()]),
+    angularEnergy: z.number(),
+    positionalEnergy: z.number(),
+    anchorEnergy: z.number(),
+    shouldContinue: z.boolean(),
+  })
+  .strict();
+
+export const previewFrameMetricsSchema = z
+  .object({
+    solverKind: previewKernelSolverKindSchema,
+    executionMode: previewKernelExecutionModeSchema,
+    backend: previewKernelBackendSchema,
+    solveDurationMs: z.number().nonnegative(),
+    angularEnergy: z.number().nonnegative(),
+    positionalEnergy: z.number().nonnegative(),
+    anchorEnergy: z.number().nonnegative(),
+    shouldContinue: z.boolean(),
+  })
+  .strict();
+
+export const previewWorkerResultEnvelopeSchema = z
+  .object({
+    type: z.literal("PREVIEW_FRAME_RESULT"),
+    result: previewFrameResultSchema,
+    metrics: previewFrameMetricsSchema,
+  })
+  .strict();
+
+export const previewRuntimeSnapshotSchemaVersion = "preview-runtime-snapshot.v1";
+
+export const previewRuntimeSnapshotSchema = z
+  .object({
+    schemaVersion: z.literal(previewRuntimeSnapshotSchemaVersion),
+    sessionId: z.string().trim().min(1).max(160),
+    sequence: z.number().int().nonnegative(),
+    executionMode: previewKernelExecutionModeSchema,
+    backend: previewKernelBackendSchema,
+    solverKind: previewKernelSolverKindSchema.optional(),
+    solveDurationMs: z.number().nonnegative(),
+    angularEnergy: z.number().nonnegative(),
+    positionalEnergy: z.number().nonnegative(),
+    anchorEnergy: z.number().nonnegative(),
+    shouldContinue: z.boolean(),
+    settled: z.boolean(),
+  })
+  .strict();
+
 export const fitArtifactCacheKeyPartsSchema = z
   .object({
     avatarModelVersion: z.string().trim().min(1).max(120),
@@ -101,5 +175,7 @@ export const hqArtifactEnvelopeSchema = z
 
 export type FitArtifactCacheKeyParts = z.infer<typeof fitArtifactCacheKeyPartsSchema>;
 export type HqArtifactEnvelope = z.infer<typeof hqArtifactEnvelopeSchema>;
+export type PreviewRuntimeSnapshot = z.infer<typeof previewRuntimeSnapshotSchema>;
 export type PreviewTransportBackend = FitKernelBufferTransport;
 export type PreviewWorkerMessage = z.infer<typeof previewWorkerMessageSchema>;
+export type PreviewWorkerResultEnvelope = z.infer<typeof previewWorkerResultEnvelopeSchema>;

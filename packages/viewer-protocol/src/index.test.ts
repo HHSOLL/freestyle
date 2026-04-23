@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fitArtifactCacheKeyPartsSchema,
+  previewFrameMetricsSchema,
+  previewRuntimeSnapshotSchema,
   previewTransportBackendDefault,
   previewWorkerMessageSchema,
+  previewWorkerResultEnvelopeSchema,
   viewerCommandSchema,
   viewerEventEnvelopeSchema,
   viewerManifestEnvelopeSchema,
@@ -132,4 +135,71 @@ test("preview worker protocol reuses the fit-kernel transport default", () => {
 
   assert.equal(parsed.type, "INIT_SOLVER");
   assert.equal(parsed.backend, "transferable-array-buffer");
+});
+
+test("preview worker result envelope keeps reduced-preview metrics explicit", () => {
+  const parsed = previewWorkerResultEnvelopeSchema.parse({
+    type: "PREVIEW_FRAME_RESULT",
+    result: {
+      schemaVersion: "preview-simulation-frame.v1",
+      sessionId: "preview-session",
+      sequence: 3,
+      backend: "worker-reduced",
+      state: {
+        initialized: true,
+        lastAnchorWorld: [0, 1.4, 0],
+        rotationRad: [0.01, 0.02, 0.03],
+        rotationVelocity: [0.001, 0.002, 0.003],
+        positionOffset: [0.001, 0.002, 0],
+        positionVelocity: [0.0001, 0.0002, 0],
+      },
+      rotationRad: [0.01, 0.02, 0.03],
+      position: [0.001, 0.032, 0],
+      targetRotationRad: [0.02, 0.03, 0.01],
+      targetPosition: [0.004, 0.035, 0],
+      angularEnergy: 0.12,
+      positionalEnergy: 0.02,
+      anchorEnergy: 0.3,
+      shouldContinue: true,
+    },
+    metrics: {
+      solverKind: "reduced-preview-spring",
+      executionMode: "reduced-preview",
+      backend: "worker-reduced",
+      solveDurationMs: 0.42,
+      angularEnergy: 0.12,
+      positionalEnergy: 0.02,
+      anchorEnergy: 0.3,
+      shouldContinue: true,
+    },
+  });
+
+  const metrics = previewFrameMetricsSchema.parse(parsed.metrics);
+  assert.equal(parsed.type, "PREVIEW_FRAME_RESULT");
+  assert.equal(metrics.executionMode, "reduced-preview");
+});
+
+test("viewer event envelope preserves preview runtime snapshots as read-only evidence", () => {
+  const snapshot = previewRuntimeSnapshotSchema.parse({
+    schemaVersion: "preview-runtime-snapshot.v1",
+    sessionId: "preview-session",
+    sequence: 4,
+    executionMode: "reduced-preview",
+    backend: "worker-reduced",
+    solverKind: "reduced-preview-spring",
+    solveDurationMs: 0.42,
+    angularEnergy: 0.12,
+    positionalEnergy: 0.02,
+    anchorEnergy: 0.3,
+    shouldContinue: true,
+    settled: false,
+  });
+  const parsed = viewerEventEnvelopeSchema.parse({
+    type: "fit:preview-runtime-updated",
+    payload: snapshot,
+  });
+
+  assert.equal(parsed.type, "fit:preview-runtime-updated");
+  assert.equal(parsed.payload.backend, "worker-reduced");
+  assert.equal(parsed.payload.executionMode, "reduced-preview");
 });

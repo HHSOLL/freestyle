@@ -248,8 +248,11 @@ As of `2026-04-20`:
 - `Phase E / Batch 3` now adds a shared `fitMapSummary` helper and persisted summary snapshot, so preview generation and future consumers agree on the dominant overlay/region without reimplementing overlay-ranking logic
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
-  - `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` owns backend selection, frame stepping, and demand-driven invalidation thresholds
-  - `apps/web/public/workers/reference-closet-stage-preview.worker.js` provides the same-origin `worker-reduced` path for long-hair and loose-garment preview motion
+  - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract
+  - `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` keeps backend selection while delegating reduced-preview stepping to `@freestyle/fit-kernel`
+  - `apps/web/public/workers/reference-closet-stage-preview.worker.js` provides the same-origin `worker-reduced` path for long-hair and loose-garment preview motion and now emits a typed `PREVIEW_FRAME_RESULT` envelope
+  - `packages/viewer-protocol` now adds `previewRuntimeSnapshotSchema`, and `packages/runtime-3d/src/preview-runtime-snapshot.ts` maps both raw frame results and typed worker envelopes into one read-only compatibility snapshot
+  - `ReferenceClosetStageCanvas` now exposes `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` browser events for debug/telemetry evidence without widening `/v1` payloads
   - this is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata

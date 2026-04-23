@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -37,6 +37,7 @@ import {
   buildReferenceClosetStagePreviewFrameRequest,
   createReferenceClosetStagePreviewFrameState,
   detectReferenceClosetStagePreviewFeatures,
+  isReferenceClosetStagePreviewResultEnvelope,
   resolveReferenceClosetStagePreviewBackend,
   stepReferenceClosetStagePreviewFrame,
   type ReferenceClosetStagePreviewBackendId,
@@ -45,6 +46,7 @@ import {
   type ReferenceClosetStagePreviewFrameRequest,
   type ReferenceClosetStagePreviewFrameResult,
   type ReferenceClosetStagePreviewFrameState,
+  type ReferenceClosetStagePreviewResultEnvelope,
 } from "./reference-closet-stage-preview-simulation.js";
 import {
   getAdaptiveCollisionClearanceMultiplier,
@@ -57,6 +59,14 @@ import {
   ReferenceClosetStageView,
   type ReferenceClosetStageOrbitControls,
 } from "./reference-closet-stage-view.js";
+import {
+  applyPreviewRuntimeSnapshotDataAttributes,
+  buildPreviewRuntimeEventEnvelope,
+  buildPreviewRuntimeSnapshot,
+  createPreviewRuntimeSnapshot,
+  hasPreviewRuntimeSnapshotChanged,
+  type PreviewRuntimeSnapshot,
+} from "./preview-runtime-snapshot.js";
 import {
   applyRuntimeMaterialCalibration,
   isAlphaCardName,
@@ -762,6 +772,7 @@ function BoundGarment({
   layerContext,
   avatarAliasMap,
   avatarSceneScale,
+  onPreviewRuntimeSnapshot,
 }: {
   item: RuntimeGarmentAsset;
   bodyProfile: BodyProfile;
@@ -775,6 +786,7 @@ function BoundGarment({
   layerContext: GarmentLayerContext;
   avatarAliasMap: AliasMap;
   avatarSceneScale: number;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
   const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId, qualityTier);
@@ -851,6 +863,13 @@ function BoundGarment({
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
   const effectivePreviewBackend = secondaryMotionConfig ? previewBackend : "static-fit";
 
+  const publishPreviewRuntimeSnapshot = useCallback(
+    (snapshot: PreviewRuntimeSnapshot) => {
+      onPreviewRuntimeSnapshot?.(snapshot);
+    },
+    [onPreviewRuntimeSnapshot],
+  );
+
   useEffect(() => {
     return () => {
       disposeRuntimeOwnedMaterials(garmentScene);
@@ -883,13 +902,25 @@ function BoundGarment({
       previewWorkerRef.current.postMessage(nextRequest);
     };
 
-    worker.onmessage = (event: MessageEvent<ReferenceClosetStagePreviewFrameResult>) => {
-      const result = event.data;
+    worker.onmessage = (
+      event: MessageEvent<
+        ReferenceClosetStagePreviewFrameResult | ReferenceClosetStagePreviewResultEnvelope
+      >,
+    ) => {
+      const payload = event.data;
+      const result = isReferenceClosetStagePreviewResultEnvelope(payload)
+        ? payload.result
+        : payload;
       previewWorkerPendingRef.current = false;
       if (!result || result.sessionId !== String(previewSessionRef.current)) {
         flushQueuedRequest();
         return;
       }
+      publishPreviewRuntimeSnapshot(
+        buildPreviewRuntimeSnapshot({
+          payload,
+        }),
+      );
       motionStateRef.current = result.state;
       applyPreviewFrameResult(motionRef.current, result);
       if (result.shouldContinue) {
@@ -916,7 +947,7 @@ function BoundGarment({
         previewWorkerRef.current = null;
       }
     };
-  }, [effectivePreviewBackend, invalidate]);
+  }, [effectivePreviewBackend, invalidate, publishPreviewRuntimeSnapshot]);
 
   useLayoutEffect(() => {
     configureMaterials(garmentScene, { qualityTier });
@@ -994,6 +1025,13 @@ function BoundGarment({
     queuedPreviewRequestRef.current = null;
     previewWorkerPendingRef.current = false;
     motionStateRef.current = createReferenceClosetStagePreviewFrameState();
+    publishPreviewRuntimeSnapshot(
+      createPreviewRuntimeSnapshot({
+        sessionId: String(previewSessionRef.current),
+        sequence: previewSequenceRef.current,
+        backend: effectivePreviewBackend,
+      }),
+    );
     if (secondaryMotionConfig) {
       invalidate();
     }
@@ -1033,6 +1071,8 @@ function BoundGarment({
     poseRuntimeTuning.widthScale,
     qualityTier,
     selected,
+    effectivePreviewBackend,
+    publishPreviewRuntimeSnapshot,
     secondaryMotionConfig,
     invalidate,
   ]);
@@ -1073,7 +1113,21 @@ function BoundGarment({
       return;
     }
 
+    const frameStartTime =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
     const result = stepReferenceClosetStagePreviewFrame(request);
+    const frameEndTime =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    publishPreviewRuntimeSnapshot(
+      buildPreviewRuntimeSnapshot({
+        payload: result,
+        solveDurationMs: frameEndTime - frameStartTime,
+      }),
+    );
     motionStateRef.current = result.state;
     applyPreviewFrameResult(motionRef.current, result);
     if (result.shouldContinue) {
@@ -1099,6 +1153,7 @@ function AvatarRig({
   qualityTier,
   previewBackend,
   previewFeatureSnapshot,
+  onPreviewRuntimeSnapshot,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1108,6 +1163,7 @@ function AvatarRig({
   qualityTier: QualityTier;
   previewBackend: ReferenceClosetStagePreviewBackendId;
   previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
   const avatarModelPath = resolveAvatarRuntimeModelPath(avatarVariantId, qualityTier) ?? manifest.modelPath;
@@ -1221,6 +1277,7 @@ function AvatarRig({
             }}
             avatarAliasMap={aliasMap}
             avatarSceneScale={avatarSceneScale}
+            onPreviewRuntimeSnapshot={onPreviewRuntimeSnapshot}
           />
         ))}
     </group>
@@ -1239,6 +1296,7 @@ function SceneRig({
   previewFeatureSnapshot,
   controlsEnableDamping,
   controlsDampingFactor,
+  onPreviewRuntimeSnapshot,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1251,6 +1309,7 @@ function SceneRig({
   previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   controlsEnableDamping: boolean;
   controlsDampingFactor: number;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
@@ -1272,6 +1331,7 @@ function SceneRig({
         qualityTier={qualityTier}
         previewBackend={previewBackend}
         previewFeatureSnapshot={previewFeatureSnapshot}
+        onPreviewRuntimeSnapshot={onPreviewRuntimeSnapshot}
       />
     </>
   );
@@ -1294,6 +1354,8 @@ export function ReferenceClosetStageCanvas({
   qualityTier: QualityTier;
   backgroundColor?: string;
 }) {
+  const previewRuntimeRootRef = useRef<HTMLDivElement>(null);
+  const lastPreviewRuntimeSnapshotRef = useRef<PreviewRuntimeSnapshot | null>(null);
   const scenePolicy = useMemo(
     () =>
       resolveReferenceClosetStageScenePolicy({
@@ -1317,23 +1379,65 @@ export function ReferenceClosetStageCanvas({
     [previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
   );
 
+  const handlePreviewRuntimeSnapshot = useCallback((snapshot: PreviewRuntimeSnapshot) => {
+    const previousSnapshot = lastPreviewRuntimeSnapshotRef.current;
+    if (!hasPreviewRuntimeSnapshotChanged(previousSnapshot, snapshot)) {
+      return;
+    }
+    lastPreviewRuntimeSnapshotRef.current = snapshot;
+    applyPreviewRuntimeSnapshotDataAttributes(previewRuntimeRootRef.current, snapshot);
+    const shouldDispatchEvent =
+      !previousSnapshot ||
+      previousSnapshot.sessionId !== snapshot.sessionId ||
+      previousSnapshot.executionMode !== snapshot.executionMode ||
+      previousSnapshot.backend !== snapshot.backend ||
+      previousSnapshot.solverKind !== snapshot.solverKind ||
+      previousSnapshot.settled !== snapshot.settled;
+    if (shouldDispatchEvent && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("freestyle:viewer-event", {
+          detail: buildPreviewRuntimeEventEnvelope(snapshot),
+        }),
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    lastPreviewRuntimeSnapshotRef.current = null;
+    applyPreviewRuntimeSnapshotDataAttributes(previewRuntimeRootRef.current, null);
+  }, [avatarVariantId, bodyProfile, equippedGarments, poseId, qualityTier, selectedItemId]);
+
   return (
-    <ReferenceClosetStageView scenePolicy={scenePolicy}>
-      <Suspense fallback={<ClosetStageLoadingFallback />}>
-        <SceneRig
-          bodyProfile={bodyProfile}
-          avatarVariantId={avatarVariantId}
-          poseId={poseId}
-          equippedGarments={equippedGarments}
-          selectedItemId={selectedItemId}
-          avatarOnly={scenePolicy.avatarOnly}
-          qualityTier={qualityTier}
-          previewBackend={previewBackend}
-          previewFeatureSnapshot={previewFeatureSnapshot}
-          controlsEnableDamping={scenePolicy.controlsEnableDamping}
-          controlsDampingFactor={scenePolicy.controlsDampingFactor}
-        />
-      </Suspense>
-    </ReferenceClosetStageView>
+    <div
+      ref={previewRuntimeRootRef}
+      data-preview-runtime-root
+      data-preview-runtime-execution-mode=""
+      data-preview-runtime-backend=""
+      data-preview-runtime-solver-kind=""
+      data-preview-runtime-session-id=""
+      data-preview-runtime-sequence=""
+      data-preview-runtime-solve-duration-ms=""
+      data-preview-runtime-settled=""
+      style={{ height: "100%", width: "100%" }}
+    >
+      <ReferenceClosetStageView scenePolicy={scenePolicy}>
+        <Suspense fallback={<ClosetStageLoadingFallback />}>
+          <SceneRig
+            bodyProfile={bodyProfile}
+            avatarVariantId={avatarVariantId}
+            poseId={poseId}
+            equippedGarments={equippedGarments}
+            selectedItemId={selectedItemId}
+            avatarOnly={scenePolicy.avatarOnly}
+            qualityTier={qualityTier}
+            previewBackend={previewBackend}
+            previewFeatureSnapshot={previewFeatureSnapshot}
+            controlsEnableDamping={scenePolicy.controlsEnableDamping}
+            controlsDampingFactor={scenePolicy.controlsDampingFactor}
+            onPreviewRuntimeSnapshot={handlePreviewRuntimeSnapshot}
+          />
+        </Suspense>
+      </ReferenceClosetStageView>
+    </div>
   );
 }

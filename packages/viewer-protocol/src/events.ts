@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { viewerTelemetryEventSchema } from "./telemetry.js";
+import { previewRuntimeSnapshotSchema } from "./fit.js";
 
 export const fitPreviewReadyEventSchema = z
   .object({
@@ -21,6 +22,8 @@ export const fitHqReadyEventSchema = z
     cacheKey: z.string().trim().min(1).max(256).optional(),
   })
   .strict();
+
+export const fitPreviewRuntimeUpdatedEventSchema = previewRuntimeSnapshotSchema;
 
 export const viewerErrorEventSchema = z
   .object({
@@ -44,6 +47,12 @@ export const viewerEventEnvelopeSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("fit:preview-runtime-updated"),
+      payload: fitPreviewRuntimeUpdatedEventSchema,
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("metrics"),
       payload: viewerTelemetryEventSchema,
     })
@@ -58,5 +67,6 @@ export const viewerEventEnvelopeSchema = z.discriminatedUnion("type", [
 
 export type FitHqReadyEvent = z.infer<typeof fitHqReadyEventSchema>;
 export type FitPreviewReadyEvent = z.infer<typeof fitPreviewReadyEventSchema>;
+export type FitPreviewRuntimeUpdatedEvent = z.infer<typeof fitPreviewRuntimeUpdatedEventSchema>;
 export type ViewerErrorEvent = z.infer<typeof viewerErrorEventSchema>;
 export type ViewerEventEnvelope = z.infer<typeof viewerEventEnvelopeSchema>;

@@ -1,9 +1,13 @@
 /* global globalThis */
 
 const schemaVersion = "preview-simulation-frame.v1";
+const resultEnvelopeType = "PREVIEW_FRAME_RESULT";
+const defaultSolverKind = "reduced-preview-spring";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const degToRad = (value) => (value * Math.PI) / 180;
+
+const resolveExecutionMode = (backend) => (backend === "static-fit" ? "static-fit" : "reduced-preview");
 
 const springAxis = (value, velocity, target, stiffness, damping, deltaSeconds) => {
   const acceleration = (target - value) * stiffness - velocity * damping;
@@ -159,5 +163,28 @@ globalThis.onmessage = (event) => {
     return;
   }
 
-  globalThis.postMessage(stepFrame(request));
+  const startedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+  const result = stepFrame(request);
+  const finishedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+
+  globalThis.postMessage({
+    type: resultEnvelopeType,
+    result,
+    metrics: {
+      solverKind: defaultSolverKind,
+      executionMode: resolveExecutionMode(result.backend),
+      backend: result.backend,
+      solveDurationMs: Math.max(0, finishedAt - startedAt),
+      angularEnergy: result.angularEnergy,
+      positionalEnergy: result.positionalEnergy,
+      anchorEnergy: result.anchorEnergy,
+      shouldContinue: result.shouldContinue,
+    },
+  });
 };

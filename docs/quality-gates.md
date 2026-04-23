@@ -27,6 +27,7 @@ Current GitHub workflow enforcement:
 
 - `.github/workflows/quality.yml` currently runs the same baseline set above
 - `.github/workflows/quality.yml` also runs the blocking Phase 9 `Closet` viewer-react smoke with `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true`
+- `.github/workflows/quality.yml` also runs the Phase 9 rollback smoke with `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH=true` and `NEXT_PUBLIC_VIEWER_HOST=viewer-react`
 
 ### L1. Surface-Specific Gate
 
@@ -43,7 +44,7 @@ Run these when the scope touches the matching area.
 | compatibility-stage material or lighting system changed | targeted `tsx --test` runs for `packages/runtime-3d/src/material-system.test.ts`, `packages/runtime-3d/src/studio-lighting-rig.test.ts`, `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`, `packages/viewer-core/src/proxy-stage.test.ts`, plus `npx playwright test apps/web/e2e/material-system.spec.ts --project=chromium`, `npm run build:services`, and `npm run build` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
 | asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
-| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
+| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
 
 ### L2. Full Local Gate
 
@@ -99,6 +100,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8.5 / Batch 3`: `apps/admin` now shows current-garment HQ fit evidence, local status/lineage filters, and one-click open into the existing detail inspector
 - `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
 - `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped release flag plus kill switch for the `viewer-react` cutover, and `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` becomes the first blocking UX latency gate
+- `Phase 9 / Batch 2`: CI now also proves the rollback path with `npm run test:e2e:phase9:rollback`, so the current repo-scoped `/app/closet` cutover is closed with both cutover and kill-switch evidence
 - `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set
 
 ### L3. Operational Closeout Gate

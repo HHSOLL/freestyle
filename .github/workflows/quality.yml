@@ -46,3 +46,10 @@ jobs:
         env:
           NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED: "true"
         run: npm run test:e2e:phase9:closet
+
+      - name: Phase 9 closet rollback gate
+        env:
+          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED: "true"
+          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH: "true"
+          NEXT_PUBLIC_VIEWER_HOST: "viewer-react"
+        run: npm run test:e2e:phase9:rollback

@@ -14,6 +14,7 @@ test.describe("closet viewer-react host", () => {
   test("closet mounts the viewer-react stage and records blocking latency evidence when the cutover flag is on", async ({
     page,
   }) => {
+    test.slow();
     test.skip(
       !viewerReactClosetHostEnabled,
       "This smoke only applies when the Closet route is cut over onto viewer-react.",

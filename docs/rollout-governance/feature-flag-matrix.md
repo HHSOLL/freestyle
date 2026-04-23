@@ -7,6 +7,7 @@
 - Widget config API samples `phase_0_5_canary_enabled` per requester using `x-anonymous-user-id` when present, otherwise `x-forwarded-for`/`request.ip` plus origin.
 - `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` is the rollout knob for Phase `0.5`; if it is unset, the legacy boolean in `WIDGET_FEATURE_FLAGS` still acts as `0%`/`100%`.
 - `Phase 9` is route-scoped and env-backed instead of sampled. Do not reuse widget canary sampling for `/app/closet`; use the explicit release flag and kill switch below.
+- `Phase 9` closeout requires evidence for both directions: the flagged `viewer-react` cutover and the kill-switch rollback back to `runtime-3d`.
 
 ## Matrix
 | Phase | Flag key | Type | Default | Canary audience | Runtime knob | Kill switch owner | Notes |

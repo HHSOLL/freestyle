@@ -141,6 +141,7 @@ Phase 8 HQ artifact identity starts at `docs/freestyle-viewer-platform/phase8/ba
 Phase 8.5 admin fit-tooling starts at `docs/freestyle-viewer-platform/phase8_5/batch1.md`, widens with the bounded admin HQ fit catalog in `docs/freestyle-viewer-platform/phase8_5/batch2.md`, adds current-garment triage in `docs/freestyle-viewer-platform/phase8_5/batch3.md`, and closes for the current repo-scoped baseline at `docs/freestyle-viewer-platform/phase8_5/closeout.md`. Keep that track read-only until a later phase explicitly introduces certification mutations.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 Phase 9 starts at `docs/freestyle-viewer-platform/phase9/batch1.md`: the flagged `/app/closet` `viewer-react` path must keep route-level latency attrs plus preview-runtime / preview-engine evidence parity before it can be treated as the blocking UX latency gate, and the blocking smoke should wait for the outer stage-loading fallback to clear before reading latency attrs.
+Phase 9 rollback evidence widens in `docs/freestyle-viewer-platform/phase9/batch2.md`, and the current repo-scoped closeout lives at `docs/freestyle-viewer-platform/phase9/closeout.md`. Keep the route-scoped release flag, kill switch, and rollback smoke aligned together.
 
 ## 4. Page Rules
 

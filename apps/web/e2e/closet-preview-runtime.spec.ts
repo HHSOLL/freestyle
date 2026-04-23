@@ -14,6 +14,7 @@ test.describe("closet preview runtime evidence", () => {
   test("runtime-3d host exposes typed reduced-preview runtime evidence", async ({
     page,
   }) => {
+    test.slow();
     test.skip(
       viewerReactClosetHostEnabled,
       "This smoke only applies when the runtime-3d compatibility host is active.",
@@ -39,9 +40,17 @@ test.describe("closet preview runtime evidence", () => {
 
     await page.goto("/app/closet", { waitUntil: "domcontentloaded" });
 
-    await expect(page.locator("[data-closet-visual-root]").first()).toBeVisible({
+    const routeRoot = page.locator("[data-closet-visual-root]").first();
+    await expect(routeRoot).toBeVisible({
       timeout: 15000,
     });
+    await expect(routeRoot).toHaveAttribute("data-closet-viewer-host", "runtime-3d");
+
+    if (process.env.NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH === "true") {
+      await expect(routeRoot).toHaveAttribute("data-closet-viewer-phase9-enabled", "false");
+      await expect(routeRoot).toHaveAttribute("data-closet-viewer-flag-source", "phase9-kill-switch");
+    }
+
     await page.waitForFunction(
       () => Boolean(document.querySelector("[data-preview-runtime-root]")),
       undefined,

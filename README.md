@@ -81,6 +81,7 @@ The shipped runtime now uses:
 - `apps/admin` consumes that seam through a read-only starter certification inspector plus local starter-coverage triage; the garment editor and publish flow remain separate
 - a Phase 9 `Closet`-only cutover seam where `apps/web` explicitly resolves the stage host through route-scoped release and kill-switch flags instead of relying only on the global viewer host env
 - the flagged `viewer-react` `Closet` path now warms runtime assets through the same preload delegation as the compatibility host and exposes static-fit preview-runtime / preview-engine evidence attrs alongside the existing latency attrs
+- the current Phase 9 baseline is now closed for `/app/closet`: CI exercises both the flagged `viewer-react` cutover path and the `runtime-3d` rollback path through the kill switch
 
 Preferred authoring policy is:
 
@@ -179,6 +180,7 @@ Useful commands:
 - `npm run check`
 - `npm run validate:garment3d`
 - `npm run test:e2e:phase9:closet`
+- `npm run test:e2e:phase9:rollback`
 
 Codex desktop note:
 

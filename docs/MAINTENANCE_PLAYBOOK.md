@@ -33,7 +33,7 @@
 - `/share/[slug]`
 
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
-When validating the Phase 9 route-scoped cutover specifically, run `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` and keep the active note under `docs/freestyle-viewer-platform/phase9/` in sync with the blocking smoke expectations.
+When validating the Phase 9 route-scoped cutover specifically, run `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` and `npm run test:e2e:phase9:rollback`, then keep the active notes under `docs/freestyle-viewer-platform/phase9/` in sync with both cutover and rollback smoke expectations.
 If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If approval-state or fit-quality contract enforcement changes, also update `docs/freestyle-viewer-platform/phase2_5/closeout.md` in the same PR.
 If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD` coverage, or asset budget reporting changes, also update the relevant note under `docs/freestyle-viewer-platform/phase3/` in the same PR. If the batch claims to close or reopen the phase, update `docs/freestyle-viewer-platform/phase3/closeout.md` too.

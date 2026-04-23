@@ -50,6 +50,8 @@ import {
   fitSimulateHQRequestSchema,
   fitSimulateHQResultEnvelopeSchema,
   garmentAuthoringSummarySchema,
+  garmentCertificationItemResponseSchema,
+  garmentCertificationListResponseSchema,
   garmentCertificationReportSchema,
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
@@ -1396,10 +1398,18 @@ test('garment certification report schema accepts the committed latest bundle', 
   );
 
   const parsed = garmentCertificationReportSchema.parse(fixture);
+  const listResponse = garmentCertificationListResponseSchema.parse(fixture);
+  const itemResponse = garmentCertificationItemResponseSchema.parse({
+    schemaVersion: parsed.schemaVersion,
+    generatedAt: parsed.generatedAt,
+    item: parsed.items[0],
+  });
 
   assert.equal(parsed.schemaVersion, 'garment-certification-report.v1');
   assert.equal(parsed.total, parsed.items.length);
   assert.ok(parsed.items.some((item) => item.id === 'starter-top-soft-casual'));
+  assert.equal(listResponse.total, parsed.total);
+  assert.equal(itemResponse.item.id, parsed.items[0]?.id);
 });
 
 test('asset metadata schema accepts garment-facing metadata payloads', () => {

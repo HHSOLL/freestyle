@@ -131,6 +131,7 @@ Phase 2.5 closeout evidence for contract enforcement lives at `docs/freestyle-vi
 Phase 4 closeout evidence for compatibility-runtime material and lighting ownership lives at `docs/freestyle-viewer-platform/phase4/closeout.md`.
 Phase 5 closeout evidence for the avatar publication seam lives at `docs/freestyle-viewer-platform/phase5/closeout.md`.
 Phase 6 garment certification evidence starts at `docs/freestyle-viewer-platform/phase6/batch1.md`.
+The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-platform/phase6/batch2.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -179,6 +180,7 @@ Use these boundaries:
 - the runtime avatar render catalog now uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
 - `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
 - `validate:garment3d` now also writes and validates `output/garment-certification/latest.json` for the committed garment-authoring-backed starter pieces before it reports success
+- `/v1/admin/garment-certifications*` is the read-only inspection seam for that starter bundle; keep it separate from `/v1/admin/garments*`
 - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
 - `GET /v1/lab/fit-simulations/:id` may expose a derived `avatarPublication` snapshot for lab consumers, but that field must stay response-only and minimal: no evidence paths, no authoring provenance, and no persistence widening
 
@@ -219,6 +221,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - preview worker transport names now track the `fit-kernel` tuple through `packages/viewer-protocol`; do not define another `"transferable-array-buffer" | "shared-array-buffer"` union in downstream packages
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
+- keep starter certification inspection on `/v1/admin/garment-certifications*`; do not widen `/v1/closet/runtime-garments` with authoring or certification evidence
 - `/v1/closet/runtime-garments` now gates the product catalog to `publication.approvalState === "PUBLISHED"` after runtime validation; do not widen that route to candidate states for convenience
 - `/v1/admin/garments` is the certification surface and may filter by `approval_state`; new admin writes default to `DRAFT`, while legacy published rows without explicit approval metadata are normalized to `PUBLISHED` on read until they are re-saved through the certification flow
 - `PublishedGarmentAsset` may now carry an optional `viewerManifest` shadow typed through `@freestyle/asset-schema`; treat it as a canonical runtime-manifest seam, not as proof that an asset is certified

@@ -40,7 +40,7 @@ If the forced `viewer-react` host changes its latency evidence seam, also update
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 If compatibility-stage lighting, material calibration, or the Phase 4 lab harness changes, also update `docs/freestyle-viewer-platform/phase4/closeout.md` and `docs/material-contract.md` in the same PR.
 If the Phase 5 avatar publication seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase5/` and keep `docs/freestyle-viewer-platform/phase5/closeout.md`, `docs/avatar-pipeline.md`, and `docs/avatar-production-contract.md` in sync in the same PR.
-If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
+If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/freestyle-viewer-platform/phase6/batch2.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
 
 ### Redirect smoke
 
@@ -67,6 +67,7 @@ If the Phase 6 garment certification seam changes, also update `docs/freestyle-v
 - `/v1/admin/avatars`
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
+- `/v1/admin/garment-certifications`
 - `/v1/legacy/assets`
 - `GET /v1/legacy/jobs/:job_id`
 - `POST /v1/lab/jobs/evaluations`
@@ -203,6 +204,8 @@ If any of the above regress, stop the release.
 - verify `POST` and `PUT` reject schema-valid but semantically invalid garments before they reach persistence
 - verify product routes still default to `PUBLISHED` assets while admin surfaces can inspect candidate approval states
 - verify `/v1/admin/garments?approval_state=...` still filters certification candidates without leaking those assets into `/v1/closet/runtime-garments`
+- verify `/v1/admin/garment-certifications` still reflects the committed `output/garment-certification/latest.json` bundle and stays admin-only
+- the garment-certification read seam resolves that bundle from repo-root `output/garment-certification/latest.json` by default; use `GARMENT_CERTIFICATION_BUNDLE_PATH` only when an explicit deployment/test override is required
 - verify `approvalState`, `approvedAt/by`, and certification notes survive admin save/load without affecting legacy upload asset statuses
 - verify legacy published rows with missing approval metadata normalize to `PUBLISHED` on read only; re-saved records must persist an explicit approval state
 - verify supported garment categories persist a synchronized `viewerManifest` plus `publication.viewerManifestVersion` through admin save/load

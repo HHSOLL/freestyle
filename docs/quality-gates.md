@@ -77,6 +77,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 5 / Batch 1`: avatar publication metadata now has a blocking read-only seam through `/v1/admin/avatars` plus `output/avatar-certification/latest.json`, and `validate:avatar3d` fails closed on publication/evidence/LOD drift for the committed base variants
 - `Phase 5`: avatar certification gate is blocking for the committed base variants
 - `Phase 6 / Batch 1`: `validate:garment3d` now emits `output/garment-certification/latest.json` and fails closed on committed garment-authoring bundle drift for the starter garments that already have authoring summaries
+- `Phase 6 / Batch 2`: `/v1/admin/garment-certifications*` now exposes that bundle as a read-only admin inspection seam without widening product payloads or publication persistence
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking
 - `Phase 9`: UX latency gate becomes blocking

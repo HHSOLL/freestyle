@@ -23,6 +23,9 @@ This document is intentionally about the runtime product contract.
 - garment starter builds now also point at `authoring/garments/mpfb/specs/*.pattern-spec.json` sidecars for authoring-only pattern/material metadata
 - those authoring summaries are validated by `scripts/validate-garment-3d.mjs`
 - the committed certification evidence bundle emitted from that validator is `output/garment-certification/latest.json`
+- the current admin-only inspection seam for that bundle is:
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
 - they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` API payloads
 
 ## 1.1 Authoring Pattern Spec
@@ -81,6 +84,12 @@ The current semantic parity scope is:
 - `anchorIds`
 
 This keeps the new pattern/material metadata layer explicit without reopening the runtime product contract.
+
+The active API boundary rule is:
+
+- the garment certification bundle may be inspected through the dedicated admin-only certification routes
+- that seam is read-only and starter-bundle-scoped
+- it must not be treated as persisted publish history or as proof that the broader published garment catalog is fully certified
 
 ## 2. Required Contract
 

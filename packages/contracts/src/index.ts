@@ -2047,6 +2047,16 @@ export const publishedRuntimeGarmentItemResponseSchema = z
   })
   .strict();
 
+export const garmentCertificationItemResponseSchema = z
+  .object({
+    schemaVersion: z.literal(garmentCertificationReportSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    item: garmentCertificationReportItemSchema,
+  })
+  .strict();
+
+export const garmentCertificationListResponseSchema = garmentCertificationReportSchema;
+
 export const publishedRuntimeAvatarItemResponseSchema = z
   .object({
     item: publishedRuntimeAvatarCatalogItemSchema,
@@ -2346,6 +2356,8 @@ export type RuntimeAssetAuthoringSummary = z.infer<typeof runtimeAssetAuthoringS
 export type GarmentCertificationVariantSummary = z.infer<typeof garmentCertificationVariantSummarySchema>;
 export type GarmentCertificationReportItem = z.infer<typeof garmentCertificationReportItemSchema>;
 export type GarmentCertificationReport = z.infer<typeof garmentCertificationReportSchema>;
+export type GarmentCertificationItemResponse = z.infer<typeof garmentCertificationItemResponseSchema>;
+export type GarmentCertificationListResponse = z.infer<typeof garmentCertificationListResponseSchema>;
 export type PublishedRuntimeAvatarItemResponse = z.infer<typeof publishedRuntimeAvatarItemResponseSchema>;
 export type PublishedRuntimeAvatarListResponse = z.infer<typeof publishedRuntimeAvatarListResponseSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;

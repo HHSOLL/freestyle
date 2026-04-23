@@ -80,6 +80,9 @@ Recommended publication metadata:
 - `viewerManifestVersion` when a canonical runtime manifest shadow is present
 - optional `provenanceUrl`
 - machine-readable certification evidence such as `output/garment-certification/latest.json` for garment-authoring-backed starter pieces
+- read-only admin inspection routes for that starter certification bundle:
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
 
 ## 5. Size Entry Rules
 
@@ -132,6 +135,7 @@ As of `2026-04-19`:
 - a brand-new guided admin draft now starts from the canonical runtime skeleton profile, regenerates category-owned runtime defaults on guided category changes, and normalizes the legacy invalid fallback id before publish validation
 - supported admin garment categories now also synthesize and synchronize an optional canonical `viewerManifest` shadow plus `publication.viewerManifestVersion`; legacy published rows stay readable without that shadow until they re-enter the certification flow
 - `validate:garment3d` now also emits `output/garment-certification/latest.json`, which is the current machine-readable certification bundle for the committed garment-authoring-backed starter pieces
+- the API now exposes that bundle through a dedicated read-only admin seam at `/v1/admin/garment-certifications*`; this does not mutate publication rows and does not widen `/v1/admin/garments*`
 - `/v1/admin/garments*` now requires explicit admin auth and rejects anonymous-header fallback; local non-production bypass remains allowed only for the configured dev bypass user
 - published runtime-garment persistence now has a dedicated Supabase-backed table and RLS-ready adapter behind the same API-side port; the local JSON store remains only as the isolated fallback for dev/test workflows
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`

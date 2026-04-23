@@ -115,6 +115,8 @@
   - `GET /v1/admin/garments`
   - `GET /v1/admin/garments/:id`
   - `PUT /v1/admin/garments/:id`
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
   - `POST /v1/admin/garments/:id/publish`
@@ -126,9 +128,14 @@
   - garment measurement and size-chart metadata
 - current certification evidence seam for garment-authoring-backed starter pieces:
   - `output/garment-certification/latest.json`
+- current admin-only inspection seam for that bundle:
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
+  - `garmentCertificationListResponseSchema`
+  - `garmentCertificationItemResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
@@ -138,6 +145,9 @@
 - current read compatibility rule:
   - malformed persisted publication rows are filtered from list responses instead of zeroing the whole catalog
   - semantically invalid persisted publication rows are filtered from list responses and treated as missing on detail reads
+- certification boundary rule:
+  - `/v1/admin/garment-certifications*` is a read-only starter-bundle inspection seam derived from `output/garment-certification/latest.json`
+  - it is not persisted publication history and must not be treated as full catalog certification truth
 
 ### Admin avatar publication boundary
 - implemented read-only endpoint:

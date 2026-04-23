@@ -92,6 +92,7 @@ The minimum domain structure is fixed:
   - local repository adapters over the shared contract
 - `packages/runtime-3d`
   - avatar render manifest
+  - avatar publication catalog
   - runtime asset budget
   - pose, rig, and scene control
 - `packages/asset-schema`
@@ -172,6 +173,10 @@ Use these boundaries:
 - `avatarMeasurementsSidecarSchemaVersion` is now owned by `packages/contracts`; validators and tests should import it there instead of defining or reading a second literal from runtime-only files
 - the `validate:fit-calibration` report artifact is now also versioned and parsed through `packages/contracts` before it is written to `output/fit-calibration/latest.json`
 - both `validate:avatar3d` and `validate:fit-calibration` should import the shared calibration helper instead of re-declaring derivation rules or ad-hoc parse checks locally
+- the first read-only avatar publication seam lives in `packages/runtime-3d/src/avatar-publication-catalog.ts` and `GET /v1/admin/avatars`; treat that catalog as publication metadata only, not as a substitute for the full canonical `AvatarManifest`
+- the runtime avatar render catalog now uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
+- `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.
 
@@ -245,6 +250,7 @@ The shared avatar manifest, reusable garment/runtime contract, and the current p
 Current source-of-truth files:
 
 - `packages/runtime-3d/src/avatar-manifest.ts`
+- `packages/runtime-3d/src/avatar-publication-catalog.ts`
 - `packages/runtime-3d/src/index.tsx`
 - `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/runtime-3d/src/closet-stage-fallback.tsx`
@@ -297,6 +303,7 @@ Rules:
 - keep runtime garment path resolution quality-aware too: `resolveGarmentRuntimeModelPath` plus `collectRuntimeModelPaths` must preload and consume the same garment or hair LOD sibling that the stage will render for the current quality tier
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
+- keep the avatar publication seam honest: `/v1/admin/avatars` is a dedicated read-only catalog derived from the committed runtime avatar manifest, and it must not be documented or consumed as the full asset-factory `AvatarManifest`
 - keep host stage support/load/retry lifecycle policy in a pure helper so `AvatarStageViewport` transitions stay testable without mounting the 3D canvas
 - keep top-level `Closet` scene policy in a pure runtime helper so `dpr`, lighting, damping, and continuous-motion gating stay testable without mounting `Canvas`
 - preload only the active avatar, equipped garments, and near-term closet candidates
@@ -306,6 +313,8 @@ Rules:
 - sample `secondaryMotion` anchors from avatar alias bindings or weighted anchor targets, not from the already-moving garment subtree
 - do not treat `secondaryMotion` as a replacement for measured fit, corrective authoring, or collision tuning
 - validate promoted avatar assets with `npm run validate:avatar3d`
+- when avatar publication metadata changes, verify `/v1/admin/avatars` and `output/avatar-certification/latest.json` stay in parity with the committed runtime avatar manifest
+- when Phase 5 avatar publication metadata changes, also verify `POST /v1/lab/jobs/fit-simulations` still resolves `avatarManifestUrl` from that catalog seam
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch

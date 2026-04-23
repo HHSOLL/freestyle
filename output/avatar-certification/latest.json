@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "avatar-publication-catalog.v1",
+  "generatedAt": "2026-04-23T00:00:00.000Z",
+  "items": [
+    {
+      "id": "female-base",
+      "publication": {
+        "sourceSystem": "mpfb2",
+        "publishedAt": "2026-04-23T00:00:00.000Z",
+        "assetVersion": "female-base@2026-04-23",
+        "approvalState": "PUBLISHED",
+        "approvedAt": "2026-04-23T00:00:00.000Z",
+        "approvedBy": "phase5-avatar-publication@freestyle.local",
+        "certificationNotes": [
+          "Phase 5 batch 1 read-only avatar publication seam on committed MPFB base assets."
+        ],
+        "runtimeManifestVersion": "runtime-avatar-render-manifest.v1",
+        "bodySignatureModelVersion": "body-signature.v1"
+      },
+      "evidence": {
+        "summaryPath": "authoring/avatar/exports/raw/mpfb-female-base.summary.json",
+        "skeletonPath": "authoring/avatar/exports/raw/mpfb-female-base.skeleton.json",
+        "measurementsPath": "authoring/avatar/exports/raw/mpfb-female-base.measurements.json",
+        "morphMapPath": "authoring/avatar/exports/raw/mpfb-female-base.morph-map.json",
+        "visualReportPath": "output/avatar-certification/female-base.visual-report.json",
+        "fitCompatibilityReportPath": "output/avatar-certification/female-base.fit-compatibility-report.json",
+        "budgetReportPath": "output/asset-budget-report/latest.json",
+        "bodySignatureModelPath": "output/avatar-certification/female-base.body-signature-model.json"
+      }
+    },
+    {
+      "id": "male-base",
+      "publication": {
+        "sourceSystem": "mpfb2",
+        "publishedAt": "2026-04-23T00:00:00.000Z",
+        "assetVersion": "male-base@2026-04-23",
+        "approvalState": "PUBLISHED",
+        "approvedAt": "2026-04-23T00:00:00.000Z",
+        "approvedBy": "phase5-avatar-publication@freestyle.local",
+        "certificationNotes": [
+          "Phase 5 batch 1 read-only avatar publication seam on committed MPFB base assets."
+        ],
+        "runtimeManifestVersion": "runtime-avatar-render-manifest.v1",
+        "bodySignatureModelVersion": "body-signature.v1"
+      },
+      "evidence": {
+        "summaryPath": "authoring/avatar/exports/raw/mpfb-male-base.summary.json",
+        "skeletonPath": "authoring/avatar/exports/raw/mpfb-male-base.skeleton.json",
+        "measurementsPath": "authoring/avatar/exports/raw/mpfb-male-base.measurements.json",
+        "morphMapPath": "authoring/avatar/exports/raw/mpfb-male-base.morph-map.json",
+        "visualReportPath": "output/avatar-certification/male-base.visual-report.json",
+        "fitCompatibilityReportPath": "output/avatar-certification/male-base.fit-compatibility-report.json",
+        "budgetReportPath": "output/asset-budget-report/latest.json",
+        "bodySignatureModelPath": "output/avatar-certification/male-base.body-signature-model.json"
+      }
+    }
+  ],
+  "total": 2
+}

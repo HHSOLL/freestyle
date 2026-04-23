@@ -137,6 +137,25 @@
   - malformed persisted publication rows are filtered from list responses instead of zeroing the whole catalog
   - semantically invalid persisted publication rows are filtered from list responses and treated as missing on detail reads
 
+### Admin avatar publication boundary
+- implemented read-only endpoint:
+  - `GET /v1/admin/avatars`
+  - `GET /v1/admin/avatars/:id`
+- purpose:
+  - expose the committed MPFB base-avatar publication catalog for admin inspection
+  - keep runtime manifest metadata, publication metadata, and evidence paths on one typed read boundary
+- current source of truth:
+  - `packages/runtime-3d/src/avatar-manifest.ts`
+  - `packages/runtime-3d/src/avatar-publication-catalog.ts`
+  - `output/avatar-certification/latest.json`
+- response envelopes are defined in `@freestyle/contracts`:
+  - `publishedRuntimeAvatarListResponseSchema`
+  - `publishedRuntimeAvatarItemResponseSchema`
+- important boundary rule:
+  - this route returns a dedicated read-only avatar catalog, not the full canonical `AvatarManifest`
+  - runtime avatar entries use `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
+  - callers must not treat this payload as proof that the entire avatar asset-factory tree exists
+
 ### Job status compatibility note
 - `/v1/legacy/jobs/:job_id` remains a compatibility status-read surface for queued lab jobs.
 - current read compatibility rule:
@@ -155,6 +174,7 @@
   - the create route requires an existing persisted `BodyProfile`
   - the create route requires a published runtime garment id
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
+  - `avatarVariantId` and `avatarManifestUrl` now come from the published runtime avatar catalog in `packages/runtime-3d/src/avatar-publication-catalog.ts`, not an API-local avatar path map
   - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
   - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
@@ -322,6 +342,23 @@
   - local non-production `DEV_BYPASS_USER_ID` can still reach the route only when it is also allowlisted through `ADMIN_USER_IDS` (or when the allowlist is unset)
 - response body satisfies `publishedRuntimeGarmentListResponseSchema`
 - malformed or semantically invalid persisted publication rows are filtered before the response is emitted
+
+#### `GET /v1/admin/avatars`
+- auth:
+  - bearer-token backed admin access only
+  - anonymous `x-anonymous-user-id` fallback is rejected
+  - local non-production `DEV_BYPASS_USER_ID` can still reach the route only when it is also allowlisted through `ADMIN_USER_IDS` (or when the allowlist is unset)
+- response body satisfies `publishedRuntimeAvatarListResponseSchema`
+- current filters:
+  - `approval_state`
+  - `source_system`
+- current implementation detail:
+  - items are derived from the committed runtime avatar manifest and the read-only publication catalog helper, not from a writable admin table
+
+#### `GET /v1/admin/avatars/:id`
+- auth: same admin-only rule as `GET /v1/admin/avatars`
+- response body satisfies `publishedRuntimeAvatarItemResponseSchema`
+- returns `404 NOT_FOUND` when `:id` is not present in the committed publication catalog
 
 #### `GET /v1/admin/garments/:id`
 - auth: same admin-only rule as `GET /v1/admin/garments`

@@ -33,6 +33,69 @@ export type ProductSurfaceId = "closet" | "fitting" | "canvas" | "community" | "
 export type QualityTier = "low" | "balanced" | "high";
 export type AvatarPoseId = "neutral" | "relaxed" | "contrapposto" | "stride" | "tailored";
 export type AvatarRenderVariantId = "female-base" | "male-base";
+export type AvatarSourceSystem = "mpfb2" | "charmorph" | "runtime-fallback";
+export type AvatarRigAlias =
+  | "root"
+  | "hips"
+  | "spine"
+  | "torso"
+  | "chest"
+  | "neck"
+  | "head"
+  | "leftShoulder"
+  | "rightShoulder"
+  | "leftUpperArm"
+  | "rightUpperArm"
+  | "leftLowerArm"
+  | "rightLowerArm"
+  | "leftHand"
+  | "rightHand"
+  | "leftUpperLeg"
+  | "rightUpperLeg"
+  | "leftLowerLeg"
+  | "rightLowerLeg"
+  | "leftFoot"
+  | "rightFoot";
+
+export type AvatarRuntimeLodPaths = {
+  lod1?: string;
+  lod2?: string;
+};
+
+export type AvatarSourceProvenance = {
+  sourceSystem: AvatarSourceSystem;
+  schemaVersion: string;
+  presetPath: string;
+  summaryPath: string;
+  skeletonPath: string;
+  measurementsPath: string;
+  morphMapPath: string;
+  outputModelPath: string;
+};
+
+export type AvatarMeshZones = {
+  fullBody: string[];
+  torso: string[];
+  arms: string[];
+  hips: string[];
+  legs: string[];
+  feet: string[];
+};
+
+export type RuntimeAvatarAsset = {
+  id: AvatarRenderVariantId;
+  label: string;
+  schemaVersion: string;
+  modelPath: string;
+  lodModelPaths?: AvatarRuntimeLodPaths;
+  authoringSource: AvatarSourceSystem;
+  sourceProvenance: AvatarSourceProvenance;
+  bodyMaskStrategy: "named-mesh-zones" | "none";
+  stageOffsetY: number;
+  stageScale: number;
+  meshZones: AvatarMeshZones;
+  aliasPatterns: Record<AvatarRigAlias, string[]>;
+};
 
 export type BodyProfileSimpleKey = (typeof bodyProfileSimpleKeys)[number];
 export type BodyProfileDetailedKey = (typeof bodyProfileDetailedKeys)[number];
@@ -379,6 +442,8 @@ export type GarmentRuntimeBinding = {
   renderPriority: number;
 };
 
+export const runtimeAvatarRenderManifestSchemaVersion = "runtime-avatar-render-manifest.v1" as const;
+
 export type AssetApprovalState =
   | "DRAFT"
   | "TECH_CANDIDATE"
@@ -388,6 +453,34 @@ export type AssetApprovalState =
   | "PUBLISHED"
   | "DEPRECATED"
   | "REJECTED";
+
+export type AvatarPublicationRecord = {
+  sourceSystem: AvatarSourceSystem;
+  publishedAt: string;
+  assetVersion: string;
+  approvalState: AssetApprovalState;
+  approvedAt?: string;
+  approvedBy?: string;
+  certificationNotes?: string[];
+  runtimeManifestVersion: string;
+  bodySignatureModelVersion: string;
+};
+
+export type AvatarPublicationEvidence = {
+  summaryPath: string;
+  skeletonPath: string;
+  measurementsPath: string;
+  morphMapPath: string;
+  visualReportPath: string;
+  fitCompatibilityReportPath: string;
+  budgetReportPath: string;
+  bodySignatureModelPath: string;
+};
+
+export type PublishedRuntimeAvatarCatalogItem = RuntimeAvatarAsset & {
+  publication: AvatarPublicationRecord;
+  evidence: AvatarPublicationEvidence;
+};
 
 export type GarmentPublicationRecord = {
   sourceSystem: "starter-catalog" | "admin-domain" | "api-published";

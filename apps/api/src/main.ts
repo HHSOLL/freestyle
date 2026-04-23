@@ -16,6 +16,7 @@ import { registerProfileRoutes } from "./routes/profile.routes.js";
 import { registerClosetRoutes } from "./routes/closet.routes.js";
 import { registerCanvasRoutes } from "./routes/canvas.routes.js";
 import { registerCommunityRoutes } from "./routes/community.routes.js";
+import { registerRuntimeAvatarRoutes } from "./routes/runtime-avatars.routes.js";
 import { registerRuntimeGarmentRoutes } from "./routes/runtime-garments.routes.js";
 import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
@@ -61,6 +62,7 @@ export const buildServer = () => {
     registerAuthRoutes(product);
     registerProfileRoutes(product);
     registerClosetRoutes(product);
+    registerRuntimeAvatarRoutes(product);
     registerRuntimeGarmentRoutes(product);
     registerCanvasRoutes(product);
     registerCommunityRoutes(product);

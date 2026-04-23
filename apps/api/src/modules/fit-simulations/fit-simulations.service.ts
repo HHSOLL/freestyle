@@ -25,6 +25,7 @@ import type {
   FitSimulationRecord as PublicFitSimulationRecord,
   PublishedGarmentAsset,
 } from "@freestyle/contracts";
+import { getPublishedRuntimeAvatarByVariantId } from "../avatars/runtime-avatars.service.js";
 import { getBodyProfileRecordForUser } from "../profile/body-profile.repository.js";
 import { getPublishedRuntimeGarmentById } from "../garments/runtime-garments.service.js";
 import {
@@ -61,11 +62,6 @@ const resolvePublicAssetUrl = (value: string) => {
   return new URL(normalizedPath, publicAssetBaseUrl()).toString();
 };
 
-const avatarModelPathByVariant = {
-  "female-base": "/assets/avatars/mpfb-female-base.glb",
-  "male-base": "/assets/avatars/mpfb-male-base.glb",
-} as const;
-
 const buildBodyVersionId = (userId: string, revision: BodyProfileRecord["revision"]) =>
   `body-profile:${userId}:${revision}`;
 
@@ -88,23 +84,24 @@ const inferFitSimulationMaterialPreset = (item: PublishedGarmentAsset) => {
 const buildSimulationRequest = (
   userId: string,
   garment: PublishedGarmentAsset,
+  avatar: {
+    avatarVariantId: ReturnType<typeof resolveAvatarVariantFromProfile>;
+    avatarManifestUrl: string;
+  },
   input: CreateFitSimulationInput,
   bodyProfileRecord: NonNullable<Awaited<ReturnType<typeof getBodyProfileRecordForUser>>>,
 ) => {
-  const profile = bodyProfileRecord.profile;
-  const avatarVariantId = resolveAvatarVariantFromProfile(profile);
   const bodyProfileRevision = bodyProfileRecord.revision;
   const bodyVersionId = buildBodyVersionId(userId, bodyProfileRevision);
   const garmentVariantId = garment.id;
   const garmentRevision = buildPublishedGarmentRevision(garment);
-  const avatarManifestUrl = resolvePublicAssetUrl(avatarModelPathByVariant[avatarVariantId]);
   const garmentManifestUrl = resolvePublicAssetUrl(
-    resolveGarmentRuntimeModelPath(garment.runtime, avatarVariantId),
+    resolveGarmentRuntimeModelPath(garment.runtime, avatar.avatarVariantId),
   );
   const materialPreset = input.material_preset ?? inferFitSimulationMaterialPreset(garment);
   const qualityTier = input.quality_tier ?? "balanced";
   const cacheKey = buildFitSimulationCacheKey({
-    avatarVariantId,
+    avatarVariantId: avatar.avatarVariantId,
     bodyProfileRevision,
     garmentVariantId,
     garmentRevision,
@@ -113,12 +110,12 @@ const buildSimulationRequest = (
   });
 
   return {
-    avatarVariantId,
+    avatarVariantId: avatar.avatarVariantId,
     bodyProfileRevision,
     bodyVersionId,
     garmentVariantId,
     garmentRevision,
-    avatarManifestUrl,
+    avatarManifestUrl: avatar.avatarManifestUrl,
     garmentManifestUrl,
     materialPreset,
     qualityTier,
@@ -137,6 +134,23 @@ export class FitSimulationCreateError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+export const resolvePublishedAvatarSimulationInput = (profile: BodyProfileRecord["profile"]) => {
+  const avatarVariantId = resolveAvatarVariantFromProfile(profile);
+  const avatar = getPublishedRuntimeAvatarByVariantId(avatarVariantId);
+  if (!avatar || avatar.publication.approvalState !== "PUBLISHED") {
+    throw new FitSimulationCreateError(
+      "AVATAR_NOT_PUBLISHED",
+      "Published runtime avatar not found for HQ fit simulation.",
+      409,
+    );
+  }
+
+  return {
+    avatarVariantId,
+    avatarManifestUrl: resolvePublicAssetUrl(avatar.modelPath),
+  } as const;
+};
 
 export const getFitSimulationIdFromJob = (
   job: Pick<JobRecord, "id" | "job_type" | "payload" | "idempotency_key">,
@@ -168,10 +182,12 @@ const buildCreateInput = async (userId: string, input: CreateFitSimulationInput)
     );
   }
 
+  const avatar = resolvePublishedAvatarSimulationInput(bodyProfileRecord.profile);
+
   return {
     bodyProfileRecord,
     garment,
-    request: buildSimulationRequest(userId, garment, input, bodyProfileRecord),
+    request: buildSimulationRequest(userId, garment, avatar, input, bodyProfileRecord),
   };
 };
 

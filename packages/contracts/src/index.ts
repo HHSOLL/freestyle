@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import {
   assetApprovalStateSchema,
   assetApprovalStates,
@@ -355,6 +356,7 @@ export const buildBodyProfileRevision = (profile: unknown) =>
 export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
 export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
 export const qualityTierSchema = z.enum(["low", "balanced", "high"]);
+export const avatarSourceSystemSchema = z.enum(["mpfb2", "charmorph", "runtime-fallback"]);
 export const avatarMeasurementsSidecarSchemaVersion = "avatar-measurements-sidecar-v1";
 export const avatarMeasurementsDerivationMethodSchema = z.enum([
   "object-bounding-box-height",
@@ -410,6 +412,92 @@ export const avatarMeasurementsSidecarSchema = z
     referenceMeasurementsMm: avatarReferenceMeasurementsSchema,
     referenceMeasurementsMmDerivation: avatarMeasurementsDerivationSchema,
     segmentationVertexCounts: z.record(z.string(), z.number().int().nonnegative()),
+  })
+  .strict();
+
+export const avatarRuntimeLodPathsSchema = z
+  .object({
+    lod1: z.string().trim().min(1).optional(),
+    lod2: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const avatarSourceProvenanceSchema = z
+  .object({
+    sourceSystem: avatarSourceSystemSchema,
+    schemaVersion: z.string().trim().min(1).max(120),
+    presetPath: z.string().trim().min(1),
+    summaryPath: z.string().trim().min(1),
+    skeletonPath: z.string().trim().min(1),
+    measurementsPath: z.string().trim().min(1),
+    morphMapPath: z.string().trim().min(1),
+    outputModelPath: z.string().trim().min(1),
+  })
+  .strict();
+
+export const avatarMeshZonesSchema = z
+  .object({
+    fullBody: z.array(z.string().trim().min(1)).min(1),
+    torso: z.array(z.string().trim().min(1)).min(1),
+    arms: z.array(z.string().trim().min(1)).min(1),
+    hips: z.array(z.string().trim().min(1)).min(1),
+    legs: z.array(z.string().trim().min(1)).min(1),
+    feet: z.array(z.string().trim().min(1)).min(1),
+  })
+  .strict();
+
+export const avatarAliasPatternsSchema = z
+  .record(z.string().trim().min(1), z.array(z.string().trim().min(1)).min(1))
+  .superRefine((value, context) => {
+    const requiredAliases = [
+      "root",
+      "hips",
+      "spine",
+      "torso",
+      "chest",
+      "neck",
+      "head",
+      "leftShoulder",
+      "rightShoulder",
+      "leftUpperArm",
+      "rightUpperArm",
+      "leftLowerArm",
+      "rightLowerArm",
+      "leftHand",
+      "rightHand",
+      "leftUpperLeg",
+      "rightUpperLeg",
+      "leftLowerLeg",
+      "rightLowerLeg",
+      "leftFoot",
+      "rightFoot",
+    ] as const;
+
+    for (const alias of requiredAliases) {
+      if (!value[alias]) {
+        context.addIssue({
+          code: "custom",
+          path: [alias],
+          message: `${alias} alias is required`,
+        });
+      }
+    }
+  });
+
+export const runtimeAvatarCatalogItemSchema = z
+  .object({
+    id: avatarRenderVariantIdSchema,
+    label: z.string().trim().min(1).max(160),
+    schemaVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    modelPath: z.string().trim().min(1),
+    lodModelPaths: avatarRuntimeLodPathsSchema.optional(),
+    authoringSource: avatarSourceSystemSchema,
+    sourceProvenance: avatarSourceProvenanceSchema,
+    bodyMaskStrategy: z.enum(["named-mesh-zones", "none"]),
+    stageOffsetY: z.number().finite(),
+    stageScale: z.number().positive(),
+    meshZones: avatarMeshZonesSchema,
+    aliasPatterns: avatarAliasPatternsSchema,
   })
   .strict();
 
@@ -1642,6 +1730,68 @@ export const garmentPublicationRecordSchema = z
   })
   .strict();
 
+export const avatarPublicationCatalogSchemaVersion = "avatar-publication-catalog.v1";
+
+export const avatarPublicationRecordSchema = z
+  .object({
+    sourceSystem: avatarSourceSystemSchema,
+    publishedAt: z.iso.datetime(),
+    assetVersion: z.string().trim().min(1).max(120),
+    approvalState: assetApprovalStateSchema,
+    approvedAt: z.iso.datetime().optional(),
+    approvedBy: z.string().trim().min(1).max(160).optional(),
+    certificationNotes: z.array(z.string().trim().min(1)).default([]),
+    runtimeManifestVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    bodySignatureModelVersion: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
+export const avatarPublicationEvidenceSchema = z
+  .object({
+    summaryPath: z.string().trim().min(1),
+    skeletonPath: z.string().trim().min(1),
+    measurementsPath: z.string().trim().min(1),
+    morphMapPath: z.string().trim().min(1),
+    visualReportPath: z.string().trim().min(1),
+    fitCompatibilityReportPath: z.string().trim().min(1),
+    budgetReportPath: z.string().trim().min(1),
+    bodySignatureModelPath: z.string().trim().min(1),
+  })
+  .strict();
+
+export const publishedRuntimeAvatarCatalogItemSchema = runtimeAvatarCatalogItemSchema
+  .extend({
+    publication: avatarPublicationRecordSchema,
+    evidence: avatarPublicationEvidenceSchema,
+  })
+  .strict();
+
+export const avatarPublicationCatalogEntrySchema = z
+  .object({
+    id: avatarRenderVariantIdSchema,
+    publication: avatarPublicationRecordSchema,
+    evidence: avatarPublicationEvidenceSchema,
+  })
+  .strict();
+
+export const avatarPublicationCatalogSchema = z
+  .object({
+    schemaVersion: z.literal(avatarPublicationCatalogSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    items: z.array(avatarPublicationCatalogEntrySchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
+
 export const buildPublishedGarmentRevision = (item: {
   id: string;
   publication: {
@@ -1784,6 +1934,28 @@ export const publishedRuntimeGarmentItemResponseSchema = z
     item: publishedGarmentAssetSchema,
   })
   .strict();
+
+export const publishedRuntimeAvatarItemResponseSchema = z
+  .object({
+    item: publishedRuntimeAvatarCatalogItemSchema,
+  })
+  .strict();
+
+export const publishedRuntimeAvatarListResponseSchema = z
+  .object({
+    items: z.array(publishedRuntimeAvatarCatalogItemSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const publishedRuntimeGarmentListResponseSchema = z
   .object({
@@ -1991,11 +2163,18 @@ export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
 export type AvatarRenderVariantId = z.infer<typeof avatarRenderVariantIdSchema>;
 export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
 export type QualityTier = z.infer<typeof qualityTierSchema>;
+export type AvatarSourceSystem = z.infer<typeof avatarSourceSystemSchema>;
 export type AvatarMeasurementDerivationMethod = z.infer<typeof avatarMeasurementsDerivationMethodSchema>;
 export type AvatarMeasurementDerivationEntry = z.infer<typeof avatarMeasurementDerivationEntrySchema>;
 export type AvatarReferenceMeasurements = z.infer<typeof avatarReferenceMeasurementsSchema>;
 export type AvatarMeasurementsDerivation = z.infer<typeof avatarMeasurementsDerivationSchema>;
 export type AvatarMeasurementsSidecar = z.infer<typeof avatarMeasurementsSidecarSchema>;
+export type RuntimeAvatarCatalogItem = z.infer<typeof runtimeAvatarCatalogItemSchema>;
+export type AvatarPublicationRecord = z.infer<typeof avatarPublicationRecordSchema>;
+export type AvatarPublicationEvidence = z.infer<typeof avatarPublicationEvidenceSchema>;
+export type PublishedRuntimeAvatarCatalogItem = z.infer<typeof publishedRuntimeAvatarCatalogItemSchema>;
+export type AvatarPublicationCatalogEntry = z.infer<typeof avatarPublicationCatalogEntrySchema>;
+export type AvatarPublicationCatalog = z.infer<typeof avatarPublicationCatalogSchema>;
 export type FitCalibrationComparisonEntry = z.infer<typeof fitCalibrationComparisonEntrySchema>;
 export type FitCalibrationReferenceComparison = z.infer<typeof fitCalibrationReferenceComparisonSchema>;
 export type AvatarCalibrationReference = z.infer<typeof avatarCalibrationReferenceSchema>;
@@ -2048,6 +2227,8 @@ export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySche
 export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
 export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;
 export type RuntimeAssetAuthoringSummary = z.infer<typeof runtimeAssetAuthoringSummarySchema>;
+export type PublishedRuntimeAvatarItemResponse = z.infer<typeof publishedRuntimeAvatarItemResponseSchema>;
+export type PublishedRuntimeAvatarListResponse = z.infer<typeof publishedRuntimeAvatarListResponseSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;
 export type PublishedRuntimeGarmentListResponse = z.infer<typeof publishedRuntimeGarmentListResponseSchema>;
 export type ClosetRuntimeGarmentItem = z.infer<typeof closetRuntimeGarmentItemSchema>;

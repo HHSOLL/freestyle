@@ -34,6 +34,7 @@ The repository is now split into four runtime surfaces:
   - `/v1/canvas/looks`
   - `/v1/community/looks`
 - `Admin`: `/v1/admin/*`
+  - `/v1/admin/avatars`
   - `POST /v1/admin/garments`
   - `/v1/admin/garments`
 - `Legacy`: `/v1/legacy/*`
@@ -70,6 +71,8 @@ The shipped runtime now uses:
 - compatibility-stage KTX2 support priming against the live browser renderer before runtime asset hooks mount
 - selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
 - a Phase 4 compatibility-stage studio-lighting rig plus centralized runtime material calibration seam, with a dedicated `/app/lab/material-system` evidence route
+- a read-only Phase 5 avatar publication catalog derived from the committed MPFB runtime manifest, exposed through `/v1/admin/avatars` and mirrored in `output/avatar-certification/latest.json`
+- an HQ fit-simulation create path that now resolves avatar runtime metadata from the same Phase 5 avatar publication catalog instead of an API-local avatar path map
 
 Preferred authoring policy is:
 
@@ -83,6 +86,8 @@ The repo now also ships a representative archetype review layer for partner publ
 `Phase 3` of the deep-research runtime plan now has a formal interactive-preview seam: the browser stage selects `static-fit`, `cpu-reduced`, or same-origin `worker-reduced` preview backends from one shared policy, and uses typed preview-frame messaging plus demand-driven invalidation for long-hair / loose-garment motion. This is still a reduced preview baseline, not solver-grade cloth truth.
 `Phase D` now also has an active offline HQ-fit artifact pipeline: `POST /v1/lab/jobs/fit-simulations` queues `fit_simulate_hq_v1`, the runtime worker processes it asynchronously, and the current artifact bundle is `draped_glb + fit_map_json + preview_png + metrics_json`. `Closet` now consumes that path directly through an HQ-fit panel that can request a run, poll the persisted record, render the generated `preview_png`, and open the ordered artifact bundle. The current `draped_glb` is still an authored-scene merge baseline for artifact/persistence/swap-in plumbing, not a claim that solver-deformed cloth truth is already solved.
 `Phase 5` of the deep-research runtime plan now has a committed visual-regression and release-hardening seam: Playwright route goldens cover `Home`, `Canvas`, `Community`, `Profile`, plus `Closet` low / balanced / high quality tiers, and the release docs now treat those snapshots as RC evidence instead of ad-hoc operator screenshots only.
+The first avatar-factory publication seam is now also explicit: `packages/runtime-3d/src/avatar-publication-catalog.ts` derives a read-only admin/runtime catalog from the committed MPFB base variants, and `npm run validate:avatar3d` now fails closed when that catalog, its certification evidence bundle, or declared avatar `LOD1 / LOD2` siblings drift from the committed runtime manifest and sidecars.
+The first production-adjacent consumer is now explicit too: `POST /v1/lab/jobs/fit-simulations` resolves queued avatar metadata from that same publication catalog, so avatar runtime path drift no longer lives in a second API-local constant map.
 
 ## Monorepo Structure
 
@@ -214,6 +219,8 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase3/batch3.md](docs/freestyle-viewer-platform/phase3/batch3.md)
 - [docs/freestyle-viewer-platform/phase3/closeout.md](docs/freestyle-viewer-platform/phase3/closeout.md)
 - [docs/freestyle-viewer-platform/phase4/closeout.md](docs/freestyle-viewer-platform/phase4/closeout.md)
+- [docs/freestyle-viewer-platform/phase5/batch1.md](docs/freestyle-viewer-platform/phase5/batch1.md)
+- [docs/freestyle-viewer-platform/phase5/batch2.md](docs/freestyle-viewer-platform/phase5/batch2.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

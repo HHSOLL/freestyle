@@ -1,0 +1,1892 @@
+{
+  "generatedAt": "2026-04-23T07:34:44.561Z",
+  "policy": {
+    "dracoDecoderPath": "/draco/gltf/",
+    "ktx2TranscoderPath": "/basis/",
+    "ktx2WorkerLimit": 2,
+    "ktx2TranscoderFiles": [
+      "basis_transcoder.js",
+      "basis_transcoder.wasm"
+    ],
+    "runtimeMaterialTextureExtensions": [
+      ".ktx2"
+    ],
+    "preferredUiTextureExtensions": [
+      ".webp",
+      ".avif"
+    ],
+    "geometryCompression": {
+      "draco": "download-size-priority",
+      "meshopt": "decode-latency-priority"
+    }
+  },
+  "targets": {
+    "transferBytes": {
+      "firstVisibleAvatarDesktop": 3000000,
+      "firstVisibleAvatarMobileBalanced": 2000000,
+      "selectedGarmentCriticalDesktop": 1500000,
+      "selectedGarmentCriticalMobileBalanced": 900000,
+      "defaultClosetScene": 3800000
+    },
+    "textureBytes": {
+      "fullOutfitDesktop": 180000000,
+      "fullOutfitMobileBalanced": 90000000
+    },
+    "drawCalls": {
+      "visibleDesktop": 80,
+      "visibleMobileBalanced": 45
+    },
+    "triangles": {
+      "visibleDesktop": 180000,
+      "visibleMobileBalanced": 75000
+    }
+  },
+  "compatibilityHardGates": {
+    "avatarGlbBytes": 3250000,
+    "garmentGlbBytes": 300000,
+    "hairGlbBytes": 500000,
+    "defaultClosetSceneBytes": 3800000,
+    "textureBytes": 6500000
+  },
+  "summary": {
+    "assetCount": 41,
+    "runtimeKtx2TextureCount": 9,
+    "uiTextureCount": 0,
+    "missingLodCount": 30,
+    "balancedReadyAssetCount": 11,
+    "lowReadyAssetCount": 11,
+    "transcodersPresent": true,
+    "defaultClosetSceneByVariant": {
+      "female-base": {
+        "high": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-female-base.glb",
+            "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+            "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb"
+          ],
+          "bytes": 3695492,
+          "drawCalls": 12,
+          "triangles": 136374,
+          "gpuTextureBytes": 24117248,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        },
+        "balanced": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-female-base.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb"
+          ],
+          "bytes": 2854272,
+          "drawCalls": 12,
+          "triangles": 72464,
+          "gpuTextureBytes": 24117248,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        },
+        "low": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-female-base.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb"
+          ],
+          "bytes": 2206456,
+          "drawCalls": 12,
+          "triangles": 46931,
+          "gpuTextureBytes": 24117248,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        }
+      },
+      "male-base": {
+        "high": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-male-base.glb",
+            "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+            "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+            "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
+            "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.glb"
+          ],
+          "bytes": 2593052,
+          "drawCalls": 13,
+          "triangles": 84016,
+          "gpuTextureBytes": 32505856,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        },
+        "balanced": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-male-base.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod1.glb",
+            "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod1.glb"
+          ],
+          "bytes": 2112500,
+          "drawCalls": 13,
+          "triangles": 62473,
+          "gpuTextureBytes": 30670848,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        },
+        "low": {
+          "paths": [
+            "apps/web/public/assets/avatars/mpfb-male-base.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod2.glb",
+            "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod2.glb"
+          ],
+          "bytes": 1670364,
+          "drawCalls": 13,
+          "triangles": 42308,
+          "gpuTextureBytes": 30670848,
+          "transferStatus": "pass",
+          "textureStatus": "pass",
+          "drawCallStatus": "pass",
+          "triangleStatus": "pass"
+        }
+      }
+    }
+  },
+  "assets": [
+    {
+      "path": "apps/web/public/assets/avatars/mpfb-female-base.glb",
+      "family": "avatar",
+      "bytes": 2844620,
+      "transferStatus": "warn",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/avatars/mpfb-female-base.glb",
+        "balanced": "apps/web/public/assets/avatars/mpfb-female-base.lod1.glb",
+        "low": "apps/web/public/assets/avatars/mpfb-female-base.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/avatars/mpfb-female-base.glb",
+          "bytes": 2844620,
+          "drawCalls": 9,
+          "triangles": 73400,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "warn"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/avatars/mpfb-female-base.lod1.glb",
+          "bytes": 2298192,
+          "drawCalls": 9,
+          "triangles": 53197,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "warn"
+        },
+        "low": {
+          "path": "apps/web/public/assets/avatars/mpfb-female-base.lod2.glb",
+          "bytes": 1718420,
+          "drawCalls": 9,
+          "triangles": 34750,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/avatars/mpfb-male-base.glb",
+      "family": "avatar",
+      "bytes": 2122616,
+      "transferStatus": "warn",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/avatars/mpfb-male-base.glb",
+        "balanced": "apps/web/public/assets/avatars/mpfb-male-base.lod1.glb",
+        "low": "apps/web/public/assets/avatars/mpfb-male-base.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/avatars/mpfb-male-base.glb",
+          "bytes": 2122616,
+          "drawCalls": 9,
+          "triangles": 73400,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "warn"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/avatars/mpfb-male-base.lod1.glb",
+          "bytes": 1705836,
+          "drawCalls": 9,
+          "triangles": 53277,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/avatars/mpfb-male-base.lod2.glb",
+          "bytes": 1276348,
+          "drawCalls": 9,
+          "triangles": 34830,
+          "gpuTextureBytes": 11534336,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+      "family": "accessory",
+      "bytes": 30764,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+          "bytes": 30764,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+          "bytes": 30764,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_city_bucket_hat.glb",
+          "bytes": 30764,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+      "family": "accessory",
+      "bytes": 54784,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+          "bytes": 54784,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+          "bytes": 54784,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/accessory_oval_shades.glb",
+          "bytes": 54784,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+      "family": "garment",
+      "bytes": 75652,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+          "bytes": 75652,
+          "drawCalls": 1,
+          "triangles": 2674,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
+          "bytes": 72684,
+          "drawCalls": 1,
+          "triangles": 2502,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb",
+          "bytes": 69924,
+          "drawCalls": 1,
+          "triangles": 2148,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+      "family": "hair",
+      "bytes": 463092,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+          "bytes": 463092,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+          "bytes": 463092,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_afro_cloud.glb",
+          "bytes": 463092,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+      "family": "hair",
+      "bytes": 208680,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+          "bytes": 208680,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+          "bytes": 208680,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_clean_sweep.glb",
+          "bytes": 208680,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+      "family": "hair",
+      "bytes": 141532,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+          "bytes": 141532,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+          "bytes": 141532,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_long_fall.glb",
+          "bytes": 141532,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+      "family": "hair",
+      "bytes": 293904,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+          "bytes": 293904,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+          "bytes": 293904,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_signature_ponytail.glb",
+          "bytes": 293904,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+      "family": "hair",
+      "bytes": 193524,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+          "bytes": 193524,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+          "bytes": 193524,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_soft_bob.glb",
+          "bytes": 193524,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+      "family": "hair",
+      "bytes": 99716,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+          "bytes": 99716,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+          "bytes": 99716,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_studio_braid.glb",
+          "bytes": 99716,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.glb",
+      "family": "hair",
+      "bytes": 111292,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.glb",
+          "bytes": 111292,
+          "drawCalls": 1,
+          "triangles": 1922,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.lod1.glb",
+          "bytes": 78412,
+          "drawCalls": 1,
+          "triangles": 1624,
+          "gpuTextureBytes": 2359296,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_textured_crop.lod2.glb",
+          "bytes": 77004,
+          "drawCalls": 1,
+          "triangles": 1383,
+          "gpuTextureBytes": 2359296,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+      "family": "hair",
+      "bytes": 187332,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+          "bytes": 187332,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+          "bytes": 187332,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/hair_volume_bob.glb",
+          "bytes": 187332,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+      "family": "garment",
+      "bytes": 132308,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+          "bytes": 132308,
+          "drawCalls": 1,
+          "triangles": 4192,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+          "bytes": 132308,
+          "drawCalls": 1,
+          "triangles": 4192,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+          "bytes": 132308,
+          "drawCalls": 1,
+          "triangles": 4192,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+      "family": "shoes",
+      "bytes": 169332,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+          "bytes": 169332,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+          "bytes": 169332,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+          "bytes": 169332,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+      "family": "shoes",
+      "bytes": 693416,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "fail",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+          "bytes": 693416,
+          "drawCalls": 1,
+          "triangles": 57600,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb",
+          "bytes": 406136,
+          "drawCalls": 1,
+          "triangles": 14394,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb",
+          "bytes": 344164,
+          "drawCalls": 1,
+          "triangles": 8060,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+      "family": "shoes",
+      "bytes": 202516,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+          "bytes": 202516,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod1.glb",
+          "bytes": 182052,
+          "drawCalls": 1,
+          "triangles": 3078,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod2.glb",
+          "bytes": 178708,
+          "drawCalls": 1,
+          "triangles": 2626,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+      "family": "garment",
+      "bytes": 197136,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+          "bytes": 197136,
+          "drawCalls": 1,
+          "triangles": 5488,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+          "bytes": 197136,
+          "drawCalls": 1,
+          "triangles": 5488,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+          "bytes": 197136,
+          "drawCalls": 1,
+          "triangles": 5488,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+      "family": "garment",
+      "bytes": 82176,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+          "bytes": 82176,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+          "bytes": 82176,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual.glb",
+          "bytes": 82176,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+      "family": "garment",
+      "bytes": 82168,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v2.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+      "family": "garment",
+      "bytes": 82168,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v3.glb",
+          "bytes": 82168,
+          "drawCalls": 1,
+          "triangles": 3436,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+      "family": "garment",
+      "bytes": 81804,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+          "bytes": 81804,
+          "drawCalls": 1,
+          "triangles": 2700,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
+          "bytes": 77260,
+          "drawCalls": 1,
+          "triangles": 2371,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb",
+          "bytes": 73948,
+          "drawCalls": 1,
+          "triangles": 1973,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+      "family": "accessory",
+      "bytes": 30504,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+          "bytes": 30504,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+          "bytes": 30504,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_city_bucket_hat.glb",
+          "bytes": 30504,
+          "drawCalls": 2,
+          "triangles": 1240,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+      "family": "accessory",
+      "bytes": 54796,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+          "bytes": 54796,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+          "bytes": 54796,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/accessory_oval_shades.glb",
+          "bytes": 54796,
+          "drawCalls": 2,
+          "triangles": 2756,
+          "gpuTextureBytes": 0,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+      "family": "garment",
+      "bytes": 75332,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+          "bytes": 75332,
+          "drawCalls": 1,
+          "triangles": 2674,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod1.glb",
+          "bytes": 71476,
+          "drawCalls": 1,
+          "triangles": 2384,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.lod2.glb",
+          "bytes": 67648,
+          "drawCalls": 1,
+          "triangles": 1865,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+      "family": "hair",
+      "bytes": 463024,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+          "bytes": 463024,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+          "bytes": 463024,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_afro_cloud.glb",
+          "bytes": 463024,
+          "drawCalls": 1,
+          "triangles": 2192,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+      "family": "hair",
+      "bytes": 208600,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+          "bytes": 208600,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+          "bytes": 208600,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_clean_sweep.glb",
+          "bytes": 208600,
+          "drawCalls": 1,
+          "triangles": 1050,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+      "family": "hair",
+      "bytes": 141452,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+          "bytes": 141452,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+          "bytes": 141452,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_long_fall.glb",
+          "bytes": 141452,
+          "drawCalls": 1,
+          "triangles": 4108,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+      "family": "hair",
+      "bytes": 293992,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+          "bytes": 293992,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+          "bytes": 293992,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_signature_ponytail.glb",
+          "bytes": 293992,
+          "drawCalls": 1,
+          "triangles": 5352,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+      "family": "hair",
+      "bytes": 193512,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+          "bytes": 193512,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+          "bytes": 193512,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_soft_bob.glb",
+          "bytes": 193512,
+          "drawCalls": 1,
+          "triangles": 8474,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+      "family": "hair",
+      "bytes": 99632,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+          "bytes": 99632,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+          "bytes": 99632,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_studio_braid.glb",
+          "bytes": 99632,
+          "drawCalls": 1,
+          "triangles": 5518,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.glb",
+      "family": "hair",
+      "bytes": 111220,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.glb",
+          "bytes": 111220,
+          "drawCalls": 1,
+          "triangles": 1922,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod1.glb",
+          "bytes": 78336,
+          "drawCalls": 1,
+          "triangles": 1624,
+          "gpuTextureBytes": 2359296,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_textured_crop.lod2.glb",
+          "bytes": 76928,
+          "drawCalls": 1,
+          "triangles": 1383,
+          "gpuTextureBytes": 2359296,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+      "family": "hair",
+      "bytes": 187264,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+          "bytes": 187264,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+          "bytes": 187264,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/hair_volume_bob.glb",
+          "bytes": 187264,
+          "drawCalls": 1,
+          "triangles": 2248,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+      "family": "garment",
+      "bytes": 151364,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+          "bytes": 151364,
+          "drawCalls": 1,
+          "triangles": 14956,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+          "bytes": 151364,
+          "drawCalls": 1,
+          "triangles": 14956,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+          "bytes": 151364,
+          "drawCalls": 1,
+          "triangles": 14956,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+      "family": "shoes",
+      "bytes": 169168,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+          "bytes": 169168,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+          "bytes": 169168,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+          "bytes": 169168,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
+      "family": "shoes",
+      "bytes": 202352,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
+          "bytes": 202352,
+          "drawCalls": 1,
+          "triangles": 3320,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod1.glb",
+          "bytes": 181232,
+          "drawCalls": 1,
+          "triangles": 2978,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.lod2.glb",
+          "bytes": 177204,
+          "drawCalls": 1,
+          "triangles": 2442,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+      "family": "garment",
+      "bytes": 117196,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+          "bytes": 117196,
+          "drawCalls": 1,
+          "triangles": 4120,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+          "bytes": 117196,
+          "drawCalls": 1,
+          "triangles": 4120,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+          "bytes": 117196,
+          "drawCalls": 1,
+          "triangles": 4120,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+      "family": "garment",
+      "bytes": 129152,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+          "bytes": 129152,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+          "bytes": 129152,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual.glb",
+          "bytes": 129152,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+      "family": "garment",
+      "bytes": 129156,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v2.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+      "family": "garment",
+      "bytes": 129156,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": false,
+        "lod2": false
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v3.glb",
+          "bytes": 129156,
+          "drawCalls": 1,
+          "triangles": 7168,
+          "gpuTextureBytes": 8388608,
+          "transferStatus": "pass"
+        }
+      }
+    },
+    {
+      "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+      "family": "garment",
+      "bytes": 81532,
+      "transferStatus": "pass",
+      "legacyHardGateStatus": "pass",
+      "lodCoverage": {
+        "lod1": true,
+        "lod2": true
+      },
+      "qualityTierPaths": {
+        "high": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+        "balanced": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod1.glb",
+        "low": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod2.glb"
+      },
+      "qualityTierStats": {
+        "high": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+          "bytes": 81532,
+          "drawCalls": 1,
+          "triangles": 2700,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "balanced": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod1.glb",
+          "bytes": 75620,
+          "drawCalls": 1,
+          "triangles": 2210,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        },
+        "low": {
+          "path": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.lod2.glb",
+          "bytes": 72236,
+          "drawCalls": 1,
+          "triangles": 1788,
+          "gpuTextureBytes": 4194304,
+          "transferStatus": "pass"
+        }
+      }
+    }
+  ],
+  "nonBlockingIssues": [
+    "30 runtime GLBs are still missing sibling .lod1/.lod2 variants."
+  ]
+}

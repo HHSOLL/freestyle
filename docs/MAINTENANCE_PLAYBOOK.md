@@ -39,6 +39,7 @@ If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD`
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 If compatibility-stage lighting, material calibration, or the Phase 4 lab harness changes, also update `docs/freestyle-viewer-platform/phase4/closeout.md` and `docs/material-contract.md` in the same PR.
+If the Phase 5 avatar publication seam changes, also update `docs/freestyle-viewer-platform/phase5/batch1.md`, `docs/freestyle-viewer-platform/phase5/batch2.md`, `docs/avatar-pipeline.md`, and `docs/avatar-production-contract.md` in the same PR.
 
 ### Redirect smoke
 
@@ -62,12 +63,14 @@ If compatibility-stage lighting, material calibration, or the Phase 4 lab harnes
 - `/v1/closet/runtime-garments`
 - `/v1/canvas/looks`
 - `/v1/community/looks`
+- `/v1/admin/avatars`
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/legacy/assets`
 - `GET /v1/legacy/jobs/:job_id`
 - `POST /v1/lab/jobs/evaluations`
 - `POST /v1/lab/jobs/tryons`
+- `POST /v1/lab/jobs/fit-simulations`
 - `GET /v1/lab/evaluations/:id`
 - `GET /v1/lab/tryons/:id`
 
@@ -175,6 +178,7 @@ If any of the above regress, stop the release.
 - verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
 - verify fit-simulation jobs dedupe on canonical `cacheKey` when the caller omits an explicit `idempotency_key`
 - verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, and `cacheKey` consistently through API and worker reads
+- verify fit-simulation create still resolves `avatarManifestUrl` from `packages/runtime-3d/src/avatar-publication-catalog.ts` rather than a local API constant
 - verify succeeded fit-simulation records now persist the full artifact bundle: `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
 - verify lab fit-simulation reads return artifacts in presentation order with `draped_glb` first
 

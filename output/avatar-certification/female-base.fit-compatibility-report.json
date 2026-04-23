@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "avatar-fit-compatibility-report.v1",
+  "avatarId": "female-base",
+  "generatedAt": "2026-04-23T00:00:00.000Z",
+  "status": "pass",
+  "sourceCalibrationReportPath": "output/fit-calibration/latest.json",
+  "supportedArchetypeIds": [
+    "female-petite-lean",
+    "female-balanced",
+    "female-curvy"
+  ],
+  "notes": [
+    "Current fit compatibility evidence is derived from the committed fit-calibration report.",
+    "This report is a publication seam for the shipped MPFB base avatar, not a full multi-pose certification sweep."
+  ]
+}

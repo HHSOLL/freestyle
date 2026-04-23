@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { runtimeAvatarRenderManifestSchemaVersion } from '@freestyle/shared-types';
 import {
   accessoryAuthoringSummarySchema,
   assetAuthoringSummarySchemaVersion,
@@ -50,7 +51,10 @@ import {
   garmentAuthoringSummarySchema,
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
+  avatarPublicationCatalogSchema,
   publishedGarmentAssetSchema,
+  publishedRuntimeAvatarItemResponseSchema,
+  publishedRuntimeAvatarListResponseSchema,
   previewSimulationFrameRequestSchema,
   previewSimulationFrameResultSchema,
   previewSimulationFrameSchemaVersion,
@@ -1215,6 +1219,126 @@ test('published runtime garment response schemas accept canonical envelopes and 
           {
             item: garment,
             instantFit: null,
+          },
+        ],
+        total: 2,
+      }),
+    /total must match items.length/,
+  );
+});
+
+test('published avatar catalog responses stay distinct from canonical avatar manifests', () => {
+  const item = {
+    id: 'female-base',
+    label: 'Female base',
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
+    modelPath: '/assets/avatars/mpfb-female-base.glb',
+    lodModelPaths: {
+      lod1: '/assets/avatars/mpfb-female-base.lod1.glb',
+      lod2: '/assets/avatars/mpfb-female-base.lod2.glb',
+    },
+    authoringSource: 'mpfb2',
+    sourceProvenance: {
+      sourceSystem: 'mpfb2',
+      schemaVersion: 'avatar-build-summary-v1',
+      presetPath: 'authoring/avatar/mpfb/presets/female-base.json',
+      summaryPath: 'authoring/avatar/exports/raw/mpfb-female-base.summary.json',
+      skeletonPath: 'authoring/avatar/exports/raw/mpfb-female-base.skeleton.json',
+      measurementsPath: 'authoring/avatar/exports/raw/mpfb-female-base.measurements.json',
+      morphMapPath: 'authoring/avatar/exports/raw/mpfb-female-base.morph-map.json',
+      outputModelPath: '/assets/avatars/mpfb-female-base.glb',
+    },
+    bodyMaskStrategy: 'named-mesh-zones',
+    stageOffsetY: -0.12,
+    stageScale: 0.6,
+    meshZones: {
+      fullBody: ['fullbody'],
+      torso: ['torso'],
+      arms: ['arms'],
+      hips: ['hips'],
+      legs: ['legs'],
+      feet: ['feet'],
+    },
+    aliasPatterns: {
+      root: ['root'],
+      hips: ['pelvis'],
+      spine: ['spine01'],
+      torso: ['spine02'],
+      chest: ['spine03'],
+      neck: ['neck01'],
+      head: ['head'],
+      leftShoulder: ['claviclel'],
+      rightShoulder: ['clavicler'],
+      leftUpperArm: ['upperarml'],
+      rightUpperArm: ['upperarmr'],
+      leftLowerArm: ['lowerarml'],
+      rightLowerArm: ['lowerarmr'],
+      leftHand: ['handl'],
+      rightHand: ['handr'],
+      leftUpperLeg: ['thighl'],
+      rightUpperLeg: ['thighr'],
+      leftLowerLeg: ['calfl'],
+      rightLowerLeg: ['calfr'],
+      leftFoot: ['footl'],
+      rightFoot: ['footr'],
+    },
+    publication: {
+      sourceSystem: 'mpfb2',
+      publishedAt: '2026-04-23T00:00:00.000Z',
+      assetVersion: 'female-base@2026-04-23',
+      approvalState: 'PUBLISHED',
+      approvedAt: '2026-04-23T00:00:00.000Z',
+      approvedBy: 'phase5-avatar-publication@freestyle.local',
+      certificationNotes: ['Phase 5 batch 1 avatar publication seam.'],
+      runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+      bodySignatureModelVersion: 'body-signature.v1',
+    },
+    evidence: {
+      summaryPath: 'authoring/avatar/exports/raw/mpfb-female-base.summary.json',
+      skeletonPath: 'authoring/avatar/exports/raw/mpfb-female-base.skeleton.json',
+      measurementsPath: 'authoring/avatar/exports/raw/mpfb-female-base.measurements.json',
+      morphMapPath: 'authoring/avatar/exports/raw/mpfb-female-base.morph-map.json',
+      visualReportPath: 'output/avatar-certification/female-base.visual-report.json',
+      fitCompatibilityReportPath: 'output/avatar-certification/female-base.fit-compatibility-report.json',
+      budgetReportPath: 'output/asset-budget-report/latest.json',
+      bodySignatureModelPath: 'output/avatar-certification/female-base.body-signature-model.json',
+    },
+  } as const;
+
+  const itemResponse = publishedRuntimeAvatarItemResponseSchema.parse({ item });
+  const listResponse = publishedRuntimeAvatarListResponseSchema.parse({
+    items: [item],
+    total: 1,
+  });
+  const catalogBundle = avatarPublicationCatalogSchema.parse({
+    schemaVersion: 'avatar-publication-catalog.v1',
+    generatedAt: '2026-04-23T00:00:00.000Z',
+    items: [
+      {
+        id: item.id,
+        publication: item.publication,
+        evidence: item.evidence,
+      },
+    ],
+    total: 1,
+  });
+
+  assert.equal(
+    itemResponse.item.publication.runtimeManifestVersion,
+    runtimeAvatarRenderManifestSchemaVersion,
+  );
+  assert.equal(listResponse.total, 1);
+  assert.equal(catalogBundle.items[0]?.id, 'female-base');
+  assert.throws(
+    () =>
+      avatarPublicationCatalogSchema.parse({
+        schemaVersion: 'avatar-publication-catalog.v1',
+        generatedAt: '2026-04-23T00:00:00.000Z',
+        items: [
+          {
+            id: item.id,
+            publication: item.publication,
+            evidence: item.evidence,
           },
         ],
         total: 2,

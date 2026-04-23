@@ -54,3 +54,16 @@ Certification requires:
 - golden-scene visual approval
 - fit compatibility approval against the current body matrix
 - manual review notes recorded in the publication metadata
+
+## Current Phase 5 Boundary
+
+The current repo only claims the first read-only avatar publication seam.
+
+- `packages/runtime-3d/src/avatar-publication-catalog.ts` is the runtime/admin catalog source of truth for the committed MPFB base avatars
+- `GET /v1/admin/avatars` exposes that catalog for admin inspection
+- `output/avatar-certification/latest.json` is the machine-readable evidence bundle paired with that catalog
+- `POST /v1/lab/jobs/fit-simulations` is the first production-adjacent consumer and resolves queued avatar runtime metadata from that catalog
+
+This is not the same thing as a complete canonical `AvatarManifest` delivery tree. Treat the Phase 5 catalog as publication metadata and certification evidence for the shipped base avatars only.
+
+The runtime publication seam uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`.

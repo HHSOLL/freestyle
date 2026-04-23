@@ -1,44 +1,20 @@
-import { avatarManifestSchemaVersion } from "@freestyle/asset-schema/schema-versions";
-import type { AvatarRenderVariantId, QualityTier } from "@freestyle/shared-types";
-
-export type AvatarRigAlias =
-  | "root"
-  | "hips"
-  | "spine"
-  | "torso"
-  | "chest"
-  | "neck"
-  | "head"
-  | "leftShoulder"
-  | "rightShoulder"
-  | "leftUpperArm"
-  | "rightUpperArm"
-  | "leftLowerArm"
-  | "rightLowerArm"
-  | "leftHand"
-  | "rightHand"
-  | "leftUpperLeg"
-  | "rightUpperLeg"
-  | "leftLowerLeg"
-  | "rightLowerLeg"
-  | "leftFoot"
-  | "rightFoot";
+import type {
+  AvatarRenderVariantId,
+  AvatarRigAlias,
+  AvatarSourceProvenance,
+  QualityTier,
+  RuntimeAvatarAsset,
+} from "@freestyle/shared-types";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+export { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+export type { AvatarRigAlias } from "@freestyle/shared-types";
 
 export const avatarSummarySchemaVersion = "avatar-build-summary-v1";
 export const avatarSkeletonSidecarSchemaVersion = "avatar-skeleton-sidecar-v1";
 export const avatarMorphMapSidecarSchemaVersion = "avatar-morph-map-sidecar-v1";
 
-export type AvatarSourceSystem = "mpfb2" | "charmorph" | "runtime-fallback";
-
-type AvatarSourceProvenance = {
-  sourceSystem: AvatarSourceSystem;
+export type AvatarRenderManifestSourceProvenance = AvatarSourceProvenance & {
   schemaVersion: typeof avatarSummarySchemaVersion;
-  presetPath: string;
-  summaryPath: string;
-  skeletonPath: string;
-  measurementsPath: string;
-  morphMapPath: string;
-  outputModelPath: string;
 };
 
 export const referenceRigAliasPatterns = {
@@ -65,35 +41,15 @@ export const referenceRigAliasPatterns = {
   rightFoot: ["rightfoot"],
 } satisfies Record<AvatarRigAlias, string[]>;
 
-export type AvatarRenderManifestEntry = {
-  id: AvatarRenderVariantId;
-  label: string;
-  schemaVersion: typeof avatarManifestSchemaVersion;
-  modelPath: string;
-  lodModelPaths?: {
-    lod1?: string;
-    lod2?: string;
-  };
-  authoringSource: AvatarSourceSystem;
-  sourceProvenance: AvatarSourceProvenance;
-  bodyMaskStrategy: "named-mesh-zones" | "none";
-  stageOffsetY: number;
-  stageScale: number;
-  meshZones: {
-    fullBody: string[];
-    torso: string[];
-    arms: string[];
-    hips: string[];
-    legs: string[];
-    feet: string[];
-  };
-  aliasPatterns: Record<AvatarRigAlias, string[]>;
+export type AvatarRenderManifestEntry = RuntimeAvatarAsset & {
+  schemaVersion: typeof runtimeAvatarRenderManifestSchemaVersion;
+  sourceProvenance: AvatarRenderManifestSourceProvenance;
 };
 
 export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderManifestEntry> = {
   "female-base": {
     id: "female-base" as AvatarRenderVariantId,
-    schemaVersion: avatarManifestSchemaVersion,
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
     label: "Female base",
     modelPath: "/assets/avatars/mpfb-female-base.glb",
     lodModelPaths: {
@@ -148,7 +104,7 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
   },
   "male-base": {
     id: "male-base" as AvatarRenderVariantId,
-    schemaVersion: avatarManifestSchemaVersion,
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
     label: "Male base",
     modelPath: "/assets/avatars/mpfb-male-base.glb",
     lodModelPaths: {

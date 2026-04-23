@@ -576,6 +576,8 @@ test(
     assert.equal(fitSimulationReadPayload.fitSimulation.id, fitSimulationCreatePayload.fit_simulation_id);
     assert.equal(fitSimulationReadPayload.fitSimulation.status, "queued");
     assert.equal(fitSimulationReadPayload.fitSimulation.instantFit?.overallFit, "good");
+    assert.equal(fitSimulationReadPayload.fitSimulation.avatarPublication?.avatarId, "female-base");
+    assert.equal(fitSimulationReadPayload.fitSimulation.avatarPublication?.approvalState, "PUBLISHED");
 
     const tryonCreateResponse = await app.inject({
       method: "POST",

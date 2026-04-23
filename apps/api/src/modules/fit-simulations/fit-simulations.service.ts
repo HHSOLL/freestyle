@@ -21,16 +21,29 @@ import {
   type FitSimulationJobPayload,
   type JobRecord,
 } from "@freestyle/shared";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import type {
-  FitSimulationRecord as PublicFitSimulationRecord,
+  FitSimulationAdminInspectionListResponse,
+  FitSimulationAdminInspectionSummary,
+  FitSimulationAdminInspectionResponse,
+  FitSimulationAvatarPublicationSnapshot,
+  FitSimulationPublicRecord,
   PublishedGarmentAsset,
 } from "@freestyle/contracts";
+import {
+  fitSimulationAdminInspectionListResponseSchema,
+  fitSimulationAdminInspectionListSchemaVersion,
+  fitSimulationAdminInspectionResponseSchema,
+  fitSimulationAdminInspectionSchemaVersion,
+} from "@freestyle/contracts";
+import { getPublishedRuntimeAvatarByVariantId } from "../avatars/runtime-avatars.service.js";
 import { getBodyProfileRecordForUser } from "../profile/body-profile.repository.js";
 import { getPublishedRuntimeGarmentById } from "../garments/runtime-garments.service.js";
 import {
   deleteFitSimulationRecord,
   getFitSimulationRecordById,
   getFitSimulationRecordForUser,
+  listFitSimulationRecords,
   upsertFitSimulationRecord,
 } from "./fit-simulations.repository.js";
 
@@ -39,10 +52,10 @@ const fitSimulationArtifactPriority = {
   preview_png: 1,
   fit_map_json: 2,
   metrics_json: 3,
-} as const satisfies Record<PublicFitSimulationRecord["artifacts"][number]["kind"], number>;
+} as const satisfies Record<FitSimulationPublicRecord["artifacts"][number]["kind"], number>;
 
 const sortFitSimulationArtifactsForPresentation = (
-  artifacts: PublicFitSimulationRecord["artifacts"],
+  artifacts: FitSimulationPublicRecord["artifacts"],
 ) =>
   [...artifacts].sort((left, right) => {
     const leftRank = fitSimulationArtifactPriority[left.kind] ?? Number.MAX_SAFE_INTEGER;
@@ -60,11 +73,6 @@ const resolvePublicAssetUrl = (value: string) => {
   const normalizedPath = value.startsWith("/") ? value : `/${value}`;
   return new URL(normalizedPath, publicAssetBaseUrl()).toString();
 };
-
-const avatarModelPathByVariant = {
-  "female-base": "/assets/avatars/mpfb-female-base.glb",
-  "male-base": "/assets/avatars/mpfb-male-base.glb",
-} as const;
 
 const buildBodyVersionId = (userId: string, revision: BodyProfileRecord["revision"]) =>
   `body-profile:${userId}:${revision}`;
@@ -85,26 +93,46 @@ const inferFitSimulationMaterialPreset = (item: PublishedGarmentAsset) => {
   return `${fabricFamily}_${stretchProfile}`;
 };
 
+const buildAvatarPublicationSnapshot = (
+  avatarVariantId: string,
+): FitSimulationAvatarPublicationSnapshot | null => {
+  const avatar = getPublishedRuntimeAvatarByVariantId(avatarVariantId);
+  if (!avatar) {
+    return null;
+  }
+
+  return {
+    avatarId: avatar.id,
+    label: avatar.label,
+    approvalState: avatar.publication.approvalState,
+    assetVersion: avatar.publication.assetVersion,
+    runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+    bodySignatureModelVersion: avatar.publication.bodySignatureModelVersion,
+    approvedAt: avatar.publication.approvedAt,
+  };
+};
+
 const buildSimulationRequest = (
   userId: string,
   garment: PublishedGarmentAsset,
+  avatar: {
+    avatarVariantId: ReturnType<typeof resolveAvatarVariantFromProfile>;
+    avatarManifestUrl: string;
+  },
   input: CreateFitSimulationInput,
   bodyProfileRecord: NonNullable<Awaited<ReturnType<typeof getBodyProfileRecordForUser>>>,
 ) => {
-  const profile = bodyProfileRecord.profile;
-  const avatarVariantId = resolveAvatarVariantFromProfile(profile);
   const bodyProfileRevision = bodyProfileRecord.revision;
   const bodyVersionId = buildBodyVersionId(userId, bodyProfileRevision);
   const garmentVariantId = garment.id;
   const garmentRevision = buildPublishedGarmentRevision(garment);
-  const avatarManifestUrl = resolvePublicAssetUrl(avatarModelPathByVariant[avatarVariantId]);
   const garmentManifestUrl = resolvePublicAssetUrl(
-    resolveGarmentRuntimeModelPath(garment.runtime, avatarVariantId),
+    resolveGarmentRuntimeModelPath(garment.runtime, avatar.avatarVariantId),
   );
   const materialPreset = input.material_preset ?? inferFitSimulationMaterialPreset(garment);
   const qualityTier = input.quality_tier ?? "balanced";
   const cacheKey = buildFitSimulationCacheKey({
-    avatarVariantId,
+    avatarVariantId: avatar.avatarVariantId,
     bodyProfileRevision,
     garmentVariantId,
     garmentRevision,
@@ -113,12 +141,12 @@ const buildSimulationRequest = (
   });
 
   return {
-    avatarVariantId,
+    avatarVariantId: avatar.avatarVariantId,
     bodyProfileRevision,
     bodyVersionId,
     garmentVariantId,
     garmentRevision,
-    avatarManifestUrl,
+    avatarManifestUrl: avatar.avatarManifestUrl,
     garmentManifestUrl,
     materialPreset,
     qualityTier,
@@ -137,6 +165,23 @@ export class FitSimulationCreateError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+export const resolvePublishedAvatarSimulationInput = (profile: BodyProfileRecord["profile"]) => {
+  const avatarVariantId = resolveAvatarVariantFromProfile(profile);
+  const avatar = getPublishedRuntimeAvatarByVariantId(avatarVariantId);
+  if (!avatar || avatar.publication.approvalState !== "PUBLISHED") {
+    throw new FitSimulationCreateError(
+      "AVATAR_NOT_PUBLISHED",
+      "Published runtime avatar not found for HQ fit simulation.",
+      409,
+    );
+  }
+
+  return {
+    avatarVariantId,
+    avatarManifestUrl: resolvePublicAssetUrl(avatar.modelPath),
+  } as const;
+};
 
 export const getFitSimulationIdFromJob = (
   job: Pick<JobRecord, "id" | "job_type" | "payload" | "idempotency_key">,
@@ -168,10 +213,12 @@ const buildCreateInput = async (userId: string, input: CreateFitSimulationInput)
     );
   }
 
+  const avatar = resolvePublishedAvatarSimulationInput(bodyProfileRecord.profile);
+
   return {
     bodyProfileRecord,
     garment,
-    request: buildSimulationRequest(userId, garment, input, bodyProfileRecord),
+    request: buildSimulationRequest(userId, garment, avatar, input, bodyProfileRecord),
   };
 };
 
@@ -254,6 +301,7 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
       bodyProfileRevision: request.bodyProfileRevision,
       garmentVariantId: request.garmentVariantId,
       garmentRevision: request.garmentRevision,
+      avatarVariantId: request.avatarVariantId,
       avatarManifestUrl: request.avatarManifestUrl,
       garmentManifestUrl: request.garmentManifestUrl,
       materialPreset: request.materialPreset,
@@ -288,7 +336,15 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     return null;
   }
 
-  const publicRecord: PublicFitSimulationRecord = {
+  const publicRecord = buildFitSimulationPublicRecord(row);
+
+  return publicRecord;
+};
+
+const buildFitSimulationPublicRecord = (
+  row: NonNullable<Awaited<ReturnType<typeof getFitSimulationById>>>,
+): FitSimulationPublicRecord => {
+  return {
     id: row.id,
     jobId: row.jobId,
     status: row.status,
@@ -309,14 +365,79 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     metrics: row.metrics,
     warnings: row.warnings,
     errorMessage: row.errorMessage,
+    avatarPublication: buildAvatarPublicationSnapshot(row.avatarVariantId),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     completedAt: row.completedAt,
   };
+};
 
-  return publicRecord;
+const buildFitSimulationAdminInspectionSummary = (
+  row: NonNullable<Awaited<ReturnType<typeof getFitSimulationById>>>,
+): FitSimulationAdminInspectionSummary => {
+  const warningCount = row.warnings.length + (row.artifactLineage?.warnings.length ?? 0);
+
+  return {
+    id: row.id,
+    status: row.status,
+    avatarVariantId: row.avatarVariantId,
+    garmentVariantId: row.garmentVariantId,
+    qualityTier: row.qualityTier,
+    materialPreset: row.materialPreset,
+    artifactCount: row.artifacts.length,
+    warningCount,
+    hasLineage: Boolean(row.artifactLineage),
+    drapeSource: row.artifactLineage?.drapeSource ?? null,
+    storageBackend: row.artifactLineage?.storageBackend ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    completedAt: row.completedAt,
+  };
+};
+
+export const getFitSimulationArtifactLineageForUser = async (
+  userId: string,
+  fitSimulationId: string,
+) => {
+  const row = await getFitSimulationRecordForUser(fitSimulationId, userId);
+  if (!row) {
+    return null;
+  }
+
+  return row.artifactLineage ?? null;
 };
 
 export const getFitSimulationById = async (fitSimulationId: string) => {
   return getFitSimulationRecordById(fitSimulationId);
+};
+
+export const listFitSimulationInspectionSummaries = async (filters?: {
+  garmentVariantId?: string;
+  status?: FitSimulationAdminInspectionSummary["status"];
+  hasArtifactLineage?: boolean;
+  limit?: number;
+}): Promise<FitSimulationAdminInspectionListResponse> => {
+  const rows = await listFitSimulationRecords(filters);
+  const items = rows.map((row) => buildFitSimulationAdminInspectionSummary(row));
+
+  return fitSimulationAdminInspectionListResponseSchema.parse({
+    schemaVersion: fitSimulationAdminInspectionListSchemaVersion,
+    items,
+    total: items.length,
+  });
+};
+
+export const getFitSimulationInspectionById = async (
+  fitSimulationId: string,
+): Promise<FitSimulationAdminInspectionResponse | null> => {
+  const row = await getFitSimulationRecordById(fitSimulationId);
+  if (!row) {
+    return null;
+  }
+
+  return fitSimulationAdminInspectionResponseSchema.parse({
+    schemaVersion: fitSimulationAdminInspectionSchemaVersion,
+    fitSimulation: buildFitSimulationPublicRecord(row),
+    artifactLineage: row.artifactLineage ?? null,
+  });
 };

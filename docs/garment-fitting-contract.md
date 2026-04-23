@@ -4,6 +4,14 @@
 
 This document defines the minimum runtime contract for garments that participate in the mannequin fitting flow.
 
+The production-grade authoring and certification contracts now also live in:
+
+- `docs/asset-quality-contract.md`
+- `docs/garment-production-contract.md`
+- `docs/material-contract.md`
+- `docs/fit-quality-contract.md`
+- `packages/asset-schema/src/index.ts`
+
 The source-of-truth implementation lives in:
 
 - `packages/domain-garment/src/index.ts`
@@ -14,6 +22,10 @@ This document is intentionally about the runtime product contract.
 - upstream MPFB authoring summaries now have their own versioned parse contract in `packages/contracts`
 - garment starter builds now also point at `authoring/garments/mpfb/specs/*.pattern-spec.json` sidecars for authoring-only pattern/material metadata
 - those authoring summaries are validated by `scripts/validate-garment-3d.mjs`
+- the committed certification evidence bundle emitted from that validator is `output/garment-certification/latest.json`
+- the current admin-only inspection seam for that bundle is:
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
 - they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` API payloads
 
 ## 1.1 Authoring Pattern Spec
@@ -59,6 +71,7 @@ The active validator rule is:
 - the sidecar must parse through the shared schema
 - the sidecar's starter-facing semantic parity must be enforced through `validateGarmentPatternSpecAgainstStarterCatalog` in `packages/domain-garment`
 - the full authoring bundle parity (`patternSpec + materialProfile + simProxy + collisionProxy + hqArtifact`) must be enforced through `validateGarmentAuthoringBundleAgainstStarterCatalog` in `packages/domain-garment`
+- the validator must also be able to aggregate the committed authoring summaries into the machine-readable garment certification bundle without changing the public runtime payload shape
 
 The current semantic parity scope is:
 
@@ -71,6 +84,13 @@ The current semantic parity scope is:
 - `anchorIds`
 
 This keeps the new pattern/material metadata layer explicit without reopening the runtime product contract.
+
+The active API boundary rule is:
+
+- the garment certification bundle may be inspected through the dedicated admin-only certification routes
+- that seam is read-only and starter-bundle-scoped
+- `apps/admin` may locally triage garments by `starter covered / bundle missing` using that same seam, but the filter must stay UI-local and must not widen `/v1/admin/garments*`
+- it must not be treated as persisted publish history or as proof that the broader published garment catalog is fully certified
 
 ## 2. Required Contract
 
@@ -94,6 +114,8 @@ Every runtime garment needs:
 - `metadata.fitProfile`
 
 The current runtime binding type is `GarmentRuntimeBinding`.
+
+Production-grade garments additionally require explicit approval-state and certification metadata before the product viewer should treat them as publishable.
 
 ## 3. Coordinate And Pose Rules
 

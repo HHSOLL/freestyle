@@ -8,16 +8,19 @@ It is separate from `docs/replatform-v2/**`.
 
 - `docs/replatform-v2/**` remains the historical rollout and widget/canary track.
 - This file tracks the current mannequin-first product hardening program.
+- the newer viewer-platform refactor and asset-factory evidence live under `docs/freestyle-viewer-platform/**`, including the current garment certification bundle at `output/garment-certification/latest.json`
 - When the two disagree, use this file together with `README.md`, `docs/architecture-overview.md`, `docs/repo-inventory.md`, and `docs/product-boundaries.md`.
 
 ## As Of
 
-- Date: `2026-04-22`
+- Date: `2026-04-24`
 - Current branch baseline: `main`
 - Working overall completion estimate: `100%`
 
 The completion estimate is a planning number, not a release gate. It now reflects that the repository-improvement, operational-closeout, and baseline follow-on roadmap tracked in this document are complete. Higher-fidelity cloth solving and richer pressure semantics remain future R&D, but are no longer open seams in this execution program.
 As of `2026-04-22`, release-grade Playwright visual baselines also exist for the current IA plus `Closet` low / balanced / high quality tiers, and the maintenance docs treat them as RC evidence. The last missing HQ-fit consumer seam is also closed: `Closet` can now request an HQ run, poll the persisted record, render `preview_png`, and expose the ordered artifact bundle directly.
+As of `2026-04-24`, the viewer-platform refactor has also closed `Phase 9` for the current repo-scoped baseline: `/app/closet` can now be explicitly forced onto `viewer-react` behind a dedicated release flag and kill switch without relying on the global host env alone, and CI now covers both the cutover path and the rollback path.
+As of `2026-04-24`, viewer-platform `Phase 10` is also closed for the current repo-scoped baseline: CI now runs `npm run check:phase10`, product viewer telemetry enters `POST /v1/telemetry/viewer`, and Phase 9 cutover-source tags are preserved in forwarded telemetry. Hardware-backed GPU automation and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements.
 
 ## Phase Map
 
@@ -565,6 +568,24 @@ Evidence:
 - `packages/shared/src/index.ts`
 - `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
 - `docs/api-contract.md`
+
+### `Phase 5 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. split the fit-simulation read contract from the stored fit-simulation record so lab reads can grow without widening persistence
+2. added a minimal derived `avatarPublication` snapshot to `GET /v1/lab/fit-simulations/:id`, sourced from the committed runtime avatar publication catalog
+3. kept the new field intentionally narrow: no evidence paths, no authoring provenance, and no worker payload changes
+4. documented the field as a read-time convenience snapshot rather than persisted historical lineage
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
 - `docs/worker-playbook.md`
 - `docs/physical-fit-system.md`
 - `docs/quality-gates.md`
@@ -1383,6 +1404,213 @@ Outcome:
 - env-backed lab evaluation and try-on create/status reads are now proven against the linked production backend credentials instead of remaining a skipped path
 - RC docs now make the active Vercel browser key / Railway service key boundary explicit
 - the remaining repo-improvement program is closed; follow-on work is ordinary maintenance rather than an open hardening phase
+
+### `Phase 8 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. unified the active HQ fit cache identity around a canonical `fitSimulationCacheKeyParts` contract instead of letting API and queue fallback paths drift
+2. widened the normalized `fit_simulate_hq_v1` payload to carry `avatarVariantId`, so the worker can preserve the same cache key the API create path derives
+3. added a baseline-safe `fitSimulationArtifactLineage` schema and persisted `artifact-lineage.json` sidecar for the current four-artifact HQ bundle
+4. stored that lineage snapshot on the internal fit-simulation record while keeping `GET /v1/lab/fit-simulations/:id` intentionally unchanged
+5. added `artifactLineageId` to `metrics_json` so typed HQ metrics can point back to the current lineage manifest without claiming solver-grade cloth output
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/job-contracts.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.test.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch1.md`
+
+Outcome:
+
+- the active HQ fit baseline now has a typed artifact-lineage seam in addition to the existing artifact bundle
+- the cache-key split between API create and queue fallback is closed for new jobs
+- the repo still does **not** claim solver-backed cloth output or public lineage exposure on the lab read route
+
+### `Phase 8 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a dedicated owner-scoped `GET /v1/lab/fit-simulations/:id/artifact-lineage` route instead of widening the existing fit-simulation detail response
+2. exposed the persisted `artifactLineage` snapshot through a separate `fitSimulationArtifactLineageGetResponseSchema` contract in `packages/contracts`
+3. kept `GET /v1/lab/fit-simulations/:id` intentionally unchanged, so product-adjacent consumers still read the same `fitSimulation` detail shape as before
+4. made the new inspection seam fail closed with `404 NOT_FOUND` when the simulation does not exist for the caller and `409 PRECONDITION_FAILED` when the simulation exists but no lineage snapshot is available yet
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `docs/api-contract.md`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch2.md`
+
+Outcome:
+
+- artifact lineage is now inspectable through a narrow owner-scoped lab seam without changing the existing detail payload
+- the repo still does **not** claim public solver-grade HQ output or a widened lab fit-simulation detail contract
+
+### `Phase 8 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. taught the current `useFitSimulation()` web hook to fetch `/v1/lab/fit-simulations/:id/artifact-lineage` as separate read-only state once a simulation reaches a terminal status
+2. kept `404` and `409 PRECONDITION_FAILED` on that route non-fatal for the web consumer so the panel does not overstate lineage availability while jobs are still converging
+3. updated the `Closet` HQ fit panel to expose the lineage `manifestUrl` plus baseline `drapeSource` and `storageBackend` metadata without merging lineage into the main `fitSimulation` detail object
+4. kept the product truth narrow: the panel still prefers `preview_png`, ordered artifact links, and typed fit-map summary as its primary output
+
+Evidence:
+
+- `apps/web/src/hooks/useFitSimulation.ts`
+- `apps/web/src/components/product/V18ClosetExperience.tsx`
+- `apps/web/src/components/product/closet-fit-simulation.tsx`
+- `apps/web/src/components/product/closet-fit-simulation-display.ts`
+- `apps/web/src/components/product/closet-fit-simulation.test.ts`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch3.md`
+
+Outcome:
+
+- the new artifact-lineage inspection route now has a first web consumer
+- web state still keeps artifact lineage separate from the main fit-simulation detail payload
+- the repo still does **not** claim stage swap-in, solver-grade cloth output, or a widened fit-simulation detail contract
+
+### `Phase 8 / Batch 4`
+
+Status: `completed`
+
+Completed work:
+
+1. added an admin-only `GET /v1/admin/fit-simulations/:id` inspection route for the persisted HQ fit simulation and lineage snapshot
+2. kept the route read-only and detail-by-id only, without adding a registry or mutation workflow
+3. reused the current persisted fit-simulation record plus lineage snapshot instead of inventing a second storage shape
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.test.ts`
+- `docs/freestyle-viewer-platform/phase8/batch4.md`
+
+Outcome:
+
+- HQ artifact lineage is now inspectable through both owner-scoped lab and admin-scoped read-only seams
+- the repo still does **not** claim artifact certification workflow, solver-grade cloth truth, or widened public detail contracts
+
+### `Phase 8 Closeout`
+
+Status: `completed`
+
+Completed work:
+
+1. closed the current repo-scoped HQ artifact identity / lineage / inspection baseline
+2. recorded the closeout and its non-goals explicitly
+
+Evidence:
+
+- `docs/freestyle-viewer-platform/phase8/closeout.md`
+
+Outcome:
+
+- `Phase 8` is now closed for the current viewer-platform refactor track
+- remaining HQ artifact tooling work moves to `Phase 8.5`
+
+### `Phase 8.5 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added a typed admin inspection envelope for `fitSimulation + artifactLineage`
+2. added a separate read-only HQ artifact inspection panel in `apps/admin`
+3. kept that inspection state isolated from garment draft editor state and starter certification state
+
+Evidence:
+
+- `apps/admin/src/components/FitSimulationInspectionPanel.tsx`
+- `apps/admin/src/lib/fitSimulationInspection.ts`
+- `apps/admin/src/lib/fitSimulationInspection.test.ts`
+- `apps/admin/src/components/AdminWorkspace.tsx`
+- `docs/freestyle-viewer-platform/phase8_5/batch1.md`
+
+Outcome:
+
+- `Phase 8.5` has started with a real admin tooling seam
+- the repo still does **not** claim approve/reject/certify workflow or broader HQ artifact registry coverage
+
+### `Phase 8.5 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a bounded admin HQ fit catalog route at `GET /v1/admin/fit-simulations`
+2. added repository/service list seams with filterable, newest-first read-only summaries
+3. kept store-missing behavior fail-soft as `200` empty list instead of widening this into a bundle/service outage
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.test.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.test.ts`
+- `docs/freestyle-viewer-platform/phase8_5/batch2.md`
+
+Outcome:
+
+- admin tooling no longer depends on out-of-band UUID lookup alone
+- the repo still does **not** claim mutation workflow or write-side garment linkage
+
+### `Phase 8.5 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. taught `apps/admin` to load current-garment HQ fit evidence from the new admin catalog seam
+2. added local status / lineage filters and one-click selection into the existing detail inspector
+3. kept HQ fit list state, detail state, and garment publication state separate
+
+Evidence:
+
+- `apps/admin/src/components/AdminWorkspace.tsx`
+- `apps/admin/src/lib/fitSimulationInspection.ts`
+- `apps/admin/src/lib/fitSimulationInspection.test.ts`
+- `docs/freestyle-viewer-platform/phase8_5/batch3.md`
+- `docs/freestyle-viewer-platform/phase8_5/closeout.md`
+
+Outcome:
+
+- `Phase 8.5` is now closed for the current repo-scoped baseline as read-only admin HQ fit inspection + triage tooling
+- the repo still does **not** claim approve/reject/certify mutations, persisted garment-to-fit linkage, or solver-grade cloth truth
 
 ## Phase 0 Closeout
 

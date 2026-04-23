@@ -115,6 +115,10 @@
   - `GET /v1/admin/garments`
   - `GET /v1/admin/garments/:id`
   - `PUT /v1/admin/garments/:id`
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
+  - `GET /v1/admin/fit-simulations`
+  - `GET /v1/admin/fit-simulations/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
   - `POST /v1/admin/garments/:id/publish`
@@ -124,9 +128,21 @@
   - `palette`
   - `publication`
   - garment measurement and size-chart metadata
+- current certification evidence seam for garment-authoring-backed starter pieces:
+  - `output/garment-certification/latest.json`
+- current admin-only inspection seam for that bundle:
+  - `GET /v1/admin/garment-certifications`
+  - `GET /v1/admin/garment-certifications/:id`
+- current admin-only HQ artifact inspection seam:
+  - `GET /v1/admin/fit-simulations`
+  - `GET /v1/admin/fit-simulations/:id`
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
+  - `garmentCertificationListResponseSchema`
+  - `garmentCertificationItemResponseSchema`
+  - `fitSimulationAdminInspectionListResponseSchema`
+  - `fitSimulationAdminInspectionResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
@@ -136,6 +152,28 @@
 - current read compatibility rule:
   - malformed persisted publication rows are filtered from list responses instead of zeroing the whole catalog
   - semantically invalid persisted publication rows are filtered from list responses and treated as missing on detail reads
+- certification boundary rule:
+  - `/v1/admin/garment-certifications*` is a read-only starter-bundle inspection seam derived from `output/garment-certification/latest.json`
+  - it is not persisted publication history and must not be treated as full catalog certification truth
+
+### Admin avatar publication boundary
+- implemented read-only endpoint:
+  - `GET /v1/admin/avatars`
+  - `GET /v1/admin/avatars/:id`
+- purpose:
+  - expose the committed MPFB base-avatar publication catalog for admin inspection
+  - keep runtime manifest metadata, publication metadata, and evidence paths on one typed read boundary
+- current source of truth:
+  - `packages/runtime-3d/src/avatar-manifest.ts`
+  - `packages/runtime-3d/src/avatar-publication-catalog.ts`
+  - `output/avatar-certification/latest.json`
+- response envelopes are defined in `@freestyle/contracts`:
+  - `publishedRuntimeAvatarListResponseSchema`
+  - `publishedRuntimeAvatarItemResponseSchema`
+- important boundary rule:
+  - this route returns a dedicated read-only avatar catalog, not the full canonical `AvatarManifest`
+  - runtime avatar entries use `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
+  - callers must not treat this payload as proof that the entire avatar asset-factory tree exists
 
 ### Job status compatibility note
 - `/v1/legacy/jobs/:job_id` remains a compatibility status-read surface for queued lab jobs.
@@ -147,6 +185,7 @@
 - implemented lab endpoints:
   - `POST /v1/lab/jobs/fit-simulations`
   - `GET /v1/lab/fit-simulations/:id`
+  - `GET /v1/lab/fit-simulations/:id/artifact-lineage`
 - auth:
   - explicit bearer auth required
   - non-production only: `DEV_BYPASS_USER_ID` may satisfy auth for smoke/dev workflows
@@ -155,18 +194,24 @@
   - the create route requires an existing persisted `BodyProfile`
   - the create route requires a published runtime garment id
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
+  - `avatarVariantId` and `avatarManifestUrl` now come from the published runtime avatar catalog in `packages/runtime-3d/src/avatar-publication-catalog.ts`, not an API-local avatar path map
   - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
   - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
+  - the detail route now also returns a minimal `avatarPublication` snapshot derived from the published runtime avatar catalog at read time
+  - that lab-facing snapshot is intentionally narrower than the admin avatar catalog: it exposes publication status/version metadata only and never returns evidence paths or authoring provenance
+  - the lab-facing snapshot is a current read-time convenience view, not persisted historical avatar-publication lineage
   - the active worker now persists `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
   - the current `draped_glb` is an authored-scene merge baseline for artifact persistence/cache and preview swap-in plumbing, not solver-deformed cloth truth
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
   - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
   - the detail route returns artifacts in presentation priority order: `draped_glb`, `preview_png`, `fit_map_json`, `metrics_json`
+  - the artifact-lineage route is an owner-scoped inspection seam for the persisted `artifact-lineage.json` snapshot; it does not widen the existing `fitSimulation` detail payload
   - the current first-party web consumer is `apps/web/src/hooks/useFitSimulation.ts`, used by the `Closet` HQ fit panel
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
+  - `fitSimulationArtifactLineageGetResponseSchema`
 
 #### `POST /v1/lab/jobs/fit-simulations`
 - request body must satisfy:
@@ -209,6 +254,15 @@
     "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",
     "materialPreset": "knit_medium",
     "qualityTier": "fast",
+    "avatarPublication": {
+      "avatarId": "female-base",
+      "label": "MPFB Female Base",
+      "approvalState": "PUBLISHED",
+      "assetVersion": "female-base@2026-04-23",
+      "runtimeManifestVersion": "runtime-avatar-render-manifest.v1",
+      "bodySignatureModelVersion": "body-signature.v1",
+      "approvedAt": "2026-04-23T00:00:00.000Z"
+    },
     "instantFit": {
       "schemaVersion": "garment-instant-fit-report.v1",
       "overallFit": "good",
@@ -264,6 +318,44 @@
 }
 ```
 
+#### `GET /v1/lab/fit-simulations/:id/artifact-lineage`
+- response body satisfies `fitSimulationArtifactLineageGetResponseSchema`
+- this route is owner-scoped and read-only
+- `404 NOT_FOUND` means the fit simulation does not exist for the caller
+- `409 PRECONDITION_FAILED` means the fit simulation exists but no persisted lineage snapshot is available yet
+- example:
+```json
+{
+  "artifactLineage": {
+    "schemaVersion": "fit-simulation-artifact-lineage.v1",
+    "artifactLineageId": "fit-lineage:route-fit-simulation",
+    "generatedAt": "2026-04-20T10:03:00.000Z",
+    "cacheKey": "fsk_7q0mp3r8d5",
+    "cacheKeyParts": {
+      "avatarVariantId": "female-base",
+      "bodyProfileRevision": "br_1z7w8c5m2s",
+      "garmentVariantId": "published-top-phase-d-smoke",
+      "garmentRevision": "gr_5q94jz62w1",
+      "materialPreset": "knit_medium",
+      "qualityTier": "fast"
+    },
+    "avatarManifestUrl": "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",
+    "storageBackend": "remote-storage",
+    "drapeSource": "authored-scene-merge",
+    "artifactKinds": [
+      "draped_glb",
+      "preview_png",
+      "fit_map_json",
+      "metrics_json"
+    ],
+    "manifestKey": "fit-simulations/00000000-0000-4000-8000-000000000025/artifact-lineage.json",
+    "manifestUrl": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/artifact-lineage.json",
+    "warnings": []
+  }
+}
+```
+
 #### `GET /v1/closet/runtime-garments`
 - auth: same as other `/v1/closet/*` routes
 - product consumer rule:
@@ -315,6 +407,65 @@
 }
 ```
 
+#### `POST /v1/telemetry/viewer`
+- auth: same product namespace posture as other browser-facing `/v1` routes
+- namespace: product
+- response header: `x-freestyle-surface: product`
+- request body must satisfy `viewerTelemetryEnvelopeSchema` from `@freestyle/contracts`
+- response body must satisfy `viewerTelemetryResponseSchema` from `@freestyle/contracts`
+- purpose:
+  - ingest product viewer telemetry from the current `Closet` route
+  - preserve Phase 9 source tags for release-flag and kill-switch analysis
+  - return advisory recommended actions for operations review
+- important boundary rule:
+  - this endpoint is non-mutating
+  - it does not directly pause garment serving, roll back solver versions, or change material policy
+  - automatic serving control requires a later control-plane integration
+- current advisory actions:
+  - `pause-garment-serving`
+  - `reopen-fit-certification`
+  - `lower-device-quality-policy`
+  - `review-hq-cache-policy`
+  - `review-material-delivery`
+- request example:
+```json
+{
+  "events": [
+    {
+      "event_id": "viewer-event-123",
+      "metric_name": "viewer.host.garment-swap.preview-latency",
+      "value": 86,
+      "unit": "ms",
+      "occurred_at": "2026-04-24T08:00:00.000Z",
+      "route": "/app/closet",
+      "session_id": "viewer-session-123",
+      "avatar_id": "female-base",
+      "garment_id": "published-top-phase-d-smoke",
+      "garment_ids": ["published-top-phase-d-smoke"],
+      "device_tier": "B",
+      "quality_tier": "balanced",
+      "viewer_host": "viewer-react",
+      "tags": {
+        "phase9Enabled": "true",
+        "phase9KillSwitch": "false",
+        "phase9Source": "phase9-release-flag",
+        "viewerHost": "viewer-react"
+      }
+    }
+  ]
+}
+```
+- response example:
+```json
+{
+  "status": "accepted",
+  "received_count": 1,
+  "accepted_count": 1,
+  "rejected_count": 0,
+  "recommended_actions": []
+}
+```
+
 #### `GET /v1/admin/garments`
 - auth:
   - bearer-token backed admin access only
@@ -323,10 +474,47 @@
 - response body satisfies `publishedRuntimeGarmentListResponseSchema`
 - malformed or semantically invalid persisted publication rows are filtered before the response is emitted
 
+#### `GET /v1/admin/avatars`
+- auth:
+  - bearer-token backed admin access only
+  - anonymous `x-anonymous-user-id` fallback is rejected
+  - local non-production `DEV_BYPASS_USER_ID` can still reach the route only when it is also allowlisted through `ADMIN_USER_IDS` (or when the allowlist is unset)
+- response body satisfies `publishedRuntimeAvatarListResponseSchema`
+- current filters:
+  - `approval_state`
+  - `source_system`
+- current implementation detail:
+  - items are derived from the committed runtime avatar manifest and the read-only publication catalog helper, not from a writable admin table
+
+#### `GET /v1/admin/avatars/:id`
+- auth: same admin-only rule as `GET /v1/admin/avatars`
+- response body satisfies `publishedRuntimeAvatarItemResponseSchema`
+- returns `404 NOT_FOUND` when `:id` is not present in the committed publication catalog
+
 #### `GET /v1/admin/garments/:id`
 - auth: same admin-only rule as `GET /v1/admin/garments`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`
 - if the stored row for `:id` is malformed or fails semantic garment validation, the route returns `404 NOT_FOUND`
+
+#### `GET /v1/admin/fit-simulations`
+- auth: same admin-only rule as `GET /v1/admin/garments`
+- response body satisfies `fitSimulationAdminInspectionListResponseSchema`
+- supports bounded read-only filters:
+  - `garment_variant_id`
+  - `status`
+  - `has_artifact_lineage`
+  - `limit`
+- returns `200` with an empty list when no current persisted HQ fit records match
+- this route is an operator/admin seam only; it must not be treated as product-path proof of solver-grade HQ cloth output
+
+#### `GET /v1/admin/fit-simulations/:id`
+- auth: same admin-only rule as `GET /v1/admin/garments`
+- response body satisfies `fitSimulationAdminInspectionResponseSchema`
+- returns one read-only inspection envelope:
+  - `fitSimulation`
+  - `artifactLineage`
+- `artifactLineage` may be `null` when the persisted record exists but the baseline lineage snapshot is missing
+- this route is an operator/admin seam only; it must not be treated as product-path proof of solver-grade HQ cloth output
 
 #### `POST /v1/admin/garments`
 - auth: same admin-only rule as `GET /v1/admin/garments`

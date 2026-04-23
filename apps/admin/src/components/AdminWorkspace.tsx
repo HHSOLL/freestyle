@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,9 +11,22 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
+import type {
+  FitSimulationAdminInspectionListResponse,
+  FitSimulationAdminInspectionResponse,
+  FitSimulationAdminInspectionSummary,
+  GarmentCertificationItemResponse,
+  GarmentCertificationListResponse,
+  GarmentCertificationReportItem,
+} from "@freestyle/contracts";
+import {
+  fitSimulationAdminInspectionListResponseSchema,
+  fitSimulationAdminInspectionResponseSchema,
+} from "@freestyle/contracts";
 import { publishedGarmentAssetSchema } from "@freestyle/shared";
 import type {
   AssetCategory,
+  AssetApprovalState,
   GarmentCollisionZone,
   GarmentMeasurementMode,
   GarmentPublicationRecord,
@@ -22,9 +35,27 @@ import type {
 } from "@freestyle/shared-types";
 import { wardrobeTokens } from "@freestyle/design-tokens";
 import { DenseCatalogCard, Eyebrow, PillButton, SurfacePanel } from "@freestyle/ui";
+import { FitSimulationInspectionPanel } from "@/components/FitSimulationInspectionPanel";
+import { GarmentCertificationPanel } from "@/components/GarmentCertificationPanel";
 import { adminApiFetchJson, getApiErrorMessage } from "@/lib/adminApi";
 import { buildAdminFitReview, fitStateTone } from "@/lib/fitReview";
 import {
+  findFitSimulationInspectionSummary,
+  summarizeFitSimulationInspection,
+  summarizeFitSimulationInspectionCatalog,
+  type FitSimulationInspectionCoverageFilter,
+} from "@/lib/fitSimulationInspection";
+import {
+  buildGarmentCertificationCoverageSet,
+  filterByGarmentCertificationCoverage,
+  findGarmentCertification,
+  summarizeGarmentCertification,
+  summarizeGarmentCertificationCoverage,
+  type GarmentCertificationCoverageFilter,
+} from "@/lib/garmentCertification";
+import {
+  APPROVAL_STATE_FILTERS,
+  APPROVAL_STATE_OPTIONS,
   buildBlankPublishedGarment,
   CATEGORY_FILTERS,
   COLLISION_ZONE_OPTIONS,
@@ -66,6 +97,35 @@ const selectedSizeChart = (item: PublishedGarmentAsset | null) =>
   item?.metadata?.sizeChart?.find((entry) => entry.label === item.metadata?.selectedSizeLabel) ?? null;
 
 const cloneDraft = (item: PublishedGarmentAsset) => JSON.parse(JSON.stringify(item)) as PublishedGarmentAsset;
+
+const CERTIFICATION_COVERAGE_FILTERS: Array<{
+  id: GarmentCertificationCoverageFilter;
+  label: string;
+}> = [
+  { id: "all", label: "All coverage" },
+  { id: "covered", label: "Starter covered" },
+  { id: "missing", label: "Bundle missing" },
+];
+
+const FIT_SIMULATION_STATUS_FILTERS: Array<{
+  id: FitSimulationAdminInspectionSummary["status"] | "all";
+  label: string;
+}> = [
+  { id: "all", label: "All status" },
+  { id: "queued", label: "Queued" },
+  { id: "processing", label: "Processing" },
+  { id: "succeeded", label: "Succeeded" },
+  { id: "failed", label: "Failed" },
+];
+
+const FIT_SIMULATION_COVERAGE_FILTERS: Array<{
+  id: FitSimulationInspectionCoverageFilter;
+  label: string;
+}> = [
+  { id: "all", label: "All HQ evidence" },
+  { id: "with-lineage", label: "Has lineage" },
+  { id: "missing-lineage", label: "Missing lineage" },
+];
 
 const parseEditorState = (editorValue: string): { item: PublishedGarmentAsset | null; error: string | null } => {
   if (!editorValue.trim()) {
@@ -251,6 +311,30 @@ function NumberInputField(props: {
   );
 }
 
+function TextAreaField(props: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: wardrobeTokens.color.textFaint }}>
+        {props.label}
+      </span>
+      <textarea
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+        placeholder={props.placeholder}
+        rows={props.rows ?? 4}
+        className="w-full rounded-[18px] border bg-white/82 px-4 py-3 text-[13px] outline-none"
+        style={{ borderColor: wardrobeTokens.color.dividerStrong, color: wardrobeTokens.color.text }}
+      />
+    </label>
+  );
+}
+
 function SelectInputField<T extends string>(props: {
   label: string;
   value: T;
@@ -283,16 +367,62 @@ export function AdminWorkspace() {
   const [items, setItems] = useState<PublishedGarmentAsset[]>([]);
   const [category, setCategory] = useState<AssetCategory | "all">("all");
   const [sourceSystem, setSourceSystem] = useState<GarmentPublicationRecord["sourceSystem"] | "all">("all");
+  const [approvalState, setApprovalState] = useState<AssetApprovalState | "all">("all");
+  const [certificationCoverageFilter, setCertificationCoverageFilter] =
+    useState<GarmentCertificationCoverageFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorValue, setEditorValue] = useState("");
+  const [certificationItems, setCertificationItems] = useState<GarmentCertificationReportItem[]>([]);
+  const [certificationGeneratedAt, setCertificationGeneratedAt] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [certificationLoadError, setCertificationLoadError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
+  const [selectedCertification, setSelectedCertification] = useState<GarmentCertificationReportItem | null>(null);
+  const [selectedCertificationGeneratedAt, setSelectedCertificationGeneratedAt] = useState<string | null>(null);
+  const [selectedCertificationError, setSelectedCertificationError] = useState<string | null>(null);
+  const [fitSimulationInspectionItems, setFitSimulationInspectionItems] = useState<
+    FitSimulationAdminInspectionSummary[]
+  >([]);
+  const [fitSimulationInspectionId, setFitSimulationInspectionId] = useState("");
+  const [fitSimulationInspection, setFitSimulationInspection] =
+    useState<FitSimulationAdminInspectionResponse | null>(null);
+  const [fitSimulationInspectionStatusFilter, setFitSimulationInspectionStatusFilter] =
+    useState<FitSimulationAdminInspectionSummary["status"] | "all">("all");
+  const [fitSimulationInspectionCoverageFilter, setFitSimulationInspectionCoverageFilter] =
+    useState<FitSimulationInspectionCoverageFilter>("all");
+  const [fitSimulationInspectionListError, setFitSimulationInspectionListError] = useState<string | null>(null);
+  const [fitSimulationInspectionError, setFitSimulationInspectionError] = useState<string | null>(null);
   const [activeSizeLabel, setActiveSizeLabel] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [isCertificationFetching, setIsCertificationFetching] = useState(false);
+  const [isCertificationDetailFetching, setIsCertificationDetailFetching] = useState(false);
+  const [isFitSimulationInspectionListFetching, setIsFitSimulationInspectionListFetching] = useState(false);
+  const [isFitSimulationInspectionFetching, setIsFitSimulationInspectionFetching] = useState(false);
   const [isSaving, startSaving] = useTransition();
+  const activeFitSimulationInspectionCatalogKeyRef = useRef<string | null>(null);
+  const activeFitSimulationInspectionIdRef = useRef<string | null>(null);
 
   const parsedEditor = useMemo(() => parseEditorState(editorValue), [editorValue]);
+  const certificationCoverageIds = useMemo(
+    () => buildGarmentCertificationCoverageSet(certificationItems),
+    [certificationItems],
+  );
+  const visibleItems = useMemo(
+    () =>
+      certificationLoadError
+        ? items
+        : filterByGarmentCertificationCoverage(
+            items,
+            certificationCoverageIds,
+            certificationCoverageFilter,
+          ),
+    [certificationCoverageFilter, certificationCoverageIds, certificationLoadError, items],
+  );
+  const certificationCoverageSummary = useMemo(
+    () => summarizeGarmentCertificationCoverage(visibleItems, certificationCoverageIds),
+    [certificationCoverageIds, visibleItems],
+  );
 
   const selectedCatalogItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -302,6 +432,28 @@ export function AdminWorkspace() {
   const workingItem = useMemo(
     () => parsedEditor.item ?? selectedCatalogItem,
     [parsedEditor.item, selectedCatalogItem],
+  );
+  const workingGarmentId = workingItem?.id ?? null;
+  const certificationCatalogItem = useMemo(
+    () => findGarmentCertification(certificationItems, workingGarmentId),
+    [certificationItems, workingGarmentId],
+  );
+  const effectiveCertification = selectedCertification ?? certificationCatalogItem;
+  const certificationSummary = useMemo(
+    () => summarizeGarmentCertification(effectiveCertification),
+    [effectiveCertification],
+  );
+  const fitSimulationInspectionSummary = useMemo(
+    () => summarizeFitSimulationInspection(fitSimulationInspection),
+    [fitSimulationInspection],
+  );
+  const fitSimulationInspectionCatalogSummary = useMemo(
+    () => summarizeFitSimulationInspectionCatalog(fitSimulationInspectionItems),
+    [fitSimulationInspectionItems],
+  );
+  const selectedFitSimulationInspectionSummary = useMemo(
+    () => findFitSimulationInspectionSummary(fitSimulationInspectionItems, fitSimulationInspectionId.trim()),
+    [fitSimulationInspectionId, fitSimulationInspectionItems],
   );
 
   const activeSize = useMemo(() => {
@@ -347,6 +499,7 @@ export function AdminWorkspace() {
     const query = new URLSearchParams();
     if (category !== "all") query.set("category", category);
     if (sourceSystem !== "all") query.set("source_system", sourceSystem);
+    if (approvalState !== "all") query.set("approval_state", approvalState);
 
     const { response, data } = await adminApiFetchJson<{ items?: PublishedGarmentAsset[] }>(
       `/v1/admin/garments${query.size ? `?${query.toString()}` : ""}`,
@@ -366,11 +519,181 @@ export function AdminWorkspace() {
       return current && nextItems.some((item) => item.id === current) ? current : nextItems[0]?.id ?? null;
     });
     setIsFetching(false);
-  }, [category, sourceSystem, user]);
+  }, [approvalState, category, sourceSystem, user]);
+
+  const loadCertificationCatalog = useCallback(async () => {
+    if (!user) return;
+
+    setIsCertificationFetching(true);
+    setCertificationLoadError(null);
+
+    const query = new URLSearchParams();
+    if (category !== "all") query.set("category", category);
+
+    const { response, data } = await adminApiFetchJson<GarmentCertificationListResponse>(
+      `/v1/admin/garment-certifications${query.size ? `?${query.toString()}` : ""}`,
+    );
+
+    if (!response.ok || !data) {
+      setCertificationItems([]);
+      setCertificationGeneratedAt(null);
+      setCertificationLoadError(getApiErrorMessage(data, "Starter certification bundle을 불러오지 못했다."));
+      setIsCertificationFetching(false);
+      return;
+    }
+
+    setCertificationItems(data.items);
+    setCertificationGeneratedAt(data.generatedAt);
+    setIsCertificationFetching(false);
+  }, [category, user]);
+
+  const loadFitSimulationInspectionById = useCallback(
+    async (fitSimulationId: string) => {
+      if (!user) return;
+
+      const trimmedId = fitSimulationId.trim();
+      if (!trimmedId) {
+        activeFitSimulationInspectionIdRef.current = null;
+        setFitSimulationInspection(null);
+        setFitSimulationInspectionError("HQ fit simulation id를 입력해라.");
+        return;
+      }
+
+      activeFitSimulationInspectionIdRef.current = trimmedId;
+      setIsFitSimulationInspectionFetching(true);
+      setFitSimulationInspectionError(null);
+      setFitSimulationInspection(null);
+
+      const { response, data } = await adminApiFetchJson<FitSimulationAdminInspectionResponse>(
+        `/v1/admin/fit-simulations/${trimmedId}`,
+      );
+
+      if (activeFitSimulationInspectionIdRef.current !== trimmedId) {
+        return;
+      }
+
+      if (!response.ok || !data) {
+        setFitSimulationInspection(null);
+        setFitSimulationInspectionError(
+          getApiErrorMessage(data, "HQ artifact inspection을 불러오지 못했다."),
+        );
+        setIsFitSimulationInspectionFetching(false);
+        return;
+      }
+
+      const parsed = fitSimulationAdminInspectionResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        setFitSimulationInspection(null);
+        setFitSimulationInspectionError("HQ artifact inspection 응답 형식이 올바르지 않다.");
+        setIsFitSimulationInspectionFetching(false);
+        return;
+      }
+
+      setFitSimulationInspection(parsed.data);
+      setIsFitSimulationInspectionFetching(false);
+    },
+    [user],
+  );
+
+  const loadFitSimulationInspection = useCallback(async () => {
+    const fitSimulationId = fitSimulationInspectionId.trim();
+    if (!fitSimulationId) {
+      setFitSimulationInspectionError("HQ fit simulation id를 입력해라.");
+      return;
+    }
+
+    await loadFitSimulationInspectionById(fitSimulationId);
+  }, [fitSimulationInspectionId, loadFitSimulationInspectionById]);
+
+  const loadFitSimulationInspectionCatalog = useCallback(async () => {
+    if (!user) return;
+
+    if (!workingGarmentId) {
+      activeFitSimulationInspectionCatalogKeyRef.current = null;
+      setFitSimulationInspectionItems([]);
+      setFitSimulationInspectionListError(null);
+      setIsFitSimulationInspectionListFetching(false);
+      return;
+    }
+
+    setIsFitSimulationInspectionListFetching(true);
+    setFitSimulationInspectionListError(null);
+
+    const query = new URLSearchParams({
+      garment_variant_id: workingGarmentId,
+      limit: "12",
+    });
+    if (fitSimulationInspectionStatusFilter !== "all") {
+      query.set("status", fitSimulationInspectionStatusFilter);
+    }
+    if (fitSimulationInspectionCoverageFilter !== "all") {
+      query.set(
+        "has_artifact_lineage",
+        fitSimulationInspectionCoverageFilter === "with-lineage" ? "true" : "false",
+      );
+    }
+    const requestKey = query.toString();
+    activeFitSimulationInspectionCatalogKeyRef.current = requestKey;
+
+    const { response, data } = await adminApiFetchJson<FitSimulationAdminInspectionListResponse>(
+      `/v1/admin/fit-simulations?${requestKey}`,
+    );
+
+    if (activeFitSimulationInspectionCatalogKeyRef.current !== requestKey) {
+      return;
+    }
+
+    if (!response.ok || !data) {
+      setFitSimulationInspectionItems([]);
+      setFitSimulationInspectionListError(
+        getApiErrorMessage(data, "HQ fit simulation catalog를 불러오지 못했다."),
+      );
+      setIsFitSimulationInspectionListFetching(false);
+      return;
+    }
+
+    const parsed = fitSimulationAdminInspectionListResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      setFitSimulationInspectionItems([]);
+      setFitSimulationInspectionListError("HQ fit simulation catalog 응답 형식이 올바르지 않다.");
+      setIsFitSimulationInspectionListFetching(false);
+      return;
+    }
+
+    setFitSimulationInspectionItems(parsed.data.items);
+    setIsFitSimulationInspectionListFetching(false);
+  }, [
+    fitSimulationInspectionCoverageFilter,
+    fitSimulationInspectionStatusFilter,
+    user,
+    workingGarmentId,
+  ]);
 
   useEffect(() => {
     void loadItems();
-  }, [loadItems]);
+    void loadCertificationCatalog();
+  }, [loadCertificationCatalog, loadItems]);
+
+  useEffect(() => {
+    void loadFitSimulationInspectionCatalog();
+  }, [loadFitSimulationInspectionCatalog]);
+
+  useEffect(() => {
+    if (selectedId === DRAFT_SELECTION_ID) {
+      return;
+    }
+
+    if (visibleItems.length === 0) {
+      if (selectedId !== null) {
+        setSelectedId(null);
+      }
+      return;
+    }
+
+    if (!selectedId || !visibleItems.some((item) => item.id === selectedId)) {
+      setSelectedId(visibleItems[0]?.id ?? null);
+    }
+  }, [selectedId, visibleItems]);
 
   useEffect(() => {
     if (!selectedCatalogItem) {
@@ -393,6 +716,97 @@ export function AdminWorkspace() {
         : workingItem.metadata?.selectedSizeLabel ?? workingItem.metadata?.sizeChart?.[0]?.label ?? null,
     );
   }, [workingItem]);
+
+  useEffect(() => {
+    if (
+      !user ||
+      selectedId === DRAFT_SELECTION_ID ||
+      !workingGarmentId ||
+      !certificationCatalogItem
+    ) {
+      setSelectedCertification(null);
+      setSelectedCertificationGeneratedAt(null);
+      setSelectedCertificationError(null);
+      setIsCertificationDetailFetching(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setSelectedCertification(null);
+      setSelectedCertificationGeneratedAt(null);
+      setIsCertificationDetailFetching(true);
+      setSelectedCertificationError(null);
+
+      const { response, data } = await adminApiFetchJson<GarmentCertificationItemResponse>(
+        `/v1/admin/garment-certifications/${certificationCatalogItem.id}`,
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      if (response.status === 404) {
+        setSelectedCertification(null);
+        setSelectedCertificationGeneratedAt(null);
+        setIsCertificationDetailFetching(false);
+        return;
+      }
+
+      if (!response.ok || !data) {
+        setSelectedCertification(null);
+        setSelectedCertificationGeneratedAt(null);
+        setSelectedCertificationError(
+          getApiErrorMessage(data, "Starter certification detail을 불러오지 못했다."),
+        );
+        setIsCertificationDetailFetching(false);
+        return;
+      }
+
+      setSelectedCertification(data.item);
+      setSelectedCertificationGeneratedAt(data.generatedAt);
+      setIsCertificationDetailFetching(false);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [certificationCatalogItem, selectedId, user, workingGarmentId]);
+
+  useEffect(() => {
+    activeFitSimulationInspectionIdRef.current = null;
+    setFitSimulationInspectionId("");
+    setFitSimulationInspection(null);
+    setFitSimulationInspectionError(null);
+    setIsFitSimulationInspectionFetching(false);
+  }, [workingGarmentId]);
+
+  const handleFitSimulationInspectionIdChange = useCallback((value: string) => {
+    activeFitSimulationInspectionIdRef.current = null;
+    setFitSimulationInspectionId(value);
+    setFitSimulationInspection(null);
+    setFitSimulationInspectionError(null);
+    setIsFitSimulationInspectionFetching(false);
+  }, []);
+
+  const handleClearFitSimulationInspection = useCallback(() => {
+    activeFitSimulationInspectionIdRef.current = null;
+    setFitSimulationInspectionId("");
+    setFitSimulationInspection(null);
+    setFitSimulationInspectionError(null);
+    setIsFitSimulationInspectionFetching(false);
+  }, []);
+
+  const handleSelectFitSimulationInspection = useCallback(
+    async (item: FitSimulationAdminInspectionSummary) => {
+      setFitSimulationInspectionId(item.id);
+      await loadFitSimulationInspectionById(item.id);
+    },
+    [loadFitSimulationInspectionById],
+  );
 
   const handleCreateDraft = useCallback(() => {
     const nextCategory = category === "all" ? "tops" : category;
@@ -593,7 +1007,14 @@ export function AdminWorkspace() {
                 New garment
               </span>
             </PillButton>
-            <PillButton onClick={() => void loadItems()}>Refresh</PillButton>
+            <PillButton
+              onClick={() => {
+                void loadItems();
+                void loadCertificationCatalog();
+              }}
+            >
+              Refresh
+            </PillButton>
             <PillButton onClick={() => void signOut()}>
               <span className="inline-flex items-center gap-2">
                 <LogOut className="h-4 w-4" />
@@ -631,16 +1052,51 @@ export function AdminWorkspace() {
                   </PillButton>
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {APPROVAL_STATE_FILTERS.map((filter) => (
+                  <PillButton
+                    key={filter.id}
+                    active={approvalState === filter.id}
+                    onClick={() => setApprovalState(filter.id)}
+                    className="px-3 py-1.5 text-[11px]"
+                  >
+                    {filter.label}
+                  </PillButton>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {CERTIFICATION_COVERAGE_FILTERS.map((filter) => (
+                  <PillButton
+                    key={filter.id}
+                    active={certificationCoverageFilter === filter.id}
+                    onClick={() => setCertificationCoverageFilter(filter.id)}
+                    className="px-3 py-1.5 text-[11px]"
+                  >
+                    {filter.label}
+                  </PillButton>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
-              <span>{items.length} garments</span>
-              {isFetching ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Loading
-                </span>
-              ) : null}
+              <span>
+                {visibleItems.length} visible · {certificationCoverageSummary.coveredCount} starter-covered ·{" "}
+                {certificationCoverageSummary.uncoveredCount} not covered
+              </span>
+              <div className="flex items-center gap-3">
+                {isCertificationFetching ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Cert bundle
+                  </span>
+                ) : null}
+                {isFetching ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Loading
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <div className="fs-scroll-slim flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
@@ -654,29 +1110,37 @@ export function AdminWorkspace() {
                   footer={<span>Create-ready draft</span>}
                 />
               ) : null}
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <DenseCatalogCard
                   key={item.id}
                   title={item.name}
-                  subtitle={`${item.category} · ${item.publication.sourceSystem}`}
+                  subtitle={`${item.category} · ${item.publication.sourceSystem} · ${item.publication.approvalState ?? "PUBLISHED"}`}
                   thumbnail={item.imageSrc}
                   active={selectedId === item.id}
                   onClick={() => setSelectedId(item.id)}
                   footer={
                     <div className="flex flex-wrap gap-2">
+                      <span>{item.publication.approvalState ?? "PUBLISHED"}</span>
+                      <span>·</span>
                       <span>{item.metadata?.selectedSizeLabel ?? "No size"}</span>
                       <span>·</span>
                       <span>{formatDate(item.publication.publishedAt)}</span>
+                      {certificationCoverageIds.has(item.id) ? (
+                        <>
+                          <span>·</span>
+                          <span>starter cert</span>
+                        </>
+                      ) : null}
                     </div>
                   }
                 />
               ))}
-              {!isFetching && items.length === 0 && selectedId !== DRAFT_SELECTION_ID ? (
+              {!isFetching && visibleItems.length === 0 && selectedId !== DRAFT_SELECTION_ID ? (
                 <div
                   className="rounded-[24px] border px-4 py-5 text-[13px]"
                   style={{ borderColor: wardrobeTokens.color.dividerStrong, color: wardrobeTokens.color.textMuted }}
                 >
-                  현재 필터에 해당하는 published runtime garment가 없다.
+                  현재 필터와 starter certification coverage 조건에 해당하는 published runtime garment가 없다.
                 </div>
               ) : null}
             </div>
@@ -694,6 +1158,8 @@ export function AdminWorkspace() {
                     <span>{workingItem?.id ?? "No selection"}</span>
                     {workingItem ? <span>·</span> : null}
                     <span>{workingItem?.publication.sourceSystem ?? "No source"}</span>
+                    {workingItem ? <span>·</span> : null}
+                    <span>{workingItem?.publication.approvalState ?? "PUBLISHED"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -712,7 +1178,12 @@ export function AdminWorkspace() {
                   { label: "Category", value: workingItem?.category ?? "-" },
                   { label: "Selected Size", value: workingItem?.metadata?.selectedSizeLabel ?? "-" },
                   { label: "Asset Version", value: workingItem?.publication.assetVersion ?? "-" },
+                  { label: "Approval State", value: workingItem?.publication.approvalState ?? "PUBLISHED" },
                   { label: "Published", value: formatDate(workingItem?.publication.publishedAt) },
+                  {
+                    label: "Certification",
+                    value: effectiveCertification ? "Starter bundle" : "Not covered",
+                  },
                 ].map((card) => (
                   <div
                     key={card.label}
@@ -829,7 +1300,7 @@ export function AdminWorkspace() {
                   <SectionFrame
                     eyebrow="Step 2"
                     title="Publication Metadata"
-                    description="Railway API로 저장되는 published contract 메타데이터다. asset version과 provenance는 partner 협업 시 추적 기준이 된다."
+                    description="Railway API로 저장되는 published contract 메타데이터다. approval state가 `PUBLISHED`인 garment만 closet product route에 기본 노출된다."
                   >
                     <div className="grid gap-4 xl:grid-cols-2">
                       <SelectInputField
@@ -846,6 +1317,24 @@ export function AdminWorkspace() {
                           }))
                         }
                       />
+                      <SelectInputField
+                        label="Approval State"
+                        value={(workingItem.publication.approvalState ?? "PUBLISHED") as AssetApprovalState}
+                        options={APPROVAL_STATE_OPTIONS}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvalState: value,
+                              approvedAt:
+                                value === "PUBLISHED"
+                                  ? current.publication.approvedAt ?? current.publication.publishedAt
+                                  : current.publication.approvedAt,
+                            },
+                          }))
+                        }
+                      />
                       <TextInputField
                         label="Asset Version"
                         value={workingItem.publication.assetVersion}
@@ -855,6 +1344,45 @@ export function AdminWorkspace() {
                             publication: {
                               ...current.publication,
                               assetVersion: value,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Approved At"
+                        value={workingItem.publication.approvedAt ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvedAt: value || undefined,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Approved By"
+                        value={workingItem.publication.approvedBy ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              approvedBy: value || undefined,
+                            },
+                          }))
+                        }
+                      />
+                      <TextInputField
+                        label="Viewer Manifest Version"
+                        value={workingItem.publication.viewerManifestVersion ?? ""}
+                        onChange={(value) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            publication: {
+                              ...current.publication,
+                              viewerManifestVersion: value || undefined,
                             },
                           }))
                         }
@@ -886,6 +1414,24 @@ export function AdminWorkspace() {
                         }
                       />
                     </div>
+                    <TextAreaField
+                      label="Certification Notes"
+                      rows={5}
+                      value={(workingItem.publication.certificationNotes ?? []).join("\n")}
+                      placeholder="One note per line"
+                      onChange={(value) =>
+                        updateDraft((current) => ({
+                          ...current,
+                          publication: {
+                            ...current.publication,
+                            certificationNotes: value
+                              .split("\n")
+                              .map((entry) => entry.trim())
+                              .filter(Boolean),
+                          },
+                        }))
+                      }
+                    />
                     <div className="rounded-[18px] border px-4 py-3 text-[13px]" style={{ borderColor: wardrobeTokens.color.divider }}>
                       Measurement standard: <span style={{ color: wardrobeTokens.color.text }}>{workingItem.publication.measurementStandard}</span>
                     </div>
@@ -1189,6 +1735,184 @@ export function AdminWorkspace() {
                             </div>
                           )}
                         </div>
+                      </div>
+                    </SectionFrame>
+
+                    <SectionFrame
+                      eyebrow="Certification"
+                      title="Starter Certification Snapshot"
+                      description="Phase 6 read-only inspection seam이다. 현재 committed starter certification bundle에 포함된 garment만 summary가 보이고, 이 값은 publish editor state를 바꾸지 않는다."
+                    >
+                      <GarmentCertificationPanel
+                        hasWorkingItem={Boolean(workingItem)}
+                        generatedAtLabel={formatDate(selectedCertificationGeneratedAt ?? certificationGeneratedAt ?? undefined)}
+                        loadError={certificationLoadError}
+                        detailError={selectedCertificationError}
+                        isLoading={isCertificationDetailFetching}
+                        certification={effectiveCertification}
+                        summary={certificationSummary}
+                      />
+                    </SectionFrame>
+
+                    <SectionFrame
+                      eyebrow="HQ Fit"
+                      title="Artifact Inspection"
+                      description="Phase 8.5 read-only admin inspection seam이다. 현재 working garment 기준으로 persisted HQ fit evidence를 triage하고, 선택한 fit simulation detail은 publish editor state와 분리해서 유지한다."
+                    >
+                      <div className="space-y-4">
+                        <div
+                          className="rounded-[18px] border px-4 py-4 text-[13px]"
+                          style={{ borderColor: wardrobeTokens.color.divider, color: wardrobeTokens.color.textMuted }}
+                        >
+                          <div>
+                            Current garment:{" "}
+                            <span style={{ color: wardrobeTokens.color.text }}>
+                              {workingGarmentId ?? "none"}
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            Visible evidence: {fitSimulationInspectionCatalogSummary.totalCount} · with lineage{" "}
+                            {fitSimulationInspectionCatalogSummary.withLineageCount} · terminal{" "}
+                            {fitSimulationInspectionCatalogSummary.terminalCount}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: wardrobeTokens.color.textFaint }}>
+                            HQ Evidence Filters
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {FIT_SIMULATION_STATUS_FILTERS.map((filter) => (
+                              <PillButton
+                                key={filter.id}
+                                active={fitSimulationInspectionStatusFilter === filter.id}
+                                onClick={() => setFitSimulationInspectionStatusFilter(filter.id)}
+                                className="px-3 py-1.5 text-[11px]"
+                              >
+                                {filter.label}
+                              </PillButton>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {FIT_SIMULATION_COVERAGE_FILTERS.map((filter) => (
+                              <PillButton
+                                key={filter.id}
+                                active={fitSimulationInspectionCoverageFilter === filter.id}
+                                onClick={() => setFitSimulationInspectionCoverageFilter(filter.id)}
+                                className="px-3 py-1.5 text-[11px]"
+                              >
+                                {filter.label}
+                              </PillButton>
+                            ))}
+                          </div>
+                        </div>
+
+                        {fitSimulationInspectionListError ? (
+                          <div
+                            className="flex items-start gap-2 rounded-[20px] border px-4 py-3 text-[13px]"
+                            style={{ borderColor: "rgba(141,74,69,0.24)", color: wardrobeTokens.color.danger }}
+                          >
+                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>{fitSimulationInspectionListError}</span>
+                          </div>
+                        ) : null}
+
+                        {isFitSimulationInspectionListFetching ? (
+                          <div className="flex items-center gap-2 text-[13px]" style={{ color: wardrobeTokens.color.textMuted }}>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>HQ fit evidence catalog를 불러오는 중...</span>
+                          </div>
+                        ) : null}
+
+                        {!isFitSimulationInspectionListFetching && !fitSimulationInspectionListError ? (
+                          fitSimulationInspectionItems.length > 0 ? (
+                            <div className="grid gap-3">
+                              {fitSimulationInspectionItems.map((item) => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    void handleSelectFitSimulationInspection(item);
+                                  }}
+                                  className="rounded-[18px] border px-4 py-4 text-left transition hover:bg-white/80"
+                                  style={{
+                                    borderColor:
+                                      selectedFitSimulationInspectionSummary?.id === item.id
+                                        ? wardrobeTokens.color.text
+                                        : wardrobeTokens.color.divider,
+                                    background:
+                                      selectedFitSimulationInspectionSummary?.id === item.id
+                                        ? "rgba(255,255,255,0.82)"
+                                        : "rgba(255,255,255,0.56)",
+                                  }}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                      <div className="text-[14px] font-semibold" style={{ color: wardrobeTokens.color.text }}>
+                                        {item.id}
+                                      </div>
+                                      <div className="mt-1 text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
+                                        {item.status} · {item.qualityTier} · {item.materialPreset}
+                                      </div>
+                                    </div>
+                                    <span
+                                      className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                      style={{
+                                        background: item.hasLineage ? "rgba(79,123,98,0.16)" : "rgba(141,74,69,0.16)",
+                                        color: item.hasLineage ? wardrobeTokens.color.success : wardrobeTokens.color.danger,
+                                      }}
+                                    >
+                                      {item.hasLineage ? "lineage" : "missing lineage"}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 grid gap-2 text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
+                                    <div>Artifacts: {item.artifactCount}</div>
+                                    <div>Warnings: {item.warningCount}</div>
+                                    <div>Updated: {formatDate(item.updatedAt)}</div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div
+                              className="rounded-[18px] border px-4 py-4 text-[13px]"
+                              style={{ borderColor: wardrobeTokens.color.divider, color: wardrobeTokens.color.textMuted }}
+                            >
+                              현재 working garment 기준으로 inspectable HQ fit evidence가 없다.
+                            </div>
+                          )
+                        ) : null}
+
+                        <TextInputField
+                          label="Fit Simulation ID"
+                          value={fitSimulationInspectionId}
+                          onChange={handleFitSimulationInspectionIdChange}
+                          placeholder="00000000-0000-4000-8000-000000000801"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <PillButton
+                            active={false}
+                            onClick={() => {
+                              void loadFitSimulationInspection();
+                            }}
+                            className="px-4 py-2 text-[12px]"
+                          >
+                            Load inspection
+                          </PillButton>
+                          <PillButton
+                            active={false}
+                            onClick={handleClearFitSimulationInspection}
+                            className="px-4 py-2 text-[12px]"
+                          >
+                            Clear
+                          </PillButton>
+                        </div>
+                        <FitSimulationInspectionPanel
+                          inspection={fitSimulationInspection}
+                          summary={fitSimulationInspectionSummary}
+                          isLoading={isFitSimulationInspectionFetching}
+                          loadError={fitSimulationInspectionError}
+                        />
                       </div>
                     </SectionFrame>
 

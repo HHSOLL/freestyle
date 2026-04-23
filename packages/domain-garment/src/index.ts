@@ -1,3 +1,10 @@
+import {
+  garmentManifestSchema,
+  garmentManifestSchemaVersion,
+  requiresCanonicalManifestForApprovalState,
+  requiresCertificationMetadataForApprovalState,
+  type GarmentManifest,
+} from "@freestyle/asset-schema";
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
 import {
   fitMapSummarySchema,
@@ -12,6 +19,7 @@ import {
   type GarmentSimProxy,
 } from "@freestyle/contracts";
 import type {
+  GarmentCertificationReportItem,
   GarmentFitOverall,
   GarmentFitRegionId,
   GarmentInstantFitReport,
@@ -42,6 +50,8 @@ import type {
   PublishedGarmentAsset,
   RuntimeGarmentAsset,
   StarterGarment,
+  QualityTier,
+  GarmentRuntimeLodPaths,
 } from "@freestyle/shared-types";
 import { flattenBodyProfile } from "@freestyle/shared-types";
 import {
@@ -54,6 +64,14 @@ export const publishedGarmentStorageKey = "freestyle:published-garments:v1";
 
 const svgLabel = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const buildGarmentRuntimeLodPath = (modelPath: string, suffix: "lod1" | "lod2") =>
+  modelPath.replace(/\.glb$/u, `.${suffix}.glb`);
+
+const buildGarmentRuntimeLodPaths = (modelPath: string): GarmentRuntimeLodPaths => ({
+  lod1: buildGarmentRuntimeLodPath(modelPath, "lod1"),
+  lod2: buildGarmentRuntimeLodPath(modelPath, "lod2"),
+});
 
 const createSwatchThumbnail = (title: string, color: string) => {
   const svg = `
@@ -77,6 +95,9 @@ const createRuntime = (
   config: {
     modelPath: string;
     modelPathByVariant?: Partial<Record<AvatarRenderVariantId, string>>;
+    deriveSiblingLods?: boolean;
+    lodModelPaths?: GarmentRuntimeLodPaths;
+    lodModelPathsByVariant?: Partial<Record<AvatarRenderVariantId, GarmentRuntimeLodPaths>>;
     collisionZones: GarmentCollisionZone[];
     bodyMaskZones: GarmentCollisionZone[];
     anchorBindings?: GarmentAnchorBinding[];
@@ -88,6 +109,15 @@ const createRuntime = (
 ): GarmentRuntimeBinding => ({
   modelPath: config.modelPath,
   modelPathByVariant: config.modelPathByVariant,
+  lodModelPaths: config.deriveSiblingLods ? buildGarmentRuntimeLodPaths(config.modelPath) : config.lodModelPaths,
+  lodModelPathsByVariant: config.deriveSiblingLods
+    ? Object.fromEntries(
+        Object.entries(config.modelPathByVariant ?? {}).map(([variantId, modelPath]) => [
+          variantId,
+          buildGarmentRuntimeLodPaths(modelPath),
+        ]),
+      )
+    : config.lodModelPathsByVariant,
   skeletonProfileId: defaultSkeletonProfileId,
   anchorBindings:
     config.anchorBindings ?? [
@@ -134,10 +164,22 @@ export const collectGarmentRuntimeModelPaths = (binding: GarmentRuntimeBinding) 
   if (binding.modelPath) {
     paths.add(binding.modelPath);
   }
+  Object.values(binding.lodModelPaths ?? {}).forEach((value) => {
+    if (value) {
+      paths.add(value);
+    }
+  });
   Object.values(binding.modelPathByVariant ?? {}).forEach((value) => {
     if (value) {
       paths.add(value);
     }
+  });
+  Object.values(binding.lodModelPathsByVariant ?? {}).forEach((value) => {
+    Object.values(value ?? {}).forEach((lodPath) => {
+      if (lodPath) {
+        paths.add(lodPath);
+      }
+    });
   });
   return Array.from(paths);
 };
@@ -145,7 +187,21 @@ export const collectGarmentRuntimeModelPaths = (binding: GarmentRuntimeBinding) 
 export const resolveGarmentRuntimeModelPath = (
   binding: GarmentRuntimeBinding,
   avatarVariantId: AvatarRenderVariantId,
-) => binding.modelPathByVariant?.[avatarVariantId] ?? binding.modelPath;
+  qualityTier: QualityTier = "high",
+) => {
+  const baseModelPath = binding.modelPathByVariant?.[avatarVariantId] ?? binding.modelPath;
+  const lodPaths = binding.lodModelPathsByVariant?.[avatarVariantId] ?? binding.lodModelPaths;
+
+  if (qualityTier === "low") {
+    return lodPaths?.lod2 ?? lodPaths?.lod1 ?? baseModelPath;
+  }
+
+  if (qualityTier === "balanced") {
+    return lodPaths?.lod1 ?? baseModelPath;
+  }
+
+  return baseModelPath;
+};
 
 export const getGarmentPoseRuntimeTuning = (
   binding: Pick<GarmentRuntimeBinding, "poseTuning">,
@@ -318,6 +374,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/top_soft_casual_v4.glb",
         "male-base": "/assets/garments/mpfb/male/top_soft_casual_v4.glb",
       },
+      deriveSiblingLods: true,
       collisionZones: ["torso", "arms", "hips"],
       bodyMaskZones: ["torso"],
       poseTuning: poseTuning({
@@ -408,6 +465,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
         "male-base": "/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "waistCenter", weight: 0.34 },
         { id: "hipCenter", weight: 0.34 },
@@ -694,6 +752,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "leftAnkle", weight: 0.25 },
         { id: "rightAnkle", weight: 0.25 },
@@ -757,6 +816,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "leftAnkle", weight: 0.25 },
         { id: "rightAnkle", weight: 0.25 },
@@ -1162,6 +1222,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/hair_textured_crop.glb",
         "male-base": "/assets/garments/mpfb/male/hair_textured_crop.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "headCenter", weight: 0.46 },
         { id: "foreheadCenter", weight: 0.28 },
@@ -2426,6 +2487,207 @@ export const computeGarmentCorrectiveTransform = (
   };
 };
 
+const garmentManifestCategoryDefaults: Partial<Record<GarmentCategory, GarmentManifest["fitPolicyCategory"]>> = {
+  tops: "tight_top",
+  bottoms: "pants",
+  outerwear: "loose_top",
+  shoes: "shoes",
+  accessories: "accessories",
+};
+
+export const resolveStarterGarmentFitPolicyCategory = (
+  category: GarmentCategory,
+): GarmentManifest["fitPolicyCategory"] | null => garmentManifestCategoryDefaults[category] ?? null;
+
+const toCertificationRuntimeLodPaths = (value: GarmentRuntimeLodPaths | undefined) => {
+  if (!value?.lod1 || !value?.lod2) {
+    return undefined;
+  }
+
+  return {
+    lod1: value.lod1,
+    lod2: value.lod2,
+  };
+};
+
+const toCertificationRuntimePaths = (
+  runtime: StarterGarment["runtime"],
+  authoredVariantIds: readonly AvatarRenderVariantId[],
+) => {
+  const modelPathByVariantEntries = authoredVariantIds.flatMap((variantId) => {
+    const value = runtime.modelPathByVariant?.[variantId];
+    return value ? [[variantId, value] as const] : [];
+  });
+  const lodModelPathsByVariantEntries = authoredVariantIds.flatMap((variantId) => {
+    const value = toCertificationRuntimeLodPaths(runtime.lodModelPathsByVariant?.[variantId]);
+    return value ? [[variantId, value] as const] : [];
+  });
+
+  return {
+    modelPath: runtime.modelPath,
+    ...(modelPathByVariantEntries.length > 0
+      ? { modelPathByVariant: Object.fromEntries(modelPathByVariantEntries) }
+      : {}),
+    ...(toCertificationRuntimeLodPaths(runtime.lodModelPaths)
+      ? { lodModelPaths: toCertificationRuntimeLodPaths(runtime.lodModelPaths) }
+      : {}),
+    ...(lodModelPathsByVariantEntries.length > 0
+      ? { lodModelPathsByVariant: Object.fromEntries(lodModelPathsByVariantEntries) }
+      : {}),
+  };
+};
+
+export const buildStarterGarmentCertificationSeed = (
+  item: Pick<StarterGarment, "id" | "category" | "runtime" | "metadata">,
+  options: { authoredVariantIds: readonly AvatarRenderVariantId[] },
+): Pick<
+  GarmentCertificationReportItem,
+  "id" | "category" | "fitPolicyCategory" | "selectedSizeLabel" | "sizeChartLabels" | "runtimePaths"
+> | null => {
+  const fitPolicyCategory = resolveStarterGarmentFitPolicyCategory(item.category);
+  if (!fitPolicyCategory) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    category: item.category,
+    fitPolicyCategory,
+    selectedSizeLabel: item.metadata?.selectedSizeLabel ?? null,
+    sizeChartLabels: item.metadata?.sizeChart?.map((entry) => entry.label) ?? [],
+    runtimePaths: toCertificationRuntimePaths(item.runtime, options.authoredVariantIds),
+  };
+};
+
+const buildPublishedGarmentManifestRoot = (id: string) => `/assets/viewer-manifests/garments/${id}`;
+
+const buildPublishedGarmentLodPath = (modelPath: string, suffix: "lod1" | "lod2") => {
+  const normalized = modelPath.trim();
+  if (normalized.endsWith(".glb")) {
+    return normalized.replace(/\.glb$/u, `.${suffix}.glb`);
+  }
+
+  return `${normalized}.${suffix}.glb`;
+};
+
+export const buildDefaultPublishedGarmentViewerManifest = (
+  item: Pick<PublishedGarmentAsset, "id" | "category" | "runtime" | "publication">,
+) => {
+  const fitPolicyCategory = resolveStarterGarmentFitPolicyCategory(item.category);
+  if (!fitPolicyCategory) {
+    return null;
+  }
+
+  const root = buildPublishedGarmentManifestRoot(item.id);
+
+  return garmentManifestSchema.parse({
+    id: item.id,
+    schemaVersion: garmentManifestSchemaVersion,
+    production: {
+      approvalState: item.publication.approvalState ?? "DRAFT",
+      approvedAt: item.publication.approvedAt,
+      approvedBy: item.publication.approvedBy,
+      reviewNotes: [],
+      certificationNotes: item.publication.certificationNotes ?? [],
+    },
+    fitPolicyCategory,
+    display: {
+      lod0: item.runtime.modelPath,
+      lod1: buildPublishedGarmentLodPath(item.runtime.modelPath, "lod1"),
+      lod2: buildPublishedGarmentLodPath(item.runtime.modelPath, "lod2"),
+    },
+    fit: {
+      fitMesh: `${root}/fit/fit_mesh.glb`,
+      panelGroups: `${root}/fit/panel_groups.json`,
+      seamGraph: `${root}/fit/seam_graph.json`,
+      anchors: `${root}/fit/anchors.json`,
+      constraints: `${root}/fit/constraints.json`,
+      sizeMapping: `${root}/fit/size_mapping.json`,
+      bodyMaskPolicy: `${root}/fit/body_mask_policy.json`,
+      collisionPolicy: `${root}/fit/collision_policy.json`,
+    },
+    material: {
+      visualMaterial: `${root}/material/visual_material.json`,
+      physicalMaterial: `${root}/material/physical_material.json`,
+    },
+    textures: {
+      baseColor: `${root}/textures/basecolor.ktx2`,
+      normal: `${root}/textures/normal.ktx2`,
+      orm: `${root}/textures/orm.ktx2`,
+      detailNormal: `${root}/textures/detail_normal.ktx2`,
+    },
+    quality: {
+      topologyReport: `${root}/quality/topology_report.json`,
+      materialReport: `${root}/quality/material_report.json`,
+      fitReport: `${root}/quality/fit_report.json`,
+      visualReport: `${root}/quality/visual_report.json`,
+      performanceReport: `${root}/quality/performance_report.json`,
+      goldenFitResult: `${root}/quality/golden_fit_result.json`,
+    },
+  });
+};
+
+export const synchronizePublishedGarmentViewerManifest = (
+  item: PublishedGarmentAsset,
+  options?: { autofillMissing?: boolean },
+): PublishedGarmentAsset => {
+  const fallbackManifest = buildDefaultPublishedGarmentViewerManifest(item);
+  const sourceManifest = item.viewerManifest ?? (options?.autofillMissing ? fallbackManifest : null);
+
+  if (!sourceManifest) {
+    return item;
+  }
+
+  const mergedManifest = garmentManifestSchema.parse({
+    ...(fallbackManifest ?? sourceManifest),
+    ...sourceManifest,
+    id: item.id,
+    schemaVersion: garmentManifestSchemaVersion,
+    production: {
+      ...((fallbackManifest ?? sourceManifest).production ?? {
+        approvalState: item.publication.approvalState ?? "DRAFT",
+        reviewNotes: [],
+        certificationNotes: [],
+      }),
+      ...sourceManifest.production,
+      approvalState: item.publication.approvalState ?? sourceManifest.production.approvalState ?? "DRAFT",
+      approvedAt: item.publication.approvedAt ?? sourceManifest.production.approvedAt,
+      approvedBy: item.publication.approvedBy ?? sourceManifest.production.approvedBy,
+      certificationNotes: item.publication.certificationNotes ?? sourceManifest.production.certificationNotes ?? [],
+    },
+    display: {
+      ...((fallbackManifest ?? sourceManifest).display ?? sourceManifest.display),
+      ...sourceManifest.display,
+      lod0: sourceManifest.display?.lod0 ?? item.runtime.modelPath,
+    },
+    fit: {
+      ...((fallbackManifest ?? sourceManifest).fit ?? sourceManifest.fit),
+      ...sourceManifest.fit,
+    },
+    material: {
+      ...((fallbackManifest ?? sourceManifest).material ?? sourceManifest.material),
+      ...sourceManifest.material,
+    },
+    textures: {
+      ...((fallbackManifest ?? sourceManifest).textures ?? sourceManifest.textures),
+      ...sourceManifest.textures,
+    },
+    quality: {
+      ...((fallbackManifest ?? sourceManifest).quality ?? sourceManifest.quality),
+      ...sourceManifest.quality,
+    },
+  });
+
+  return {
+    ...item,
+    publication: {
+      ...item.publication,
+      viewerManifestVersion: mergedManifest.schemaVersion,
+    },
+    viewerManifest: mergedManifest,
+  };
+};
+
 export const validatePublishedGarmentAsset = (item: PublishedGarmentAsset) => {
   const issues = validateRuntimeGarmentAsset(item);
   if (!item.publication) {
@@ -2434,6 +2696,61 @@ export const validatePublishedGarmentAsset = (item: PublishedGarmentAsset) => {
   if (item.source !== "inventory" && item.source !== "import") {
     issues.push(`${item.id}: published runtime garments must use source='inventory' or 'import'.`);
   }
+  if (item.viewerManifest) {
+    const parsedViewerManifest = garmentManifestSchema.safeParse(item.viewerManifest);
+    if (!parsedViewerManifest.success) {
+      issues.push(...parsedViewerManifest.error.issues.map((issue) => `${item.id}: ${issue.message}`));
+    } else {
+      if (parsedViewerManifest.data.id !== item.id) {
+        issues.push(`${item.id}: viewerManifest.id must match the published garment id.`);
+      }
+      if (!item.publication.viewerManifestVersion) {
+        issues.push(`${item.id}: publication.viewerManifestVersion is required when viewerManifest is present.`);
+      } else if (item.publication.viewerManifestVersion !== parsedViewerManifest.data.schemaVersion) {
+        issues.push(`${item.id}: publication.viewerManifestVersion must match viewerManifest.schemaVersion.`);
+      }
+
+      const expectedApprovalState = item.publication.approvalState ?? "DRAFT";
+      if (parsedViewerManifest.data.production.approvalState !== expectedApprovalState) {
+        issues.push(`${item.id}: viewerManifest.production.approvalState must match publication.approvalState.`);
+      }
+    }
+  }
+  return issues;
+};
+
+export const validatePublishedGarmentCertificationState = (item: PublishedGarmentAsset) => {
+  const issues: string[] = [];
+  const approvalState = item.publication.approvalState ?? "DRAFT";
+  const hasCanonicalManifestSupport = buildDefaultPublishedGarmentViewerManifest(item) !== null;
+
+  if (hasCanonicalManifestSupport && requiresCanonicalManifestForApprovalState(approvalState)) {
+    if (!item.viewerManifest) {
+      issues.push(
+        `${item.id}: viewerManifest is required once approvalState reaches ${approvalState}.`,
+      );
+    }
+    if (!item.publication.viewerManifestVersion) {
+      issues.push(
+        `${item.id}: publication.viewerManifestVersion is required once approvalState reaches ${approvalState}.`,
+      );
+    }
+  }
+
+  if (requiresCertificationMetadataForApprovalState(approvalState)) {
+    if (!item.publication.approvedAt) {
+      issues.push(`${item.id}: publication.approvedAt is required when approvalState is ${approvalState}.`);
+    }
+    if (!item.publication.approvedBy) {
+      issues.push(`${item.id}: publication.approvedBy is required when approvalState is ${approvalState}.`);
+    }
+    if (!item.publication.certificationNotes?.length) {
+      issues.push(
+        `${item.id}: publication.certificationNotes must contain at least one note when approvalState is ${approvalState}.`,
+      );
+    }
+  }
+
   return issues;
 };
 

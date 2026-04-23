@@ -25,7 +25,9 @@ Current baseline command set:
 
 Current GitHub workflow enforcement:
 
-- `.github/workflows/quality.yml` currently runs the same baseline set above
+- `.github/workflows/quality.yml` runs `npm run check:phase10`
+- `check:phase10` includes the same baseline set above through `npm run check`
+- `check:phase10` also runs asset-budget evidence, the blocking Phase 9 `Closet` viewer-react smoke, the Phase 9 rollback smoke, and operational browser smoke
 
 ### L1. Surface-Specific Gate
 
@@ -35,16 +37,21 @@ Run these when the scope touches the matching area.
 | --- | --- |
 | admin UI or admin build path changed | `npm run typecheck:admin`, `npm run build:admin` |
 | garment metadata, runtime garment contract, or publishable garment assets changed | `npm run validate:garment3d` |
-| avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:avatar3d` |
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
-| promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
+| avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:fit-calibration`, then `npm run validate:avatar3d` |
+| promoted runtime GLBs changed | `npm run optimize:runtime:assets`, `npm run report:asset-budget` |
+| viewer-core loader policy, decoder public assets, or Phase 3 asset pipeline scripts changed | `npm run viewer:sync:transcoders`, `npm run viewer:bootstrap:ktx-tools`, `npm run report:asset-budget`, targeted `tsx --test` runs for `packages/viewer-core/src/loader-registry.test.ts` and the runtime loader/model-path tests, plus `npm run build:services` |
+| compatibility-stage material or lighting system changed | targeted `tsx --test` runs for `packages/runtime-3d/src/material-system.test.ts`, `packages/runtime-3d/src/studio-lighting-rig.test.ts`, `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`, `packages/viewer-core/src/proxy-stage.test.ts`, plus `npx playwright test apps/web/e2e/material-system.spec.ts --project=chromium`, `npm run build:services`, and `npm run build` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
+| asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
+| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
 
 ### L2. Full Local Gate
 
 Run this when the task spans multiple areas or when you want release-grade local coverage in one command.
 
 - `npm run check`
+- `npm run check:phase10` for viewer-platform or production-telemetry closeout work
 
 This includes:
 
@@ -59,6 +66,45 @@ This includes:
 - `npm run build`
 - `npm run build:admin`
 
+## Progressive Gate Rollout
+
+The viewer-platform refactor grows gates forward instead of leaving everything for one final hardening batch:
+
+- `Phase 0`: benchmark harness and baseline reports start as non-blocking evidence
+- `Phase 2`: the forced `viewer-react` seam emits non-blocking first-avatar-paint and garment-swap latency evidence
+- `Phase 2.5`: approval-state, body-signature, material, and fit-contract tests start
+- `Phase 2.5`: promoted garment approval states fail closed on write when certification metadata or the canonical manifest seam is missing
+- `Phase 3`: asset budget gate becomes non-blocking
+- `Phase 3`: shared loader policy and KTX2 transcoder public assets become explicit repo-owned seams instead of implicit local tooling assumptions
+- `Phase 3`: the shipped default closet path now consumes real committed `LOD1 / LOD2` siblings for avatars plus the promoted garment/hair loadout, and the non-blocking report measures transfer, draw calls, triangles, and texture bytes by quality tier
+- `Phase 4`: compatibility-stage studio lighting and material calibration become explicit repo-owned seams with unit tests plus a dedicated lab smoke route
+- `Phase 5 / Batch 1`: avatar publication metadata now has a blocking read-only seam through `/v1/admin/avatars` plus `output/avatar-certification/latest.json`, and `validate:avatar3d` fails closed on publication/evidence/LOD drift for the committed base variants
+- `Phase 5`: avatar certification gate is blocking for the committed base variants
+- `Phase 6 / Batch 1`: `validate:garment3d` now emits `output/garment-certification/latest.json` and fails closed on committed garment-authoring bundle drift for the starter garments that already have authoring summaries
+- `Phase 6 / Batch 2`: `/v1/admin/garment-certifications*` now exposes that bundle as a read-only admin inspection seam without widening product payloads or publication persistence
+- `Phase 6 / Batch 3`: `apps/admin` now consumes that seam as a read-only starter certification inspector while keeping editor/save state isolated from certification payloads
+- `Phase 6 / Batch 4`: `apps/admin` now exposes starter coverage triage over the current admin garment list without widening `/v1/admin/garments*`
+- `Phase 6`: garment certification gate is closed for the current starter-bundle-backed scope
+- `Phase 7 / Batch 1`: the active reduced preview spring contract now lives in `@freestyle/fit-kernel`, and the same-origin worker returns a typed `PREVIEW_FRAME_RESULT` envelope without claiming browser WASM cloth truth
+- `Phase 7 / Batch 2`: the `runtime-3d` compatibility host now exposes a typed read-only preview runtime snapshot through `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` viewer events, without widening `/v1` payloads
+- `Phase 7 / Batch 3`: the compatibility host now also exposes typed preview-engine status through `data-preview-engine-*` attrs and `fit:preview-engine-status`, including explicit fallback reasons when the active path is not real WASM preview
+- `Phase 7 / Batch 4`: the same-origin worker now runs on the typed preview session protocol with body/collision/fit-mesh/material bootstrap messages plus a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary motion
+- `Phase 7`: the repo-scoped compatibility preview path is now closed; later phases may replace the compatibility inputs with authoritative authored assets and real cloth deformation, but should not reopen the current evidence surface casually
+- `Phase 7`: preview fit performance gate becomes blocking
+- `Phase 8 / Batch 1`: the HQ fit worker now writes an internal `artifact-lineage.json` sidecar and canonical cache-key parts for the current four-artifact bundle without widening the lab read contract
+- `Phase 8 / Batch 2`: `/v1/lab/fit-simulations/:id/artifact-lineage` now exposes that persisted lineage as a separate owner-scoped inspection seam while keeping `/v1/lab/fit-simulations/:id` unchanged
+- `Phase 8 / Batch 3`: the current `Closet` HQ fit panel now consumes that lineage seam as separate read-only state, proving a first web consumer without widening the main fit-simulation detail contract
+- `Phase 8 / Batch 4`: `/v1/admin/fit-simulations/:id` now exposes the same persisted HQ bundle + lineage snapshot through an admin-only read-only inspection seam
+- `Phase 8`: HQ artifact identity and lineage inspection gate is closed for the current baseline bundle and becomes blocking
+- `Phase 8.5 / Batch 1`: `apps/admin` now consumes the admin HQ artifact inspection seam in a separate read-only panel without mixing that state into garment publication editing
+- `Phase 8.5 / Batch 2`: `/v1/admin/fit-simulations` now exposes a bounded read-only HQ fit catalog for operator triage without widening garment publication payloads
+- `Phase 8.5 / Batch 3`: `apps/admin` now shows current-garment HQ fit evidence, local status/lineage filters, and one-click open into the existing detail inspector
+- `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
+- `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped release flag plus kill switch for the `viewer-react` cutover, and `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` becomes the first blocking UX latency gate
+- `Phase 9 / Batch 2`: CI now also proves the rollback path with `npm run test:e2e:phase9:rollback`, so the current repo-scoped `/app/closet` cutover is closed with both cutover and kill-switch evidence
+- `Phase 10`: CI runs `npm run check:phase10`, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
+- `Phase 10`: hardware-backed GPU CI and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements, not hidden pass claims
+
 ### L3. Operational Closeout Gate
 
 Run this when freezing an RC or closing an operations batch.
@@ -72,6 +118,7 @@ Run this when freezing an RC or closing an operations batch.
 Expected evidence:
 
 - one dated release or operational closeout note under `docs/qa/`
+- Phase 10 viewer-platform closeout work should also update `docs/freestyle-viewer-platform/phase10/closeout.md`
 - route/browser smoke result plus any retained Playwright trace artifact
 - committed Playwright visual baseline coverage for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers
 - explicit browser-vs-backend Supabase key posture
@@ -113,8 +160,10 @@ Use these when a task changes routes, runtime boundaries, or release-facing beha
 - `/v1/profile/body-profile`
 - `/v1/closet/items`
 - `/v1/closet/runtime-garments`
+- `POST /v1/telemetry/viewer`
 - `/v1/canvas/looks`
 - `/v1/community/looks`
+- `/v1/admin/avatars`
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/legacy/assets`
@@ -138,9 +187,14 @@ When the runtime or assets change, verify at least the relevant subset of these:
 
 - body measurement changes remain region-specific
 - garments respect render order and clearance
+- `/v1/admin/garments` save/load keeps supported-category `viewerManifest` shadows synchronized with top-level publication metadata
+- `/v1/admin/avatars` stays a dedicated publication catalog boundary and does not drift from `packages/runtime-3d/src/avatar-manifest.ts` or `output/avatar-certification/latest.json`
+- `validate:garment3d` keeps `output/garment-certification/latest.json` in parity with the committed garment authoring bundle and starter runtime metadata
+- `/v1/closet/runtime-garments` continues to tolerate legacy published rows without a manifest shadow while still excluding non-`PUBLISHED` assets
 - body masks still hide covered geometry correctly
 - low-quality mode still renders
 - load failure shows a fallback instead of a blank scene
+- product closet catalog hides non-`PUBLISHED` certification candidates while admin catalog queries may filter approval states explicitly
 - host chunk/WebGL fallback and in-canvas asset-loading placeholder remain visible on the closet stage
 - preloading stays within explicit asset budgets
 - queued jobs preserve `trace_id` and return canonical `job-result.v1` envelopes on status reads

@@ -3,13 +3,22 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { avatarMeasurementsSidecarSchemaVersion } from "@freestyle/contracts";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+import {
+  avatarMeasurementsSidecarSchemaVersion,
+  avatarPublicationCatalogSchema,
+} from "@freestyle/contracts";
 import {
   collectAvatarMeasurementsSidecarSummaryIssues,
+  fitReviewArchetypes,
   parseAvatarMeasurementsSidecar,
+  resolveAvatarVariantFromProfile,
 } from "@freestyle/domain-avatar";
 import {
-  avatarManifestSchemaVersion,
+  avatarPublicationCatalogMetadata,
+  publishedRuntimeAvatarCatalog,
+} from "../packages/runtime-3d/src/avatar-publication-catalog.ts";
+import {
   avatarMorphMapSidecarSchemaVersion,
   avatarRenderManifest,
   avatarSkeletonSidecarSchemaVersion,
@@ -53,12 +62,31 @@ const sourceLock = readJsonFile("source-lock", sourceLockPath);
 const isSha256 = (value) => typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
 const isGitRevision = (value) => typeof value === "string" && /^[a-f0-9]{40}$/i.test(value);
 const requiredAvatarRuntimeExtensions = ["EXT_meshopt_compression", "EXT_texture_webp", "KHR_mesh_quantization"];
+const avatarPublicationCatalogPath = path.join(repoRoot, "output", "avatar-certification", "latest.json");
 
 const requiredAliases = Object.keys(referenceRigAliasPatterns);
 
 const isKnownAuthoringSource = (value) => {
   return ["mpfb2", "charmorph", "runtime-fallback"].includes(value);
 };
+
+const stableComparableValue = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stableComparableValue(entry));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, stableComparableValue(entry)]),
+  );
+};
+
+const stableSerialize = (value) => JSON.stringify(stableComparableValue(value));
 
 const validateAliasMap = (label, aliasMap) => {
   for (const alias of requiredAliases) {
@@ -135,6 +163,51 @@ const readAvatarGlbInspection = (label, absolutePath) => {
   };
 };
 
+const validateRuntimeAvatarBinaryBasics = (label, inspection) => {
+  const gltf = inspection?.gltf;
+  const scenes = Array.isArray(gltf?.scenes) ? gltf.scenes : [];
+  if (scenes.length !== 1) {
+    issues.push(`${label}: shipped GLB must contain exactly one scene`);
+  }
+
+  const defaultSceneIndex = Number.isInteger(gltf?.scene) ? gltf.scene : 0;
+  const defaultScene = scenes[defaultSceneIndex];
+  if (!defaultScene) {
+    issues.push(`${label}: shipped GLB must declare a default scene`);
+  }
+
+  const extensionsRequired = Array.isArray(gltf?.extensionsRequired) ? gltf.extensionsRequired : [];
+  for (const extension of requiredAvatarRuntimeExtensions) {
+    if (!extensionsRequired.includes(extension)) {
+      issues.push(`${label}: shipped GLB must require ${extension}`);
+    }
+  }
+
+  const materials = Array.isArray(gltf?.materials) ? gltf.materials : [];
+  if (materials.length === 0) {
+    issues.push(`${label}: shipped GLB must contain at least one material`);
+  }
+
+  const images = Array.isArray(gltf?.images) ? gltf.images : [];
+  if (images.length === 0) {
+    issues.push(`${label}: shipped GLB must contain at least one texture image`);
+  }
+};
+
+const validateRuntimeAvatarLodGlb = (label, assetPath) => {
+  const absoluteModelPath = resolvePublicPath(assetPath);
+  if (!absoluteModelPath || !fs.existsSync(absoluteModelPath)) {
+    return;
+  }
+
+  const inspection = readAvatarGlbInspection(label, absoluteModelPath);
+  if (!inspection) {
+    return;
+  }
+
+  validateRuntimeAvatarBinaryBasics(label, inspection);
+};
+
 const validateRuntimeAvatarGlb = (variantId, entry, summary) => {
   const absoluteModelPath = resolvePublicPath(entry.modelPath);
   if (!absoluteModelPath || !fs.existsSync(absoluteModelPath)) {
@@ -145,6 +218,8 @@ const validateRuntimeAvatarGlb = (variantId, entry, summary) => {
   if (!inspection) {
     return;
   }
+
+  validateRuntimeAvatarBinaryBasics(`${variantId}: runtime GLB`, inspection);
 
   const { gltf, byteSize, sha256 } = inspection;
   const outputArtifact = summary?.outputArtifact;
@@ -167,9 +242,6 @@ const validateRuntimeAvatarGlb = (variantId, entry, summary) => {
   }
 
   const scenes = Array.isArray(gltf?.scenes) ? gltf.scenes : [];
-  if (scenes.length !== 1) {
-    issues.push(`${variantId}: shipped GLB must contain exactly one scene`);
-  }
   const defaultSceneIndex = Number.isInteger(gltf?.scene) ? gltf.scene : 0;
   const defaultScene = scenes[defaultSceneIndex];
   if (!defaultScene) {
@@ -191,23 +263,6 @@ const validateRuntimeAvatarGlb = (variantId, entry, summary) => {
   }
   if (typeof summary?.rig?.name === "string" && !rootNodeNames.includes(summary.rig.name)) {
     issues.push(`${variantId}: shipped GLB root node must include summary rig name`);
-  }
-
-  const extensionsRequired = Array.isArray(gltf?.extensionsRequired) ? gltf.extensionsRequired : [];
-  for (const extension of requiredAvatarRuntimeExtensions) {
-    if (!extensionsRequired.includes(extension)) {
-      issues.push(`${variantId}: shipped GLB must require ${extension}`);
-    }
-  }
-
-  const materials = Array.isArray(gltf?.materials) ? gltf.materials : [];
-  if (materials.length === 0) {
-    issues.push(`${variantId}: shipped GLB must contain at least one material`);
-  }
-
-  const images = Array.isArray(gltf?.images) ? gltf.images : [];
-  if (images.length === 0) {
-    issues.push(`${variantId}: shipped GLB must contain at least one texture image`);
   }
 
   const meshNodes = nodes
@@ -589,13 +644,207 @@ const validateMpfbSummary = (variantId, entry) => {
   validateRuntimeAvatarGlb(variantId, entry, summary);
 };
 
+const validateAvatarPublicationVisualReport = (variantId, report, evidencePath) => {
+  if (report?.schemaVersion !== "avatar-visual-report.v1") {
+    issues.push(`${variantId}: visual report schemaVersion must be avatar-visual-report.v1`);
+  }
+  if (report?.avatarId !== variantId) {
+    issues.push(`${variantId}: visual report avatarId must match variant id`);
+  }
+  if (report?.status !== "pass") {
+    issues.push(`${variantId}: visual report status must be pass`);
+  }
+  const qualityTierCoverage = Array.isArray(report?.qualityTierCoverage) ? report.qualityTierCoverage : [];
+  for (const qualityTier of ["high", "balanced", "low"]) {
+    if (!qualityTierCoverage.includes(qualityTier)) {
+      issues.push(`${variantId}: visual report must cover ${qualityTier}`);
+    }
+  }
+  const sourceVisualEvidencePath = resolveWorkspacePath(report?.sourceVisualEvidencePath);
+  if (!sourceVisualEvidencePath || !fs.existsSync(sourceVisualEvidencePath)) {
+    issues.push(`${variantId}: visual report sourceVisualEvidencePath must resolve to an existing file (${evidencePath})`);
+  }
+};
+
+const validateAvatarPublicationFitCompatibilityReport = (variantId, report, evidencePath) => {
+  if (report?.schemaVersion !== "avatar-fit-compatibility-report.v1") {
+    issues.push(`${variantId}: fit compatibility report schemaVersion must be avatar-fit-compatibility-report.v1`);
+  }
+  if (report?.avatarId !== variantId) {
+    issues.push(`${variantId}: fit compatibility report avatarId must match variant id`);
+  }
+  if (report?.status !== "pass") {
+    issues.push(`${variantId}: fit compatibility report status must be pass`);
+  }
+  const sourceCalibrationReportPath = resolveWorkspacePath(report?.sourceCalibrationReportPath);
+  if (!sourceCalibrationReportPath || !fs.existsSync(sourceCalibrationReportPath)) {
+    issues.push(`${variantId}: fit compatibility report sourceCalibrationReportPath must resolve to an existing file (${evidencePath})`);
+  }
+
+  const expectedArchetypeIds = fitReviewArchetypes
+    .filter((archetype) => resolveAvatarVariantFromProfile(archetype.profile) === variantId)
+    .map((archetype) => archetype.id)
+    .sort();
+  const supportedArchetypeIds = Array.isArray(report?.supportedArchetypeIds)
+    ? [...report.supportedArchetypeIds].sort()
+    : [];
+  if (supportedArchetypeIds.length !== expectedArchetypeIds.length
+    || supportedArchetypeIds.some((entry, index) => entry !== expectedArchetypeIds[index])) {
+    issues.push(`${variantId}: fit compatibility report supportedArchetypeIds must match the committed fit review archetypes`);
+  }
+};
+
+const validateAvatarPublicationBodySignatureModel = (variantId, report, evidencePath, expectedVersion) => {
+  if (report?.schemaVersion !== "avatar-body-signature-model.v1") {
+    issues.push(`${variantId}: body signature model schemaVersion must be avatar-body-signature-model.v1`);
+  }
+  if (report?.avatarId !== variantId) {
+    issues.push(`${variantId}: body signature model avatarId must match variant id`);
+  }
+  if (report?.version !== expectedVersion) {
+    issues.push(`${variantId}: body signature model version must match publication.bodySignatureModelVersion`);
+  }
+  if (!Array.isArray(report?.measurementKeys) || report.measurementKeys.length === 0) {
+    issues.push(`${variantId}: body signature model measurementKeys must contain at least one entry`);
+  }
+  if (!Array.isArray(report?.normalizedShapeAxes) || report.normalizedShapeAxes.length === 0) {
+    issues.push(`${variantId}: body signature model normalizedShapeAxes must contain at least one entry`);
+  }
+  const sourceCalibrationReportPath = resolveWorkspacePath(report?.sourceCalibrationReportPath);
+  if (!sourceCalibrationReportPath || !fs.existsSync(sourceCalibrationReportPath)) {
+    issues.push(`${variantId}: body signature model sourceCalibrationReportPath must resolve to an existing file (${evidencePath})`);
+  }
+};
+
+const validateAvatarPublicationCatalog = () => {
+  if (!fs.existsSync(avatarPublicationCatalogPath)) {
+    issues.push(`avatar publication catalog missing file ${path.relative(repoRoot, avatarPublicationCatalogPath)}`);
+    return;
+  }
+
+  const rawCatalog = readJsonFile("avatar publication catalog", avatarPublicationCatalogPath);
+  if (!rawCatalog) {
+    return;
+  }
+
+  const parsedCatalog = avatarPublicationCatalogSchema.safeParse(rawCatalog);
+  if (!parsedCatalog.success) {
+    issues.push(
+      ...parsedCatalog.error.issues.map((issue) => `avatar publication catalog ${issue.path.join(".") || "root"} ${issue.message}`),
+    );
+    return;
+  }
+
+  if (parsedCatalog.data.schemaVersion !== avatarPublicationCatalogMetadata.schemaVersion) {
+    issues.push(`avatar publication catalog schemaVersion must match runtime metadata ${avatarPublicationCatalogMetadata.schemaVersion}`);
+  }
+
+  const bundleItemsById = new Map(parsedCatalog.data.items.map((item) => [item.id, item]));
+  const expectedItemsById = new Map(publishedRuntimeAvatarCatalog.map((item) => [item.id, item]));
+
+  if (bundleItemsById.size !== expectedItemsById.size) {
+    issues.push("avatar publication catalog item count must match runtime avatar publication catalog");
+  }
+
+  for (const [variantId, item] of expectedItemsById) {
+    const bundleItem = bundleItemsById.get(variantId);
+    if (!bundleItem) {
+      issues.push(`${variantId}: avatar publication catalog bundle entry is missing`);
+      continue;
+    }
+
+    if (stableSerialize(bundleItem.publication) !== stableSerialize(item.publication)) {
+      issues.push(`${variantId}: avatar publication catalog publication metadata must match runtime publication metadata`);
+    }
+    if (stableSerialize(bundleItem.evidence) !== stableSerialize(item.evidence)) {
+      issues.push(`${variantId}: avatar publication catalog evidence paths must match runtime publication metadata`);
+    }
+
+    const approvalState = item.publication.approvalState;
+    if (approvalState === "PUBLISHED") {
+      if (!item.publication.approvedAt) {
+        issues.push(`${variantId}: publication.approvedAt is required for PUBLISHED avatars`);
+      }
+      if (!item.publication.approvedBy) {
+        issues.push(`${variantId}: publication.approvedBy is required for PUBLISHED avatars`);
+      }
+      if (!Array.isArray(item.publication.certificationNotes) || item.publication.certificationNotes.length === 0) {
+        issues.push(`${variantId}: publication.certificationNotes must contain at least one note for PUBLISHED avatars`);
+      }
+    }
+
+    if (item.publication.runtimeManifestVersion !== runtimeAvatarRenderManifestSchemaVersion) {
+      issues.push(
+        `${variantId}: publication.runtimeManifestVersion must match ${runtimeAvatarRenderManifestSchemaVersion}`,
+      );
+    }
+
+    const evidenceEntries = Object.entries(item.evidence);
+    for (const [evidenceKey, evidenceValue] of evidenceEntries) {
+      const evidencePath = resolveWorkspacePath(evidenceValue);
+      if (!evidencePath || !fs.existsSync(evidencePath)) {
+        issues.push(`${variantId}: evidence.${evidenceKey} must resolve to an existing file`);
+      }
+    }
+
+    const visualReportPath = resolveWorkspacePath(item.evidence.visualReportPath);
+    if (visualReportPath && fs.existsSync(visualReportPath)) {
+      const visualReport = readJsonFile(`${variantId}: visual report`, visualReportPath);
+      if (visualReport) {
+        validateAvatarPublicationVisualReport(variantId, visualReport, item.evidence.visualReportPath);
+      }
+    }
+
+    const fitCompatibilityReportPath = resolveWorkspacePath(item.evidence.fitCompatibilityReportPath);
+    if (fitCompatibilityReportPath && fs.existsSync(fitCompatibilityReportPath)) {
+      const fitCompatibilityReport = readJsonFile(`${variantId}: fit compatibility report`, fitCompatibilityReportPath);
+      if (fitCompatibilityReport) {
+        validateAvatarPublicationFitCompatibilityReport(
+          variantId,
+          fitCompatibilityReport,
+          item.evidence.fitCompatibilityReportPath,
+        );
+      }
+    }
+
+    const bodySignatureModelPath = resolveWorkspacePath(item.evidence.bodySignatureModelPath);
+    if (bodySignatureModelPath && fs.existsSync(bodySignatureModelPath)) {
+      const bodySignatureModel = readJsonFile(`${variantId}: body signature model`, bodySignatureModelPath);
+      if (bodySignatureModel) {
+        validateAvatarPublicationBodySignatureModel(
+          variantId,
+          bodySignatureModel,
+          item.evidence.bodySignatureModelPath,
+          item.publication.bodySignatureModelVersion,
+        );
+      }
+    }
+
+    const budgetReportPath = resolveWorkspacePath(item.evidence.budgetReportPath);
+    if (budgetReportPath && fs.existsSync(budgetReportPath)) {
+      const budgetReport = readJsonFile(`${variantId}: budget report`, budgetReportPath);
+      if (!budgetReport || !Array.isArray(budgetReport?.assets)) {
+        issues.push(`${variantId}: budget report must be a readable asset-budget report`);
+      }
+    }
+  }
+
+  for (const bundleItem of parsedCatalog.data.items) {
+    if (!expectedItemsById.has(bundleItem.id)) {
+      issues.push(`${bundleItem.id}: avatar publication catalog contains an unknown runtime variant`);
+    }
+  }
+};
+
 for (const [variantId, entry] of Object.entries(avatarRenderManifest)) {
   if (entry.id !== variantId) {
     issues.push(`${variantId}: manifest id must match object key`);
   }
 
-  if (entry.schemaVersion !== avatarManifestSchemaVersion) {
-    issues.push(`${variantId}: manifest schemaVersion must be ${avatarManifestSchemaVersion}`);
+  if (entry.schemaVersion !== runtimeAvatarRenderManifestSchemaVersion) {
+    issues.push(
+      `${variantId}: runtime manifest schemaVersion must be ${runtimeAvatarRenderManifestSchemaVersion}`,
+    );
   }
 
   if (!isKnownAuthoringSource(entry.authoringSource)) {
@@ -615,6 +864,14 @@ for (const [variantId, entry] of Object.entries(avatarRenderManifest)) {
   }
 
   validateAssetPath(variantId, entry.modelPath);
+  if (entry.lodModelPaths?.lod1) {
+    validateAssetPath(`${variantId}: lod1`, entry.lodModelPaths.lod1);
+    validateRuntimeAvatarLodGlb(`${variantId}: lod1 GLB`, entry.lodModelPaths.lod1);
+  }
+  if (entry.lodModelPaths?.lod2) {
+    validateAssetPath(`${variantId}: lod2`, entry.lodModelPaths.lod2);
+    validateRuntimeAvatarLodGlb(`${variantId}: lod2 GLB`, entry.lodModelPaths.lod2);
+  }
   validateAliasMap(variantId, entry.aliasPatterns);
 
   if (entry.authoringSource === "mpfb2") {
@@ -638,6 +895,8 @@ for (const [variantId, entry] of Object.entries(avatarRenderManifest)) {
     }
   }
 }
+
+validateAvatarPublicationCatalog();
 
 if (issues.length > 0) {
   console.error(`Avatar 3D validation failed with ${issues.length} issue(s).\n`);

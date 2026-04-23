@@ -12,15 +12,20 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingRoot: workspaceRoot,
   transpilePackages: [
+    "@freestyle/asset-schema",
     "@freestyle/contracts",
     "@freestyle/design-tokens",
     "@freestyle/domain-avatar",
     "@freestyle/domain-canvas",
     "@freestyle/domain-garment",
+    "@freestyle/fit-kernel",
     "@freestyle/runtime-3d",
     "@freestyle/shared-types",
     "@freestyle/shared-utils",
     "@freestyle/ui",
+    "@freestyle/viewer-core",
+    "@freestyle/viewer-protocol",
+    "@freestyle/viewer-react",
   ],
   images: {
     remotePatterns: [

@@ -5,6 +5,7 @@ import {
   createReferenceClosetStagePreviewFrameState,
   detectReferenceClosetStagePreviewFeatures,
   resolveReferenceClosetStagePreviewBackend,
+  resolveReferenceClosetStagePreviewEngineStatus,
   stepReferenceClosetStagePreviewFrame,
 } from "./reference-closet-stage-preview-simulation.js";
 
@@ -76,6 +77,50 @@ test("resolveReferenceClosetStagePreviewBackend prefers reduced worker compute w
       experimentalWebGPU: true,
     }),
     "experimental-webgpu",
+  );
+});
+
+test("resolveReferenceClosetStagePreviewEngineStatus keeps compatibility fallback reasons explicit", () => {
+  const featureSnapshot = {
+    hasWorker: true,
+    hasOffscreenCanvas: false,
+    hasWebGPU: true,
+    crossOriginIsolated: false,
+  } as const;
+
+  assert.deepEqual(
+    resolveReferenceClosetStagePreviewEngineStatus({
+      qualityTier: "balanced",
+      hasContinuousMotion: true,
+      featureSnapshot,
+      backend: "worker-reduced",
+    }),
+    {
+      engineKind: "reduced-preview-compat",
+      executionMode: "reduced-preview",
+      backend: "worker-reduced",
+      transport: "worker-message",
+      status: "ready",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveReferenceClosetStagePreviewEngineStatus({
+      qualityTier: "high",
+      hasContinuousMotion: true,
+      featureSnapshot,
+      backend: "experimental-webgpu",
+    }),
+    {
+      engineKind: "reduced-preview-compat",
+      executionMode: "reduced-preview",
+      backend: "experimental-webgpu",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "wasm-preview-disabled",
+      featureSnapshot,
+    },
   );
 });
 

@@ -3,7 +3,7 @@ export type StageSupportState = "pending" | "supported" | "unsupported";
 export type StageLoadState = "loading" | "ready" | "error";
 export type StageRenderState = "loading" | "ready" | "error" | "unsupported";
 
-export type AvatarStageViewportLifecycleState = {
+export type ViewerStageLifecycleState = {
   attempt: number;
   supportState: StageSupportState;
   loadState: StageLoadState;
@@ -15,13 +15,13 @@ type StageCanvasLike = {
 
 type StageCanvasFactory = () => StageCanvasLike;
 
-type AvatarStageViewportLifecycleEvent =
+type ViewerStageLifecycleEvent =
   | { type: "support-detected"; supportState: Exclude<StageSupportState, "pending"> }
   | { type: "load-started"; attempt: number }
   | { type: "load-resolved"; attempt: number; loadState: Exclude<StageLoadState, "loading"> }
   | { type: "retry-requested" };
 
-export const avatarStageViewportInitialLifecycleState: AvatarStageViewportLifecycleState = {
+export const viewerStageInitialLifecycleState: ViewerStageLifecycleState = {
   attempt: 0,
   supportState: "pending",
   loadState: "loading",
@@ -33,7 +33,7 @@ const qualityTierRank = {
   high: 2,
 } as const;
 
-export function resolveAvatarStageViewportQualityTier(
+export function resolveViewerStageQualityTier(
   requestedQualityTier: ViewportQualityTier | undefined,
   detectedQualityTier: ViewportQualityTier,
 ) {
@@ -46,7 +46,7 @@ export function resolveAvatarStageViewportQualityTier(
     : detectedQualityTier;
 }
 
-export function detectAvatarStageViewportSupport(createCanvas?: StageCanvasFactory | null): Exclude<StageSupportState, "pending"> {
+export function detectViewerStageSupport(createCanvas?: StageCanvasFactory | null): Exclude<StageSupportState, "pending"> {
   if (!createCanvas) {
     return "supported";
   }
@@ -57,10 +57,10 @@ export function detectAvatarStageViewportSupport(createCanvas?: StageCanvasFacto
     : "unsupported";
 }
 
-export function reduceAvatarStageViewportLifecycle(
-  state: AvatarStageViewportLifecycleState,
-  event: AvatarStageViewportLifecycleEvent,
-): AvatarStageViewportLifecycleState {
+export function reduceViewerStageLifecycle(
+  state: ViewerStageLifecycleState,
+  event: ViewerStageLifecycleEvent,
+): ViewerStageLifecycleState {
   switch (event.type) {
     case "support-detected":
       return {
@@ -98,7 +98,7 @@ export function reduceAvatarStageViewportLifecycle(
   }
 }
 
-export function shouldApplyAvatarStageViewportLoadResult({
+export function shouldApplyViewerStageLoadResult({
   cancelled,
   supportState,
   activeAttempt,
@@ -116,8 +116,8 @@ export function shouldApplyAvatarStageViewportLoadResult({
   return supportState === "supported" && activeAttempt === resolvedAttempt;
 }
 
-export function resolveAvatarStageViewportRenderState(
-  state: AvatarStageViewportLifecycleState,
+export function resolveViewerStageRenderState(
+  state: ViewerStageLifecycleState,
   hasStageComponent: boolean,
 ): StageRenderState {
   if (state.supportState === "unsupported") {

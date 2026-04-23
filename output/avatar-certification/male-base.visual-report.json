@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "avatar-visual-report.v1",
+  "avatarId": "male-base",
+  "reviewedAt": "2026-04-23T00:00:00.000Z",
+  "status": "pass",
+  "qualityTierCoverage": ["high", "balanced", "low"],
+  "sourceVisualEvidencePath": "docs/qa/phase5-visual-regression-2026-04-22.md",
+  "notes": [
+    "Phase 5 batch 1 reuses the current closet tier goldens as the read-only publication seam visual evidence.",
+    "This is publication evidence only and not a claim that full avatar factory goldens are complete."
+  ]
+}

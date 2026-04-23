@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -23,7 +23,11 @@ import type {
   QualityTier,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
-import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
+import {
+  avatarRenderManifest,
+  resolveAvatarRuntimeModelPath,
+  type AvatarRigAlias,
+} from "./avatar-manifest.js";
 import { ClosetStageLoadingFallback } from "./closet-stage-fallback.js";
 import {
   getFitLoosenessMultiplier,
@@ -33,15 +37,22 @@ import {
   buildReferenceClosetStagePreviewFrameRequest,
   createReferenceClosetStagePreviewFrameState,
   detectReferenceClosetStagePreviewFeatures,
+  isReferenceClosetStagePreviewResultEnvelope,
   resolveReferenceClosetStagePreviewBackend,
+  resolveReferenceClosetStagePreviewEngineStatus,
   stepReferenceClosetStagePreviewFrame,
   type ReferenceClosetStagePreviewBackendId,
+  type ReferenceClosetStagePreviewEngineStatus,
   type ReferenceClosetStagePreviewFeatureSnapshot,
   type ReferenceClosetStagePreviewFrameConfig,
   type ReferenceClosetStagePreviewFrameRequest,
   type ReferenceClosetStagePreviewFrameResult,
   type ReferenceClosetStagePreviewFrameState,
+  type ReferenceClosetStagePreviewResultEnvelope,
 } from "./reference-closet-stage-preview-simulation.js";
+import {
+  buildRuntimePreviewWorkerSetupMessages,
+} from "./preview-session-bridge.js";
 import {
   getAdaptiveCollisionClearanceMultiplier,
   getAdaptiveGarmentAdjustment,
@@ -53,6 +64,28 @@ import {
   ReferenceClosetStageView,
   type ReferenceClosetStageOrbitControls,
 } from "./reference-closet-stage-view.js";
+import {
+  applyPreviewRuntimeSnapshotDataAttributes,
+  buildPreviewRuntimeEventEnvelope,
+  buildPreviewRuntimeSnapshot,
+  createPreviewRuntimeSnapshot,
+  hasPreviewRuntimeSnapshotChanged,
+  type PreviewRuntimeSnapshot,
+} from "./preview-runtime-snapshot.js";
+import {
+  applyPreviewEngineStatusDataAttributes,
+  buildPreviewEngineStatusEventEnvelope,
+  createPreviewEngineStatus,
+  hasPreviewEngineStatusChanged,
+  type PreviewEngineStatus,
+} from "./preview-engine-status.js";
+import {
+  applyRuntimeMaterialCalibration,
+  isAlphaCardName,
+  isEyeLikeName,
+  isHairLikeName,
+  resolveRuntimeMaterialCalibration,
+} from "./material-system.js";
 import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
@@ -104,42 +137,6 @@ function isRenderableMesh(object: THREE.Object3D): object is THREE.Mesh | THREE.
 function isAvatarHelperMesh(object: THREE.Object3D) {
   const normalized = normalizeBoneName(object.name);
   return normalized === "icosphere" || normalized === "highpoly";
-}
-
-function isHairLikeName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return (
-    normalized.includes("hair") ||
-    normalized.includes("long01") ||
-    normalized.includes("short01") ||
-    normalized.includes("short02") ||
-    normalized.includes("short03") ||
-    normalized.includes("short04") ||
-    normalized.includes("bob01") ||
-    normalized.includes("bob02") ||
-    normalized.includes("braid01") ||
-    normalized.includes("ponytail01") ||
-    normalized.includes("afro01")
-  );
-}
-
-function isAlphaCardName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return (
-    isHairLikeName(name) ||
-    normalized.includes("eyebrow") ||
-    normalized.includes("eyelash") ||
-    normalized.includes("lash")
-  );
-}
-
-function isBodyLikeName(name: string) {
-  return normalizeBoneName(name).includes("body");
-}
-
-function isEyeLikeName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return normalized.includes("eye") || normalized.includes("iris") || normalized.includes("pupil");
 }
 
 function aliasMapFromRoot(root: THREE.Object3D, patterns: Record<AliasKey, readonly string[]>): AliasMap {
@@ -479,76 +476,12 @@ function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolea
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     materials.forEach((material) => {
       if (!material) return;
-      const alphaCard = isAlphaCardName(`${object.name}:${material.name}`);
-      const bodyLike = isBodyLikeName(`${object.name}:${material.name}`);
-      const eyeLike = isEyeLikeName(`${object.name}:${material.name}`);
-      const hairLike = isHairLikeName(`${object.name}:${material.name}`);
-      material.side = alphaCard ? THREE.DoubleSide : THREE.FrontSide;
-      const shadedMaterial = material as THREE.Material & {
-        map?: THREE.Texture | null;
-        color?: THREE.Color;
-        emissive?: THREE.Color;
-        emissiveIntensity?: number;
-        roughness?: number;
-        metalness?: number;
-        envMapIntensity?: number;
-        alphaTest?: number;
-      };
-      if (typeof shadedMaterial.roughness === "number") {
-        shadedMaterial.roughness = eyeLike
-          ? Math.min(0.08, shadedMaterial.roughness)
-          : bodyLike
-            ? Math.min(1, Math.max(avatarOnly ? 0.26 : 0.3, shadedMaterial.roughness))
-            : hairLike
-              ? Math.min(1, Math.max(0.18, shadedMaterial.roughness))
-            : alphaCard
-              ? Math.min(1, Math.max(0.42, shadedMaterial.roughness))
-              : Math.min(1, Math.max(0.34, shadedMaterial.roughness));
-      }
-      if (typeof shadedMaterial.metalness === "number") {
-        shadedMaterial.metalness = eyeLike ? Math.min(0.02, shadedMaterial.metalness) : Math.min(0.1, shadedMaterial.metalness);
-      }
-      if (typeof shadedMaterial.envMapIntensity === "number") {
-        shadedMaterial.envMapIntensity = eyeLike
-          ? 1.68
-          : bodyLike
-            ? avatarOnly
-              ? 1.12
-              : 0.92
-            : hairLike
-              ? 1.08
-              : alphaCard
-                ? 0.62
-                : 1.04;
-      }
-      if (shadedMaterial.color) {
-        if (bodyLike) {
-          shadedMaterial.color.offsetHSL(0.008, avatarOnly ? 0.038 : 0.02, avatarOnly ? 0.05 : 0.026);
-        } else if (hairLike) {
-          shadedMaterial.color.offsetHSL(0.006, 0.02, avatarOnly ? -0.008 : 0);
-        } else if (eyeLike) {
-          shadedMaterial.color.offsetHSL(0, 0.012, avatarOnly ? 0.022 : 0.012);
-        }
-      }
-      if (shadedMaterial.emissive) {
-        if (bodyLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#4b2f24");
-          shadedMaterial.emissiveIntensity = 0.012;
-        } else if (hairLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#241d1a");
-          shadedMaterial.emissiveIntensity = 0.008;
-        } else if (eyeLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#1f2530");
-          shadedMaterial.emissiveIntensity = 0.016;
-        }
-      }
-      material.transparent = alphaCard ? false : material.transparent;
-      material.depthWrite = true;
-      material.depthTest = true;
-      if (typeof shadedMaterial.alphaTest === "number") {
-        shadedMaterial.alphaTest = alphaCard ? 0.46 : 0;
-      }
-      material.needsUpdate = true;
+      const calibration = resolveRuntimeMaterialCalibration({
+        name: `${object.name}:${material.name}`,
+        avatarOnly,
+        qualityTier,
+      });
+      applyRuntimeMaterialCalibration(material, calibration);
     });
 
     const alphaCard = isAlphaCardName(object.name);
@@ -746,6 +679,29 @@ function applyPreviewFrameResult(
   motionTarget.position.set(result.position[0], result.position[1], result.position[2]);
 }
 
+function applyPreviewDeformation(
+  motionTarget: THREE.Group | null,
+  deformation: {
+    rotationRad: [number, number, number];
+    position: [number, number, number];
+  },
+) {
+  if (!motionTarget) {
+    return;
+  }
+
+  motionTarget.rotation.set(
+    deformation.rotationRad[0],
+    deformation.rotationRad[1],
+    deformation.rotationRad[2],
+  );
+  motionTarget.position.set(
+    deformation.position[0],
+    deformation.position[1],
+    deformation.position[2],
+  );
+}
+
 function applySceneFit(
   wrapperRef: React.RefObject<THREE.Group | null>,
   fitInfo: { height: number; centerX: number; centerZ: number; minY: number },
@@ -851,6 +807,8 @@ function BoundGarment({
   layerContext,
   avatarAliasMap,
   avatarSceneScale,
+  onPreviewRuntimeSnapshot,
+  onPreviewEngineStatus,
 }: {
   item: RuntimeGarmentAsset;
   bodyProfile: BodyProfile;
@@ -864,9 +822,11 @@ function BoundGarment({
   layerContext: GarmentLayerContext;
   avatarAliasMap: AliasMap;
   avatarSceneScale: number;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
+  onPreviewEngineStatus?: (status: PreviewEngineStatus) => void;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
-  const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId);
+  const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId, qualityTier);
   const gltf = useRuntimeGLTF(modelPath);
   const invalidate = useThree((state) => state.invalidate);
   const fitRef = useRef<THREE.Group>(null);
@@ -940,6 +900,19 @@ function BoundGarment({
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
   const effectivePreviewBackend = secondaryMotionConfig ? previewBackend : "static-fit";
 
+  const publishPreviewRuntimeSnapshot = useCallback(
+    (snapshot: PreviewRuntimeSnapshot) => {
+      onPreviewRuntimeSnapshot?.(snapshot);
+    },
+    [onPreviewRuntimeSnapshot],
+  );
+  const publishPreviewEngineStatus = useCallback(
+    (status: ReferenceClosetStagePreviewEngineStatus) => {
+      onPreviewEngineStatus?.(createPreviewEngineStatus(status));
+    },
+    [onPreviewEngineStatus],
+  );
+
   useEffect(() => {
     return () => {
       disposeRuntimeOwnedMaterials(garmentScene);
@@ -959,6 +932,15 @@ function BoundGarment({
     const worker = new Worker("/workers/reference-closet-stage-preview.worker.js");
     previewWorkerRef.current = worker;
 
+    const previewWorkerSetup = buildRuntimePreviewWorkerSetupMessages({
+      avatarVariantId,
+      bodyProfile,
+      item,
+    });
+    previewWorkerSetup.messages.forEach((message) => {
+      worker.postMessage(message);
+    });
+
     const flushQueuedRequest = () => {
       if (!previewWorkerRef.current || previewWorkerPendingRef.current) {
         return;
@@ -969,26 +951,77 @@ function BoundGarment({
       }
       queuedPreviewRequestRef.current = null;
       previewWorkerPendingRef.current = true;
-      previewWorkerRef.current.postMessage(nextRequest);
+      previewWorkerRef.current.postMessage({
+        type: "SOLVE_PREVIEW",
+        garmentId: item.id,
+        frame: nextRequest,
+      });
     };
 
-    worker.onmessage = (event: MessageEvent<ReferenceClosetStagePreviewFrameResult>) => {
-      const result = event.data;
-      previewWorkerPendingRef.current = false;
-      if (!result || result.sessionId !== String(previewSessionRef.current)) {
+    worker.onmessage = (
+      event: MessageEvent<
+        | ReferenceClosetStagePreviewFrameResult
+        | ReferenceClosetStagePreviewResultEnvelope
+        | {
+            type: "PREVIEW_DEFORMATION";
+            deformation: {
+              garmentId: string;
+              sessionId: string;
+              sequence: number;
+              settled: boolean;
+              rotationRad: [number, number, number];
+              position: [number, number, number];
+            };
+          }
+      >,
+    ) => {
+      const payload = event.data;
+      if (payload && typeof payload === "object" && "type" in payload && payload.type === "PREVIEW_DEFORMATION") {
+        previewWorkerPendingRef.current = false;
+        if (
+          !payload.deformation ||
+          payload.deformation.garmentId !== item.id ||
+          payload.deformation.sessionId !== String(previewSessionRef.current)
+        ) {
+          flushQueuedRequest();
+          return;
+        }
+        applyPreviewDeformation(motionRef.current, payload.deformation);
+        if (!payload.deformation.settled) {
+          invalidate();
+        }
         flushQueuedRequest();
         return;
       }
-      motionStateRef.current = result.state;
-      applyPreviewFrameResult(motionRef.current, result);
-      if (result.shouldContinue) {
-        invalidate();
+
+      const result = isReferenceClosetStagePreviewResultEnvelope(payload)
+        ? payload.result
+        : payload;
+      if (!result || result.sessionId !== String(previewSessionRef.current)) {
+        previewWorkerPendingRef.current = false;
+        flushQueuedRequest();
+        return;
       }
-      flushQueuedRequest();
+      publishPreviewRuntimeSnapshot(
+        buildPreviewRuntimeSnapshot({
+          payload,
+        }),
+      );
+      motionStateRef.current = result.state;
     };
 
     worker.onerror = (error) => {
       console.error("Reduced preview worker failed", error);
+      publishPreviewEngineStatus(
+        resolveReferenceClosetStagePreviewEngineStatus({
+          qualityTier,
+          hasContinuousMotion: true,
+          featureSnapshot: previewFeatureSnapshot,
+          backend: effectivePreviewBackend,
+          workerAvailable: false,
+          workerBootFailed: true,
+        }),
+      );
       previewWorkerPendingRef.current = false;
       queuedPreviewRequestRef.current = null;
       worker.terminate();
@@ -1005,7 +1038,17 @@ function BoundGarment({
         previewWorkerRef.current = null;
       }
     };
-  }, [effectivePreviewBackend, invalidate]);
+  }, [
+    avatarVariantId,
+    bodyProfile,
+    effectivePreviewBackend,
+    invalidate,
+    item,
+    previewFeatureSnapshot,
+    publishPreviewEngineStatus,
+    publishPreviewRuntimeSnapshot,
+    qualityTier,
+  ]);
 
   useLayoutEffect(() => {
     configureMaterials(garmentScene, { qualityTier });
@@ -1083,6 +1126,13 @@ function BoundGarment({
     queuedPreviewRequestRef.current = null;
     previewWorkerPendingRef.current = false;
     motionStateRef.current = createReferenceClosetStagePreviewFrameState();
+    publishPreviewRuntimeSnapshot(
+      createPreviewRuntimeSnapshot({
+        sessionId: String(previewSessionRef.current),
+        sequence: previewSequenceRef.current,
+        backend: effectivePreviewBackend,
+      }),
+    );
     if (secondaryMotionConfig) {
       invalidate();
     }
@@ -1122,6 +1172,8 @@ function BoundGarment({
     poseRuntimeTuning.widthScale,
     qualityTier,
     selected,
+    effectivePreviewBackend,
+    publishPreviewRuntimeSnapshot,
     secondaryMotionConfig,
     invalidate,
   ]);
@@ -1156,13 +1208,31 @@ function BoundGarment({
         queuedPreviewRequestRef.current = null;
         if (nextRequest) {
           previewWorkerPendingRef.current = true;
-          previewWorkerRef.current.postMessage(nextRequest);
+          previewWorkerRef.current.postMessage({
+            type: "SOLVE_PREVIEW",
+            garmentId: item.id,
+            frame: nextRequest,
+          });
         }
       }
       return;
     }
 
+    const frameStartTime =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
     const result = stepReferenceClosetStagePreviewFrame(request);
+    const frameEndTime =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    publishPreviewRuntimeSnapshot(
+      buildPreviewRuntimeSnapshot({
+        payload: result,
+        solveDurationMs: frameEndTime - frameStartTime,
+      }),
+    );
     motionStateRef.current = result.state;
     applyPreviewFrameResult(motionRef.current, result);
     if (result.shouldContinue) {
@@ -1188,6 +1258,8 @@ function AvatarRig({
   qualityTier,
   previewBackend,
   previewFeatureSnapshot,
+  onPreviewRuntimeSnapshot,
+  onPreviewEngineStatus,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1197,9 +1269,12 @@ function AvatarRig({
   qualityTier: QualityTier;
   previewBackend: ReferenceClosetStagePreviewBackendId;
   previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
+  onPreviewEngineStatus?: (status: PreviewEngineStatus) => void;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
-  const avatarGltf = useRuntimeGLTF(manifest.modelPath);
+  const avatarModelPath = resolveAvatarRuntimeModelPath(avatarVariantId, qualityTier) ?? manifest.modelPath;
+  const avatarGltf = useRuntimeGLTF(avatarModelPath);
   const wrapperRef = useRef<THREE.Group>(null);
 
   const avatarScene = useMemo(() => clone(avatarGltf.scene) as THREE.Group, [avatarGltf.scene]);
@@ -1309,6 +1384,8 @@ function AvatarRig({
             }}
             avatarAliasMap={aliasMap}
             avatarSceneScale={avatarSceneScale}
+            onPreviewRuntimeSnapshot={onPreviewRuntimeSnapshot}
+            onPreviewEngineStatus={onPreviewEngineStatus}
           />
         ))}
     </group>
@@ -1327,6 +1404,8 @@ function SceneRig({
   previewFeatureSnapshot,
   controlsEnableDamping,
   controlsDampingFactor,
+  onPreviewRuntimeSnapshot,
+  onPreviewEngineStatus,
 }: {
   bodyProfile: BodyProfile;
   avatarVariantId: AvatarRenderVariantId;
@@ -1339,6 +1418,8 @@ function SceneRig({
   previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   controlsEnableDamping: boolean;
   controlsDampingFactor: number;
+  onPreviewRuntimeSnapshot?: (snapshot: PreviewRuntimeSnapshot) => void;
+  onPreviewEngineStatus?: (status: PreviewEngineStatus) => void;
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
@@ -1360,6 +1441,8 @@ function SceneRig({
         qualityTier={qualityTier}
         previewBackend={previewBackend}
         previewFeatureSnapshot={previewFeatureSnapshot}
+        onPreviewRuntimeSnapshot={onPreviewRuntimeSnapshot}
+        onPreviewEngineStatus={onPreviewEngineStatus}
       />
     </>
   );
@@ -1382,6 +1465,9 @@ export function ReferenceClosetStageCanvas({
   qualityTier: QualityTier;
   backgroundColor?: string;
 }) {
+  const previewRuntimeRootRef = useRef<HTMLDivElement>(null);
+  const lastPreviewRuntimeSnapshotRef = useRef<PreviewRuntimeSnapshot | null>(null);
+  const lastPreviewEngineStatusRef = useRef<PreviewEngineStatus | null>(null);
   const scenePolicy = useMemo(
     () =>
       resolveReferenceClosetStageScenePolicy({
@@ -1404,24 +1490,129 @@ export function ReferenceClosetStageCanvas({
       }),
     [previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
   );
+  const basePreviewEngineStatus = useMemo(
+    () =>
+      createPreviewEngineStatus(
+        resolveReferenceClosetStagePreviewEngineStatus({
+          qualityTier,
+          hasContinuousMotion: scenePolicy.hasContinuousMotion,
+          featureSnapshot: previewFeatureSnapshot,
+          backend: previewBackend,
+        }),
+      ),
+    [previewBackend, previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
+  );
+  const basePreviewRuntimeSnapshot = useMemo(
+    () =>
+      createPreviewRuntimeSnapshot({
+        sessionId: "compat-preview-bootstrap",
+        sequence: 0,
+        backend: previewBackend,
+      }),
+    [previewBackend],
+  );
+
+  const handlePreviewRuntimeSnapshot = useCallback((snapshot: PreviewRuntimeSnapshot) => {
+    const previousSnapshot = lastPreviewRuntimeSnapshotRef.current;
+    if (!hasPreviewRuntimeSnapshotChanged(previousSnapshot, snapshot)) {
+      return;
+    }
+    lastPreviewRuntimeSnapshotRef.current = snapshot;
+    applyPreviewRuntimeSnapshotDataAttributes(previewRuntimeRootRef.current, snapshot);
+    const shouldDispatchEvent =
+      !previousSnapshot ||
+      previousSnapshot.sessionId !== snapshot.sessionId ||
+      previousSnapshot.executionMode !== snapshot.executionMode ||
+      previousSnapshot.backend !== snapshot.backend ||
+      previousSnapshot.solverKind !== snapshot.solverKind ||
+      previousSnapshot.settled !== snapshot.settled;
+    if (shouldDispatchEvent && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("freestyle:viewer-event", {
+          detail: buildPreviewRuntimeEventEnvelope(snapshot),
+        }),
+      );
+    }
+  }, []);
+
+  const handlePreviewEngineStatus = useCallback((status: PreviewEngineStatus) => {
+    const previousStatus = lastPreviewEngineStatusRef.current;
+    if (!hasPreviewEngineStatusChanged(previousStatus, status)) {
+      return;
+    }
+    lastPreviewEngineStatusRef.current = status;
+    applyPreviewEngineStatusDataAttributes(previewRuntimeRootRef.current, status);
+    const shouldDispatchEvent =
+      !previousStatus ||
+      previousStatus.engineKind !== status.engineKind ||
+      previousStatus.executionMode !== status.executionMode ||
+      previousStatus.backend !== status.backend ||
+      previousStatus.transport !== status.transport ||
+      previousStatus.status !== status.status ||
+      previousStatus.fallbackReason !== status.fallbackReason;
+    if (shouldDispatchEvent && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("freestyle:viewer-event", {
+          detail: buildPreviewEngineStatusEventEnvelope(status),
+        }),
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    lastPreviewRuntimeSnapshotRef.current = null;
+    applyPreviewRuntimeSnapshotDataAttributes(previewRuntimeRootRef.current, null);
+  }, [avatarVariantId, bodyProfile, equippedGarments, poseId, qualityTier, selectedItemId]);
+
+  useEffect(() => {
+    handlePreviewRuntimeSnapshot(basePreviewRuntimeSnapshot);
+  }, [basePreviewRuntimeSnapshot, handlePreviewRuntimeSnapshot]);
+
+  useEffect(() => {
+    handlePreviewEngineStatus(basePreviewEngineStatus);
+  }, [basePreviewEngineStatus, handlePreviewEngineStatus]);
 
   return (
-    <ReferenceClosetStageView scenePolicy={scenePolicy} qualityTier={qualityTier}>
-      <Suspense fallback={<ClosetStageLoadingFallback />}>
-        <SceneRig
-          bodyProfile={bodyProfile}
-          avatarVariantId={avatarVariantId}
-          poseId={poseId}
-          equippedGarments={equippedGarments}
-          selectedItemId={selectedItemId}
-          avatarOnly={scenePolicy.avatarOnly}
-          qualityTier={qualityTier}
-          previewBackend={previewBackend}
-          previewFeatureSnapshot={previewFeatureSnapshot}
-          controlsEnableDamping={scenePolicy.controlsEnableDamping}
-          controlsDampingFactor={scenePolicy.controlsDampingFactor}
-        />
-      </Suspense>
-    </ReferenceClosetStageView>
+    <div
+      ref={previewRuntimeRootRef}
+      data-preview-runtime-root
+      data-preview-runtime-execution-mode=""
+      data-preview-runtime-backend=""
+      data-preview-runtime-solver-kind=""
+      data-preview-runtime-session-id=""
+      data-preview-runtime-sequence=""
+      data-preview-runtime-solve-duration-ms=""
+      data-preview-runtime-settled=""
+      data-preview-engine-kind=""
+      data-preview-engine-execution-mode=""
+      data-preview-engine-backend=""
+      data-preview-engine-transport=""
+      data-preview-engine-status=""
+      data-preview-engine-fallback-reason=""
+      data-preview-engine-has-worker=""
+      data-preview-engine-has-webgpu=""
+      data-preview-engine-cross-origin-isolated=""
+      style={{ height: "100%", width: "100%" }}
+    >
+      <ReferenceClosetStageView scenePolicy={scenePolicy}>
+        <Suspense fallback={<ClosetStageLoadingFallback />}>
+          <SceneRig
+            bodyProfile={bodyProfile}
+            avatarVariantId={avatarVariantId}
+            poseId={poseId}
+            equippedGarments={equippedGarments}
+            selectedItemId={selectedItemId}
+            avatarOnly={scenePolicy.avatarOnly}
+            qualityTier={qualityTier}
+            previewBackend={previewBackend}
+            previewFeatureSnapshot={previewFeatureSnapshot}
+            controlsEnableDamping={scenePolicy.controlsEnableDamping}
+            controlsDampingFactor={scenePolicy.controlsDampingFactor}
+            onPreviewRuntimeSnapshot={handlePreviewRuntimeSnapshot}
+            onPreviewEngineStatus={handlePreviewEngineStatus}
+          />
+        </Suspense>
+      </ReferenceClosetStageView>
+    </div>
   );
 }

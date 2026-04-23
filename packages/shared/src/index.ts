@@ -178,6 +178,7 @@ export const fitSimulationJobPayloadSchema = fitSimulateHQJobPayloadSchema
         value.cacheKey ??
         fitSimulationCacheKeySchema.parse(
           buildFitSimulationCacheKey({
+            avatarVariantId: value.avatarVariantId,
             bodyProfileRevision,
             garmentVariantId: value.garmentVariantId,
             garmentRevision,

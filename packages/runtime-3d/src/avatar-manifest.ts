@@ -1,44 +1,20 @@
-import type { AvatarRenderVariantId } from "@freestyle/shared-types";
+import type {
+  AvatarRenderVariantId,
+  AvatarRigAlias,
+  AvatarSourceProvenance,
+  QualityTier,
+  RuntimeAvatarAsset,
+} from "@freestyle/shared-types";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+export { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+export type { AvatarRigAlias } from "@freestyle/shared-types";
 
-export type AvatarRigAlias =
-  | "root"
-  | "hips"
-  | "spine"
-  | "torso"
-  | "chest"
-  | "neck"
-  | "head"
-  | "leftShoulder"
-  | "rightShoulder"
-  | "leftUpperArm"
-  | "rightUpperArm"
-  | "leftLowerArm"
-  | "rightLowerArm"
-  | "leftHand"
-  | "rightHand"
-  | "leftUpperLeg"
-  | "rightUpperLeg"
-  | "leftLowerLeg"
-  | "rightLowerLeg"
-  | "leftFoot"
-  | "rightFoot";
-
-export const avatarManifestSchemaVersion = "avatar-manifest-v1";
 export const avatarSummarySchemaVersion = "avatar-build-summary-v1";
 export const avatarSkeletonSidecarSchemaVersion = "avatar-skeleton-sidecar-v1";
 export const avatarMorphMapSidecarSchemaVersion = "avatar-morph-map-sidecar-v1";
 
-export type AvatarSourceSystem = "mpfb2" | "charmorph" | "runtime-fallback";
-
-type AvatarSourceProvenance = {
-  sourceSystem: AvatarSourceSystem;
+export type AvatarRenderManifestSourceProvenance = AvatarSourceProvenance & {
   schemaVersion: typeof avatarSummarySchemaVersion;
-  presetPath: string;
-  summaryPath: string;
-  skeletonPath: string;
-  measurementsPath: string;
-  morphMapPath: string;
-  outputModelPath: string;
 };
 
 export const referenceRigAliasPatterns = {
@@ -65,33 +41,21 @@ export const referenceRigAliasPatterns = {
   rightFoot: ["rightfoot"],
 } satisfies Record<AvatarRigAlias, string[]>;
 
-export type AvatarRenderManifestEntry = {
-  id: AvatarRenderVariantId;
-  label: string;
-  schemaVersion: typeof avatarManifestSchemaVersion;
-  modelPath: string;
-  authoringSource: AvatarSourceSystem;
-  sourceProvenance: AvatarSourceProvenance;
-  bodyMaskStrategy: "named-mesh-zones" | "none";
-  stageOffsetY: number;
-  stageScale: number;
-  meshZones: {
-    fullBody: string[];
-    torso: string[];
-    arms: string[];
-    hips: string[];
-    legs: string[];
-    feet: string[];
-  };
-  aliasPatterns: Record<AvatarRigAlias, string[]>;
+export type AvatarRenderManifestEntry = RuntimeAvatarAsset & {
+  schemaVersion: typeof runtimeAvatarRenderManifestSchemaVersion;
+  sourceProvenance: AvatarRenderManifestSourceProvenance;
 };
 
 export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderManifestEntry> = {
   "female-base": {
     id: "female-base" as AvatarRenderVariantId,
-    schemaVersion: avatarManifestSchemaVersion,
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
     label: "Female base",
     modelPath: "/assets/avatars/mpfb-female-base.glb",
+    lodModelPaths: {
+      lod1: "/assets/avatars/mpfb-female-base.lod1.glb",
+      lod2: "/assets/avatars/mpfb-female-base.lod2.glb",
+    },
     authoringSource: "mpfb2",
     sourceProvenance: {
       sourceSystem: "mpfb2",
@@ -140,9 +104,13 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
   },
   "male-base": {
     id: "male-base" as AvatarRenderVariantId,
-    schemaVersion: avatarManifestSchemaVersion,
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
     label: "Male base",
     modelPath: "/assets/avatars/mpfb-male-base.glb",
+    lodModelPaths: {
+      lod1: "/assets/avatars/mpfb-male-base.lod1.glb",
+      lod2: "/assets/avatars/mpfb-male-base.lod2.glb",
+    },
     authoringSource: "mpfb2",
     sourceProvenance: {
       sourceSystem: "mpfb2",
@@ -189,4 +157,24 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
       rightFoot: ["footr"],
     } satisfies Record<AvatarRigAlias, string[]>,
   },
+};
+
+export const resolveAvatarRuntimeModelPath = (
+  variantId: AvatarRenderVariantId,
+  qualityTier: QualityTier = "high",
+) => {
+  const entry = avatarRenderManifest[variantId];
+  if (!entry) {
+    return null;
+  }
+
+  if (qualityTier === "low") {
+    return entry.lodModelPaths?.lod2 ?? entry.lodModelPaths?.lod1 ?? entry.modelPath;
+  }
+
+  if (qualityTier === "balanced") {
+    return entry.lodModelPaths?.lod1 ?? entry.modelPath;
+  }
+
+  return entry.modelPath;
 };

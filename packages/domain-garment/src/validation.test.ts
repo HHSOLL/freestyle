@@ -15,6 +15,7 @@ import {
 import {
   assessGarmentPhysicalFit,
   assessGarmentInstantFit,
+  buildStarterGarmentCertificationSeed,
   buildFitMapSummary,
   buildGarmentInstantFitReport,
   computeGarmentCorrectiveTransform,
@@ -30,6 +31,7 @@ import {
   resolveLayeredEquippedItemIds,
   resolveDefaultClosetLoadout,
   starterGarmentCatalog,
+  validatePublishedGarmentCertificationState,
   validateGarmentAuthoringBundleAgainstStarterCatalog,
   validateGarmentPatternSpecAgainstStarterCatalog,
   validateGarmentRuntimeBinding,
@@ -44,6 +46,37 @@ test("starter garment catalog satisfies runtime contract", () => {
   assert.deepEqual(issues, []);
 });
 
+test("published garment certification state requires approval metadata for promoted assets", () => {
+  const starter = starterGarmentCatalog.find((item) => item.category === "tops");
+  assert.ok(starter);
+
+  const issues = validatePublishedGarmentCertificationState({
+    ...starter,
+    source: "inventory",
+    publication: {
+      sourceSystem: "admin-domain",
+      publishedAt: "2026-04-23T00:00:00.000Z",
+      assetVersion: "starter-top-soft-casual@1.0.0",
+      measurementStandard: "body-garment-v1",
+      approvalState: "PUBLISHED",
+      certificationNotes: [],
+    },
+  });
+
+  assert.ok(
+    issues.some((issue) => issue.includes("approvedAt is required")),
+    issues.join("\n"),
+  );
+  assert.ok(
+    issues.some((issue) => issue.includes("approvedBy is required")),
+    issues.join("\n"),
+  );
+  assert.ok(
+    issues.some((issue) => issue.includes("certificationNotes must contain at least one note")),
+    issues.join("\n"),
+  );
+});
+
 test("starter garment catalog carries publication-ready physical fit metadata", () => {
   for (const item of starterGarmentCatalog) {
     assert.ok(item.metadata?.measurementModes, `${item.id} is missing measurementModes`);
@@ -52,6 +85,25 @@ test("starter garment catalog carries publication-ready physical fit metadata", 
     assert.ok(item.metadata?.physicalProfile, `${item.id} is missing physicalProfile`);
     assert.ok(assessGarmentPhysicalFit(item, defaultBodyProfile), `${item.id} does not produce a fit assessment`);
   }
+});
+
+test("starter garment certification seed captures runtime LOD and size-chart metadata", () => {
+  const starter = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(starter);
+
+  const seed = buildStarterGarmentCertificationSeed(starter, {
+    authoredVariantIds: ["female-base"],
+  });
+  assert.ok(seed);
+  assert.equal(seed.fitPolicyCategory, "tight_top");
+  assert.equal(seed.selectedSizeLabel, "L");
+  assert.deepEqual(seed.sizeChartLabels, ["M", "L", "XL"]);
+  assert.equal(seed.runtimePaths.modelPath, starter.runtime.modelPath);
+  assert.equal(seed.runtimePaths.modelPathByVariant?.["female-base"], starter.runtime.modelPathByVariant?.["female-base"]);
+  assert.equal(seed.runtimePaths.modelPathByVariant?.["male-base"], undefined);
+  assert.equal(seed.runtimePaths.lodModelPaths?.lod1, starter.runtime.lodModelPaths?.lod1);
+  assert.equal(seed.runtimePaths.lodModelPathsByVariant?.["female-base"]?.lod2, starter.runtime.lodModelPathsByVariant?.["female-base"]?.lod2);
+  assert.equal(seed.runtimePaths.lodModelPathsByVariant?.["male-base"], undefined);
 });
 
 test("committed garment pattern specs stay aligned with starter runtime metadata", () => {

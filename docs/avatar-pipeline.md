@@ -11,12 +11,26 @@ The preferred authoring pipeline is:
 
 The Blender addon itself is not part of the web product. It is an offline authoring step.
 
+The production-grade avatar acceptance rules now also live in:
+
+- `docs/asset-quality-contract.md`
+- `docs/avatar-production-contract.md`
+- `packages/asset-schema/src/index.ts`
+
 ## 2. Current Repo Truth
 
 Current shipped runtime assets:
 
 - `apps/web/public/assets/avatars/mpfb-female-base.glb`
 - `apps/web/public/assets/avatars/mpfb-male-base.glb`
+
+Current read-only publication seam:
+
+- `packages/runtime-3d/src/avatar-publication-catalog.ts`
+- `GET /v1/admin/avatars`
+- `output/avatar-certification/latest.json`
+- `POST /v1/lab/jobs/fit-simulations` as the first production-adjacent consumer of the publication seam
+- `GET /v1/lab/fit-simulations/:id` as the paired read path for a minimal derived publication snapshot
 
 These are generated in-repo from the MPFB pipeline and are now the default visible human bases for the runtime.
 
@@ -36,11 +50,14 @@ Every promoted mannequin asset must satisfy:
   - source provenance (preset + summary + sidecar + output GLB parity)
   - build provenance (MPFB repo revision + asset-pack checksum + builder version)
   - output artifact digest (post-optimize byte size + SHA-256)
-  - explicit variant/runtime model path coupling
+- explicit variant/runtime model path coupling
+- separate `render body`, `fit body`, and `collision body` artifacts before certification
+- quality reports for visual fit, fit compatibility, and budget compliance before `PUBLISHED`
 
 Current runtime source-of-truth files:
 
 - `packages/runtime-3d/src/avatar-manifest.ts`
+- `packages/runtime-3d/src/avatar-publication-catalog.ts`
 - `packages/domain-garment/src/skeleton-profiles.ts`
 - `packages/runtime-3d/src/closet-stage.tsx`
 
@@ -126,6 +143,7 @@ Before promoting a new avatar asset:
 5. verify measurement changes affect the intended regions
 6. verify the asset stays within the declared runtime budget
 7. run `npm run validate:avatar3d`
+8. if publication metadata changed, verify `/v1/admin/avatars` and `output/avatar-certification/latest.json` still match the committed runtime avatar manifest
 
 ## 7. MPFB2 / CharMorph Offline Flow
 
@@ -173,6 +191,7 @@ Current remaining limitation:
 - the current `output/fit-calibration/latest.json` artifact is now also versioned and schema-validated through `packages/contracts`, so calibration evidence can drift only through an explicit contract change
 - the current `measurements.json` sidecar now also records the extraction method and source anchors for each reference measurement so authoring QA can diff semantic changes without reopening Blender
 - the current raw contract also records `buildProvenance` so future reruns can be traced back to a specific MPFB revision, asset-pack checksum, and Blender export toolchain
+- the current Phase 5 avatar publication seam is still read-only: it exposes committed MPFB base variants through `/v1/admin/avatars` and `output/avatar-certification/latest.json`, but it is not yet a full asset-factory write/certification workflow
 - the current MPFB wrapper now resolves authoring inputs against `authoring/avatar/mpfb/source-lock.json` instead of floating `origin/master`
 - the current default starter direction is `Soft Tucked Tee + Soft Wool Trousers + Soft Day Shoe`, built from the official MakeHuman Community `shirts01`, `pants01`, and `shoes01` packs
 - the current hero-garment authoring pass widened and dropped the `Soft Casual` top and `Tailored Layer` outerwear directly in Blender before export

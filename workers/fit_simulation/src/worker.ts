@@ -9,6 +9,8 @@ import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import { getStorageAdapter } from "@freestyle/storage";
 import {
+  buildFitSimulationArtifactLineageId,
+  buildFitSimulationCacheKey,
   buildJobResultEnvelope,
   fitMapArtifactSchemaVersion,
   fitMapArtifactDataSchema,
@@ -20,6 +22,7 @@ import {
   fitSimulationJobPayloadSchema,
   type FitSimulationJobPayload,
   type FitSimulationArtifact,
+  type FitSimulationArtifactLineage,
   type FitSimulationQualityTier,
   type FitMapArtifactData,
   type FitMapOverlay,
@@ -71,24 +74,22 @@ const hasRemoteStorageConfig = () => {
   return Boolean(process.env.SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
 };
 
-const persistFitSimulationArtifact = async (
+const getFitSimulationArtifactStorageBackend = (): FitSimulationArtifactLineage["storageBackend"] =>
+  hasRemoteStorageConfig() ? "remote-storage" : "local-file";
+
+const persistFitSimulationFile = async (
   fitSimulationId: string,
-  kind: FitSimulationArtifact["kind"],
   fileName: string,
   contentType: string,
   buffer: Buffer,
-  metadata?: FitSimulationArtifact["metadata"],
-): Promise<FitSimulationArtifact> => {
+) => {
   const key = path.posix.join("fit-simulations", fitSimulationId, fileName);
 
   if (hasRemoteStorageConfig()) {
     const uploaded = await getStorageAdapter().uploadBuffer(key, buffer, contentType);
     return {
-      kind,
-      url: uploaded.url,
       key: uploaded.key,
-      label: fileName,
-      metadata,
+      url: uploaded.url,
     };
   }
 
@@ -97,9 +98,24 @@ const persistFitSimulationArtifact = async (
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, buffer);
   return {
-    kind,
-    url: pathToFileURL(absolutePath).toString(),
     key,
+    url: pathToFileURL(absolutePath).toString(),
+  };
+};
+
+const persistFitSimulationArtifact = async (
+  fitSimulationId: string,
+  kind: FitSimulationArtifact["kind"],
+  fileName: string,
+  contentType: string,
+  buffer: Buffer,
+  metadata?: FitSimulationArtifact["metadata"],
+): Promise<FitSimulationArtifact> => {
+  const stored = await persistFitSimulationFile(fitSimulationId, fileName, contentType, buffer);
+  return {
+    kind,
+    url: stored.url,
+    key: stored.key,
     label: fileName,
     metadata,
   };
@@ -344,6 +360,7 @@ export const buildFitSimulationMetricsArtifactPayload = (
   garment: FitSimulationMetricsArtifactData["garment"],
   fitMapSummary: FitSimulationMetricsArtifactData["fitMapSummary"],
   metrics: FitSimulationMetricsArtifactData["metrics"],
+  artifactLineageId: FitSimulationMetricsArtifactData["artifactLineageId"],
   warnings: string[],
   artifactKinds: FitSimulationMetricsArtifactData["artifactKinds"],
 ) =>
@@ -355,6 +372,7 @@ export const buildFitSimulationMetricsArtifactPayload = (
     garment,
     fitMapSummary,
     metrics,
+    artifactLineageId,
     warnings,
     drapeSource: fitSimulationDrapeSource,
     artifactKinds,
@@ -500,6 +518,22 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       const warnings = [
         "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.",
       ];
+      const cacheKeyParts = {
+        avatarVariantId: row.avatarVariantId,
+        bodyProfileRevision: payload.bodyProfileRevision ?? row.bodyProfileRevision ?? payload.bodyVersionId,
+        garmentVariantId: row.garmentVariantId,
+        garmentRevision: payload.garmentRevision ?? row.garmentRevision ?? row.garmentVariantId,
+        materialPreset: row.materialPreset,
+        qualityTier: row.qualityTier,
+      } as const;
+      const cacheKey = row.cacheKey ?? buildFitSimulationCacheKey(cacheKeyParts);
+      const artifactKinds = ["draped_glb", "preview_png", "fit_map_json", "metrics_json"] as const;
+      const artifactLineageId = buildFitSimulationArtifactLineageId({
+        cacheKey,
+        cacheKeyParts,
+        artifactKinds: [...artifactKinds],
+        drapeSource: fitSimulationDrapeSource,
+      });
       const metrics = {
         durationMs: Math.max(1, Date.now() - startedAt),
         penetrationRate: coercePenetrationRate(
@@ -524,7 +558,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           garmentManifestUrl: row.garmentManifestUrl,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
-          cacheKey: row.cacheKey,
+          cacheKey,
         },
         {
           id: row.garmentSnapshot.id,
@@ -589,7 +623,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           garmentManifestUrl: row.garmentManifestUrl,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
-          cacheKey: row.cacheKey,
+          cacheKey,
         },
         {
           id: row.garmentSnapshot.id,
@@ -598,8 +632,9 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         },
         fitMapSummary,
         metrics,
+        artifactLineageId,
         warnings,
-        ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
+        [...artifactKinds],
       );
       const metricsArtifact = await persistFitSimulationArtifact(
         row.id,
@@ -612,18 +647,67 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           dominantOverlayKind: fitMapSummary.dominantOverlayKind,
         },
       );
-
       const completedAt = new Date().toISOString();
+      const artifactLineage = {
+        schemaVersion: "fit-simulation-artifact-lineage.v1" as const,
+        artifactLineageId,
+        generatedAt: completedAt,
+        cacheKey,
+        cacheKeyParts,
+        avatarManifestUrl: row.avatarManifestUrl,
+        garmentManifestUrl: row.garmentManifestUrl,
+        storageBackend: getFitSimulationArtifactStorageBackend(),
+        drapeSource: fitSimulationDrapeSource,
+        artifactKinds: [...artifactKinds],
+        manifestKey: path.posix.join("fit-simulations", row.id, "artifact-lineage.json"),
+        manifestUrl: "",
+        warnings,
+      } satisfies Omit<FitSimulationArtifactLineage, "manifestUrl"> & { manifestUrl: string };
+      const storedLineage = await persistFitSimulationFile(
+        row.id,
+        "artifact-lineage.json",
+        "application/json",
+        Buffer.from(
+          JSON.stringify(
+            {
+              ...artifactLineage,
+              manifestUrl:
+                artifactLineage.storageBackend === "remote-storage"
+                  ? new URL(
+                      `/${artifactLineage.manifestKey.replace(/^\/+/, "")}`,
+                      process.env.PUBLIC_ASSET_BASE_URL?.trim() || "https://freestyle.local",
+                    ).toString()
+                  : "",
+            },
+            null,
+            2,
+          ),
+          "utf8",
+        ),
+      );
+      const finalizedArtifactLineage: FitSimulationArtifactLineage = {
+        ...artifactLineage,
+        manifestKey: storedLineage.key,
+        manifestUrl: storedLineage.url,
+      };
+      await persistFitSimulationFile(
+        row.id,
+        "artifact-lineage.json",
+        "application/json",
+        Buffer.from(JSON.stringify(finalizedArtifactLineage, null, 2), "utf8"),
+      );
       const artifacts = [drapedArtifact, previewArtifact, fitMapArtifact, metricsArtifact];
       const nextRecord = await upsertFitSimulationRecord({
         ...row,
         status: "succeeded",
+        cacheKey,
         fitAssessment,
         instantFit,
         fitMap: fitMapArtifactPayload,
         fitMapSummary,
         artifacts,
         metrics,
+        artifactLineage: finalizedArtifactLineage,
         warnings,
         errorMessage: null,
         updatedAt: completedAt,
@@ -656,8 +740,17 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
       await upsertFitSimulationRecord({
         ...row,
         status: "failed",
+        cacheKey: row.cacheKey ?? buildFitSimulationCacheKey({
+          avatarVariantId: row.avatarVariantId,
+          bodyProfileRevision: payload.bodyProfileRevision ?? row.bodyProfileRevision ?? payload.bodyVersionId,
+          garmentVariantId: row.garmentVariantId,
+          garmentRevision: payload.garmentRevision ?? row.garmentRevision ?? row.garmentVariantId,
+          materialPreset: row.materialPreset,
+          qualityTier: row.qualityTier,
+        }),
         fitMap: row.fitMap ?? null,
         fitMapSummary: row.fitMapSummary ?? null,
+        artifactLineage: row.artifactLineage ?? null,
         errorMessage: error instanceof Error ? error.message : "HQ fit simulation failed.",
         updatedAt: failedAt,
         completedAt: failedAt,

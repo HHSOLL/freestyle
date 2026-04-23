@@ -20,6 +20,11 @@ Before changing the product, read these in order:
 14. `docs/contract-ownership.md`
 15. `docs/ai-agent-playbook.md`
 16. `docs/quality-gates.md`
+17. `docs/asset-quality-contract.md`
+18. `docs/avatar-production-contract.md`
+19. `docs/garment-production-contract.md`
+20. `docs/material-contract.md`
+21. `docs/fit-quality-contract.md`
 
 ## 1.1 Git Workflow
 
@@ -87,14 +92,58 @@ The minimum domain structure is fixed:
   - local repository adapters over the shared contract
 - `packages/runtime-3d`
   - avatar render manifest
+  - avatar publication catalog
   - runtime asset budget
   - pose, rig, and scene control
+- `packages/asset-schema`
+  - production-grade avatar / garment / material / fit-artifact schemas
+  - approval-state and certification contracts
+- `packages/viewer-core`
+  - imperative viewer lifecycle
+  - shared loader registry, renderer ownership, and demand-driven scheduler ownership
+- `packages/viewer-react`
+  - canonical product-facing viewer adapter
+  - owns host selection, preload delegation, fallback/retry lifecycle, and the React host seam
+  - creates one imperative `viewer-core` controller and pushes a single `setScene(...)` payload across the staged cutover boundary
+- `packages/viewer-protocol`
+  - viewer commands
+  - preview worker messages
+  - HQ artifact and telemetry envelopes
+- `packages/fit-kernel`
+  - preview solver execution-mode and transport seam
 - `packages/shared-types`
   - canonical types shared across app boundaries
 - `packages/shared-utils`
   - shared utilities only
 
 Cross-domain imports should remain narrow and directional. `runtime-3d` may consume domain packages, but `domain-avatar` and `domain-garment` must not depend on page or shell code.
+During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibility shim. New product-facing viewer features belong in `viewer-core`, `viewer-react`, `viewer-protocol`, `fit-kernel`, and `asset-schema`. Do not make `packages/runtime-3d` depend on `viewer-core`.
+`viewer-react` must stay thin: it may own product-facing host selection, preload delegation, viewport/support/retry lifecycle, translate product viewport props into a canonical scene payload, and own the controller lifecycle, but it must not rebuild renderer logic or reintroduce direct product-path imports from `runtime-3d/src/**`.
+`apps/web` should import `AvatarStageViewport` and `preloadViewerAssets` from `@freestyle/viewer-react`; product routes should not resolve host mode or import `@freestyle/runtime-3d` directly.
+`/app/closet` now owns the first explicit product cutover seam through `apps/web/src/lib/closet-viewer-phase9.ts`. Use `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true` to cut that route over to `viewer-react`, and `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH=true` to force it back to `runtime-3d` without touching the lab harness defaults. Keep that helper hydration-stable by reading the explicit `NEXT_PUBLIC_*` keys directly instead of handing `process.env` through wholesale.
+The direct browser harness for `viewer-core` lives at `/app/lab/viewer-platform`; use it for Phase 1 manual verification before widening product cutover.
+The Phase 4 material/lighting harness lives at `/app/lab/material-system`; use it to verify compatibility-stage studio lighting and material-class readability without routing through the full product closet.
+Phase 1 closeout evidence for the viewer-platform refactor lives at `docs/freestyle-viewer-platform/phase1/closeout.md`.
+The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
+Phase 2 closeout evidence for the schema/protocol foundation lives at `docs/freestyle-viewer-platform/phase2/closeout.md`.
+Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/freestyle-viewer-platform/phase2/telemetry-slice.md`.
+Phase 2 manifest-shadow evidence for the admin publication contract lives at `docs/freestyle-viewer-platform/phase2/manifest-shadow.md`.
+Phase 2.5 closeout evidence for contract enforcement lives at `docs/freestyle-viewer-platform/phase2_5/closeout.md`.
+Phase 4 closeout evidence for compatibility-runtime material and lighting ownership lives at `docs/freestyle-viewer-platform/phase4/closeout.md`.
+Phase 5 closeout evidence for the avatar publication seam lives at `docs/freestyle-viewer-platform/phase5/closeout.md`.
+Phase 6 garment certification evidence starts at `docs/freestyle-viewer-platform/phase6/batch1.md`.
+The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-platform/phase6/batch2.md`.
+The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform/phase6/batch3.md`.
+The admin-side starter-coverage triage slice is `docs/freestyle-viewer-platform/phase6/batch4.md`.
+Phase 6 closeout evidence for the garment certification seam lives at `docs/freestyle-viewer-platform/phase6/closeout.md`.
+Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md`, widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`, adds the explicit preview-engine/fallback seam in `docs/freestyle-viewer-platform/phase7/batch3.md`, and closes the compatibility preview session seam in `docs/freestyle-viewer-platform/phase7/batch4.md`. The phase closeout lives at `docs/freestyle-viewer-platform/phase7/closeout.md`.
+Phase 8 HQ artifact identity starts at `docs/freestyle-viewer-platform/phase8/batch1.md`, the first owner-scoped lineage inspection seam is `docs/freestyle-viewer-platform/phase8/batch2.md`, the first web consumer is `docs/freestyle-viewer-platform/phase8/batch3.md`, the admin/operator inspection seam is `docs/freestyle-viewer-platform/phase8/batch4.md`, and the phase closes at `docs/freestyle-viewer-platform/phase8/closeout.md`. Keep those notes aligned with `docs/CLOTH_SIMULATE_JOB_DRAFT.md` and `docs/physical-fit-system.md` whenever the internal cache-key or artifact-lineage seam changes.
+Phase 8.5 admin fit-tooling starts at `docs/freestyle-viewer-platform/phase8_5/batch1.md`, widens with the bounded admin HQ fit catalog in `docs/freestyle-viewer-platform/phase8_5/batch2.md`, adds current-garment triage in `docs/freestyle-viewer-platform/phase8_5/batch3.md`, and closes for the current repo-scoped baseline at `docs/freestyle-viewer-platform/phase8_5/closeout.md`. Keep that track read-only until a later phase explicitly introduces certification mutations.
+`viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
+Phase 9 starts at `docs/freestyle-viewer-platform/phase9/batch1.md`: the flagged `/app/closet` `viewer-react` path must keep route-level latency attrs plus preview-runtime / preview-engine evidence parity before it can be treated as the blocking UX latency gate, and the blocking smoke should wait for the outer stage-loading fallback to clear before reading latency attrs.
+Phase 9 rollback evidence widens in `docs/freestyle-viewer-platform/phase9/batch2.md`, and the current repo-scoped closeout lives at `docs/freestyle-viewer-platform/phase9/closeout.md`. Keep the route-scoped release flag, kill switch, and rollback smoke aligned together.
+Phase 10 closeout evidence lives at `docs/freestyle-viewer-platform/phase10/closeout.md`, with QA evidence in `docs/qa/phase10-production-telemetry-2026-04-24.md`. The current hard gate is `npm run check:phase10`; it includes the full local gate, asset-budget evidence, Phase 9 cutover/rollback smokes, and operational browser smoke.
+Product viewer telemetry is accepted at `POST /v1/telemetry/viewer`. This route is advisory only: it validates telemetry and returns recommended actions, but it must not mutate garment serving, solver version rollout, or material policy directly until a later control-plane integration is explicitly added.
 
 ## 4. Page Rules
 
@@ -138,6 +187,14 @@ Use these boundaries:
 - `avatarMeasurementsSidecarSchemaVersion` is now owned by `packages/contracts`; validators and tests should import it there instead of defining or reading a second literal from runtime-only files
 - the `validate:fit-calibration` report artifact is now also versioned and parsed through `packages/contracts` before it is written to `output/fit-calibration/latest.json`
 - both `validate:avatar3d` and `validate:fit-calibration` should import the shared calibration helper instead of re-declaring derivation rules or ad-hoc parse checks locally
+- the first read-only avatar publication seam lives in `packages/runtime-3d/src/avatar-publication-catalog.ts` and `GET /v1/admin/avatars`; treat that catalog as publication metadata only, not as a substitute for the full canonical `AvatarManifest`
+- the runtime avatar render catalog now uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
+- `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
+- `validate:garment3d` now also writes and validates `output/garment-certification/latest.json` for the committed garment-authoring-backed starter pieces before it reports success
+- `/v1/admin/garment-certifications*` is the read-only inspection seam for that starter bundle; keep it separate from `/v1/admin/garments*`
+- in `apps/admin`, certification payloads must stay in separate read-only state; they must not be merged into the editable garment draft JSON
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
+- `GET /v1/lab/fit-simulations/:id` may expose a derived `avatarPublication` snapshot for lab consumers, but that field must stay response-only and minimal: no evidence paths, no authoring provenance, and no persistence widening
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.
 
@@ -172,12 +229,33 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
 - `Phase 2` authoring contract v2 now also includes `*.material-profile.json`, `*.sim-proxy.json`, `*.collision-proxy.json`, and `*.hq-artifact.json` sidecars next to each committed `pattern-spec`; regenerate and sync them with `npm run authoring:garments:mpfb:sidecars`
 - keep authoring bundle parity inside `packages/domain-garment` via `validateGarmentAuthoringBundleAgainstStarterCatalog`; do not add one-off validator-only comparisons for material, proxy, collider, or HQ artifact drift
+- Phase 2 schema version literals now come from `packages/asset-schema/src/schema-versions.ts`; do not reintroduce runtime-only duplicates for avatar, garment, material, or fit-artifact manifest versions
+- preview worker transport names now track the `fit-kernel` tuple through `packages/viewer-protocol`; do not define another `"transferable-array-buffer" | "shared-array-buffer"` union in downstream packages
+- keep the preview runtime snapshot contract in `@freestyle/viewer-protocol`; compatibility surfaces may expose it through DOM attrs or browser events, but should not invent ad-hoc payload shapes
+- keep preview-engine status in `@freestyle/viewer-protocol` too; compatibility surfaces may expose it through `data-preview-engine-*` attrs or `fit:preview-engine-status`, but should not invent a second fallback/status payload shape
+- keep preview worker setup messages in `@freestyle/viewer-protocol`; compatibility runtimes may derive inline body, collision, fit-mesh, and material payloads, but should not invent a second command surface outside the typed preview worker protocol
+- keep `PREVIEW_DEFORMATION` as the compatibility transfer seam until a later phase ships authoritative cloth buffers; do not relabel transform-only secondary motion as cloth vertex deformation
+- route viewer telemetry through `apps/web/src/lib/viewerTelemetry.ts` and `POST /v1/telemetry/viewer`; do not add another product telemetry envelope for viewer host metrics
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
+- keep starter certification inspection on `/v1/admin/garment-certifications*`; do not widen `/v1/closet/runtime-garments` with authoring or certification evidence
+- `/v1/closet/runtime-garments` now gates the product catalog to `publication.approvalState === "PUBLISHED"` after runtime validation; do not widen that route to candidate states for convenience
+- `/v1/admin/garments` is the certification surface and may filter by `approval_state`; new admin writes default to `DRAFT`, while legacy published rows without explicit approval metadata are normalized to `PUBLISHED` on read until they are re-saved through the certification flow
+- `PublishedGarmentAsset` may now carry an optional `viewerManifest` shadow typed through `@freestyle/asset-schema`; treat it as a canonical runtime-manifest seam, not as proof that an asset is certified
+- admin/API writes may autofill and synchronize `viewerManifest` plus `publication.viewerManifestVersion` for supported garment categories, but read paths must stay tolerant of legacy rows that do not have that shadow yet
+- top-level publication metadata still wins: if nested manifest ids or approval states drift, normalize them on write instead of widening product routes or bypassing the publication gate
+- promoted approval states are enforced on write: `CERTIFIED`, `PUBLISHED`, and `DEPRECATED` require `approvedAt`, `approvedBy`, and at least one certification note; supported garment categories require the canonical manifest seam from `FIT_CANDIDATE` upward
 - the first product consumer now lives in `apps/web/src/components/product/closet-fit-report.ts`; if fit copy, region ordering, or tone mapping changes, update that helper and its test before touching `V18ClosetExperience.tsx`
 - `V18ClosetExperience` may seed fit guidance from the API closet catalog, but active tab and equipped-item review should still prefer locally derived reports from the current deferred body profile
 - `Phase D` now has an active HQ artifact path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
 - keep that baseline honest: it currently persists `draped_glb`, typed `fit_map_json`, generated `preview_png`, and `metrics_json`, but the `draped_glb` is still an authored-scene merge placeholder rather than solver-deformed cloth truth
+- `Phase 8 / Batch 1` adds an internal `artifact-lineage.json` sidecar plus persisted `artifactLineage` snapshot for the same HQ bundle
+- `Phase 8 / Batch 2` exposes that persisted snapshot only through `GET /v1/lab/fit-simulations/:id/artifact-lineage`; keep `GET /v1/lab/fit-simulations/:id` unchanged unless a later batch explicitly widens the public detail contract
+- `Phase 8 / Batch 3` lets the current `Closet` HQ fit panel consume that separate inspection seam as read-only lineage state; keep the lineage payload separate from the main `fitSimulation` record in web state too
+- `Phase 8 / Batch 4` adds the admin-only `GET /v1/admin/fit-simulations/:id` inspection seam; keep it read-only and separate from the lab/public detail contract
+- `Phase 8.5 / Batch 1` lets `apps/admin` consume that admin seam in a separate HQ artifact inspection panel; do not mix that state into garment publish editor state
+- `Phase 8.5 / Batch 2` adds `GET /v1/admin/fit-simulations` as the bounded read-only HQ fit catalog seam; keep it list+summary only and do not widen garment publication payloads
+- `Phase 8.5 / Batch 3` ties that catalog back to the current working garment inside `apps/admin`; keep it triage-only and read-only
 - the current product-facing HQ fit consumer seam is `apps/web/src/hooks/useFitSimulation.ts` plus `apps/web/src/components/product/closet-fit-simulation.tsx`; keep `Closet` on preview-image and typed-summary consumption until a real `draped_glb` stage swap-in exists
 - lab/detail consumers should treat the artifact list as presentation-ordered: `draped_glb`, then `preview_png`, then `fit_map_json`, then `metrics_json`
 - `Phase 5` now uses committed Playwright visual baselines for route-shell and closet-tier regression; when changing route chrome, stage framing, or closet quality tiers, update `apps/web/e2e/visual-regression.spec.ts` and its snapshot directory in the same PR
@@ -203,6 +281,7 @@ The shared avatar manifest, reusable garment/runtime contract, and the current p
 Current source-of-truth files:
 
 - `packages/runtime-3d/src/avatar-manifest.ts`
+- `packages/runtime-3d/src/avatar-publication-catalog.ts`
 - `packages/runtime-3d/src/index.tsx`
 - `packages/runtime-3d/src/closet-stage.tsx`
 - `packages/runtime-3d/src/closet-stage-fallback.tsx`
@@ -220,7 +299,9 @@ Rules:
 - keep humanoid alias patterns with the avatar manifest
 - keep the live `Closet` stage aligned with the shared manifest and garment contract
 - keep `closet-stage.tsx` focused on scene logic; view/light/canvas ownership belongs in `reference-closet-stage-view.tsx`, while fit-driven adaptive adjustment belongs in `reference-closet-stage-sim-adapter.ts`
-- keep reduced preview backend selection and frame stepping in `reference-closet-stage-preview-simulation.ts`; `closet-stage.tsx` may orchestrate the active backend, but it should not re-declare spring/invalidation math inline again
+- keep reduced preview backend selection in `reference-closet-stage-preview-simulation.ts`, but keep the shared reduced-preview frame stepping and metrics contract in `@freestyle/fit-kernel`; `closet-stage.tsx` may orchestrate the active backend, but it should not re-declare spring/invalidation math inline again
+- if the runtime-3d compatibility host exposes preview execution evidence, use `preview-runtime-snapshot.ts` plus `fit:preview-runtime-updated`; do not widen `/v1` routes or mutate admin draft payloads just to surface that debug state
+- if the compatibility host bootstraps preview worker inputs, build them through `preview-session-bridge.ts` from committed runtime metadata instead of stage-local ad-hoc objects
 - preserve quality tiers: `low`, `balanced`, `high`
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes
@@ -246,9 +327,16 @@ Rules:
 - keep layered outfit logic explicit: structured outerwear may auto-fallback to a base inner top, and bulky tops should not remain stacked under outerwear
 - use meshopt-aware glTF loading for shipped runtime assets
 - keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable
+- keep `viewer-core` loader policy canonical: `/draco/gltf/` and `/basis/` paths, KTX2 worker limit, and runtime texture-format preference now come from `packages/shared-types/src/viewer-asset-policy.ts`
+- keep `apps/web/public/basis/*` in sync with `three/examples/jsm/libs/basis/*` through `npm run viewer:sync:transcoders`; do not assume the transcoder files are present by magic in production
+- keep the repo-local KTX tool seam reproducible: `npm run viewer:bootstrap:ktx-tools` owns workspace-local `toktx` bootstrap under the ignored `tools/ktx-software/` path, and `scripts/encode-ktx2.mts` must prefer that seam before falling back to a machine-global binary
 - keep runtime stage loads and runtime preloads on the same shared loader configuration; do not duplicate glTF decoder setup across files
+- keep runtime KTX2 support renderer-owned: the active stage must call `primeRuntimeGLTFLoaderSupport(renderer)` before asset hooks depend on `.ktx2` decode support, and disposal must stay inside the shared runtime loader seam
+- keep runtime avatar path resolution quality-aware: `resolveAvatarRuntimeModelPath` plus `collectRuntimeModelPaths` must preload and consume the same avatar LOD sibling that the stage will render for the current quality tier
+- keep runtime garment path resolution quality-aware too: `resolveGarmentRuntimeModelPath` plus `collectRuntimeModelPaths` must preload and consume the same garment or hair LOD sibling that the stage will render for the current quality tier
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
+- keep the avatar publication seam honest: `/v1/admin/avatars` is a dedicated read-only catalog derived from the committed runtime avatar manifest, and it must not be documented or consumed as the full asset-factory `AvatarManifest`
 - keep host stage support/load/retry lifecycle policy in a pure helper so `AvatarStageViewport` transitions stay testable without mounting the 3D canvas
 - keep top-level `Closet` scene policy in a pure runtime helper so `dpr`, lighting, damping, and continuous-motion gating stay testable without mounting `Canvas`
 - preload only the active avatar, equipped garments, and near-term closet candidates
@@ -258,9 +346,15 @@ Rules:
 - sample `secondaryMotion` anchors from avatar alias bindings or weighted anchor targets, not from the already-moving garment subtree
 - do not treat `secondaryMotion` as a replacement for measured fit, corrective authoring, or collision tuning
 - validate promoted avatar assets with `npm run validate:avatar3d`
+- when avatar publication metadata changes, verify `/v1/admin/avatars` and `output/avatar-certification/latest.json` stay in parity with the committed runtime avatar manifest
+- when Phase 5 avatar publication metadata changes, also verify `POST /v1/lab/jobs/fit-simulations` still resolves `avatarManifestUrl` from that catalog seam
+- when garment authoring summaries, starter runtime metadata, or garment-side certification evidence changes, verify `output/garment-certification/latest.json` stays in parity with the committed authoring bundle and starter catalog
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch
+- Phase 3 runtime asset evidence now starts with `npm run report:asset-budget`; treat `output/asset-budget-report/latest.json` as the non-blocking source of truth for missing LOD siblings, missing runtime KTX2 textures, and transfer-budget drift
+- the current promoted/default runtime path now consumes real sibling `LOD1 / LOD2` files for avatars plus the equipped starter garments and textured-crop hair; wider catalog coverage is backlog, not a reason to bypass the quality-tier path
+- use `npm run build:display-asset`, `npm run generate:lods`, `npm run viewer:bootstrap:ktx-tools`, `npm run build:phase3:texture-samples`, and `npm run encode:ktx2` as the first-party CLI seam for Phase 3 display-asset work; do not add ad-hoc one-off asset conversion scripts before those seams are exhausted
 - rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules
@@ -283,6 +377,7 @@ Compatibility rules:
 - API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move between the file fallback and the Supabase-backed `published_runtime_garments` store without changing route contracts
 - use `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` when the API should write and read from the remote publication table
 - fit-simulation identity must stay revision-based, not timestamp-based; use canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey` instead of ad-hoc `updatedAt` snapshots for dedupe
+- if the fit-simulation queue path needs to recompute identity, it must use the shared `fitSimulationCacheKeyParts` contract; do not let API create, queue normalization, and worker fallback invent different cache inputs
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules

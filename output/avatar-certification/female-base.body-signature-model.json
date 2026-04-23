@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "avatar-body-signature-model.v1",
+  "avatarId": "female-base",
+  "version": "body-signature.v1",
+  "measurementKeys": [
+    "heightCm",
+    "weightKg",
+    "bustCm",
+    "underBustCm",
+    "waistCm",
+    "highHipCm",
+    "hipCm",
+    "shoulderWidthCm",
+    "armLengthCm",
+    "inseamCm",
+    "thighCm",
+    "calfCm",
+    "footLengthCm",
+    "footWidthCm",
+    "instepHeightCm"
+  ],
+  "normalizedShapeAxes": [
+    "heightClass",
+    "torsoClass",
+    "hipClass",
+    "shoulderClass",
+    "footClass"
+  ],
+  "sourceCalibrationReportPath": "output/fit-calibration/latest.json"
+}

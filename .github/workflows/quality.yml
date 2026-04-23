@@ -6,10 +6,17 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -24,17 +31,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Phase 10 hard gate
+        run: npm run check:phase10
 
-      - name: Unit tests
-        run: npm run test:core
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
 
-      - name: Build services
-        run: npm run build:services
-
-      - name: Build
-        run: npm run build
+      - name: Upload asset budget evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-budget-report
+          path: output/asset-budget-report/latest.json
+          if-no-files-found: ignore
+          retention-days: 7

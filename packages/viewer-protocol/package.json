@@ -1,0 +1,19 @@
+{
+  "name": "@freestyle/viewer-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./commands": "./src/commands.ts",
+    "./fit": "./src/fit.ts",
+    "./telemetry": "./src/telemetry.ts",
+    "./events": "./src/events.ts",
+    "./manifests": "./src/manifests.ts"
+  },
+  "dependencies": {
+    "@freestyle/asset-schema": "file:../asset-schema",
+    "@freestyle/fit-kernel": "file:../fit-kernel",
+    "zod": "^4.1.12"
+  }
+}

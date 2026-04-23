@@ -1,0 +1,592 @@
+{
+  "schemaVersion": "garment-certification-report.v1",
+  "generatedAt": "2026-04-23T00:00:00.000Z",
+  "items": [
+    {
+      "id": "starter-bottom-soft-wool",
+      "category": "bottoms",
+      "fitPolicyCategory": "pants",
+      "selectedSizeLabel": "L",
+      "sizeChartLabels": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+          "male-base": "/assets/garments/mpfb/male/bottom_soft_wool_v1.glb"
+        },
+        "lodModelPaths": {
+          "lod1": "/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
+          "lod2": "/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb"
+        },
+        "lodModelPathsByVariant": {
+          "female-base": {
+            "lod1": "/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
+            "lod2": "/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb"
+          },
+          "male-base": {
+            "lod1": "/assets/garments/mpfb/male/bottom_soft_wool_v1.lod1.glb",
+            "lod2": "/assets/garments/mpfb/male/bottom_soft_wool_v1.lod2.glb"
+          }
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/bottom_soft_wool.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/bottom_soft_wool.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/bottom_soft_wool.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/bottom_soft_wool.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/bottom_soft_wool.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-bottom_soft_wool.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-bottom_soft_wool.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0011999817797914147,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 31,
+                "0.005": 45,
+                "0.01": 213
+              },
+              "hotSpots": [
+                {
+                  "zone": "waist",
+                  "countWithin5mm": 19
+                },
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 18
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 6
+                },
+                {
+                  "zone": "thighs",
+                  "countWithin5mm": 2
+                }
+              ]
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-bottom_soft_wool.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0009733763290569186,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 2,
+                "0.003": 30,
+                "0.005": 41,
+                "0.01": 202
+              },
+              "hotSpots": [
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 20
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 14
+                },
+                {
+                  "zone": "waist",
+                  "countWithin5mm": 7
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-outer-tailored-layer",
+      "category": "outerwear",
+      "fitPolicyCategory": "loose_top",
+      "selectedSizeLabel": "L",
+      "sizeChartLabels": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/outer_tailored_layer.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/outer_tailored_layer.glb",
+          "male-base": "/assets/garments/mpfb/male/outer_tailored_layer.glb"
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/outer_tailored_layer.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/outer_tailored_layer.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/outer_tailored_layer.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/outer_tailored_layer.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/outer_tailored_layer.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-outer_tailored_layer.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-outer_tailored_layer.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/outer_tailored_layer.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0035461741499602795,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 54,
+                "0.01": 65
+              },
+              "hotSpots": [
+                {
+                  "zone": "arms",
+                  "countWithin5mm": 53
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 1
+                }
+              ]
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-outer_tailored_layer.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-outer_tailored_layer.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/outer_tailored_layer.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.004179122857749462,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 172,
+                "0.01": 245
+              },
+              "hotSpots": [
+                {
+                  "zone": "arms",
+                  "countWithin5mm": 88
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 52
+                },
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 32
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-shoe-night-runner",
+      "category": "shoes",
+      "fitPolicyCategory": "shoes",
+      "selectedSizeLabel": "275",
+      "sizeChartLabels": [
+        "265",
+        "275",
+        "285"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/shoes_night_runner.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/shoes_night_runner.glb",
+          "male-base": "/assets/garments/mpfb/male/shoes_night_runner.glb"
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/shoes_night_runner.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/shoes_night_runner.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/shoes_night_runner.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/shoes_night_runner.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/shoes_night_runner.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-shoes_night_runner.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-shoes_night_runner.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_night_runner.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0055613149888813496,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 0,
+                "0.01": 55
+              },
+              "hotSpots": []
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-shoes_night_runner.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-shoes_night_runner.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/shoes_night_runner.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.004761124029755592,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 1,
+                "0.01": 56
+              },
+              "hotSpots": [
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-shoe-sneaker",
+      "category": "shoes",
+      "fitPolicyCategory": "shoes",
+      "selectedSizeLabel": "270",
+      "sizeChartLabels": [
+        "260",
+        "270",
+        "280"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+          "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb"
+        },
+        "lodModelPaths": {
+          "lod1": "/assets/garments/mpfb/female/shoes_soft_sneaker.lod1.glb",
+          "lod2": "/assets/garments/mpfb/female/shoes_soft_sneaker.lod2.glb"
+        },
+        "lodModelPathsByVariant": {
+          "female-base": {
+            "lod1": "/assets/garments/mpfb/female/shoes_soft_sneaker.lod1.glb",
+            "lod2": "/assets/garments/mpfb/female/shoes_soft_sneaker.lod2.glb"
+          },
+          "male-base": {
+            "lod1": "/assets/garments/mpfb/male/shoes_soft_sneaker.lod1.glb",
+            "lod2": "/assets/garments/mpfb/male/shoes_soft_sneaker.lod2.glb"
+          }
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/shoes_soft_sneaker.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-shoes_soft_sneaker.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-shoes_soft_sneaker.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0055613149888813496,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 0,
+                "0.01": 55
+              },
+              "hotSpots": []
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-shoes_soft_sneaker.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-shoes_soft_sneaker.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.004761124029755592,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 0,
+                "0.005": 1,
+                "0.01": 56
+              },
+              "hotSpots": [
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-shoe-soft-day",
+      "category": "shoes",
+      "fitPolicyCategory": "shoes",
+      "selectedSizeLabel": "255",
+      "sizeChartLabels": [
+        "245",
+        "250",
+        "255"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/shoes_soft_flat_v1.glb"
+        },
+        "lodModelPaths": {
+          "lod1": "/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb",
+          "lod2": "/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb"
+        },
+        "lodModelPathsByVariant": {
+          "female-base": {
+            "lod1": "/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb",
+            "lod2": "/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb"
+          }
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/shoes_soft_flat.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/shoes_soft_flat.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/shoes_soft_flat.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/shoes_soft_flat.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/shoes_soft_flat.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-shoes_soft_flat.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-shoes_soft_flat.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0000014456529697781662,
+              "penetratingVertexCount": 1772,
+              "thresholdCounts": {
+                "0.001": 2808,
+                "0.003": 5918,
+                "0.005": 9682,
+                "0.01": 21051
+              },
+              "hotSpots": [
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 9682
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-top-city-relaxed",
+      "category": "tops",
+      "fitPolicyCategory": "tight_top",
+      "selectedSizeLabel": "L",
+      "sizeChartLabels": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/top_city_relaxed.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/top_city_relaxed.glb",
+          "male-base": "/assets/garments/mpfb/male/top_city_relaxed.glb"
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/top_city_relaxed.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/top_city_relaxed.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/top_city_relaxed.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/top_city_relaxed.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/top_city_relaxed.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-top_city_relaxed.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-top_city_relaxed.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/top_city_relaxed.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0027886549942195415,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 40,
+                "0.005": 45,
+                "0.01": 98
+              },
+              "hotSpots": [
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 45
+                }
+              ]
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-top_city_relaxed.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_city_relaxed.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_city_relaxed.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.0025948546826839447,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 32,
+                "0.005": 36,
+                "0.01": 54
+              },
+              "hotSpots": [
+                {
+                  "zone": "arms",
+                  "countWithin5mm": 22
+                },
+                {
+                  "zone": "calves",
+                  "countWithin5mm": 11
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 3
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    },
+    {
+      "id": "starter-top-soft-casual",
+      "category": "tops",
+      "fitPolicyCategory": "tight_top",
+      "selectedSizeLabel": "L",
+      "sizeChartLabels": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "runtimePaths": {
+        "modelPath": "/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+        "modelPathByVariant": {
+          "female-base": "/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+          "male-base": "/assets/garments/mpfb/male/top_soft_casual_v4.glb"
+        },
+        "lodModelPaths": {
+          "lod1": "/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
+          "lod2": "/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb"
+        },
+        "lodModelPathsByVariant": {
+          "female-base": {
+            "lod1": "/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
+            "lod2": "/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb"
+          },
+          "male-base": {
+            "lod1": "/assets/garments/mpfb/male/top_soft_casual_v4.lod1.glb",
+            "lod2": "/assets/garments/mpfb/male/top_soft_casual_v4.lod2.glb"
+          }
+        }
+      },
+      "authoring": {
+        "patternSpecPath": "authoring/garments/mpfb/specs/top_soft_casual.pattern-spec.json",
+        "materialProfilePath": "authoring/garments/mpfb/specs/top_soft_casual.material-profile.json",
+        "simProxyPath": "authoring/garments/mpfb/specs/top_soft_casual.sim-proxy.json",
+        "collisionProxyPath": "authoring/garments/mpfb/specs/top_soft_casual.collision-proxy.json",
+        "hqArtifactPath": "authoring/garments/mpfb/specs/top_soft_casual.hq-artifact.json",
+        "summaries": [
+          {
+            "variantId": "female-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-female-top_soft_casual.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-female-top_soft_casual.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.001731904107145965,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 84,
+                "0.005": 90,
+                "0.01": 449
+              },
+              "hotSpots": [
+                {
+                  "zone": "waist",
+                  "countWithin5mm": 55
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 35
+                }
+              ]
+            }
+          },
+          {
+            "variantId": "male-base",
+            "summaryPath": "authoring/garments/exports/raw/mpfb-male-top_soft_casual.summary.json",
+            "outputBlend": "authoring/garments/exports/raw/mpfb-male-top_soft_casual.blend",
+            "outputGlb": "apps/web/public/assets/garments/mpfb/male/top_soft_casual_v4.glb",
+            "fitAudit": {
+              "minDistanceMeters": 0.001803076476790011,
+              "penetratingVertexCount": 0,
+              "thresholdCounts": {
+                "0.001": 0,
+                "0.003": 60,
+                "0.005": 61,
+                "0.01": 260
+              },
+              "hotSpots": [
+                {
+                  "zone": "waist",
+                  "countWithin5mm": 49
+                },
+                {
+                  "zone": "chest",
+                  "countWithin5mm": 12
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "budgetReportPath": "output/asset-budget-report/latest.json"
+      }
+    }
+  ],
+  "total": 7
+}

@@ -75,6 +75,7 @@ Rules:
 - `apps/admin` owns internal garment publication workflows only
 - `apps/web` orchestrates only
 - `packages/runtime-3d` owns the shared avatar manifest and reusable scene contract
+- `packages/runtime-3d/src/avatar-publication-catalog.ts` owns the read-only admin/runtime avatar publication catalog derived from the committed runtime avatar manifest
 - `packages/runtime-3d/src/closet-stage.tsx` is the current live `Closet` stage implementation
 - `packages/runtime-3d/src/closet-stage-fallback.tsx` owns the in-canvas asset-loading placeholder for the live stage
 - `packages/runtime-3d/src/reference-closet-stage-policy.ts` owns the pure scene policy for stage lighting, damping, and continuous-motion gating
@@ -176,9 +177,18 @@ This is intentional. The UI and scene runtime are already separated from persist
 The first admin publishing boundary is now active through:
 
 - `apps/admin`
+- `/v1/admin/avatars`
 - `POST /v1/admin/garments`
 - `/v1/admin/garments`
 - `/v1/closet/runtime-garments`
+
+The first avatar publication boundary is now active through:
+
+- `packages/runtime-3d/src/avatar-publication-catalog.ts`
+- `GET /v1/admin/avatars`
+- `output/avatar-certification/latest.json`
+- `POST /v1/lab/jobs/fit-simulations` as the first production-adjacent consumer of that publication seam
+- `GET /v1/lab/fit-simulations/:id` as the paired read path that exposes a minimal derived publication snapshot without widening persistence
 
 Current product closet contract split:
 

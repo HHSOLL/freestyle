@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { runtimeAvatarRenderManifestSchemaVersion } from '@freestyle/shared-types';
 import {
   accessoryAuthoringSummarySchema,
   assetAuthoringSummarySchemaVersion,
@@ -43,14 +45,22 @@ import {
   fitMapArtifactDataSchema,
   fitSimulationMetricsArtifactDataSchema,
   fitSimulationCreateResponseSchema,
+  fitSimulationAdminInspectionResponseSchema,
+  fitSimulationAdminInspectionListResponseSchema,
   fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
   fitSimulateHQRequestSchema,
   fitSimulateHQResultEnvelopeSchema,
   garmentAuthoringSummarySchema,
+  garmentCertificationItemResponseSchema,
+  garmentCertificationListResponseSchema,
+  garmentCertificationReportSchema,
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
+  avatarPublicationCatalogSchema,
   publishedGarmentAssetSchema,
+  publishedRuntimeAvatarItemResponseSchema,
+  publishedRuntimeAvatarListResponseSchema,
   previewSimulationFrameRequestSchema,
   previewSimulationFrameResultSchema,
   previewSimulationFrameSchemaVersion,
@@ -58,10 +68,14 @@ import {
   publishedRuntimeGarmentListResponseSchema,
   runtimeAssetAuthoringSummarySchema,
   runtimeGarmentAssetSchema,
+  viewerTelemetryEnvelopeSchema,
+  viewerTelemetryResponseSchema,
 } from './index.js';
 
 const readJsonFixture = (relativePath: string) =>
   JSON.parse(readFileSync(new URL(relativePath, import.meta.url), 'utf8'));
+
+const repoRoot = process.cwd();
 
 test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
   const parsed = bodyProfileSchema.parse({
@@ -77,6 +91,78 @@ test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
 
   assert.equal(parsed.simple.heightCm, 172);
   assert.equal(parsed.simple.inseamCm, 79);
+});
+
+test('fitSimulationAdminInspectionListResponseSchema accepts read-only admin list payloads', () => {
+  const parsed = fitSimulationAdminInspectionListResponseSchema.parse({
+    schemaVersion: 'fit-simulation-admin-inspection-list.v1',
+    items: [
+      {
+        id: '00000000-0000-4000-8000-000000000801',
+        status: 'succeeded',
+        avatarVariantId: 'female-base',
+        garmentVariantId: 'published-top-admin-fit-sim',
+        qualityTier: 'balanced',
+        materialPreset: 'knit_medium',
+        artifactCount: 4,
+        warningCount: 1,
+        hasLineage: true,
+        drapeSource: 'authored-scene-merge',
+        storageBackend: 'remote-storage',
+        createdAt: '2026-04-24T09:00:00.000Z',
+        updatedAt: '2026-04-24T09:03:00.000Z',
+        completedAt: '2026-04-24T09:03:00.000Z',
+      },
+    ],
+    total: 1,
+  });
+
+  assert.equal(parsed.items[0]?.artifactCount, 4);
+  assert.equal(parsed.items[0]?.hasLineage, true);
+});
+
+test('viewer telemetry schemas preserve operational stop-gate signals', () => {
+  const envelope = viewerTelemetryEnvelopeSchema.parse({
+    events: [
+      {
+        event_id: 'viewer-evt-001',
+        metric_name: 'viewer.host.garment-swap.preview-latency',
+        value: 118,
+        unit: 'ms',
+        occurred_at: '2026-04-24T10:00:00.000Z',
+        route: '/app/closet',
+        session_id: 'session-001',
+        garment_id: 'starter-top-soft-casual',
+        garment_ids: ['starter-top-soft-casual'],
+        device_tier: 'C',
+        quality_tier: 'balanced',
+        viewer_host: 'viewer-react',
+        tags: {
+          source: 'cache',
+        },
+      },
+    ],
+  });
+
+  assert.equal(envelope.events[0]?.metric_name, 'viewer.host.garment-swap.preview-latency');
+
+  const response = viewerTelemetryResponseSchema.parse({
+    status: 'accepted',
+    received_count: 1,
+    accepted_count: 1,
+    rejected_count: 0,
+    recommended_actions: [
+      {
+        action: 'reopen-fit-certification',
+        severity: 'critical',
+        subject_type: 'garment',
+        subject_id: 'starter-top-soft-casual',
+        reason: 'Bad fit reports crossed the production telemetry stop gate.',
+      },
+    ],
+  });
+
+  assert.equal(response.recommended_actions[0]?.action, 'reopen-fit-certification');
 });
 
 test('bodyProfileSchema accepts detailed optional extension fields inside envelope', () => {
@@ -468,6 +554,7 @@ test('fitSimulationMetricsArtifactDataSchema accepts typed HQ metrics artifacts'
       name: 'Soft Casual',
       category: 'tops',
     },
+    artifactLineageId: 'fit-lineage:test-metrics-artifact',
     fitMapSummary: {
       dominantOverlayKind: 'collisionRiskMap',
       dominantRegionId: 'chest',
@@ -515,6 +602,15 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
       garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
       materialPreset: 'knit_medium',
       qualityTier: 'balanced',
+      avatarPublication: {
+        avatarId: 'female-base',
+        label: 'MPFB Female Base',
+        approvalState: 'PUBLISHED',
+        assetVersion: 'female-base@2026-04-23',
+        runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+        bodySignatureModelVersion: 'body-signature.v1',
+        approvedAt: '2026-04-23T00:00:00.000Z',
+      },
       instantFit: null,
       fitMap: null,
       fitMapSummary: null,
@@ -530,6 +626,70 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
 
   assert.equal(created.fit_simulation_id, '00000000-0000-4000-8000-000000000025');
   assert.equal(read.fitSimulation.materialPreset, 'knit_medium');
+  assert.equal(read.fitSimulation.avatarPublication?.runtimeManifestVersion, runtimeAvatarRenderManifestSchemaVersion);
+});
+
+test('fitSimulation read response defaults avatarPublication to null when omitted', () => {
+  const parsed = fitSimulationGetResponseSchema.parse({
+    fitSimulation: {
+      id: '00000000-0000-4000-8000-000000000026',
+      jobId: null,
+      status: 'queued',
+      avatarVariantId: 'female-base',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      instantFit: null,
+      fitMap: null,
+      fitMapSummary: null,
+      artifacts: [],
+      metrics: null,
+      warnings: [],
+      errorMessage: null,
+      createdAt: '2026-04-20T10:00:00.000Z',
+      updatedAt: '2026-04-20T10:00:00.000Z',
+      completedAt: null,
+    },
+  });
+
+  assert.equal(parsed.fitSimulation.avatarPublication, null);
+});
+
+test('fitSimulation admin inspection response keeps lineage separate from the public detail payload', () => {
+  const parsed = fitSimulationAdminInspectionResponseSchema.parse({
+    schemaVersion: 'fit-simulation-admin-inspection.v1',
+    fitSimulation: {
+      id: '00000000-0000-4000-8000-000000000026',
+      jobId: null,
+      status: 'succeeded',
+      avatarVariantId: 'female-base',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      instantFit: null,
+      fitMap: null,
+      fitMapSummary: null,
+      artifacts: [],
+      metrics: null,
+      warnings: [],
+      errorMessage: null,
+      avatarPublication: null,
+      createdAt: '2026-04-20T10:00:00.000Z',
+      updatedAt: '2026-04-20T10:00:00.000Z',
+      completedAt: '2026-04-20T10:00:00.000Z',
+    },
+    artifactLineage: null,
+  });
+
+  assert.equal(parsed.fitSimulation.id, '00000000-0000-4000-8000-000000000026');
+  assert.equal(parsed.artifactLineage, null);
+  assert.equal('artifactLineage' in parsed.fitSimulation, false);
 });
 
 test("preview simulation frame schemas accept worker-offload request and result payloads", () => {
@@ -1132,6 +1292,50 @@ test('published runtime garment response schemas accept canonical envelopes and 
       publishedAt: '2026-04-14T12:00:00.000Z',
       assetVersion: 'precision-tee@1.0.0',
       measurementStandard: 'body-garment-v1',
+      approvalState: 'DRAFT',
+      viewerManifestVersion: 'garment-manifest.v1',
+    },
+    viewerManifest: {
+      id: 'published-top-precision-tee',
+      schemaVersion: 'garment-manifest.v1',
+      production: {
+        approvalState: 'DRAFT',
+        reviewNotes: [],
+        certificationNotes: [],
+      },
+      fitPolicyCategory: 'tight_top',
+      display: {
+        lod0: '/assets/garments/partner/precision-tee.glb',
+        lod1: '/assets/garments/partner/precision-tee.lod1.glb',
+        lod2: '/assets/garments/partner/precision-tee.lod2.glb',
+      },
+      fit: {
+        fitMesh: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/fit_mesh.glb',
+        panelGroups: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/panel_groups.json',
+        seamGraph: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/seam_graph.json',
+        anchors: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/anchors.json',
+        constraints: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/constraints.json',
+        sizeMapping: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/size_mapping.json',
+        bodyMaskPolicy: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/body_mask_policy.json',
+        collisionPolicy: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/collision_policy.json',
+      },
+      material: {
+        visualMaterial: '/assets/viewer-manifests/garments/published-top-precision-tee/material/visual_material.json',
+        physicalMaterial: '/assets/viewer-manifests/garments/published-top-precision-tee/material/physical_material.json',
+      },
+      textures: {
+        baseColor: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/basecolor.ktx2',
+        normal: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/normal.ktx2',
+        orm: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/orm.ktx2',
+      },
+      quality: {
+        topologyReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/topology_report.json',
+        materialReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/material_report.json',
+        fitReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/fit_report.json',
+        visualReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/visual_report.json',
+        performanceReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/performance_report.json',
+        goldenFitResult: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/golden_fit_result.json',
+      },
     },
   });
 
@@ -1153,6 +1357,7 @@ test('published runtime garment response schemas accept canonical envelopes and 
   });
 
   assert.equal(itemResponse.item.id, garment.id);
+  assert.equal(itemResponse.item.viewerManifest?.schemaVersion, 'garment-manifest.v1');
   assert.equal(listResponse.total, 1);
   assert.equal(closetListResponse.items[0]?.item.id, garment.id);
   assert.throws(
@@ -1176,6 +1381,146 @@ test('published runtime garment response schemas accept canonical envelopes and 
       }),
     /total must match items.length/,
   );
+});
+
+test('published avatar catalog responses stay distinct from canonical avatar manifests', () => {
+  const item = {
+    id: 'female-base',
+    label: 'Female base',
+    schemaVersion: runtimeAvatarRenderManifestSchemaVersion,
+    modelPath: '/assets/avatars/mpfb-female-base.glb',
+    lodModelPaths: {
+      lod1: '/assets/avatars/mpfb-female-base.lod1.glb',
+      lod2: '/assets/avatars/mpfb-female-base.lod2.glb',
+    },
+    authoringSource: 'mpfb2',
+    sourceProvenance: {
+      sourceSystem: 'mpfb2',
+      schemaVersion: 'avatar-build-summary-v1',
+      presetPath: 'authoring/avatar/mpfb/presets/female-base.json',
+      summaryPath: 'authoring/avatar/exports/raw/mpfb-female-base.summary.json',
+      skeletonPath: 'authoring/avatar/exports/raw/mpfb-female-base.skeleton.json',
+      measurementsPath: 'authoring/avatar/exports/raw/mpfb-female-base.measurements.json',
+      morphMapPath: 'authoring/avatar/exports/raw/mpfb-female-base.morph-map.json',
+      outputModelPath: '/assets/avatars/mpfb-female-base.glb',
+    },
+    bodyMaskStrategy: 'named-mesh-zones',
+    stageOffsetY: -0.12,
+    stageScale: 0.6,
+    meshZones: {
+      fullBody: ['fullbody'],
+      torso: ['torso'],
+      arms: ['arms'],
+      hips: ['hips'],
+      legs: ['legs'],
+      feet: ['feet'],
+    },
+    aliasPatterns: {
+      root: ['root'],
+      hips: ['pelvis'],
+      spine: ['spine01'],
+      torso: ['spine02'],
+      chest: ['spine03'],
+      neck: ['neck01'],
+      head: ['head'],
+      leftShoulder: ['claviclel'],
+      rightShoulder: ['clavicler'],
+      leftUpperArm: ['upperarml'],
+      rightUpperArm: ['upperarmr'],
+      leftLowerArm: ['lowerarml'],
+      rightLowerArm: ['lowerarmr'],
+      leftHand: ['handl'],
+      rightHand: ['handr'],
+      leftUpperLeg: ['thighl'],
+      rightUpperLeg: ['thighr'],
+      leftLowerLeg: ['calfl'],
+      rightLowerLeg: ['calfr'],
+      leftFoot: ['footl'],
+      rightFoot: ['footr'],
+    },
+    publication: {
+      sourceSystem: 'mpfb2',
+      publishedAt: '2026-04-23T00:00:00.000Z',
+      assetVersion: 'female-base@2026-04-23',
+      approvalState: 'PUBLISHED',
+      approvedAt: '2026-04-23T00:00:00.000Z',
+      approvedBy: 'phase5-avatar-publication@freestyle.local',
+      certificationNotes: ['Phase 5 batch 1 avatar publication seam.'],
+      runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+      bodySignatureModelVersion: 'body-signature.v1',
+    },
+    evidence: {
+      summaryPath: 'authoring/avatar/exports/raw/mpfb-female-base.summary.json',
+      skeletonPath: 'authoring/avatar/exports/raw/mpfb-female-base.skeleton.json',
+      measurementsPath: 'authoring/avatar/exports/raw/mpfb-female-base.measurements.json',
+      morphMapPath: 'authoring/avatar/exports/raw/mpfb-female-base.morph-map.json',
+      visualReportPath: 'output/avatar-certification/female-base.visual-report.json',
+      fitCompatibilityReportPath: 'output/avatar-certification/female-base.fit-compatibility-report.json',
+      budgetReportPath: 'output/asset-budget-report/latest.json',
+      bodySignatureModelPath: 'output/avatar-certification/female-base.body-signature-model.json',
+    },
+  } as const;
+
+  const itemResponse = publishedRuntimeAvatarItemResponseSchema.parse({ item });
+  const listResponse = publishedRuntimeAvatarListResponseSchema.parse({
+    items: [item],
+    total: 1,
+  });
+  const catalogBundle = avatarPublicationCatalogSchema.parse({
+    schemaVersion: 'avatar-publication-catalog.v1',
+    generatedAt: '2026-04-23T00:00:00.000Z',
+    items: [
+      {
+        id: item.id,
+        publication: item.publication,
+        evidence: item.evidence,
+      },
+    ],
+    total: 1,
+  });
+
+  assert.equal(
+    itemResponse.item.publication.runtimeManifestVersion,
+    runtimeAvatarRenderManifestSchemaVersion,
+  );
+  assert.equal(listResponse.total, 1);
+  assert.equal(catalogBundle.items[0]?.id, 'female-base');
+  assert.throws(
+    () =>
+      avatarPublicationCatalogSchema.parse({
+        schemaVersion: 'avatar-publication-catalog.v1',
+        generatedAt: '2026-04-23T00:00:00.000Z',
+        items: [
+          {
+            id: item.id,
+            publication: item.publication,
+            evidence: item.evidence,
+          },
+        ],
+        total: 2,
+      }),
+    /total must match items.length/,
+  );
+});
+
+test('garment certification report schema accepts the committed latest bundle', () => {
+  const fixture = JSON.parse(
+    readFileSync(path.join(repoRoot, 'output/garment-certification/latest.json'), 'utf8'),
+  );
+
+  const parsed = garmentCertificationReportSchema.parse(fixture);
+  const listResponse = garmentCertificationListResponseSchema.parse(fixture);
+  const itemResponse = garmentCertificationItemResponseSchema.parse({
+    schemaVersion: parsed.schemaVersion,
+    generatedAt: parsed.generatedAt,
+    item: parsed.items[0],
+  });
+
+  assert.equal(parsed.schemaVersion, 'garment-certification-report.v1');
+  assert.equal(parsed.total, parsed.items.length);
+  assert.ok(parsed.items.some((item) => item.id === 'starter-top-soft-casual'));
+  assert.equal(listResponse.total, parsed.total);
+  assert.equal(itemResponse.item.id, parsed.items[0]?.id);
 });
 
 test('asset metadata schema accepts garment-facing metadata payloads', () => {

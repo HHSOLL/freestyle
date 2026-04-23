@@ -18,6 +18,7 @@ Current runtime interpretation:
 - measured fit remains the first truth source
 - lightweight secondary motion is allowed for long hair and loose garments
 - full cloth simulation remains an offline authoring/reference tool, not the default browser runtime
+- production fit certification is defined separately in `docs/fit-quality-contract.md` and `packages/asset-schema/src/index.ts`
 
 ## 2. Product Decision
 
@@ -217,6 +218,7 @@ As of `2026-04-20`:
   - it does not widen `metadata.measurements`, `measurementModes`, `sizeChart`, `physicalProfile`, `correctiveFit`, or `/v1` runtime payloads
 - `Phase B / Batch 2` now adds committed garment `pattern-spec` sidecars under `authoring/garments/mpfb/specs/*.pattern-spec.json`
 - those sidecars mirror the current starter runtime measurement truth while adding authoring-only `materialPreset`, `anchorIds`, and optional `panels` / `seams`
+- `Phase 6 / Batch 1` now aggregates the committed garment authoring summaries plus starter runtime metadata into `output/garment-certification/latest.json`, so garment certification evidence is machine-readable before later admin/runtime consumers widen
 - `Phase B / Batch 3` closes the semantic ownership seam by moving starter pattern-spec parity checks into `packages/domain-garment`, so validator runs and domain tests now share the same rule set
 - `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the shared garment-domain parity helper detects starter drift
 - `Phase C / Batch 1` now adds a versioned instant-fit report contract above `GarmentFitAssessment`, so product-facing `overallFit / regions / confidence / explanations` can be derived from one shared schema instead of per-surface summary strings
@@ -227,7 +229,7 @@ As of `2026-04-20`:
   - queue helpers recognize the reserved job type and normalize the design-facing request into canonical `job-payload.v1`
 - `Phase D / Batch 2` now closes the baseline async worker path:
   - `POST /v1/lab/jobs/fit-simulations` creates an HQ fit-simulation job from the current persisted `BodyProfile` plus a published runtime garment snapshot
-  - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, and metrics
+  - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, metrics, and a minimal derived `avatarPublication` snapshot for the queued avatar variant
   - `worker_fit_simulate_hq` now processes `fit_simulate_hq_v1` and persists `fit_map_json`
   - this is still a baseline artifact path, not a full cloth solver; `draped_glb` remains the major future output
 - `Phase D / Batch 3` now extends that baseline artifact path:
@@ -244,11 +246,26 @@ As of `2026-04-20`:
 - `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
 - `Phase E / Batch 2` now also carries the same typed overlay payload on the persisted fit-simulation record, so `GET /v1/lab/fit-simulations/:id` exposes `fitMap` directly instead of forcing clients to pull the JSON artifact separately
 - `Phase E / Batch 3` now adds a shared `fitMapSummary` helper and persisted summary snapshot, so preview generation and future consumers agree on the dominant overlay/region without reimplementing overlay-ranking logic
+- `Phase 8 / Batch 1` now hardens the baseline HQ artifact identity:
+  - `packages/contracts` defines canonical `fitSimulationCacheKeyParts` and an internal `fitSimulationArtifactLineage` schema
+  - `fit_simulate_hq_v1` queue normalization now preserves `avatarVariantId` so API create and worker fallback derive the same `cacheKey`
+  - `worker_fit_simulate_hq` now persists an `artifact-lineage.json` sidecar next to the current artifact bundle and stores that lineage on the internal simulation record
+  - `metrics_json` now includes `artifactLineageId`, while `GET /v1/lab/fit-simulations/:id` stays intentionally unchanged
+  - `GET /v1/lab/fit-simulations/:id/artifact-lineage` is the new owner-scoped inspection seam for that persisted lineage snapshot
+  - `GET /v1/admin/fit-simulations` is the bounded admin/operator catalog seam for current persisted HQ fit evidence
+  - `GET /v1/admin/fit-simulations/:id` is the matching admin/operator read-only inspection seam for the same persisted fit simulation and lineage snapshot
+  - the current web HQ fit panel may consume that lineage seam separately for inspection links and baseline metadata, but it still must not merge lineage into the main `fitSimulation` detail payload
+  - `apps/admin` may now triage current-garment HQ fit evidence through the read-only admin catalog plus detail seam, but this still does not imply approve/reject/certify workflow or solver-grade cloth truth
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
-  - `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` owns backend selection, frame stepping, and demand-driven invalidation thresholds
-  - `apps/web/public/workers/reference-closet-stage-preview.worker.js` provides the same-origin `worker-reduced` path for long-hair and loose-garment preview motion
-  - this is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth
+  - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract
+  - `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` keeps backend selection while delegating reduced-preview stepping to `@freestyle/fit-kernel`
+  - `apps/web/public/workers/reference-closet-stage-preview.worker.js` provides the same-origin `worker-reduced` path for long-hair and loose-garment preview motion and now emits a typed `PREVIEW_FRAME_RESULT` envelope
+  - `packages/viewer-protocol` now adds `previewRuntimeSnapshotSchema`, and `packages/runtime-3d/src/preview-runtime-snapshot.ts` maps both raw frame results and typed worker envelopes into one read-only compatibility snapshot
+  - `ReferenceClosetStageCanvas` now exposes `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` browser events for debug/telemetry evidence without widening `/v1` payloads
+  - the same compatibility surface now also exposes `previewEngineStatusSchema`, `data-preview-engine-*` attrs, and `fit:preview-engine-status`, so operational fallback reasons stay explicit when the active path is still `static-fit-compat` or `reduced-preview-compat`
+  - the same worker path now also uses the typed preview session protocol for body-signature, collision-body, fit-mesh, and material-physics bootstrap, and emits a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary-motion transfer
+  - this closes the current compatibility preview path, but it is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth or fit-mesh vertex deformation
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

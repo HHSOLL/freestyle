@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
+import {
+  assetApprovalStateSchema,
+  assetApprovalStates,
+  bodyRegionIdSchema,
+  bodyRegionIds,
+  bodySignatureSchema,
+  fitMetricsJsonSchema,
+  garmentManifestSchema,
+  materialClassSchema,
+  materialClasses,
+} from "../../asset-schema/src/index.js";
 import { normalizeBodyProfile } from "./domain-types.js";
 export type {
   BodyProfileDetailedKey,
@@ -15,6 +27,16 @@ export type {
   RuntimeGarmentAsset,
   GarmentSizeSpec,
 } from "./domain-types.js";
+export {
+  assetApprovalStateSchema,
+  assetApprovalStates,
+  bodyRegionIdSchema,
+  bodyRegionIds,
+  bodySignatureSchema,
+  fitMetricsJsonSchema,
+  materialClassSchema,
+  materialClasses,
+};
 export {
   bodyProfileDetailedKeys,
   bodyProfileSimpleKeys,
@@ -200,6 +222,83 @@ export const widgetErrorResponseSchema = z
   })
   .strict();
 
+export const viewerTelemetryMetricNameSchema = z.enum([
+  "viewer.host.first-avatar-paint",
+  "viewer.host.garment-swap.preview-latency",
+  "viewer.hq.cache-hit",
+  "viewer.hq.solve-latency",
+  "viewer.asset.load-failure",
+  "viewer.ktx2.transcode-failure",
+  "viewer.webgl.context-loss",
+  "viewer.memory.growth-suspected",
+  "viewer.fit.fallback",
+  "viewer.body-mask.heavy-usage",
+  "viewer.bad-fit-report",
+  "viewer.preview.engine-fallback",
+]);
+
+export const viewerTelemetryMetricNames = viewerTelemetryMetricNameSchema.options;
+
+export const viewerTelemetryUnitSchema = z.enum(["ms", "count", "ratio", "bytes", "boolean"]);
+
+export const viewerTelemetryDeviceTierSchema = z.enum(["A", "B", "C", "D", "E", "unknown"]);
+
+export const viewerTelemetryEventSchema = z
+  .object({
+    event_id: z.string().trim().min(1).max(128),
+    metric_name: viewerTelemetryMetricNameSchema,
+    value: z.number().finite().optional(),
+    unit: viewerTelemetryUnitSchema.optional(),
+    occurred_at: z.iso.datetime(),
+    route: z.string().trim().min(1).max(240).optional(),
+    session_id: z.string().trim().min(1).max(160).optional(),
+    anonymous_id: z.string().trim().min(1).max(160).optional(),
+    avatar_id: z.string().trim().min(1).max(160).optional(),
+    body_signature_hash: z.string().trim().min(1).max(160).optional(),
+    garment_id: z.string().trim().min(1).max(160).optional(),
+    garment_ids: z.array(z.string().trim().min(1).max(160)).max(24).default([]),
+    material_class: materialClassSchema.optional(),
+    solver_version: z.string().trim().min(1).max(160).optional(),
+    device_tier: viewerTelemetryDeviceTierSchema.default("unknown"),
+    quality_tier: z.enum(["low", "balanced", "high"]).optional(),
+    viewer_host: z.enum(["runtime-3d", "viewer-react", "unknown"]).default("unknown"),
+    tags: z.record(z.string(), z.string()).default({}),
+  })
+  .strict();
+
+export const viewerTelemetryEnvelopeSchema = z
+  .object({
+    events: z.array(viewerTelemetryEventSchema).min(1).max(50),
+  })
+  .strict();
+
+export const viewerTelemetryRecommendedActionSchema = z
+  .object({
+    action: z.enum([
+      "pause-garment-serving",
+      "reopen-fit-certification",
+      "lower-device-quality-policy",
+      "review-hq-cache-policy",
+      "review-material-delivery",
+      "rollback-viewer-release",
+    ]),
+    severity: z.enum(["info", "warning", "critical"]),
+    subject_type: z.enum(["garment", "device-tier", "solver", "material-class", "viewer-release"]),
+    subject_id: z.string().trim().min(1).max(160),
+    reason: z.string().trim().min(1).max(320),
+  })
+  .strict();
+
+export const viewerTelemetryResponseSchema = z
+  .object({
+    status: z.literal("accepted"),
+    received_count: z.number().int().nonnegative(),
+    accepted_count: z.number().int().nonnegative(),
+    rejected_count: z.number().int().nonnegative(),
+    recommended_actions: z.array(viewerTelemetryRecommendedActionSchema),
+  })
+  .strict();
+
 const unknownRecordSchema = z.record(z.string(), z.unknown());
 
 export const jobPayloadEnvelopeSchema = z
@@ -334,6 +433,7 @@ export const buildBodyProfileRevision = (profile: unknown) =>
 export const avatarRenderVariantIdSchema = z.enum(["female-base", "male-base"]);
 export const avatarPoseIdSchema = z.enum(["neutral", "relaxed", "contrapposto", "stride", "tailored"]);
 export const qualityTierSchema = z.enum(["low", "balanced", "high"]);
+export const avatarSourceSystemSchema = z.enum(["mpfb2", "charmorph", "runtime-fallback"]);
 export const avatarMeasurementsSidecarSchemaVersion = "avatar-measurements-sidecar-v1";
 export const avatarMeasurementsDerivationMethodSchema = z.enum([
   "object-bounding-box-height",
@@ -389,6 +489,92 @@ export const avatarMeasurementsSidecarSchema = z
     referenceMeasurementsMm: avatarReferenceMeasurementsSchema,
     referenceMeasurementsMmDerivation: avatarMeasurementsDerivationSchema,
     segmentationVertexCounts: z.record(z.string(), z.number().int().nonnegative()),
+  })
+  .strict();
+
+export const avatarRuntimeLodPathsSchema = z
+  .object({
+    lod1: z.string().trim().min(1).optional(),
+    lod2: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const avatarSourceProvenanceSchema = z
+  .object({
+    sourceSystem: avatarSourceSystemSchema,
+    schemaVersion: z.string().trim().min(1).max(120),
+    presetPath: z.string().trim().min(1),
+    summaryPath: z.string().trim().min(1),
+    skeletonPath: z.string().trim().min(1),
+    measurementsPath: z.string().trim().min(1),
+    morphMapPath: z.string().trim().min(1),
+    outputModelPath: z.string().trim().min(1),
+  })
+  .strict();
+
+export const avatarMeshZonesSchema = z
+  .object({
+    fullBody: z.array(z.string().trim().min(1)).min(1),
+    torso: z.array(z.string().trim().min(1)).min(1),
+    arms: z.array(z.string().trim().min(1)).min(1),
+    hips: z.array(z.string().trim().min(1)).min(1),
+    legs: z.array(z.string().trim().min(1)).min(1),
+    feet: z.array(z.string().trim().min(1)).min(1),
+  })
+  .strict();
+
+export const avatarAliasPatternsSchema = z
+  .record(z.string().trim().min(1), z.array(z.string().trim().min(1)).min(1))
+  .superRefine((value, context) => {
+    const requiredAliases = [
+      "root",
+      "hips",
+      "spine",
+      "torso",
+      "chest",
+      "neck",
+      "head",
+      "leftShoulder",
+      "rightShoulder",
+      "leftUpperArm",
+      "rightUpperArm",
+      "leftLowerArm",
+      "rightLowerArm",
+      "leftHand",
+      "rightHand",
+      "leftUpperLeg",
+      "rightUpperLeg",
+      "leftLowerLeg",
+      "rightLowerLeg",
+      "leftFoot",
+      "rightFoot",
+    ] as const;
+
+    for (const alias of requiredAliases) {
+      if (!value[alias]) {
+        context.addIssue({
+          code: "custom",
+          path: [alias],
+          message: `${alias} alias is required`,
+        });
+      }
+    }
+  });
+
+export const runtimeAvatarCatalogItemSchema = z
+  .object({
+    id: avatarRenderVariantIdSchema,
+    label: z.string().trim().min(1).max(160),
+    schemaVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    modelPath: z.string().trim().min(1),
+    lodModelPaths: avatarRuntimeLodPathsSchema.optional(),
+    authoringSource: avatarSourceSystemSchema,
+    sourceProvenance: avatarSourceProvenanceSchema,
+    bodyMaskStrategy: z.enum(["named-mesh-zones", "none"]),
+    stageOffsetY: z.number().finite(),
+    stageScale: z.number().positive(),
+    meshZones: avatarMeshZonesSchema,
+    aliasPatterns: avatarAliasPatternsSchema,
   })
   .strict();
 
@@ -881,26 +1067,66 @@ export const fitSimulationArtifactSchema = jobArtifactSchema
   })
   .strict();
 
-export const buildFitSimulationCacheKey = (input: {
-  avatarVariantId?: string;
-  bodyProfileRevision: string;
-  garmentVariantId: string;
-  garmentRevision: string;
-  materialPreset: string;
-  qualityTier: z.infer<typeof fitSimulationQualityTierSchema>;
-}) =>
-  fitSimulationCacheKeySchema.parse(
+export const fitSimulationCacheKeyPartsSchema = z
+  .object({
+    avatarVariantId: avatarRenderVariantIdSchema.optional(),
+    bodyProfileRevision: bodyProfileRevisionSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema,
+    materialPreset: z.string().trim().min(1).max(120),
+    qualityTier: fitSimulationQualityTierSchema,
+  })
+  .strict();
+
+export const buildFitSimulationCacheKey = (
+  input: z.input<typeof fitSimulationCacheKeyPartsSchema>,
+) => {
+  const parsed = fitSimulationCacheKeyPartsSchema.parse(input);
+  return fitSimulationCacheKeySchema.parse(
     `fit-sim:${stableHashBase36(
       stableSerializeValue({
-        avatarVariantId: input.avatarVariantId ?? null,
-        bodyProfileRevision: input.bodyProfileRevision,
-        garmentVariantId: input.garmentVariantId,
-        garmentRevision: input.garmentRevision,
-        materialPreset: input.materialPreset,
-        qualityTier: input.qualityTier,
+        avatarVariantId: parsed.avatarVariantId ?? null,
+        bodyProfileRevision: parsed.bodyProfileRevision,
+        garmentVariantId: parsed.garmentVariantId,
+        garmentRevision: parsed.garmentRevision,
+        materialPreset: parsed.materialPreset,
+        qualityTier: parsed.qualityTier,
       }),
     )}`,
   );
+};
+
+export const fitSimulationArtifactLineageSchemaVersion = "fit-simulation-artifact-lineage.v1";
+export const fitSimulationArtifactLineageIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160)
+  .regex(/^fit-lineage:/, "artifact lineage ids must start with fit-lineage:");
+export const fitSimulationArtifactStorageBackendSchema = z.enum(["local-file", "remote-storage"]);
+
+export const buildFitSimulationArtifactLineageId = (input: {
+  cacheKey: z.infer<typeof fitSimulationCacheKeySchema>;
+  cacheKeyParts: z.input<typeof fitSimulationCacheKeyPartsSchema>;
+  artifactKinds: Array<z.infer<typeof fitSimulationArtifactKindSchema>>;
+  drapeSource: "authored-scene-merge" | "solver-output";
+}) => {
+  const parsedParts = fitSimulationCacheKeyPartsSchema.parse(input.cacheKeyParts);
+  return fitSimulationArtifactLineageIdSchema.parse(
+    `fit-lineage:${stableHashBase36(
+      stableSerializeValue({
+        cacheKey: input.cacheKey,
+        cacheKeyParts: {
+          ...parsedParts,
+          avatarVariantId: parsedParts.avatarVariantId ?? null,
+        },
+        artifactKinds: [...input.artifactKinds].sort((left, right) => left.localeCompare(right)),
+        drapeSource: input.drapeSource,
+        schemaVersion: fitSimulationArtifactLineageSchemaVersion,
+      }),
+    )}`,
+  );
+};
 
 export const fitSimulateHQJobPayloadSchema = z
   .object({
@@ -908,6 +1134,7 @@ export const fitSimulateHQJobPayloadSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    avatarVariantId: avatarRenderVariantIdSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
@@ -930,6 +1157,7 @@ export const fitSimulateHQJobPayloadInputSchema = z.union([
     bodyProfileRevision: value.bodyProfileRevision,
     garmentVariantId: value.garmentVariantId,
     garmentRevision: value.garmentRevision,
+    avatarVariantId: value.avatarVariantId,
     avatarManifestUrl: value.avatarManifestUrl,
     garmentManifestUrl: value.garmentManifestUrl,
     materialPreset: value.materialPreset,
@@ -1040,6 +1268,7 @@ export const fitSimulationMetricsArtifactDataSchema = z
     garment: fitSimulationGarmentSnapshotSchema,
     fitMapSummary: fitMapSummarySchema,
     metrics: fitSimulateHQMetricsSchema,
+    artifactLineageId: fitSimulationArtifactLineageIdSchema,
     warnings: z.array(z.string().trim().min(1)).default([]),
     drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
     artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
@@ -1069,6 +1298,36 @@ export const fitSimulateHQResultEnvelopeSchema = jobResultEnvelopeSchema
 
 export const fitSimulationStatusSchema = z.enum(["queued", "processing", "succeeded", "failed"]);
 
+export const fitSimulationAvatarPublicationSnapshotSchema = z
+  .object({
+    avatarId: avatarRenderVariantIdSchema,
+    label: z.string().trim().min(1).max(160),
+    approvalState: assetApprovalStateSchema,
+    assetVersion: z.string().trim().min(1).max(120),
+    runtimeManifestVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    bodySignatureModelVersion: z.string().trim().min(1).max(120),
+    approvedAt: z.iso.datetime().optional(),
+  })
+  .strict();
+
+export const fitSimulationArtifactLineageSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationArtifactLineageSchemaVersion),
+    artifactLineageId: fitSimulationArtifactLineageIdSchema,
+    generatedAt: z.iso.datetime(),
+    cacheKey: fitSimulationCacheKeySchema,
+    cacheKeyParts: fitSimulationCacheKeyPartsSchema,
+    avatarManifestUrl: z.url(),
+    garmentManifestUrl: z.url(),
+    storageBackend: fitSimulationArtifactStorageBackendSchema,
+    drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
+    artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
+    manifestKey: z.string().trim().min(1).max(512),
+    manifestUrl: z.url(),
+    warnings: z.array(z.string().trim().min(1)).default([]),
+  })
+  .strict();
+
 export const fitSimulationRecordSchema = z
   .object({
     id: z.uuid(),
@@ -1097,6 +1356,12 @@ export const fitSimulationRecordSchema = z
   })
   .strict();
 
+export const fitSimulationPublicRecordSchema = fitSimulationRecordSchema
+  .extend({
+    avatarPublication: fitSimulationAvatarPublicationSnapshotSchema.nullable().default(null),
+  })
+  .strict();
+
 export const fitSimulationCreateResponseSchema = z
   .object({
     job_id: z.uuid(),
@@ -1106,9 +1371,62 @@ export const fitSimulationCreateResponseSchema = z
 
 export const fitSimulationGetResponseSchema = z
   .object({
-    fitSimulation: fitSimulationRecordSchema,
+    fitSimulation: fitSimulationPublicRecordSchema,
   })
   .strict();
+
+export const fitSimulationArtifactLineageGetResponseSchema = z
+  .object({
+    artifactLineage: fitSimulationArtifactLineageSchema,
+  })
+  .strict();
+
+export const fitSimulationAdminInspectionSchemaVersion = "fit-simulation-admin-inspection.v1";
+export const fitSimulationAdminInspectionListSchemaVersion = "fit-simulation-admin-inspection-list.v1";
+
+export const fitSimulationAdminInspectionSummarySchema = z
+  .object({
+    id: z.uuid(),
+    status: fitSimulationStatusSchema,
+    avatarVariantId: avatarRenderVariantIdSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    qualityTier: fitSimulationQualityTierSchema,
+    materialPreset: z.string().trim().min(1).max(120),
+    artifactCount: z.number().int().nonnegative(),
+    warningCount: z.number().int().nonnegative(),
+    hasLineage: z.boolean(),
+    drapeSource: fitSimulationArtifactLineageSchema.shape.drapeSource.nullable(),
+    storageBackend: fitSimulationArtifactStorageBackendSchema.nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    completedAt: z.iso.datetime().nullable(),
+  })
+  .strict();
+
+export const fitSimulationAdminInspectionResponseSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationAdminInspectionSchemaVersion),
+    fitSimulation: fitSimulationPublicRecordSchema,
+    artifactLineage: fitSimulationArtifactLineageSchema.nullable(),
+  })
+  .strict();
+
+export const fitSimulationAdminInspectionListResponseSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationAdminInspectionListSchemaVersion),
+    items: z.array(fitSimulationAdminInspectionSummarySchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
@@ -1116,6 +1434,7 @@ export const garmentMaterialProfileSchemaVersion = "garment-material-profile.v1"
 export const garmentSimProxySchemaVersion = "garment-sim-proxy.v1";
 export const garmentCollisionProxySchemaVersion = "garment-collision-proxy.v1";
 export const garmentHQArtifactSpecSchemaVersion = "garment-hq-artifact-spec.v1";
+export const garmentCertificationReportSchemaVersion = "garment-certification-report.v1";
 
 const repoRelativePathSchema = z
   .string()
@@ -1502,6 +1821,99 @@ export const runtimeAssetAuthoringSummarySchema = z.discriminatedUnion("kind", [
   accessoryAuthoringSummarySchema,
 ]);
 
+const garmentCertificationRuntimePathsSchema = z
+  .object({
+    modelPath: z.string().trim().min(1),
+    modelPathByVariant: z
+      .object({
+        "female-base": z.string().trim().min(1).optional(),
+        "male-base": z.string().trim().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    lodModelPaths: z
+      .object({
+        lod1: z.string().trim().min(1),
+        lod2: z.string().trim().min(1),
+      })
+      .strict()
+      .optional(),
+    lodModelPathsByVariant: z
+      .object({
+        "female-base": z
+          .object({
+            lod1: z.string().trim().min(1),
+            lod2: z.string().trim().min(1),
+          })
+          .strict()
+          .optional(),
+        "male-base": z
+          .object({
+            lod1: z.string().trim().min(1),
+            lod2: z.string().trim().min(1),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+const garmentCertificationVariantSummarySchema = z
+  .object({
+    variantId: avatarRenderVariantIdSchema,
+    summaryPath: repoRelativePathSchema,
+    outputBlend: repoRelativePathSchema,
+    outputGlb: repoRelativePathSchema,
+    fitAudit: garmentFitAuditSchema,
+  })
+  .strict();
+
+export const garmentCertificationReportItemSchema = z
+  .object({
+    id: z.string().trim().min(1).max(160),
+    category: assetCategorySchema,
+    fitPolicyCategory: garmentManifestSchema.shape.fitPolicyCategory,
+    selectedSizeLabel: z.string().trim().min(1).max(64).nullable(),
+    sizeChartLabels: z.array(z.string().trim().min(1).max(64)),
+    runtimePaths: garmentCertificationRuntimePathsSchema,
+    authoring: z
+      .object({
+        patternSpecPath: repoRelativePathSchema,
+        materialProfilePath: repoRelativePathSchema,
+        simProxyPath: repoRelativePathSchema,
+        collisionProxyPath: repoRelativePathSchema,
+        hqArtifactPath: repoRelativePathSchema,
+        summaries: z.array(garmentCertificationVariantSummarySchema).min(1),
+      })
+      .strict(),
+    evidence: z
+      .object({
+        budgetReportPath: repoRelativePathSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const garmentCertificationReportSchema = z
+  .object({
+    schemaVersion: z.literal(garmentCertificationReportSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    items: z.array(garmentCertificationReportItemSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
+
 export const garmentRuntimeBindingSchema = z
   .object({
     modelPath: z.string().trim().min(1),
@@ -1613,8 +2025,75 @@ export const garmentPublicationRecordSchema = z
     assetVersion: z.string().trim().min(1).max(64),
     measurementStandard: z.literal("body-garment-v1"),
     provenanceUrl: z.url().optional(),
+    approvalState: assetApprovalStateSchema.optional(),
+    approvedAt: z.iso.datetime().optional(),
+    approvedBy: z.string().trim().min(1).max(160).optional(),
+    certificationNotes: z.array(z.string().trim().min(1)).optional(),
+    viewerManifestVersion: z.string().trim().min(1).max(64).optional(),
   })
   .strict();
+
+export const avatarPublicationCatalogSchemaVersion = "avatar-publication-catalog.v1";
+
+export const avatarPublicationRecordSchema = z
+  .object({
+    sourceSystem: avatarSourceSystemSchema,
+    publishedAt: z.iso.datetime(),
+    assetVersion: z.string().trim().min(1).max(120),
+    approvalState: assetApprovalStateSchema,
+    approvedAt: z.iso.datetime().optional(),
+    approvedBy: z.string().trim().min(1).max(160).optional(),
+    certificationNotes: z.array(z.string().trim().min(1)).default([]),
+    runtimeManifestVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    bodySignatureModelVersion: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
+export const avatarPublicationEvidenceSchema = z
+  .object({
+    summaryPath: z.string().trim().min(1),
+    skeletonPath: z.string().trim().min(1),
+    measurementsPath: z.string().trim().min(1),
+    morphMapPath: z.string().trim().min(1),
+    visualReportPath: z.string().trim().min(1),
+    fitCompatibilityReportPath: z.string().trim().min(1),
+    budgetReportPath: z.string().trim().min(1),
+    bodySignatureModelPath: z.string().trim().min(1),
+  })
+  .strict();
+
+export const publishedRuntimeAvatarCatalogItemSchema = runtimeAvatarCatalogItemSchema
+  .extend({
+    publication: avatarPublicationRecordSchema,
+    evidence: avatarPublicationEvidenceSchema,
+  })
+  .strict();
+
+export const avatarPublicationCatalogEntrySchema = z
+  .object({
+    id: avatarRenderVariantIdSchema,
+    publication: avatarPublicationRecordSchema,
+    evidence: avatarPublicationEvidenceSchema,
+  })
+  .strict();
+
+export const avatarPublicationCatalogSchema = z
+  .object({
+    schemaVersion: z.literal(avatarPublicationCatalogSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    items: z.array(avatarPublicationCatalogEntrySchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const buildPublishedGarmentRevision = (item: {
   id: string;
@@ -1749,6 +2228,7 @@ export const publishedGarmentAssetSchema = runtimeGarmentAssetSchema
   .extend({
     source: z.enum(["inventory", "import"]),
     publication: garmentPublicationRecordSchema,
+    viewerManifest: garmentManifestSchema.optional(),
   })
   .strict();
 
@@ -1757,6 +2237,38 @@ export const publishedRuntimeGarmentItemResponseSchema = z
     item: publishedGarmentAssetSchema,
   })
   .strict();
+
+export const garmentCertificationItemResponseSchema = z
+  .object({
+    schemaVersion: z.literal(garmentCertificationReportSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    item: garmentCertificationReportItemSchema,
+  })
+  .strict();
+
+export const garmentCertificationListResponseSchema = garmentCertificationReportSchema;
+
+export const publishedRuntimeAvatarItemResponseSchema = z
+  .object({
+    item: publishedRuntimeAvatarCatalogItemSchema,
+  })
+  .strict();
+
+export const publishedRuntimeAvatarListResponseSchema = z
+  .object({
+    items: z.array(publishedRuntimeAvatarCatalogItemSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const publishedRuntimeGarmentListResponseSchema = z
   .object({
@@ -1949,6 +2461,13 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
+export type ViewerTelemetryMetricName = z.infer<typeof viewerTelemetryMetricNameSchema>;
+export type ViewerTelemetryUnit = z.infer<typeof viewerTelemetryUnitSchema>;
+export type ViewerTelemetryDeviceTier = z.infer<typeof viewerTelemetryDeviceTierSchema>;
+export type ViewerTelemetryEvent = z.infer<typeof viewerTelemetryEventSchema>;
+export type ViewerTelemetryEnvelope = z.infer<typeof viewerTelemetryEnvelopeSchema>;
+export type ViewerTelemetryRecommendedAction = z.infer<typeof viewerTelemetryRecommendedActionSchema>;
+export type ViewerTelemetryResponse = z.infer<typeof viewerTelemetryResponseSchema>;
 export type AvatarGender = z.infer<typeof avatarGenderSchema>;
 export type BodyFrame = z.infer<typeof bodyFrameSchema>;
 export type BodyProfile = z.infer<typeof bodyProfileSchema>;
@@ -1964,11 +2483,18 @@ export type LegacyBodyProfileFlat = z.infer<typeof legacyBodyProfileFlatSchema>;
 export type AvatarRenderVariantId = z.infer<typeof avatarRenderVariantIdSchema>;
 export type AvatarPoseId = z.infer<typeof avatarPoseIdSchema>;
 export type QualityTier = z.infer<typeof qualityTierSchema>;
+export type AvatarSourceSystem = z.infer<typeof avatarSourceSystemSchema>;
 export type AvatarMeasurementDerivationMethod = z.infer<typeof avatarMeasurementsDerivationMethodSchema>;
 export type AvatarMeasurementDerivationEntry = z.infer<typeof avatarMeasurementDerivationEntrySchema>;
 export type AvatarReferenceMeasurements = z.infer<typeof avatarReferenceMeasurementsSchema>;
 export type AvatarMeasurementsDerivation = z.infer<typeof avatarMeasurementsDerivationSchema>;
 export type AvatarMeasurementsSidecar = z.infer<typeof avatarMeasurementsSidecarSchema>;
+export type RuntimeAvatarCatalogItem = z.infer<typeof runtimeAvatarCatalogItemSchema>;
+export type AvatarPublicationRecord = z.infer<typeof avatarPublicationRecordSchema>;
+export type AvatarPublicationEvidence = z.infer<typeof avatarPublicationEvidenceSchema>;
+export type PublishedRuntimeAvatarCatalogItem = z.infer<typeof publishedRuntimeAvatarCatalogItemSchema>;
+export type AvatarPublicationCatalogEntry = z.infer<typeof avatarPublicationCatalogEntrySchema>;
+export type AvatarPublicationCatalog = z.infer<typeof avatarPublicationCatalogSchema>;
 export type FitCalibrationComparisonEntry = z.infer<typeof fitCalibrationComparisonEntrySchema>;
 export type FitCalibrationReferenceComparison = z.infer<typeof fitCalibrationReferenceComparisonSchema>;
 export type AvatarCalibrationReference = z.infer<typeof avatarCalibrationReferenceSchema>;
@@ -1984,8 +2510,10 @@ export type PreviewSimulationFrameConfig = z.infer<typeof previewSimulationFrame
 export type PreviewSimulationFrameRequest = z.infer<typeof previewSimulationFrameRequestSchema>;
 export type PreviewSimulationFrameResult = z.infer<typeof previewSimulationFrameResultSchema>;
 export type FitSimulationCacheKey = z.infer<typeof fitSimulationCacheKeySchema>;
+export type FitSimulationCacheKeyParts = z.infer<typeof fitSimulationCacheKeyPartsSchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
+export type FitSimulationArtifactLineage = z.infer<typeof fitSimulationArtifactLineageSchema>;
 export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
 export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;
 export type FitMapOverlay = z.infer<typeof fitMapOverlaySchema>;
@@ -1999,9 +2527,25 @@ export type FitSimulateHQMetrics = z.infer<typeof fitSimulateHQMetricsSchema>;
 export type FitSimulateHQResultData = z.infer<typeof fitSimulateHQResultDataSchema>;
 export type FitSimulateHQResultEnvelope = z.infer<typeof fitSimulateHQResultEnvelopeSchema>;
 export type FitSimulationStatus = z.infer<typeof fitSimulationStatusSchema>;
+export type FitSimulationAvatarPublicationSnapshot = z.infer<
+  typeof fitSimulationAvatarPublicationSnapshotSchema
+>;
 export type FitSimulationRecord = z.infer<typeof fitSimulationRecordSchema>;
+export type FitSimulationPublicRecord = z.infer<typeof fitSimulationPublicRecordSchema>;
 export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResponseSchema>;
 export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
+export type FitSimulationArtifactLineageGetResponse = z.infer<
+  typeof fitSimulationArtifactLineageGetResponseSchema
+>;
+export type FitSimulationAdminInspectionSummary = z.infer<
+  typeof fitSimulationAdminInspectionSummarySchema
+>;
+export type FitSimulationAdminInspectionListResponse = z.infer<
+  typeof fitSimulationAdminInspectionListResponseSchema
+>;
+export type FitSimulationAdminInspectionResponse = z.infer<
+  typeof fitSimulationAdminInspectionResponseSchema
+>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;
@@ -2021,6 +2565,13 @@ export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySche
 export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
 export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;
 export type RuntimeAssetAuthoringSummary = z.infer<typeof runtimeAssetAuthoringSummarySchema>;
+export type GarmentCertificationVariantSummary = z.infer<typeof garmentCertificationVariantSummarySchema>;
+export type GarmentCertificationReportItem = z.infer<typeof garmentCertificationReportItemSchema>;
+export type GarmentCertificationReport = z.infer<typeof garmentCertificationReportSchema>;
+export type GarmentCertificationItemResponse = z.infer<typeof garmentCertificationItemResponseSchema>;
+export type GarmentCertificationListResponse = z.infer<typeof garmentCertificationListResponseSchema>;
+export type PublishedRuntimeAvatarItemResponse = z.infer<typeof publishedRuntimeAvatarItemResponseSchema>;
+export type PublishedRuntimeAvatarListResponse = z.infer<typeof publishedRuntimeAvatarListResponseSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;
 export type PublishedRuntimeGarmentListResponse = z.infer<typeof publishedRuntimeGarmentListResponseSchema>;
 export type ClosetRuntimeGarmentItem = z.infer<typeof closetRuntimeGarmentItemSchema>;

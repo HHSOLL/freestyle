@@ -6,6 +6,7 @@
 - `Phase D / Batch 2` closed the baseline implementation seam.
 - `Phase D / Batch 3` closed the preview artifact seam and promoted the fit-map payload into a typed overlay contract that also seeds `Phase E`.
 - `Phase D / Batch 4` closed the HQ artifact-bundle seam with a baseline `draped_glb` plus `metrics_json`.
+- `Phase 8 / Batch 1` now hardens the baseline artifact identity with a canonical cache-key-parts contract and an internal `artifact-lineage.json` sidecar.
 - the repo now has:
   - versioned request/result schemas for offline high-quality fit simulation
   - active lab create/read routes
@@ -34,6 +35,7 @@ The upstream orchestration request is versioned as `fit-simulate-hq.v1`.
   "schemaVersion": "fit-simulate-hq.v1",
   "bodyVersionId": "body-profile:user-id:timestamp",
   "garmentVariantId": "starter-top-soft-casual",
+  "avatarVariantId": "female-base",
   "avatarManifestUrl": "https://...",
   "garmentManifestUrl": "https://...",
   "materialPreset": "cotton_woven_light",
@@ -133,6 +135,15 @@ The current `fit_map_json` artifact is a baseline evidence payload built from:
 The current `preview_png` artifact is a generated raster summary card built from the same typed fit-map payload. It is a review artifact, not a rendered cloth-solver image.
 
 The current `metrics_json` artifact is a typed summary blob containing the recorded HQ metrics, dominant fit-map summary, artifact set, and current drape-source mode.
+
+`Phase 8 / Batch 1` also adds an internal `artifact-lineage.json` sidecar for the same bundle. `Phase 8 / Batch 2` keeps the main lab detail shape unchanged and exposes that lineage only through a separate owner-scoped inspection seam. The lineage manifest now has these boundaries:
+
+- it captures the canonical cache-key parts used to identify the bundle
+- it records the ordered artifact kinds, storage backend, manifest URLs, and current drape-source mode
+- it is stored on the internal fit-simulation record and written next to the artifact bundle
+- it is **not** widened onto `GET /v1/lab/fit-simulations/:id`
+- it is available through `GET /v1/lab/fit-simulations/:id/artifact-lineage`
+- it is also inspectable through `GET /v1/admin/fit-simulations/:id` as a read-only admin/operator seam
 
 This keeps `Phase D` honest: there is now a working async/offline artifact path with a full bundle, but it is still not a full cloth-simulation runtime.
 

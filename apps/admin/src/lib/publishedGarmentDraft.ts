@@ -1,5 +1,6 @@
 import type {
   AssetCategory,
+  AssetApprovalState,
   AvatarAnchorId,
   GarmentCollisionZone,
   GarmentMeasurementKey,
@@ -8,7 +9,12 @@ import type {
   GarmentSizeSpec,
   PublishedGarmentAsset,
 } from "@freestyle/shared-types";
-import { defaultSkeletonProfileId, freestyleSkeletonProfiles } from "@freestyle/domain-garment";
+import {
+  buildDefaultPublishedGarmentViewerManifest,
+  defaultSkeletonProfileId,
+  freestyleSkeletonProfiles,
+  synchronizePublishedGarmentViewerManifest,
+} from "@freestyle/domain-garment";
 
 export const DRAFT_SELECTION_ID = "__draft__";
 
@@ -37,6 +43,22 @@ export const SOURCE_FILTERS: Array<{ id: GarmentPublicationRecord["sourceSystem"
   { id: "admin-domain", label: "Admin Domain" },
   { id: "starter-catalog", label: "Starter" },
   { id: "api-published", label: "API Published" },
+];
+
+export const APPROVAL_STATE_OPTIONS: Array<{ id: AssetApprovalState; label: string }> = [
+  { id: "DRAFT", label: "Draft" },
+  { id: "TECH_CANDIDATE", label: "Tech Candidate" },
+  { id: "VISUAL_CANDIDATE", label: "Visual Candidate" },
+  { id: "FIT_CANDIDATE", label: "Fit Candidate" },
+  { id: "CERTIFIED", label: "Certified" },
+  { id: "PUBLISHED", label: "Published" },
+  { id: "DEPRECATED", label: "Deprecated" },
+  { id: "REJECTED", label: "Rejected" },
+];
+
+export const APPROVAL_STATE_FILTERS: Array<{ id: AssetApprovalState | "all"; label: string }> = [
+  { id: "all", label: "All States" },
+  ...APPROVAL_STATE_OPTIONS,
 ];
 
 export const PUBLISHED_SOURCE_OPTIONS: Array<{ id: PublishedGarmentAsset["source"]; label: string }> = [
@@ -200,7 +222,7 @@ const createDefaultRuntime = (category: AssetCategory, id: string) => ({
 export const buildBlankPublishedGarment = (category: AssetCategory = "tops"): PublishedGarmentAsset => {
   const id = `partner-${category}-new`;
   const sizeRow = createDefaultSizeRow(category);
-  return {
+  const draft: PublishedGarmentAsset = {
     id,
     name: "New Garment",
     imageSrc: `/assets/garments/partners/${id}.png`,
@@ -234,8 +256,23 @@ export const buildBlankPublishedGarment = (category: AssetCategory = "tops"): Pu
       assetVersion: `${id}@1.0.0`,
       measurementStandard: "body-garment-v1",
       provenanceUrl: "https://partner.example.com/garments/new-garment",
+      approvalState: "DRAFT",
+      certificationNotes: [],
     },
   };
+
+  const viewerManifest = buildDefaultPublishedGarmentViewerManifest(draft);
+  return synchronizePublishedGarmentViewerManifest(
+    {
+      ...draft,
+      publication: {
+        ...draft.publication,
+        viewerManifestVersion: viewerManifest?.schemaVersion,
+      },
+      viewerManifest: viewerManifest ?? undefined,
+    },
+    { autofillMissing: true },
+  );
 };
 
 export const sortPublishedGarments = (items: PublishedGarmentAsset[]) =>
@@ -269,10 +306,13 @@ export const normalizeDraftForCategory = (
   const activeRow = sizeChart.find((row) => row.label === selectedSizeLabel) ?? sizeChart[0];
   const nextRuntimeDefaults = createDefaultRuntime(category, item.id);
   const resetCategoryOwnedRuntime = options?.resetCategoryOwnedRuntime ?? false;
+  const nextViewerManifest =
+    item.category !== category || resetCategoryOwnedRuntime ? undefined : item.viewerManifest;
 
-  return {
+  return synchronizePublishedGarmentViewerManifest({
     ...item,
     category,
+    viewerManifest: nextViewerManifest,
     metadata: {
       ...item.metadata,
       measurements: activeRow?.measurements ? { ...activeRow.measurements } : getDefaultMeasurements(category),
@@ -297,5 +337,5 @@ export const normalizeDraftForCategory = (
           ? item.runtime.bodyMaskZones
           : nextRuntimeDefaults.bodyMaskZones,
     },
-  };
+  }, { autofillMissing: true });
 };

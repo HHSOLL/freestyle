@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import type { FitSimulationRecord } from "@freestyle/contracts";
+import type { FitSimulationArtifactLineage, FitSimulationRecord } from "@freestyle/contracts";
 import type { FitSimulationClientState } from "@/hooks/useFitSimulation";
 import { buildClosetFitSimulationDisplay } from "./closet-fit-simulation-display";
 import styles from "./v18-closet.module.css";
@@ -16,6 +16,8 @@ type HqFitSimulationPanelProps = {
   state: FitSimulationClientState;
   error: string | null;
   fitSimulation: FitSimulationRecord | null;
+  artifactLineage: FitSimulationArtifactLineage | null;
+  artifactLineageError: string | null;
 };
 
 export function HqFitSimulationPanel({
@@ -28,8 +30,10 @@ export function HqFitSimulationPanel({
   state,
   error,
   fitSimulation,
+  artifactLineage,
+  artifactLineageError,
 }: HqFitSimulationPanelProps) {
-  const display = buildClosetFitSimulationDisplay(fitSimulation, state);
+  const display = buildClosetFitSimulationDisplay(fitSimulation, state, artifactLineage);
   const canRun = Boolean(selectedGarmentId) && !["creating", "processing", "queued"].includes(state);
   const selectedGarmentName =
     availableGarments.find((garment) => garment.id === selectedGarmentId)?.name ?? "선택된 의상 없음";
@@ -108,13 +112,26 @@ export function HqFitSimulationPanel({
               <strong>{display.stretchLabel}</strong>
             </div>
           ) : null}
+          {display.drapeSourceLabel ? (
+            <div className={styles["hq-fit-metric-row"]}>
+              <span>Drape source</span>
+              <strong>{display.drapeSourceLabel}</strong>
+            </div>
+          ) : null}
+          {display.storageBackendLabel ? (
+            <div className={styles["hq-fit-metric-row"]}>
+              <span>Storage</span>
+              <strong>{display.storageBackendLabel}</strong>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       {display.warning ? <small className={styles["hq-fit-note"]}>{display.warning}</small> : null}
+      {artifactLineageError ? <small className={styles["hq-fit-note"]}>{artifactLineageError}</small> : null}
       {error ? <small className={styles["hq-fit-error"]}>{error}</small> : null}
 
-      {display.drapedGlbUrl || display.fitMapUrl || display.metricsUrl ? (
+      {display.drapedGlbUrl || display.fitMapUrl || display.metricsUrl || display.artifactLineageUrl ? (
         <div className={styles["hq-fit-link-row"]}>
           {display.drapedGlbUrl ? (
             <a href={display.drapedGlbUrl} target="_blank" rel="noreferrer" className={styles["hq-fit-link"]}>
@@ -129,6 +146,11 @@ export function HqFitSimulationPanel({
           {display.metricsUrl ? (
             <a href={display.metricsUrl} target="_blank" rel="noreferrer" className={styles["hq-fit-link"]}>
               metrics_json
+            </a>
+          ) : null}
+          {display.artifactLineageUrl ? (
+            <a href={display.artifactLineageUrl} target="_blank" rel="noreferrer" className={styles["hq-fit-link"]}>
+              artifact_lineage
             </a>
           ) : null}
         </div>

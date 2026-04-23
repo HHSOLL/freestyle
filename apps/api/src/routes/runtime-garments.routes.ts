@@ -25,6 +25,23 @@ const runtimeGarmentQuerySchema = z
   })
   .strict();
 
+const adminRuntimeGarmentQuerySchema = runtimeGarmentQuerySchema
+  .extend({
+    approval_state: z
+      .enum([
+        "DRAFT",
+        "TECH_CANDIDATE",
+        "VISUAL_CANDIDATE",
+        "FIT_CANDIDATE",
+        "CERTIFIED",
+        "PUBLISHED",
+        "DEPRECATED",
+        "REJECTED",
+      ])
+      .optional(),
+  })
+  .strict();
+
 export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
   app.get("/closet/runtime-garments", async (request, reply) => {
     const userId = await requireAuth(request, reply);
@@ -55,7 +72,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
     const userId = await requireAdminAuth(request, reply);
     if (!userId) return;
 
-    const parsed = runtimeGarmentQuerySchema.safeParse(request.query ?? {});
+    const parsed = adminRuntimeGarmentQuerySchema.safeParse(request.query ?? {});
     if (!parsed.success) {
       return reply.code(400).send({
         error: "VALIDATION_ERROR",
@@ -66,6 +83,7 @@ export const registerRuntimeGarmentRoutes = (app: FastifyInstance) => {
     const items = await listPublishedRuntimeGarments({
       category: parsed.data.category,
       sourceSystem: parsed.data.source_system,
+      approvalState: parsed.data.approval_state,
     });
     return reply.send(
       publishedRuntimeGarmentListResponseSchema.parse({

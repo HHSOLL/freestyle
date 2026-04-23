@@ -17,6 +17,20 @@ const createRuntimeGarment = (overrides?: Partial<RuntimeGarmentAsset["runtime"]
         "female-base": "/assets/garments/female-top.glb",
         "male-base": "/assets/garments/male-top.glb",
       },
+      lodModelPaths: {
+        lod1: "/assets/garments/default-top.lod1.glb",
+        lod2: "/assets/garments/default-top.lod2.glb",
+      },
+      lodModelPathsByVariant: {
+        "female-base": {
+          lod1: "/assets/garments/female-top.lod1.glb",
+          lod2: "/assets/garments/female-top.lod2.glb",
+        },
+        "male-base": {
+          lod1: "/assets/garments/male-top.lod1.glb",
+          lod2: "/assets/garments/male-top.lod2.glb",
+        },
+      },
       skeletonProfileId: "freestyle-rig-v2",
       anchorBindings: [{ id: "leftShoulder", weight: 1 }],
       collisionZones: ["torso"],
@@ -35,6 +49,7 @@ test("collectRuntimeModelPaths dedupes avatar and garment runtime model paths", 
       avatarVariantIds: ["female-base", "female-base"],
       garmentAssets: [garment, garment],
       garmentVariantId: "female-base",
+      qualityTier: "high",
     }),
     ["/assets/avatars/mpfb-female-base.glb", "/assets/garments/female-top.glb"],
   );
@@ -52,7 +67,48 @@ test("collectRuntimeModelPaths falls back to the default garment model path when
       avatarVariantIds: ["male-base"],
       garmentAssets: [garment],
       garmentVariantId: "male-base",
+      qualityTier: "high",
     }),
     ["/assets/avatars/mpfb-male-base.glb", "/assets/garments/default-top.glb"],
+  );
+});
+
+test("collectRuntimeModelPaths resolves avatar LOD paths for balanced and low quality tiers", () => {
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      avatarVariantIds: ["female-base", "male-base"],
+      qualityTier: "balanced",
+    }),
+    ["/assets/avatars/mpfb-female-base.lod1.glb", "/assets/avatars/mpfb-male-base.lod1.glb"],
+  );
+
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      avatarVariantIds: ["female-base", "male-base"],
+      qualityTier: "low",
+    }),
+    ["/assets/avatars/mpfb-female-base.lod2.glb", "/assets/avatars/mpfb-male-base.lod2.glb"],
+  );
+});
+
+test("collectRuntimeModelPaths resolves garment LOD paths for balanced and low quality tiers", () => {
+  const garment = createRuntimeGarment();
+
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      garmentAssets: [garment],
+      garmentVariantId: "female-base",
+      qualityTier: "balanced",
+    }),
+    ["/assets/garments/female-top.lod1.glb"],
+  );
+
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      garmentAssets: [garment],
+      garmentVariantId: "male-base",
+      qualityTier: "low",
+    }),
+    ["/assets/garments/male-top.lod2.glb"],
   );
 });

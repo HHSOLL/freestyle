@@ -1,5 +1,7 @@
 import {
   assessGarmentInstantFit,
+  synchronizePublishedGarmentViewerManifest,
+  validatePublishedGarmentCertificationState,
   validatePublishedGarmentAsset,
 } from "@freestyle/domain-garment";
 import {
@@ -15,6 +17,44 @@ import {
   listPublishedRuntimeGarmentRecords,
   upsertPublishedRuntimeGarmentRecord,
 } from "./runtime-garments.repository.js";
+
+const normalizePublicationForRead = (publication: GarmentPublicationRecord): GarmentPublicationRecord => {
+  const approvalState = publication.approvalState ?? "PUBLISHED";
+
+  return {
+    ...publication,
+    approvalState,
+    approvedAt: publication.approvedAt ?? (approvalState === "PUBLISHED" ? publication.publishedAt : undefined),
+    certificationNotes: publication.certificationNotes ?? [],
+  };
+};
+
+const normalizePublicationForWrite = (publication: GarmentPublicationRecord): GarmentPublicationRecord => ({
+  ...publication,
+  approvalState: publication.approvalState ?? "DRAFT",
+  certificationNotes: publication.certificationNotes ?? [],
+});
+
+const normalizePublishedRuntimeGarmentForRead = (item: PublishedGarmentAsset): PublishedGarmentAsset =>
+  synchronizePublishedGarmentViewerManifest(
+    {
+      ...item,
+      publication: normalizePublicationForRead(item.publication),
+    },
+    { autofillMissing: false },
+  );
+
+const normalizePublishedRuntimeGarmentForWrite = (item: PublishedGarmentAsset): PublishedGarmentAsset =>
+  synchronizePublishedGarmentViewerManifest(
+    {
+      ...item,
+      publication: normalizePublicationForWrite(item.publication),
+    },
+    { autofillMissing: true },
+  );
+
+const isClosetVisibleRuntimeGarment = (item: PublishedGarmentAsset) =>
+  item.publication.approvalState === "PUBLISHED";
 
 export class RuntimeGarmentValidationError extends Error {
   readonly issues: string[];
@@ -32,7 +72,8 @@ const safeParsePublishedRuntimeGarment = (input: unknown) => {
     return null;
   }
 
-  return validatePublishedGarmentAsset(parsed.data).length === 0 ? parsed.data : null;
+  const normalized = normalizePublishedRuntimeGarmentForRead(parsed.data);
+  return validatePublishedGarmentAsset(normalized).length === 0 ? normalized : null;
 };
 
 const parsePublishedRuntimeGarment = (input: unknown) => {
@@ -40,22 +81,33 @@ const parsePublishedRuntimeGarment = (input: unknown) => {
   if (!parsed.success) {
     throw new RuntimeGarmentValidationError(parsed.error.issues.map((issue) => issue.message));
   }
-  const issues = validatePublishedGarmentAsset(parsed.data);
+  const normalized = normalizePublishedRuntimeGarmentForWrite(parsed.data);
+  const issues = [
+    ...validatePublishedGarmentAsset(normalized),
+    ...validatePublishedGarmentCertificationState(normalized),
+  ];
   if (issues.length > 0) {
     throw new RuntimeGarmentValidationError(issues);
   }
-  return parsed.data;
+  return normalized;
 };
 
 export const listPublishedRuntimeGarments = async (filters?: {
   category?: AssetCategory;
   sourceSystem?: GarmentPublicationRecord["sourceSystem"];
+  approvalState?: NonNullable<GarmentPublicationRecord["approvalState"]>;
 }) => {
-  const items = await listPublishedRuntimeGarmentRecords(filters);
-  return items.flatMap((item) => {
-    const parsed = safeParsePublishedRuntimeGarment(item);
-    return parsed ? [parsed] : [];
+  const items = await listPublishedRuntimeGarmentRecords({
+    category: filters?.category,
+    sourceSystem: filters?.sourceSystem,
   });
+  return items
+    .flatMap((item) => {
+      const parsed = safeParsePublishedRuntimeGarment(item);
+      return parsed ? [parsed] : [];
+    })
+    .map(normalizePublishedRuntimeGarmentForRead)
+    .filter((item) => (filters?.approvalState ? item.publication.approvalState === filters.approvalState : true));
 };
 
 export const listClosetRuntimeGarments = async (
@@ -65,7 +117,7 @@ export const listClosetRuntimeGarments = async (
     sourceSystem?: GarmentPublicationRecord["sourceSystem"];
   },
 ) => {
-  const items = await listPublishedRuntimeGarments(filters);
+  const items = (await listPublishedRuntimeGarments(filters)).filter(isClosetVisibleRuntimeGarment);
 
   return items.flatMap((item) => {
     const parsed = closetRuntimeGarmentItemSchema.safeParse({
@@ -83,12 +135,13 @@ export const getPublishedRuntimeGarmentById = async (id: string) => {
     return null;
   }
 
-  return safeParsePublishedRuntimeGarment(item);
+  const parsed = safeParsePublishedRuntimeGarment(item);
+  return parsed ? normalizePublishedRuntimeGarmentForRead(parsed) : null;
 };
 
 export const upsertPublishedRuntimeGarment = async (input: PublishedGarmentAsset) => {
   const parsed = parsePublishedRuntimeGarment(input);
-  return upsertPublishedRuntimeGarmentRecord(parsed);
+  return normalizePublishedRuntimeGarmentForRead(await upsertPublishedRuntimeGarmentRecord(parsed));
 };
 
 export const upsertPublishedRuntimeGarmentForActor = async (
@@ -96,7 +149,9 @@ export const upsertPublishedRuntimeGarmentForActor = async (
   actorUserId?: string | null,
 ) => {
   const parsed = parsePublishedRuntimeGarment(input);
-  return upsertPublishedRuntimeGarmentRecord(parsed, actorUserId);
+  return normalizePublishedRuntimeGarmentForRead(
+    await upsertPublishedRuntimeGarmentRecord(parsed, actorUserId),
+  );
 };
 
 export const createPublishedRuntimeGarment = async (
@@ -108,5 +163,7 @@ export const createPublishedRuntimeGarment = async (
   if (existing) {
     return null;
   }
-  return upsertPublishedRuntimeGarmentRecord(parsed, actorUserId);
+  return normalizePublishedRuntimeGarmentForRead(
+    await upsertPublishedRuntimeGarmentRecord(parsed, actorUserId),
+  );
 };

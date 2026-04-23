@@ -63,6 +63,7 @@ The current repo only claims the first read-only avatar publication seam.
 - `GET /v1/admin/avatars` exposes that catalog for admin inspection
 - `output/avatar-certification/latest.json` is the machine-readable evidence bundle paired with that catalog
 - `POST /v1/lab/jobs/fit-simulations` is the first production-adjacent consumer and resolves queued avatar runtime metadata from that catalog
+- `GET /v1/lab/fit-simulations/:id` now returns a minimal derived `avatarPublication` snapshot for the queued avatar variant, but it is still a read-time convenience view rather than persisted lineage
 
 This is not the same thing as a complete canonical `AvatarManifest` delivery tree. Treat the Phase 5 catalog as publication metadata and certification evidence for the shipped base avatars only.
 

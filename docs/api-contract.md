@@ -178,6 +178,9 @@
   - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
   - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
+  - the detail route now also returns a minimal `avatarPublication` snapshot derived from the published runtime avatar catalog at read time
+  - that lab-facing snapshot is intentionally narrower than the admin avatar catalog: it exposes publication status/version metadata only and never returns evidence paths or authoring provenance
+  - the lab-facing snapshot is a current read-time convenience view, not persisted historical avatar-publication lineage
   - the active worker now persists `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
   - the current `draped_glb` is an authored-scene merge baseline for artifact persistence/cache and preview swap-in plumbing, not solver-deformed cloth truth
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
@@ -229,6 +232,15 @@
     "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",
     "materialPreset": "knit_medium",
     "qualityTier": "fast",
+    "avatarPublication": {
+      "avatarId": "female-base",
+      "label": "MPFB Female Base",
+      "approvalState": "PUBLISHED",
+      "assetVersion": "female-base@2026-04-23",
+      "runtimeManifestVersion": "runtime-avatar-render-manifest.v1",
+      "bodySignatureModelVersion": "body-signature.v1",
+      "approvedAt": "2026-04-23T00:00:00.000Z"
+    },
     "instantFit": {
       "schemaVersion": "garment-instant-fit-report.v1",
       "overallFit": "good",

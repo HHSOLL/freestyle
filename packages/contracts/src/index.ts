@@ -1178,6 +1178,18 @@ export const fitSimulateHQResultEnvelopeSchema = jobResultEnvelopeSchema
 
 export const fitSimulationStatusSchema = z.enum(["queued", "processing", "succeeded", "failed"]);
 
+export const fitSimulationAvatarPublicationSnapshotSchema = z
+  .object({
+    avatarId: avatarRenderVariantIdSchema,
+    label: z.string().trim().min(1).max(160),
+    approvalState: assetApprovalStateSchema,
+    assetVersion: z.string().trim().min(1).max(120),
+    runtimeManifestVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
+    bodySignatureModelVersion: z.string().trim().min(1).max(120),
+    approvedAt: z.iso.datetime().optional(),
+  })
+  .strict();
+
 export const fitSimulationRecordSchema = z
   .object({
     id: z.uuid(),
@@ -1206,6 +1218,12 @@ export const fitSimulationRecordSchema = z
   })
   .strict();
 
+export const fitSimulationPublicRecordSchema = fitSimulationRecordSchema
+  .extend({
+    avatarPublication: fitSimulationAvatarPublicationSnapshotSchema.nullable().default(null),
+  })
+  .strict();
+
 export const fitSimulationCreateResponseSchema = z
   .object({
     job_id: z.uuid(),
@@ -1215,7 +1233,7 @@ export const fitSimulationCreateResponseSchema = z
 
 export const fitSimulationGetResponseSchema = z
   .object({
-    fitSimulation: fitSimulationRecordSchema,
+    fitSimulation: fitSimulationPublicRecordSchema,
   })
   .strict();
 
@@ -2205,7 +2223,11 @@ export type FitSimulateHQMetrics = z.infer<typeof fitSimulateHQMetricsSchema>;
 export type FitSimulateHQResultData = z.infer<typeof fitSimulateHQResultDataSchema>;
 export type FitSimulateHQResultEnvelope = z.infer<typeof fitSimulateHQResultEnvelopeSchema>;
 export type FitSimulationStatus = z.infer<typeof fitSimulationStatusSchema>;
+export type FitSimulationAvatarPublicationSnapshot = z.infer<
+  typeof fitSimulationAvatarPublicationSnapshotSchema
+>;
 export type FitSimulationRecord = z.infer<typeof fitSimulationRecordSchema>;
+export type FitSimulationPublicRecord = z.infer<typeof fitSimulationPublicRecordSchema>;
 export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResponseSchema>;
 export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;

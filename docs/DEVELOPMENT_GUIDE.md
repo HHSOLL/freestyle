@@ -177,6 +177,7 @@ Use these boundaries:
 - the runtime avatar render catalog now uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
 - `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
 - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
+- `GET /v1/lab/fit-simulations/:id` may expose a derived `avatarPublication` snapshot for lab consumers, but that field must stay response-only and minimal: no evidence paths, no authoring provenance, and no persistence widening
 
 Do not use a single global XYZ scale as a body-measurement shortcut. Height, shoulder width, chest, waist, hip, arm length, torso length, and leg volume must travel through the mapping layer.
 

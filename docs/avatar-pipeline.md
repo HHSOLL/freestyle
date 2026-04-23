@@ -30,6 +30,7 @@ Current read-only publication seam:
 - `GET /v1/admin/avatars`
 - `output/avatar-certification/latest.json`
 - `POST /v1/lab/jobs/fit-simulations` as the first production-adjacent consumer of the publication seam
+- `GET /v1/lab/fit-simulations/:id` as the paired read path for a minimal derived publication snapshot
 
 These are generated in-repo from the MPFB pipeline and are now the default visible human bases for the runtime.
 

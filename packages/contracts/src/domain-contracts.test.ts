@@ -519,6 +519,15 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
       garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
       materialPreset: 'knit_medium',
       qualityTier: 'balanced',
+      avatarPublication: {
+        avatarId: 'female-base',
+        label: 'MPFB Female Base',
+        approvalState: 'PUBLISHED',
+        assetVersion: 'female-base@2026-04-23',
+        runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+        bodySignatureModelVersion: 'body-signature.v1',
+        approvedAt: '2026-04-23T00:00:00.000Z',
+      },
       instantFit: null,
       fitMap: null,
       fitMapSummary: null,
@@ -534,6 +543,36 @@ test('fitSimulation response schemas accept the active lab record shape', () => 
 
   assert.equal(created.fit_simulation_id, '00000000-0000-4000-8000-000000000025');
   assert.equal(read.fitSimulation.materialPreset, 'knit_medium');
+  assert.equal(read.fitSimulation.avatarPublication?.runtimeManifestVersion, runtimeAvatarRenderManifestSchemaVersion);
+});
+
+test('fitSimulation read response defaults avatarPublication to null when omitted', () => {
+  const parsed = fitSimulationGetResponseSchema.parse({
+    fitSimulation: {
+      id: '00000000-0000-4000-8000-000000000026',
+      jobId: null,
+      status: 'queued',
+      avatarVariantId: 'female-base',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      instantFit: null,
+      fitMap: null,
+      fitMapSummary: null,
+      artifacts: [],
+      metrics: null,
+      warnings: [],
+      errorMessage: null,
+      createdAt: '2026-04-20T10:00:00.000Z',
+      updatedAt: '2026-04-20T10:00:00.000Z',
+      completedAt: null,
+    },
+  });
+
+  assert.equal(parsed.fitSimulation.avatarPublication, null);
 });
 
 test("preview simulation frame schemas accept worker-offload request and result payloads", () => {

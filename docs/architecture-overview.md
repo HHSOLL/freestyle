@@ -188,6 +188,7 @@ The first avatar publication boundary is now active through:
 - `GET /v1/admin/avatars`
 - `output/avatar-certification/latest.json`
 - `POST /v1/lab/jobs/fit-simulations` as the first production-adjacent consumer of that publication seam
+- `GET /v1/lab/fit-simulations/:id` as the paired read path that exposes a minimal derived publication snapshot without widening persistence
 
 Current product closet contract split:
 

@@ -565,6 +565,24 @@ Evidence:
 - `packages/shared/src/index.ts`
 - `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
 - `docs/api-contract.md`
+
+### `Phase 5 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. split the fit-simulation read contract from the stored fit-simulation record so lab reads can grow without widening persistence
+2. added a minimal derived `avatarPublication` snapshot to `GET /v1/lab/fit-simulations/:id`, sourced from the committed runtime avatar publication catalog
+3. kept the new field intentionally narrow: no evidence paths, no authoring provenance, and no worker payload changes
+4. documented the field as a read-time convenience snapshot rather than persisted historical lineage
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `apps/api/src/routes/product-boundary.routes.test.ts`
 - `docs/worker-playbook.md`
 - `docs/physical-fit-system.md`
 - `docs/quality-gates.md`

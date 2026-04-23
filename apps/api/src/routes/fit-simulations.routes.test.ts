@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import {
   buildBodyProfileRevision,
   buildFitSimulationCacheKey,
@@ -494,6 +495,11 @@ test("fit-simulation read route returns the public record shape from the persist
   assert.equal(payload.fitSimulation.fitMapSummary?.dominantOverlayKind, "confidenceMap");
   assert.equal(payload.fitSimulation.artifacts[0]?.kind, "draped_glb");
   assert.equal(payload.fitSimulation.artifacts[3]?.kind, "metrics_json");
+  assert.equal(payload.fitSimulation.avatarPublication?.avatarId, "female-base");
+  assert.equal(
+    payload.fitSimulation.avatarPublication?.runtimeManifestVersion,
+    runtimeAvatarRenderManifestSchemaVersion,
+  );
 
   await app.close();
 });

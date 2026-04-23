@@ -228,7 +228,7 @@ As of `2026-04-20`:
   - queue helpers recognize the reserved job type and normalize the design-facing request into canonical `job-payload.v1`
 - `Phase D / Batch 2` now closes the baseline async worker path:
   - `POST /v1/lab/jobs/fit-simulations` creates an HQ fit-simulation job from the current persisted `BodyProfile` plus a published runtime garment snapshot
-  - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, and metrics
+  - `GET /v1/lab/fit-simulations/:id` returns the persisted simulation record with typed artifacts, warnings, metrics, and a minimal derived `avatarPublication` snapshot for the queued avatar variant
   - `worker_fit_simulate_hq` now processes `fit_simulate_hq_v1` and persists `fit_map_json`
   - this is still a baseline artifact path, not a full cloth solver; `draped_glb` remains the major future output
 - `Phase D / Batch 3` now extends that baseline artifact path:

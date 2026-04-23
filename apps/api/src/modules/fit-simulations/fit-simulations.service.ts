@@ -21,8 +21,10 @@ import {
   type FitSimulationJobPayload,
   type JobRecord,
 } from "@freestyle/shared";
+import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import type {
-  FitSimulationRecord as PublicFitSimulationRecord,
+  FitSimulationAvatarPublicationSnapshot,
+  FitSimulationPublicRecord,
   PublishedGarmentAsset,
 } from "@freestyle/contracts";
 import { getPublishedRuntimeAvatarByVariantId } from "../avatars/runtime-avatars.service.js";
@@ -40,10 +42,10 @@ const fitSimulationArtifactPriority = {
   preview_png: 1,
   fit_map_json: 2,
   metrics_json: 3,
-} as const satisfies Record<PublicFitSimulationRecord["artifacts"][number]["kind"], number>;
+} as const satisfies Record<FitSimulationPublicRecord["artifacts"][number]["kind"], number>;
 
 const sortFitSimulationArtifactsForPresentation = (
-  artifacts: PublicFitSimulationRecord["artifacts"],
+  artifacts: FitSimulationPublicRecord["artifacts"],
 ) =>
   [...artifacts].sort((left, right) => {
     const leftRank = fitSimulationArtifactPriority[left.kind] ?? Number.MAX_SAFE_INTEGER;
@@ -79,6 +81,25 @@ const inferFitSimulationMaterialPreset = (item: PublishedGarmentAsset) => {
           ? "knit"
           : "blended";
   return `${fabricFamily}_${stretchProfile}`;
+};
+
+const buildAvatarPublicationSnapshot = (
+  avatarVariantId: string,
+): FitSimulationAvatarPublicationSnapshot | null => {
+  const avatar = getPublishedRuntimeAvatarByVariantId(avatarVariantId);
+  if (!avatar) {
+    return null;
+  }
+
+  return {
+    avatarId: avatar.id,
+    label: avatar.label,
+    approvalState: avatar.publication.approvalState,
+    assetVersion: avatar.publication.assetVersion,
+    runtimeManifestVersion: runtimeAvatarRenderManifestSchemaVersion,
+    bodySignatureModelVersion: avatar.publication.bodySignatureModelVersion,
+    approvedAt: avatar.publication.approvedAt,
+  };
 };
 
 const buildSimulationRequest = (
@@ -304,7 +325,7 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     return null;
   }
 
-  const publicRecord: PublicFitSimulationRecord = {
+  const publicRecord: FitSimulationPublicRecord = {
     id: row.id,
     jobId: row.jobId,
     status: row.status,
@@ -325,6 +346,7 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     metrics: row.metrics,
     warnings: row.warnings,
     errorMessage: row.errorMessage,
+    avatarPublication: buildAvatarPublicationSnapshot(row.avatarVariantId),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     completedAt: row.completedAt,

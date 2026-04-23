@@ -3,13 +3,13 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { avatarManifestSchemaVersion } from "@freestyle/asset-schema";
 import { avatarMeasurementsSidecarSchemaVersion } from "@freestyle/contracts";
 import {
   collectAvatarMeasurementsSidecarSummaryIssues,
   parseAvatarMeasurementsSidecar,
 } from "@freestyle/domain-avatar";
 import {
-  avatarManifestSchemaVersion,
   avatarMorphMapSidecarSchemaVersion,
   avatarRenderManifest,
   avatarSkeletonSidecarSchemaVersion,

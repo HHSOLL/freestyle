@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { materialClassSchema } from "./quality.js";
 import { repoAssetPathSchema } from "./manifest-shared.js";
+import { materialContractSchemaVersion } from "./schema-versions.js";
 
 export const materialContractSchema = z
   .object({
-    schemaVersion: z.literal("material-contract.v1"),
+    schemaVersion: z.literal(materialContractSchemaVersion),
     materialClass: materialClassSchema,
     visual: z
       .object({

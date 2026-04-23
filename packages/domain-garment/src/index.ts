@@ -1,4 +1,8 @@
-import { garmentManifestSchema, type GarmentManifest } from "@freestyle/asset-schema";
+import {
+  garmentManifestSchema,
+  garmentManifestSchemaVersion,
+  type GarmentManifest,
+} from "@freestyle/asset-schema";
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
 import {
   fitMapSummarySchema,
@@ -2458,7 +2462,7 @@ export const buildDefaultPublishedGarmentViewerManifest = (
 
   return garmentManifestSchema.parse({
     id: item.id,
-    schemaVersion: "garment-manifest.v1",
+    schemaVersion: garmentManifestSchemaVersion,
     production: {
       approvalState: item.publication.approvalState ?? "DRAFT",
       approvedAt: item.publication.approvedAt,
@@ -2518,7 +2522,7 @@ export const synchronizePublishedGarmentViewerManifest = (
     ...(fallbackManifest ?? sourceManifest),
     ...sourceManifest,
     id: item.id,
-    schemaVersion: "garment-manifest.v1",
+    schemaVersion: garmentManifestSchemaVersion,
     production: {
       ...((fallbackManifest ?? sourceManifest).production ?? {
         approvalState: item.publication.approvalState ?? "DRAFT",

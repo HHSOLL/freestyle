@@ -1,3 +1,4 @@
+import { avatarManifestSchemaVersion } from "@freestyle/asset-schema/schema-versions";
 import type { AvatarRenderVariantId } from "@freestyle/shared-types";
 
 export type AvatarRigAlias =
@@ -23,7 +24,6 @@ export type AvatarRigAlias =
   | "leftFoot"
   | "rightFoot";
 
-export const avatarManifestSchemaVersion = "avatar-manifest-v1";
 export const avatarSummarySchemaVersion = "avatar-build-summary-v1";
 export const avatarSkeletonSidecarSchemaVersion = "avatar-skeleton-sidecar-v1";
 export const avatarMorphMapSidecarSchemaVersion = "avatar-morph-map-sidecar-v1";

@@ -7,10 +7,11 @@ import {
   fitMetricsJsonSchema,
 } from "./quality.js";
 import { productionMetadataSchema, repoAssetPathSchema } from "./manifest-shared.js";
+import { fitArtifactManifestSchemaVersion } from "./schema-versions.js";
 
 export const fitArtifactManifestSchema = z
   .object({
-    schemaVersion: z.literal("fit-artifact.v1"),
+    schemaVersion: z.literal(fitArtifactManifestSchemaVersion),
     production: productionMetadataSchema,
     bodySignature: bodySignatureSchema,
     bodyRegionTaxonomy: z.array(bodyRegionIdSchema).min(1),

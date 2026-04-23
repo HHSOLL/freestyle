@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { assetQualityReportSchema, garmentFitPolicyCategorySchema } from "./quality.js";
 import { productionMetadataSchema, repoAssetPathSchema } from "./manifest-shared.js";
+import { garmentManifestSchemaVersion } from "./schema-versions.js";
 
 const garmentDisplayAssetsSchema = z
   .object({
@@ -53,7 +54,7 @@ const garmentQualityAssetsSchema = z
 export const garmentManifestSchema = z
   .object({
     id: z.string().trim().min(1).max(160),
-    schemaVersion: z.literal("garment-manifest.v1"),
+    schemaVersion: z.literal(garmentManifestSchemaVersion),
     production: productionMetadataSchema,
     fitPolicyCategory: garmentFitPolicyCategorySchema,
     display: garmentDisplayAssetsSchema,

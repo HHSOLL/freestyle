@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@freestyle/asset-schema": "file:../asset-schema",
+    "@freestyle/fit-kernel": "file:../fit-kernel",
     "zod": "^4.1.12"
   }
 }

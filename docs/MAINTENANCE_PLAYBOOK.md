@@ -31,6 +31,7 @@
 - `/share/[slug]`
 
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
+If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 

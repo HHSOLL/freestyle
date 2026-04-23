@@ -39,7 +39,7 @@ Run these when the scope touches the matching area.
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
 | promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
-| asset-quality, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
+| asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
 
 ### L2. Full Local Gate
 

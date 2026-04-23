@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { bodySignatureSchema, fitMetricsJsonSchema } from "@freestyle/asset-schema";
+import {
+  defaultFitKernelBufferTransport,
+  fitKernelBufferTransports,
+  type FitKernelBufferTransport,
+} from "@freestyle/fit-kernel";
 
-export const previewTransportBackendSchema = z.enum([
-  "transferable-array-buffer",
-  "shared-array-buffer",
-]);
+export const previewTransportBackendSchema = z.enum(fitKernelBufferTransports);
+export const previewTransportBackendDefault = defaultFitKernelBufferTransport;
 
 export const previewWorkerMessageSchema = z.discriminatedUnion("type", [
   z
@@ -98,5 +101,5 @@ export const hqArtifactEnvelopeSchema = z
 
 export type FitArtifactCacheKeyParts = z.infer<typeof fitArtifactCacheKeyPartsSchema>;
 export type HqArtifactEnvelope = z.infer<typeof hqArtifactEnvelopeSchema>;
-export type PreviewTransportBackend = z.infer<typeof previewTransportBackendSchema>;
+export type PreviewTransportBackend = FitKernelBufferTransport;
 export type PreviewWorkerMessage = z.infer<typeof previewWorkerMessageSchema>;

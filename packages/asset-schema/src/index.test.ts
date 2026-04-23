@@ -3,10 +3,15 @@ import test from "node:test";
 import {
   assetApprovalStates,
   avatarManifestSchema,
+  avatarManifestSchemaVersion,
+  bodySignatureSchemaVersion,
   buildBodySignatureHash,
   ensureBodySignatureHash,
   fitArtifactManifestSchema,
+  fitArtifactManifestSchemaVersion,
+  garmentManifestSchemaVersion,
   garmentManifestSchema,
+  materialContractSchemaVersion,
   materialContractSchema,
 } from "./index.js";
 
@@ -25,7 +30,7 @@ test("asset approval states expose the full production lifecycle", () => {
 
 test("body signature hash remains stable for equivalent objects", () => {
   const left = ensureBodySignatureHash({
-    version: "body-signature.v1",
+    version: bodySignatureSchemaVersion,
     measurements: {
       heightCm: 170,
       waistCm: 72,
@@ -47,7 +52,7 @@ test("body signature hash remains stable for equivalent objects", () => {
       torsoClass: "average",
       heightClass: "average",
     },
-    version: "body-signature.v1",
+    version: bodySignatureSchemaVersion,
     measurements: {
       hipCm: 96,
       shoulderWidthCm: 39,
@@ -63,7 +68,7 @@ test("body signature hash remains stable for equivalent objects", () => {
 test("avatar manifest requires render fit and collision asset groups", () => {
   const parsed = avatarManifestSchema.parse({
     id: "female_base_v1",
-    schemaVersion: "avatar-manifest.v1",
+    schemaVersion: avatarManifestSchemaVersion,
     production: {
       approvalState: "DRAFT",
       reviewNotes: [],
@@ -116,7 +121,7 @@ test("avatar manifest requires render fit and collision asset groups", () => {
 test("garment manifest requires fit and quality artifacts before certification", () => {
   const parsed = garmentManifestSchema.parse({
     id: "top_crop_001",
-    schemaVersion: "garment-manifest.v1",
+    schemaVersion: garmentManifestSchemaVersion,
     production: {
       approvalState: "FIT_CANDIDATE",
       reviewNotes: [],
@@ -162,7 +167,7 @@ test("garment manifest requires fit and quality artifacts before certification",
 
 test("material contract keeps visual and physical properties separate", () => {
   const parsed = materialContractSchema.parse({
-    schemaVersion: "material-contract.v1",
+    schemaVersion: materialContractSchemaVersion,
     materialClass: "denim",
     visual: {
       baseColor: "garment/textures/basecolor.ktx2",
@@ -189,14 +194,14 @@ test("material contract keeps visual and physical properties separate", () => {
 
 test("fit artifact manifest requires typed metrics and artifact bundle paths", () => {
   const parsed = fitArtifactManifestSchema.parse({
-    schemaVersion: "fit-artifact.v1",
+    schemaVersion: fitArtifactManifestSchemaVersion,
     production: {
       approvalState: "CERTIFIED",
       reviewNotes: [],
       certificationNotes: ["manual review complete"],
     },
     bodySignature: {
-      version: "body-signature.v1",
+      version: bodySignatureSchemaVersion,
       measurements: {
         heightCm: 168,
         waistCm: 70,

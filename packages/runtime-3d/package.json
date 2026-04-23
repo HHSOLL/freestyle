@@ -7,6 +7,7 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
+    "@freestyle/asset-schema": "file:../asset-schema",
     "@freestyle/domain-avatar": "file:../domain-avatar",
     "@freestyle/domain-garment": "file:../domain-garment",
     "@freestyle/shared-types": "file:../shared-types",

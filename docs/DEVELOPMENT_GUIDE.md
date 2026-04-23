@@ -122,6 +122,7 @@ During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibili
 The direct browser harness for `viewer-core` lives at `/app/lab/viewer-platform`; use it for Phase 1 manual verification before widening product cutover.
 Phase 1 closeout evidence for the viewer-platform refactor lives at `docs/freestyle-viewer-platform/phase1/closeout.md`.
 The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
+Phase 2 closeout evidence for the schema/protocol foundation lives at `docs/freestyle-viewer-platform/phase2/closeout.md`.
 Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/freestyle-viewer-platform/phase2/telemetry-slice.md`.
 Phase 2 manifest-shadow evidence for the admin publication contract lives at `docs/freestyle-viewer-platform/phase2/manifest-shadow.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
@@ -202,6 +203,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - if starter `pattern-spec` semantics change, update `packages/domain-garment` tests and helper logic first, then let `validate:garment3d` reuse that rule instead of adding validator-only comparison branches
 - `Phase 2` authoring contract v2 now also includes `*.material-profile.json`, `*.sim-proxy.json`, `*.collision-proxy.json`, and `*.hq-artifact.json` sidecars next to each committed `pattern-spec`; regenerate and sync them with `npm run authoring:garments:mpfb:sidecars`
 - keep authoring bundle parity inside `packages/domain-garment` via `validateGarmentAuthoringBundleAgainstStarterCatalog`; do not add one-off validator-only comparisons for material, proxy, collider, or HQ artifact drift
+- Phase 2 schema version literals now come from `packages/asset-schema/src/schema-versions.ts`; do not reintroduce runtime-only duplicates for avatar, garment, material, or fit-artifact manifest versions
+- preview worker transport names now track the `fit-kernel` tuple through `packages/viewer-protocol`; do not define another `"transferable-array-buffer" | "shared-array-buffer"` union in downstream packages
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
 - `/v1/closet/runtime-garments` now gates the product catalog to `publication.approvalState === "PUBLISHED"` after runtime validation; do not widen that route to candidate states for convenience

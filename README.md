@@ -190,6 +190,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/ai-agent-playbook.md](docs/ai-agent-playbook.md)
 - [docs/quality-gates.md](docs/quality-gates.md)
 - [docs/freestyle-viewer-platform/phase1/closeout.md](docs/freestyle-viewer-platform/phase1/closeout.md)
+- [docs/freestyle-viewer-platform/phase2/closeout.md](docs/freestyle-viewer-platform/phase2/closeout.md)
 - [docs/freestyle-viewer-platform/phase2/telemetry-slice.md](docs/freestyle-viewer-platform/phase2/telemetry-slice.md)
 - [docs/freestyle-viewer-platform/phase2/manifest-shadow.md](docs/freestyle-viewer-platform/phase2/manifest-shadow.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)

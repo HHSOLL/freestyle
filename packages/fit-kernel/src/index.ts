@@ -1,5 +1,11 @@
-export type FitKernelExecutionMode = "wasm-preview" | "static-fit";
-export type FitKernelBufferTransport = "transferable-array-buffer" | "shared-array-buffer";
+export const fitKernelExecutionModes = ["wasm-preview", "static-fit"] as const;
+export const fitKernelBufferTransports = [
+  "transferable-array-buffer",
+  "shared-array-buffer",
+] as const;
+
+export type FitKernelExecutionMode = (typeof fitKernelExecutionModes)[number];
+export type FitKernelBufferTransport = (typeof fitKernelBufferTransports)[number];
 
 export const defaultFitKernelExecutionMode: FitKernelExecutionMode = "wasm-preview";
 export const defaultFitKernelBufferTransport: FitKernelBufferTransport = "transferable-array-buffer";

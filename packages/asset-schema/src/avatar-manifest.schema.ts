@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { assetQualityReportSchema } from "./quality.js";
 import { productionMetadataSchema, repoAssetPathSchema } from "./manifest-shared.js";
+import { avatarManifestSchemaVersion } from "./schema-versions.js";
 
 const avatarDisplayAssetsSchema = z
   .object({
@@ -65,7 +66,7 @@ const avatarQualityAssetsSchema = z
 export const avatarManifestSchema = z
   .object({
     id: z.string().trim().min(1).max(160),
-    schemaVersion: z.literal("avatar-manifest.v1"),
+    schemaVersion: z.literal(avatarManifestSchemaVersion),
     production: productionMetadataSchema,
     display: avatarDisplayAssetsSchema,
     fit: avatarFitAssetsSchema,

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fitArtifactCacheKeyPartsSchema,
+  previewTransportBackendDefault,
+  previewWorkerMessageSchema,
   viewerCommandSchema,
   viewerEventEnvelopeSchema,
   viewerManifestEnvelopeSchema,
@@ -120,4 +122,14 @@ test("fit artifact cache key parts keep versioned lineage inputs explicit", () =
   });
 
   assert.equal(parsed.fitPolicyVersion, "policy-v3");
+});
+
+test("preview worker protocol reuses the fit-kernel transport default", () => {
+  const parsed = previewWorkerMessageSchema.parse({
+    type: "INIT_SOLVER",
+    backend: previewTransportBackendDefault,
+  });
+
+  assert.equal(parsed.type, "INIT_SOLVER");
+  assert.equal(parsed.backend, "transferable-array-buffer");
 });

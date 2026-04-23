@@ -43,6 +43,7 @@ If the Phase 5 avatar publication seam changes, also update the relevant note un
 If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/freestyle-viewer-platform/phase6/batch2.md`, `docs/freestyle-viewer-platform/phase6/batch3.md`, `docs/freestyle-viewer-platform/phase6/batch4.md`, `docs/freestyle-viewer-platform/phase6/closeout.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
 If the Phase 7 preview-runtime seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase7/`, plus `docs/physical-fit-system.md` and the preview-runtime rules in `docs/DEVELOPMENT_GUIDE.md` in the same PR. If the compatibility host changes its read-only evidence surface, keep `apps/web/e2e/closet-preview-runtime.spec.ts` in sync in the same commit.
 That Phase 7 note now includes `batch1.md`, `batch2.md`, `batch3.md`, `batch4.md`, and `closeout.md`; keep the snapshot seam, preview-engine fallback seam, and preview-session bootstrap seam in sync together.
+If the Phase 8 HQ artifact identity seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase8/`, plus `docs/CLOTH_SIMULATE_JOB_DRAFT.md`, `docs/physical-fit-system.md`, and the HQ artifact rules in `docs/quality-gates.md` in the same PR.
 
 ### Redirect smoke
 
@@ -182,8 +183,10 @@ If any of the above regress, stop the release.
 - verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
 - verify fit-simulation jobs dedupe on canonical `cacheKey` when the caller omits an explicit `idempotency_key`
 - verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, and `cacheKey` consistently through API and worker reads
+- verify new jobs preserve `avatarVariantId` through the canonical fit-simulation payload so queue fallback and API create derive the same `cacheKey`
 - verify fit-simulation create still resolves `avatarManifestUrl` from `packages/runtime-3d/src/avatar-publication-catalog.ts` rather than a local API constant
 - verify succeeded fit-simulation records now persist the full artifact bundle: `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
+- verify the internal fit-simulation store now also persists a typed `artifactLineage` snapshot with `artifactLineageId`, `cacheKeyParts`, and `artifactKinds`
 - verify lab fit-simulation reads return artifacts in presentation order with `draped_glb` first
 
 ### HQ fit-simulation artifact failure

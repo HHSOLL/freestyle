@@ -291,6 +291,7 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
       bodyProfileRevision: request.bodyProfileRevision,
       garmentVariantId: request.garmentVariantId,
       garmentRevision: request.garmentRevision,
+      avatarVariantId: request.avatarVariantId,
       avatarManifestUrl: request.avatarManifestUrl,
       garmentManifestUrl: request.garmentManifestUrl,
       materialPreset: request.materialPreset,

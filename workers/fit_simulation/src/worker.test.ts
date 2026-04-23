@@ -87,11 +87,13 @@ test("parseFitSimulationJobPayload preserves canonical fit-simulation envelopes"
           bodyProfileRevision,
           garmentVariantId: "starter-top-soft-casual",
           garmentRevision,
+          avatarVariantId: "female-base",
           avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
           garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
           materialPreset: "knit_medium",
           qualityTier: "fast",
           cacheKey: buildFitSimulationCacheKey({
+            avatarVariantId: "female-base",
             bodyProfileRevision,
             garmentVariantId: "starter-top-soft-casual",
             garmentRevision,
@@ -109,6 +111,7 @@ test("parseFitSimulationJobPayload preserves canonical fit-simulation envelopes"
 
   assert.equal(parsed.trace_id, "00000000-0000-4000-8000-000000000084");
   assert.equal(parsed.data.fit_simulation_id, "00000000-0000-4000-8000-000000000083");
+  assert.equal(parsed.data.avatarVariantId, "female-base");
   assert.equal(parsed.data.garmentVariantId, "starter-top-soft-casual");
 });
 
@@ -267,6 +270,7 @@ test("buildFitSimulationMetricsArtifactPayload emits typed HQ metrics evidence",
       penetrationRate: 0.021,
       maxStretchRatio: 1.04,
     },
+    "fit-lineage:test-worker-metrics",
     [phase4DrapeWarning],
     ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
   );
@@ -274,6 +278,7 @@ test("buildFitSimulationMetricsArtifactPayload emits typed HQ metrics evidence",
   const parsed = fitSimulationMetricsArtifactDataSchema.parse(payload);
   assert.equal(parsed.drapeSource, "authored-scene-merge");
   assert.equal(parsed.artifactKinds[0], "draped_glb");
+  assert.equal(parsed.artifactLineageId, "fit-lineage:test-worker-metrics");
   assert.equal(parsed.metrics.durationMs, 820);
 });
 

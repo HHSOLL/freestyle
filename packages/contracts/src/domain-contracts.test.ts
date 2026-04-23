@@ -478,6 +478,7 @@ test('fitSimulationMetricsArtifactDataSchema accepts typed HQ metrics artifacts'
       name: 'Soft Casual',
       category: 'tops',
     },
+    artifactLineageId: 'fit-lineage:test-metrics-artifact',
     fitMapSummary: {
       dominantOverlayKind: 'collisionRiskMap',
       dominantRegionId: 'chest',

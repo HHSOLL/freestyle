@@ -90,11 +90,13 @@ test("normalizeQueuedJobPayload upgrades reserved simulation requests into canon
       bodyProfileRevision,
       garmentVariantId: "starter-top-soft-casual",
       garmentRevision,
+      avatarVariantId: "female-base",
       avatarManifestUrl: "https://cdn.freestyle.test/assets/avatars/female-base.glb",
       garmentManifestUrl: "https://cdn.freestyle.test/assets/garments/soft-casual.glb",
       materialPreset: "cotton_woven_light",
       qualityTier: "fast",
       cacheKey: buildFitSimulationCacheKey({
+        avatarVariantId: "female-base",
         bodyProfileRevision,
         garmentVariantId: "starter-top-soft-casual",
         garmentRevision,
@@ -112,6 +114,7 @@ test("normalizeQueuedJobPayload upgrades reserved simulation requests into canon
   assert.equal(payload.idempotency_key, "fit-sim-123");
   assert.equal(payload.data.bodyVersionId, `body-profile:user-1:${bodyProfileRevision}`);
   assert.equal(payload.data.bodyProfileRevision, bodyProfileRevision);
+  assert.equal(payload.data.avatarVariantId, "female-base");
   assert.equal(payload.data.garmentRevision, garmentRevision);
   assert.equal("schemaVersion" in payload.data, false);
 });

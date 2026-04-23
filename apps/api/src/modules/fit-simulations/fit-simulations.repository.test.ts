@@ -316,6 +316,36 @@ test("file fit-simulation persistence port round-trips stored records", async ()
     fitMapSummary: fitMapSummaryFixture,
     artifacts: [],
     metrics: null,
+    artifactLineage: {
+      schemaVersion: "fit-simulation-artifact-lineage.v1",
+      artifactLineageId: "fit-lineage:repo-test-lineage",
+      generatedAt: "2026-04-20T00:05:00.000Z",
+      cacheKey: buildFitSimulationCacheKey({
+        avatarVariantId: "female-base",
+        bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
+        garmentVariantId: garmentSnapshot.id,
+        garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
+        materialPreset: "knit_medium",
+        qualityTier: "balanced",
+      }),
+      cacheKeyParts: {
+        avatarVariantId: "female-base",
+        bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
+        garmentVariantId: garmentSnapshot.id,
+        garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
+        materialPreset: "knit_medium",
+        qualityTier: "balanced",
+      },
+      avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+      garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
+      storageBackend: "local-file",
+      drapeSource: "authored-scene-merge",
+      artifactKinds: ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
+      manifestKey: "fit-simulations/00000000-0000-4000-8000-000000000071/artifact-lineage.json",
+      manifestUrl:
+        "file:///tmp/freestyle-fit-simulations/00000000-0000-4000-8000-000000000071/artifact-lineage.json",
+      warnings: [],
+    },
     warnings: [],
     errorMessage: null,
     createdAt: "2026-04-20T00:00:00.000Z",
@@ -329,6 +359,7 @@ test("file fit-simulation persistence port round-trips stored records", async ()
   assert.equal(byId?.fitMap?.schemaVersion, "fit-map-json.v1");
   assert.equal(byId?.fitMap?.overlays[0]?.kind, "easeMap");
   assert.equal(byId?.fitMapSummary?.dominantOverlayKind, "confidenceMap");
+  assert.equal(byId?.artifactLineage?.artifactLineageId, "fit-lineage:repo-test-lineage");
 
   const byUser = await port.getFitSimulationRecordForUser(
     record.id,

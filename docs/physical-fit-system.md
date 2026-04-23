@@ -246,6 +246,11 @@ As of `2026-04-20`:
 - `Phase E / Batch 1` starts from that shared overlay contract rather than inventing a second pressure-map blob
 - `Phase E / Batch 2` now also carries the same typed overlay payload on the persisted fit-simulation record, so `GET /v1/lab/fit-simulations/:id` exposes `fitMap` directly instead of forcing clients to pull the JSON artifact separately
 - `Phase E / Batch 3` now adds a shared `fitMapSummary` helper and persisted summary snapshot, so preview generation and future consumers agree on the dominant overlay/region without reimplementing overlay-ranking logic
+- `Phase 8 / Batch 1` now hardens the baseline HQ artifact identity:
+  - `packages/contracts` defines canonical `fitSimulationCacheKeyParts` and an internal `fitSimulationArtifactLineage` schema
+  - `fit_simulate_hq_v1` queue normalization now preserves `avatarVariantId` so API create and worker fallback derive the same `cacheKey`
+  - `worker_fit_simulate_hq` now persists an `artifact-lineage.json` sidecar next to the current artifact bundle and stores that lineage on the internal simulation record
+  - `metrics_json` now includes `artifactLineageId`, but the product-adjacent lab read path is intentionally unchanged
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
   - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract

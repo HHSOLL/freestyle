@@ -990,26 +990,66 @@ export const fitSimulationArtifactSchema = jobArtifactSchema
   })
   .strict();
 
-export const buildFitSimulationCacheKey = (input: {
-  avatarVariantId?: string;
-  bodyProfileRevision: string;
-  garmentVariantId: string;
-  garmentRevision: string;
-  materialPreset: string;
-  qualityTier: z.infer<typeof fitSimulationQualityTierSchema>;
-}) =>
-  fitSimulationCacheKeySchema.parse(
+export const fitSimulationCacheKeyPartsSchema = z
+  .object({
+    avatarVariantId: avatarRenderVariantIdSchema.optional(),
+    bodyProfileRevision: bodyProfileRevisionSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    garmentRevision: garmentRevisionSchema,
+    materialPreset: z.string().trim().min(1).max(120),
+    qualityTier: fitSimulationQualityTierSchema,
+  })
+  .strict();
+
+export const buildFitSimulationCacheKey = (
+  input: z.input<typeof fitSimulationCacheKeyPartsSchema>,
+) => {
+  const parsed = fitSimulationCacheKeyPartsSchema.parse(input);
+  return fitSimulationCacheKeySchema.parse(
     `fit-sim:${stableHashBase36(
       stableSerializeValue({
-        avatarVariantId: input.avatarVariantId ?? null,
-        bodyProfileRevision: input.bodyProfileRevision,
-        garmentVariantId: input.garmentVariantId,
-        garmentRevision: input.garmentRevision,
-        materialPreset: input.materialPreset,
-        qualityTier: input.qualityTier,
+        avatarVariantId: parsed.avatarVariantId ?? null,
+        bodyProfileRevision: parsed.bodyProfileRevision,
+        garmentVariantId: parsed.garmentVariantId,
+        garmentRevision: parsed.garmentRevision,
+        materialPreset: parsed.materialPreset,
+        qualityTier: parsed.qualityTier,
       }),
     )}`,
   );
+};
+
+export const fitSimulationArtifactLineageSchemaVersion = "fit-simulation-artifact-lineage.v1";
+export const fitSimulationArtifactLineageIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160)
+  .regex(/^fit-lineage:/, "artifact lineage ids must start with fit-lineage:");
+export const fitSimulationArtifactStorageBackendSchema = z.enum(["local-file", "remote-storage"]);
+
+export const buildFitSimulationArtifactLineageId = (input: {
+  cacheKey: z.infer<typeof fitSimulationCacheKeySchema>;
+  cacheKeyParts: z.input<typeof fitSimulationCacheKeyPartsSchema>;
+  artifactKinds: Array<z.infer<typeof fitSimulationArtifactKindSchema>>;
+  drapeSource: "authored-scene-merge" | "solver-output";
+}) => {
+  const parsedParts = fitSimulationCacheKeyPartsSchema.parse(input.cacheKeyParts);
+  return fitSimulationArtifactLineageIdSchema.parse(
+    `fit-lineage:${stableHashBase36(
+      stableSerializeValue({
+        cacheKey: input.cacheKey,
+        cacheKeyParts: {
+          ...parsedParts,
+          avatarVariantId: parsedParts.avatarVariantId ?? null,
+        },
+        artifactKinds: [...input.artifactKinds].sort((left, right) => left.localeCompare(right)),
+        drapeSource: input.drapeSource,
+        schemaVersion: fitSimulationArtifactLineageSchemaVersion,
+      }),
+    )}`,
+  );
+};
 
 export const fitSimulateHQJobPayloadSchema = z
   .object({
@@ -1017,6 +1057,7 @@ export const fitSimulateHQJobPayloadSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    avatarVariantId: avatarRenderVariantIdSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
@@ -1039,6 +1080,7 @@ export const fitSimulateHQJobPayloadInputSchema = z.union([
     bodyProfileRevision: value.bodyProfileRevision,
     garmentVariantId: value.garmentVariantId,
     garmentRevision: value.garmentRevision,
+    avatarVariantId: value.avatarVariantId,
     avatarManifestUrl: value.avatarManifestUrl,
     garmentManifestUrl: value.garmentManifestUrl,
     materialPreset: value.materialPreset,
@@ -1149,6 +1191,7 @@ export const fitSimulationMetricsArtifactDataSchema = z
     garment: fitSimulationGarmentSnapshotSchema,
     fitMapSummary: fitMapSummarySchema,
     metrics: fitSimulateHQMetricsSchema,
+    artifactLineageId: fitSimulationArtifactLineageIdSchema,
     warnings: z.array(z.string().trim().min(1)).default([]),
     drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
     artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
@@ -1187,6 +1230,24 @@ export const fitSimulationAvatarPublicationSnapshotSchema = z
     runtimeManifestVersion: z.literal(runtimeAvatarRenderManifestSchemaVersion),
     bodySignatureModelVersion: z.string().trim().min(1).max(120),
     approvedAt: z.iso.datetime().optional(),
+  })
+  .strict();
+
+export const fitSimulationArtifactLineageSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationArtifactLineageSchemaVersion),
+    artifactLineageId: fitSimulationArtifactLineageIdSchema,
+    generatedAt: z.iso.datetime(),
+    cacheKey: fitSimulationCacheKeySchema,
+    cacheKeyParts: fitSimulationCacheKeyPartsSchema,
+    avatarManifestUrl: z.url(),
+    garmentManifestUrl: z.url(),
+    storageBackend: fitSimulationArtifactStorageBackendSchema,
+    drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
+    artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
+    manifestKey: z.string().trim().min(1).max(512),
+    manifestUrl: z.url(),
+    warnings: z.array(z.string().trim().min(1)).default([]),
   })
   .strict();
 
@@ -2312,8 +2373,10 @@ export type PreviewSimulationFrameConfig = z.infer<typeof previewSimulationFrame
 export type PreviewSimulationFrameRequest = z.infer<typeof previewSimulationFrameRequestSchema>;
 export type PreviewSimulationFrameResult = z.infer<typeof previewSimulationFrameResultSchema>;
 export type FitSimulationCacheKey = z.infer<typeof fitSimulationCacheKeySchema>;
+export type FitSimulationCacheKeyParts = z.infer<typeof fitSimulationCacheKeyPartsSchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
+export type FitSimulationArtifactLineage = z.infer<typeof fitSimulationArtifactLineageSchema>;
 export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
 export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;
 export type FitMapOverlay = z.infer<typeof fitMapOverlaySchema>;

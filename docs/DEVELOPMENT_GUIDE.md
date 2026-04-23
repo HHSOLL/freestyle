@@ -136,6 +136,7 @@ The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform
 The admin-side starter-coverage triage slice is `docs/freestyle-viewer-platform/phase6/batch4.md`.
 Phase 6 closeout evidence for the garment certification seam lives at `docs/freestyle-viewer-platform/phase6/closeout.md`.
 Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md`, widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`, adds the explicit preview-engine/fallback seam in `docs/freestyle-viewer-platform/phase7/batch3.md`, and closes the compatibility preview session seam in `docs/freestyle-viewer-platform/phase7/batch4.md`. The phase closeout lives at `docs/freestyle-viewer-platform/phase7/closeout.md`.
+Phase 8 HQ artifact identity starts at `docs/freestyle-viewer-platform/phase8/batch1.md`. Keep that note aligned with `docs/CLOTH_SIMULATE_JOB_DRAFT.md` and `docs/physical-fit-system.md` whenever the internal cache-key or artifact-lineage seam changes.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -241,6 +242,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `V18ClosetExperience` may seed fit guidance from the API closet catalog, but active tab and equipped-item review should still prefer locally derived reports from the current deferred body profile
 - `Phase D` now has an active HQ artifact path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`
 - keep that baseline honest: it currently persists `draped_glb`, typed `fit_map_json`, generated `preview_png`, and `metrics_json`, but the `draped_glb` is still an authored-scene merge placeholder rather than solver-deformed cloth truth
+- `Phase 8 / Batch 1` adds an internal `artifact-lineage.json` sidecar plus persisted `artifactLineage` snapshot for the same HQ bundle; keep that seam internal until a later batch explicitly widens the public read contract
 - the current product-facing HQ fit consumer seam is `apps/web/src/hooks/useFitSimulation.ts` plus `apps/web/src/components/product/closet-fit-simulation.tsx`; keep `Closet` on preview-image and typed-summary consumption until a real `draped_glb` stage swap-in exists
 - lab/detail consumers should treat the artifact list as presentation-ordered: `draped_glb`, then `preview_png`, then `fit_map_json`, then `metrics_json`
 - `Phase 5` now uses committed Playwright visual baselines for route-shell and closet-tier regression; when changing route chrome, stage framing, or closet quality tiers, update `apps/web/e2e/visual-regression.spec.ts` and its snapshot directory in the same PR
@@ -362,6 +364,7 @@ Compatibility rules:
 - API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move between the file fallback and the Supabase-backed `published_runtime_garments` store without changing route contracts
 - use `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` when the API should write and read from the remote publication table
 - fit-simulation identity must stay revision-based, not timestamp-based; use canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey` instead of ad-hoc `updatedAt` snapshots for dedupe
+- if the fit-simulation queue path needs to recompute identity, it must use the shared `fitSimulationCacheKeyParts` contract; do not let API create, queue normalization, and worker fallback invent different cache inputs
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules

@@ -87,6 +87,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 7 / Batch 4`: the same-origin worker now runs on the typed preview session protocol with body/collision/fit-mesh/material bootstrap messages plus a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary motion
 - `Phase 7`: the repo-scoped compatibility preview path is now closed; later phases may replace the compatibility inputs with authoritative authored assets and real cloth deformation, but should not reopen the current evidence surface casually
 - `Phase 7`: preview fit performance gate becomes blocking
+- `Phase 8 / Batch 1`: the HQ fit worker now writes an internal `artifact-lineage.json` sidecar and canonical cache-key parts for the current four-artifact bundle without widening the lab read contract
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking
 - `Phase 9`: UX latency gate becomes blocking
 - `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set

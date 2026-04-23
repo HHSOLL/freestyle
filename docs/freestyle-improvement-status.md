@@ -1403,6 +1403,42 @@ Outcome:
 - RC docs now make the active Vercel browser key / Railway service key boundary explicit
 - the remaining repo-improvement program is closed; follow-on work is ordinary maintenance rather than an open hardening phase
 
+### `Phase 8 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. unified the active HQ fit cache identity around a canonical `fitSimulationCacheKeyParts` contract instead of letting API and queue fallback paths drift
+2. widened the normalized `fit_simulate_hq_v1` payload to carry `avatarVariantId`, so the worker can preserve the same cache key the API create path derives
+3. added a baseline-safe `fitSimulationArtifactLineage` schema and persisted `artifact-lineage.json` sidecar for the current four-artifact HQ bundle
+4. stored that lineage snapshot on the internal fit-simulation record while keeping `GET /v1/lab/fit-simulations/:id` intentionally unchanged
+5. added `artifactLineageId` to `metrics_json` so typed HQ metrics can point back to the current lineage manifest without claiming solver-grade cloth output
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `packages/shared/src/index.ts`
+- `packages/shared/src/job-contracts.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.test.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `workers/fit_simulation/src/worker.ts`
+- `workers/fit_simulation/src/worker.test.ts`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch1.md`
+
+Outcome:
+
+- the active HQ fit baseline now has a typed artifact-lineage seam in addition to the existing artifact bundle
+- the cache-key split between API create and queue fallback is closed for new jobs
+- the repo still does **not** claim solver-backed cloth output or public lineage exposure on the lab read route
+
 ## Phase 0 Closeout
 
 `Phase 0` is complete when all of the following are true:

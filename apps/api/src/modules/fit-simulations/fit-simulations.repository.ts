@@ -3,10 +3,12 @@ import path from "node:path";
 import { z } from "zod";
 import {
   bodyProfileSchema,
+  fitSimulationArtifactLineageSchema,
   fitSimulationRecordSchema,
   garmentFitAssessmentSchema,
   publishedGarmentAssetSchema,
   type BodyProfile,
+  type FitSimulationArtifactLineage,
   type FitSimulationRecord,
   type GarmentFitAssessment,
   type PublishedGarmentAsset,
@@ -18,6 +20,7 @@ const getFitSimulationStorePath = () =>
 
 const storedFitSimulationRecordSchema = fitSimulationRecordSchema
   .extend({
+    artifactLineage: fitSimulationArtifactLineageSchema.nullable().default(null),
     userId: z.string().trim().min(1),
     bodyProfile: bodyProfileSchema,
     garmentSnapshot: publishedGarmentAssetSchema,
@@ -199,13 +202,17 @@ export const upsertFitSimulationRecord = async (record: {
   fitMapSummary: FitSimulationRecord["fitMapSummary"];
   artifacts: FitSimulationRecord["artifacts"];
   metrics: FitSimulationRecord["metrics"];
+  artifactLineage?: FitSimulationArtifactLineage | null;
   warnings: string[];
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
 }) => {
-  return defaultFitSimulationPersistencePort.upsertFitSimulationRecord(record);
+  return defaultFitSimulationPersistencePort.upsertFitSimulationRecord({
+    ...record,
+    artifactLineage: record.artifactLineage ?? null,
+  });
 };
 
 export const deleteFitSimulationRecord = async (id: string) => {

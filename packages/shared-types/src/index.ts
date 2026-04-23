@@ -1,3 +1,5 @@
+import type { GarmentManifest } from "@freestyle/asset-schema";
+
 export const bodyProfileSimpleKeys = [
   "heightCm",
   "shoulderCm",
@@ -416,6 +418,7 @@ export type StarterGarment = RuntimeGarmentAsset & {
 export type PublishedGarmentAsset = RuntimeGarmentAsset & {
   source: "inventory" | "import";
   publication: GarmentPublicationRecord;
+  viewerManifest?: GarmentManifest;
 };
 
 export type ClosetSceneState = {

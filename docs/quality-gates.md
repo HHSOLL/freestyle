@@ -153,6 +153,8 @@ When the runtime or assets change, verify at least the relevant subset of these:
 
 - body measurement changes remain region-specific
 - garments respect render order and clearance
+- `/v1/admin/garments` save/load keeps supported-category `viewerManifest` shadows synchronized with top-level publication metadata
+- `/v1/closet/runtime-garments` continues to tolerate legacy published rows without a manifest shadow while still excluding non-`PUBLISHED` assets
 - body masks still hide covered geometry correctly
 - low-quality mode still renders
 - load failure shows a fallback instead of a blank scene

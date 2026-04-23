@@ -1132,6 +1132,50 @@ test('published runtime garment response schemas accept canonical envelopes and 
       publishedAt: '2026-04-14T12:00:00.000Z',
       assetVersion: 'precision-tee@1.0.0',
       measurementStandard: 'body-garment-v1',
+      approvalState: 'DRAFT',
+      viewerManifestVersion: 'garment-manifest.v1',
+    },
+    viewerManifest: {
+      id: 'published-top-precision-tee',
+      schemaVersion: 'garment-manifest.v1',
+      production: {
+        approvalState: 'DRAFT',
+        reviewNotes: [],
+        certificationNotes: [],
+      },
+      fitPolicyCategory: 'tight_top',
+      display: {
+        lod0: '/assets/garments/partner/precision-tee.glb',
+        lod1: '/assets/garments/partner/precision-tee.lod1.glb',
+        lod2: '/assets/garments/partner/precision-tee.lod2.glb',
+      },
+      fit: {
+        fitMesh: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/fit_mesh.glb',
+        panelGroups: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/panel_groups.json',
+        seamGraph: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/seam_graph.json',
+        anchors: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/anchors.json',
+        constraints: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/constraints.json',
+        sizeMapping: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/size_mapping.json',
+        bodyMaskPolicy: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/body_mask_policy.json',
+        collisionPolicy: '/assets/viewer-manifests/garments/published-top-precision-tee/fit/collision_policy.json',
+      },
+      material: {
+        visualMaterial: '/assets/viewer-manifests/garments/published-top-precision-tee/material/visual_material.json',
+        physicalMaterial: '/assets/viewer-manifests/garments/published-top-precision-tee/material/physical_material.json',
+      },
+      textures: {
+        baseColor: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/basecolor.ktx2',
+        normal: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/normal.ktx2',
+        orm: '/assets/viewer-manifests/garments/published-top-precision-tee/textures/orm.ktx2',
+      },
+      quality: {
+        topologyReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/topology_report.json',
+        materialReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/material_report.json',
+        fitReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/fit_report.json',
+        visualReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/visual_report.json',
+        performanceReport: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/performance_report.json',
+        goldenFitResult: '/assets/viewer-manifests/garments/published-top-precision-tee/quality/golden_fit_result.json',
+      },
     },
   });
 
@@ -1153,6 +1197,7 @@ test('published runtime garment response schemas accept canonical envelopes and 
   });
 
   assert.equal(itemResponse.item.id, garment.id);
+  assert.equal(itemResponse.item.viewerManifest?.schemaVersion, 'garment-manifest.v1');
   assert.equal(listResponse.total, 1);
   assert.equal(closetListResponse.items[0]?.item.id, garment.id);
   assert.throws(

@@ -32,6 +32,7 @@
 
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
+If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 
 ### Redirect smoke
 
@@ -183,6 +184,9 @@ If any of the above regress, stop the release.
 - verify `/v1/admin/garments?approval_state=...` still filters certification candidates without leaking those assets into `/v1/closet/runtime-garments`
 - verify `approvalState`, `approvedAt/by`, and certification notes survive admin save/load without affecting legacy upload asset statuses
 - verify legacy published rows with missing approval metadata normalize to `PUBLISHED` on read only; re-saved records must persist an explicit approval state
+- verify supported garment categories persist a synchronized `viewerManifest` plus `publication.viewerManifestVersion` through admin save/load
+- verify stale nested manifest ids or approval states are normalized on write instead of leaking drift into stored publication payloads
+- verify unsupported categories do not get accidental auto-filled canonical garment manifests
 
 ## 6. Operational Rules
 

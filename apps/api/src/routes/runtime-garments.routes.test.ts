@@ -9,68 +9,15 @@ import {
   publishedRuntimeGarmentListResponseSchema,
   type PublishedGarmentAsset,
 } from "@freestyle/contracts";
+import { buildDefaultPublishedGarmentViewerManifest } from "@freestyle/domain-garment";
 import { buildServer } from "../main.js";
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "freestyle-runtime-garments-"));
 const runtimeGarmentStorePath = path.join(tempDir, "runtime-garments.json");
 const bodyProfileStorePath = path.join(tempDir, "body-profiles.json");
 
-const publishedGarmentFixture: PublishedGarmentAsset = {
-  id: "published-top-precision-tee",
-  name: "Precision Tee",
-  imageSrc: "/assets/demo/precision-tee.png",
-  category: "tops",
-  brand: "Partner Sample",
-  source: "inventory",
-  metadata: {
-    measurements: {
-      chestCm: 58.5,
-      shoulderCm: 52.5,
-      sleeveLengthCm: 21,
-      lengthCm: 65.5,
-    },
-    fitProfile: {
-      layer: "base",
-      silhouette: "regular",
-      structure: "soft",
-      stretch: 0.08,
-      drape: 0.18,
-    },
-    measurementModes: {
-      chestCm: "flat-half-circumference",
-      shoulderCm: "linear-length",
-      sleeveLengthCm: "linear-length",
-      lengthCm: "linear-length",
-    },
-    sizeChart: [
-      {
-        label: "L",
-        measurements: {
-          chestCm: 58.5,
-          shoulderCm: 52.5,
-          sleeveLengthCm: 21,
-          lengthCm: 65.5,
-        },
-        measurementModes: {
-          chestCm: "flat-half-circumference",
-          shoulderCm: "linear-length",
-          sleeveLengthCm: "linear-length",
-          lengthCm: "linear-length",
-        },
-        source: "product-detail",
-      },
-    ],
-    selectedSizeLabel: "L",
-    physicalProfile: {
-      materialStretchRatio: 0.08,
-      maxComfortStretchRatio: 0.05,
-      compressionToleranceCm: {
-        chestCm: 1.4,
-        shoulderCm: 0.8,
-      },
-    },
-  },
-  runtime: {
+const publishedGarmentFixture: PublishedGarmentAsset = (() => {
+  const runtime: PublishedGarmentAsset["runtime"] = {
     modelPath: "/assets/garments/partner/precision-tee.glb",
     skeletonProfileId: "freestyle-rig-v2",
     anchorBindings: [
@@ -83,9 +30,8 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
     bodyMaskZones: [],
     surfaceClearanceCm: 1.2,
     renderPriority: 1,
-  },
-  palette: ["#f5f5f5", "#10161f"],
-  publication: {
+  };
+  const publication: PublishedGarmentAsset["publication"] = {
     sourceSystem: "admin-domain",
     publishedAt: "2026-04-14T12:00:00.000Z",
     assetVersion: "precision-tee@1.0.0",
@@ -95,8 +41,76 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
     approvedAt: "2026-04-14T12:00:00.000Z",
     approvedBy: "qa@freestyle.app",
     certificationNotes: ["Legacy starter passed first certification sweep."],
-  },
-};
+    viewerManifestVersion: "garment-manifest.v1",
+  };
+
+  return {
+    id: "published-top-precision-tee",
+    name: "Precision Tee",
+    imageSrc: "/assets/demo/precision-tee.png",
+    category: "tops",
+    brand: "Partner Sample",
+    source: "inventory",
+    metadata: {
+      measurements: {
+        chestCm: 58.5,
+        shoulderCm: 52.5,
+        sleeveLengthCm: 21,
+        lengthCm: 65.5,
+      },
+      fitProfile: {
+        layer: "base",
+        silhouette: "regular",
+        structure: "soft",
+        stretch: 0.08,
+        drape: 0.18,
+      },
+      measurementModes: {
+        chestCm: "flat-half-circumference",
+        shoulderCm: "linear-length",
+        sleeveLengthCm: "linear-length",
+        lengthCm: "linear-length",
+      },
+      sizeChart: [
+        {
+          label: "L",
+          measurements: {
+            chestCm: 58.5,
+            shoulderCm: 52.5,
+            sleeveLengthCm: 21,
+            lengthCm: 65.5,
+          },
+          measurementModes: {
+            chestCm: "flat-half-circumference",
+            shoulderCm: "linear-length",
+            sleeveLengthCm: "linear-length",
+            lengthCm: "linear-length",
+          },
+          source: "product-detail",
+        },
+      ],
+      selectedSizeLabel: "L",
+      physicalProfile: {
+        materialStretchRatio: 0.08,
+        maxComfortStretchRatio: 0.05,
+        compressionToleranceCm: {
+          chestCm: 1.4,
+          shoulderCm: 0.8,
+        },
+      },
+    },
+    runtime,
+    palette: ["#f5f5f5", "#10161f"],
+    publication,
+    viewerManifest:
+      buildDefaultPublishedGarmentViewerManifest({
+        id: "published-top-precision-tee",
+        category: "tops",
+        runtime,
+        publication,
+      }) ?? undefined,
+  };
+})();
 
 const semanticallyInvalidGarmentFixture: PublishedGarmentAsset = {
   ...publishedGarmentFixture,
@@ -162,6 +176,8 @@ test("published runtime garments can be upserted through admin routes and consum
   assert.equal(postResponse.headers["x-freestyle-surface"], "product");
   const postPayload = publishedRuntimeGarmentItemResponseSchema.parse(postResponse.json());
   assert.equal(postPayload.item.id, publishedGarmentFixture.id);
+  assert.equal(postPayload.item.publication.viewerManifestVersion, "garment-manifest.v1");
+  assert.equal(postPayload.item.viewerManifest?.schemaVersion, "garment-manifest.v1");
 
   const getAdminResponse = await app.inject({
     method: "GET",
@@ -182,6 +198,7 @@ test("published runtime garments can be upserted through admin routes and consum
   const adminDetailPayload = publishedRuntimeGarmentItemResponseSchema.parse(getAdminDetailResponse.json());
   assert.equal(adminDetailPayload.item.publication.sourceSystem, "admin-domain");
   assert.equal(adminDetailPayload.item.publication.approvalState, "PUBLISHED");
+  assert.equal(adminDetailPayload.item.viewerManifest?.production.approvalState, "PUBLISHED");
 
   const getClosetResponse = await app.inject({
     method: "GET",
@@ -193,6 +210,7 @@ test("published runtime garments can be upserted through admin routes and consum
   const closetPayload = closetRuntimeGarmentListResponseSchema.parse(getClosetResponse.json());
   assert.equal(closetPayload.items[0]?.item.publication.sourceSystem, "admin-domain");
   assert.equal(closetPayload.items[0]?.item.publication.approvalState, "PUBLISHED");
+  assert.equal(closetPayload.items[0]?.item.viewerManifest?.schemaVersion, "garment-manifest.v1");
   assert.equal(closetPayload.items[0]?.item.metadata?.selectedSizeLabel, "L");
   assert.equal(closetPayload.items[0]?.instantFit, null);
 
@@ -208,6 +226,7 @@ test("published runtime garments can be upserted through admin routes and consum
   assert.equal(putResponse.statusCode, 200);
   const putPayload = publishedRuntimeGarmentItemResponseSchema.parse(putResponse.json());
   assert.equal(putPayload.item.name, "Precision Tee Updated");
+  assert.equal(putPayload.item.viewerManifest?.production.approvalState, "PUBLISHED");
 
   await app.close();
 });
@@ -231,6 +250,42 @@ test("admin create route rejects duplicate garment ids", async () => {
 
   assert.equal(duplicateCreate.statusCode, 409);
   assert.equal(duplicateCreate.json().error, "CONFLICT");
+
+  await app.close();
+});
+
+test("admin create route synchronizes stale viewer manifest ids and approval-state on write", async () => {
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: {
+      ...publishedGarmentFixture,
+      id: "manifest-mismatch-top",
+      publication: {
+        ...publishedGarmentFixture.publication,
+        assetVersion: "manifest-mismatch-top@1.0.0",
+        approvalState: "FIT_CANDIDATE",
+      },
+      viewerManifest: publishedGarmentFixture.viewerManifest
+        ? {
+            ...publishedGarmentFixture.viewerManifest,
+            id: "manifest-mismatch-top",
+            production: {
+              ...publishedGarmentFixture.viewerManifest.production,
+              approvalState: "PUBLISHED",
+            },
+          }
+        : undefined,
+    },
+  });
+
+  assert.equal(response.statusCode, 201);
+  const payload = publishedRuntimeGarmentItemResponseSchema.parse(response.json());
+  assert.equal(payload.item.viewerManifest?.id, "manifest-mismatch-top");
+  assert.equal(payload.item.viewerManifest?.production.approvalState, "FIT_CANDIDATE");
+  assert.equal(payload.item.publication.viewerManifestVersion, "garment-manifest.v1");
 
   await app.close();
 });
@@ -475,6 +530,7 @@ test("closet runtime route hides non-published garments while admin routes still
   assert.equal(createResponse.statusCode, 201);
   const createdPayload = publishedRuntimeGarmentItemResponseSchema.parse(createResponse.json());
   assert.equal(createdPayload.item.publication.approvalState, "FIT_CANDIDATE");
+  assert.equal(createdPayload.item.viewerManifest?.production.approvalState, "FIT_CANDIDATE");
 
   const closetResponse = await app.inject({
     method: "GET",

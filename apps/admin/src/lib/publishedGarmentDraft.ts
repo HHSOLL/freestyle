@@ -9,7 +9,12 @@ import type {
   GarmentSizeSpec,
   PublishedGarmentAsset,
 } from "@freestyle/shared-types";
-import { defaultSkeletonProfileId, freestyleSkeletonProfiles } from "@freestyle/domain-garment";
+import {
+  buildDefaultPublishedGarmentViewerManifest,
+  defaultSkeletonProfileId,
+  freestyleSkeletonProfiles,
+  synchronizePublishedGarmentViewerManifest,
+} from "@freestyle/domain-garment";
 
 export const DRAFT_SELECTION_ID = "__draft__";
 
@@ -217,7 +222,7 @@ const createDefaultRuntime = (category: AssetCategory, id: string) => ({
 export const buildBlankPublishedGarment = (category: AssetCategory = "tops"): PublishedGarmentAsset => {
   const id = `partner-${category}-new`;
   const sizeRow = createDefaultSizeRow(category);
-  return {
+  const draft: PublishedGarmentAsset = {
     id,
     name: "New Garment",
     imageSrc: `/assets/garments/partners/${id}.png`,
@@ -255,6 +260,19 @@ export const buildBlankPublishedGarment = (category: AssetCategory = "tops"): Pu
       certificationNotes: [],
     },
   };
+
+  const viewerManifest = buildDefaultPublishedGarmentViewerManifest(draft);
+  return synchronizePublishedGarmentViewerManifest(
+    {
+      ...draft,
+      publication: {
+        ...draft.publication,
+        viewerManifestVersion: viewerManifest?.schemaVersion,
+      },
+      viewerManifest: viewerManifest ?? undefined,
+    },
+    { autofillMissing: true },
+  );
 };
 
 export const sortPublishedGarments = (items: PublishedGarmentAsset[]) =>
@@ -288,10 +306,13 @@ export const normalizeDraftForCategory = (
   const activeRow = sizeChart.find((row) => row.label === selectedSizeLabel) ?? sizeChart[0];
   const nextRuntimeDefaults = createDefaultRuntime(category, item.id);
   const resetCategoryOwnedRuntime = options?.resetCategoryOwnedRuntime ?? false;
+  const nextViewerManifest =
+    item.category !== category || resetCategoryOwnedRuntime ? undefined : item.viewerManifest;
 
-  return {
+  return synchronizePublishedGarmentViewerManifest({
     ...item,
     category,
+    viewerManifest: nextViewerManifest,
     metadata: {
       ...item.metadata,
       measurements: activeRow?.measurements ? { ...activeRow.measurements } : getDefaultMeasurements(category),
@@ -316,5 +337,5 @@ export const normalizeDraftForCategory = (
           ? item.runtime.bodyMaskZones
           : nextRuntimeDefaults.bodyMaskZones,
     },
-  };
+  }, { autofillMissing: true });
 };

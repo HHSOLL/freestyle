@@ -6,6 +6,7 @@ import {
   bodyRegionIds,
   bodySignatureSchema,
   fitMetricsJsonSchema,
+  garmentManifestSchema,
   materialClassSchema,
   materialClasses,
 } from "../../asset-schema/src/index.js";
@@ -1774,6 +1775,7 @@ export const publishedGarmentAssetSchema = runtimeGarmentAssetSchema
   .extend({
     source: z.enum(["inventory", "import"]),
     publication: garmentPublicationRecordSchema,
+    viewerManifest: garmentManifestSchema.optional(),
   })
   .strict();
 

@@ -44,6 +44,7 @@ The public product now expects a `published runtime garment` shape:
 - `runtime`
 - `palette`
 - `publication`
+- optional `viewerManifest`
 - `metadata.measurements`
 - optional `metadata.measurementModes`
 - optional `metadata.sizeChart`
@@ -76,6 +77,7 @@ Recommended publication metadata:
 - `publishedAt`
 - `assetVersion`
 - `measurementStandard`
+- `viewerManifestVersion` when a canonical runtime manifest shadow is present
 - optional `provenanceUrl`
 
 ## 5. Size Entry Rules
@@ -127,6 +129,7 @@ As of `2026-04-19`:
 - the admin surface now includes an archetype fit preview so operators can see `compression / snug / regular / relaxed / oversized` states across representative bodies before publish
 - admin publish now runs the same semantic runtime-garment validator used by the product catalog, so schema-valid but semantically broken garments are rejected before persistence
 - a brand-new guided admin draft now starts from the canonical runtime skeleton profile, regenerates category-owned runtime defaults on guided category changes, and normalizes the legacy invalid fallback id before publish validation
+- supported admin garment categories now also synthesize and synchronize an optional canonical `viewerManifest` shadow plus `publication.viewerManifestVersion`; legacy published rows stay readable without that shadow until they re-enter the certification flow
 - `/v1/admin/garments*` now requires explicit admin auth and rejects anonymous-header fallback; local non-production bypass remains allowed only for the configured dev bypass user
 - published runtime-garment persistence now has a dedicated Supabase-backed table and RLS-ready adapter behind the same API-side port; the local JSON store remains only as the isolated fallback for dev/test workflows
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`

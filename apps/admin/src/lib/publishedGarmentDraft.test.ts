@@ -7,6 +7,9 @@ test("buildBlankPublishedGarment uses the canonical default skeleton profile", (
   const draft = buildBlankPublishedGarment("tops");
 
   assert.equal(draft.runtime.skeletonProfileId, defaultSkeletonProfileId);
+  assert.equal(draft.publication.viewerManifestVersion, "garment-manifest.v1");
+  assert.equal(draft.viewerManifest?.schemaVersion, "garment-manifest.v1");
+  assert.equal(draft.viewerManifest?.production.approvalState, "DRAFT");
   assert.deepEqual(validatePublishedGarmentAsset(draft), []);
 });
 
@@ -35,6 +38,8 @@ test("normalizeDraftForCategory regenerates category-owned runtime defaults for 
     normalized.runtime.anchorBindings.map((entry) => entry.id),
     ["leftFoot", "rightFoot", "leftAnkle", "rightAnkle"],
   );
+  assert.equal(normalized.viewerManifest?.fitPolicyCategory, "shoes");
+  assert.equal(normalized.viewerManifest?.display.lod0, `/assets/garments/partners/${draft.id}.glb`);
   assert.deepEqual(normalized.runtime.collisionZones, ["feet"]);
   assert.deepEqual(normalized.runtime.bodyMaskZones, ["feet"]);
   assert.deepEqual(validatePublishedGarmentAsset(normalized), []);

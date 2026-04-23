@@ -47,6 +47,7 @@ export function AvatarStageViewport({
   selectedItemId,
   qualityTier,
   backgroundColor,
+  telemetryTags,
   viewerHostMode,
 }: AvatarStageViewportProps) {
   const viewerHost = useMemo(() => viewerHostMode ?? resolveViewerHost(), [viewerHostMode]);
@@ -139,6 +140,7 @@ export function AvatarStageViewport({
       selectedItemId={selectedItemId}
       qualityTier={resolvedQualityTier}
       backgroundColor={backgroundColor}
+      telemetryTags={telemetryTags}
     />
   );
 }

@@ -25,9 +25,9 @@ Current baseline command set:
 
 Current GitHub workflow enforcement:
 
-- `.github/workflows/quality.yml` currently runs the same baseline set above
-- `.github/workflows/quality.yml` also runs the blocking Phase 9 `Closet` viewer-react smoke with `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true`
-- `.github/workflows/quality.yml` also runs the Phase 9 rollback smoke with `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH=true` and `NEXT_PUBLIC_VIEWER_HOST=viewer-react`
+- `.github/workflows/quality.yml` runs `npm run check:phase10`
+- `check:phase10` includes the same baseline set above through `npm run check`
+- `check:phase10` also runs asset-budget evidence, the blocking Phase 9 `Closet` viewer-react smoke, the Phase 9 rollback smoke, and operational browser smoke
 
 ### L1. Surface-Specific Gate
 
@@ -51,6 +51,7 @@ Run these when the scope touches the matching area.
 Run this when the task spans multiple areas or when you want release-grade local coverage in one command.
 
 - `npm run check`
+- `npm run check:phase10` for viewer-platform or production-telemetry closeout work
 
 This includes:
 
@@ -101,7 +102,8 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
 - `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped release flag plus kill switch for the `viewer-react` cutover, and `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` becomes the first blocking UX latency gate
 - `Phase 9 / Batch 2`: CI now also proves the rollback path with `npm run test:e2e:phase9:rollback`, so the current repo-scoped `/app/closet` cutover is closed with both cutover and kill-switch evidence
-- `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set
+- `Phase 10`: CI runs `npm run check:phase10`, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
+- `Phase 10`: hardware-backed GPU CI and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements, not hidden pass claims
 
 ### L3. Operational Closeout Gate
 
@@ -116,6 +118,7 @@ Run this when freezing an RC or closing an operations batch.
 Expected evidence:
 
 - one dated release or operational closeout note under `docs/qa/`
+- Phase 10 viewer-platform closeout work should also update `docs/freestyle-viewer-platform/phase10/closeout.md`
 - route/browser smoke result plus any retained Playwright trace artifact
 - committed Playwright visual baseline coverage for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers
 - explicit browser-vs-backend Supabase key posture
@@ -157,6 +160,7 @@ Use these when a task changes routes, runtime boundaries, or release-facing beha
 - `/v1/profile/body-profile`
 - `/v1/closet/items`
 - `/v1/closet/runtime-garments`
+- `POST /v1/telemetry/viewer`
 - `/v1/canvas/looks`
 - `/v1/community/looks`
 - `/v1/admin/avatars`

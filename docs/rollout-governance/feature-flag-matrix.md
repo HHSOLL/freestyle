@@ -8,6 +8,7 @@
 - `WIDGET_PHASE_0_5_CANARY_PERCENTAGE` is the rollout knob for Phase `0.5`; if it is unset, the legacy boolean in `WIDGET_FEATURE_FLAGS` still acts as `0%`/`100%`.
 - `Phase 9` is route-scoped and env-backed instead of sampled. Do not reuse widget canary sampling for `/app/closet`; use the explicit release flag and kill switch below.
 - `Phase 9` closeout requires evidence for both directions: the flagged `viewer-react` cutover and the kill-switch rollback back to `runtime-3d`.
+- Phase 10 viewer telemetry carries the active Phase 9 flag, kill-switch, source, and viewer-host tags into `POST /v1/telemetry/viewer` so cutover and rollback evidence can be separated in operations review.
 
 ## Matrix
 | Phase | Flag key | Type | Default | Canary audience | Runtime knob | Kill switch owner | Notes |

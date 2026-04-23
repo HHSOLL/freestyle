@@ -407,6 +407,65 @@
 }
 ```
 
+#### `POST /v1/telemetry/viewer`
+- auth: same product namespace posture as other browser-facing `/v1` routes
+- namespace: product
+- response header: `x-freestyle-surface: product`
+- request body must satisfy `viewerTelemetryEnvelopeSchema` from `@freestyle/contracts`
+- response body must satisfy `viewerTelemetryResponseSchema` from `@freestyle/contracts`
+- purpose:
+  - ingest product viewer telemetry from the current `Closet` route
+  - preserve Phase 9 source tags for release-flag and kill-switch analysis
+  - return advisory recommended actions for operations review
+- important boundary rule:
+  - this endpoint is non-mutating
+  - it does not directly pause garment serving, roll back solver versions, or change material policy
+  - automatic serving control requires a later control-plane integration
+- current advisory actions:
+  - `pause-garment-serving`
+  - `reopen-fit-certification`
+  - `lower-device-quality-policy`
+  - `review-hq-cache-policy`
+  - `review-material-delivery`
+- request example:
+```json
+{
+  "events": [
+    {
+      "event_id": "viewer-event-123",
+      "metric_name": "viewer.host.garment-swap.preview-latency",
+      "value": 86,
+      "unit": "ms",
+      "occurred_at": "2026-04-24T08:00:00.000Z",
+      "route": "/app/closet",
+      "session_id": "viewer-session-123",
+      "avatar_id": "female-base",
+      "garment_id": "published-top-phase-d-smoke",
+      "garment_ids": ["published-top-phase-d-smoke"],
+      "device_tier": "B",
+      "quality_tier": "balanced",
+      "viewer_host": "viewer-react",
+      "tags": {
+        "phase9Enabled": "true",
+        "phase9KillSwitch": "false",
+        "phase9Source": "phase9-release-flag",
+        "viewerHost": "viewer-react"
+      }
+    }
+  ]
+}
+```
+- response example:
+```json
+{
+  "status": "accepted",
+  "received_count": 1,
+  "accepted_count": 1,
+  "rejected_count": 0,
+  "recommended_actions": []
+}
+```
+
 #### `GET /v1/admin/garments`
 - auth:
   - bearer-token backed admin access only

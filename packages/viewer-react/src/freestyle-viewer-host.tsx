@@ -35,6 +35,7 @@ export type FreestyleViewerHostProps = {
   selectedItemId: string | null;
   qualityTier: ViewerQualityTier;
   backgroundColor?: string;
+  telemetryTags?: Record<string, string>;
 };
 
 type HostState = "booting" | "ready" | "error";
@@ -101,6 +102,7 @@ export function FreestyleViewerHost({
   selectedItemId,
   qualityTier,
   backgroundColor,
+  telemetryTags,
 }: FreestyleViewerHostProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -138,6 +140,7 @@ export function FreestyleViewerHost({
         ...event,
         tags: {
           ...(event.tags ?? {}),
+          ...(telemetryTags ?? {}),
           route: typeof window === "undefined" ? "unknown" : window.location.pathname,
           viewerHost: "viewer-react",
         },
@@ -152,7 +155,7 @@ export function FreestyleViewerHost({
         );
       }
     },
-    [],
+    [telemetryTags],
   );
 
   const emitViewerEnvelope = useCallback((envelope: ViewerEventEnvelope) => {

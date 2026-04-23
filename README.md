@@ -31,6 +31,7 @@ The repository is now split into four runtime surfaces:
   - `/v1/profile/body-profile`
   - `/v1/closet/items`
   - `/v1/closet/runtime-garments`
+  - `POST /v1/telemetry/viewer`
   - `/v1/canvas/looks`
   - `/v1/community/looks`
 - `Admin`: `/v1/admin/*`
@@ -82,6 +83,8 @@ The shipped runtime now uses:
 - a Phase 9 `Closet`-only cutover seam where `apps/web` explicitly resolves the stage host through route-scoped release and kill-switch flags instead of relying only on the global viewer host env
 - the flagged `viewer-react` `Closet` path now warms runtime assets through the same preload delegation as the compatibility host and exposes static-fit preview-runtime / preview-engine evidence attrs alongside the existing latency attrs
 - the current Phase 9 baseline is now closed for `/app/closet`: CI exercises both the flagged `viewer-react` cutover path and the `runtime-3d` rollback path through the kill switch
+- a Phase 10 hard gate through `npm run check:phase10`, which layers asset-budget evidence, Phase 9 cutover/rollback smokes, and operational browser smoke on top of the full local gate
+- a product telemetry ingress route at `POST /v1/telemetry/viewer`; `Closet` forwards viewer telemetry there when the client API base URL is configured, including Phase 9 release-flag / kill-switch / host tags for rollback analysis
 
 Preferred authoring policy is:
 
@@ -178,6 +181,7 @@ Useful commands:
 - `npm run generate:lods -- --input <asset.glb>`
 - `npm run optimize:runtime:assets`
 - `npm run check`
+- `npm run check:phase10`
 - `npm run validate:garment3d`
 - `npm run test:e2e:phase9:closet`
 - `npm run test:e2e:phase9:rollback`
@@ -197,18 +201,15 @@ The current Blender plugin source is `plugins/blender`; run `python3 plugins/ble
 
 ## Quality Gate
 
-CI requires all of the following:
+CI now runs `npm run check:phase10`.
 
-- `npm run lint`
-- `npm run typecheck`
-- `npm run typecheck:admin`
-- `npm run test:core`
-- `npm run validate:garment3d`
-- `npm run validate:avatar3d`
-- `npm run validate:fit-calibration`
-- `npm run build:services`
-- `npm run build`
-- `npm run build:admin`
+That command includes:
+
+- the full local gate through `npm run check`
+- non-blocking asset-budget report evidence through `npm run report:asset-budget`
+- Phase 9 `viewer-react` cutover smoke
+- Phase 9 kill-switch rollback smoke
+- operational browser smoke
 
 ## Core Documents
 

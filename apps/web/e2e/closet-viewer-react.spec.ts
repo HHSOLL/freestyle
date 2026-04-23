@@ -22,6 +22,7 @@ test.describe("closet viewer-react host", () => {
 
     await page.addInitScript(() => {
       (window as Window & { __phase9ViewerEventTypes?: string[] }).__phase9ViewerEventTypes = [];
+      (window as Window & { __phase9ViewerTelemetryTags?: Array<Record<string, string>> }).__phase9ViewerTelemetryTags = [];
       window.addEventListener("freestyle:viewer-event", (event) => {
         const detail = (event as CustomEvent).detail;
         const nextType = typeof detail?.type === "string" ? detail.type : null;
@@ -31,6 +32,15 @@ test.describe("closet viewer-react host", () => {
         (
           window as Window & { __phase9ViewerEventTypes?: string[] }
         ).__phase9ViewerEventTypes?.push(nextType);
+      });
+      window.addEventListener("freestyle:viewer-telemetry", (event) => {
+        const detail = (event as CustomEvent).detail;
+        if (!detail?.tags || typeof detail.tags !== "object") {
+          return;
+        }
+        (
+          window as Window & { __phase9ViewerTelemetryTags?: Array<Record<string, string>> }
+        ).__phase9ViewerTelemetryTags?.push(detail.tags);
       });
     });
 
@@ -74,6 +84,18 @@ test.describe("closet viewer-react host", () => {
         hasPreviewEngineStatus: true,
         hasPreviewRuntimeUpdated: true,
       });
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const telemetryTags = (
+              window as Window & { __phase9ViewerTelemetryTags?: Array<Record<string, string>> }
+            ).__phase9ViewerTelemetryTags;
+            return telemetryTags?.some((tags) => tags.phase9Source === "phase9-release-flag") ?? false;
+          }),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     const swapCandidate = page
       .locator('[data-closet-asset-tile][data-closet-asset-selected="false"]')

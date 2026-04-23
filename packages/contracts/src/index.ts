@@ -222,6 +222,83 @@ export const widgetErrorResponseSchema = z
   })
   .strict();
 
+export const viewerTelemetryMetricNameSchema = z.enum([
+  "viewer.host.first-avatar-paint",
+  "viewer.host.garment-swap.preview-latency",
+  "viewer.hq.cache-hit",
+  "viewer.hq.solve-latency",
+  "viewer.asset.load-failure",
+  "viewer.ktx2.transcode-failure",
+  "viewer.webgl.context-loss",
+  "viewer.memory.growth-suspected",
+  "viewer.fit.fallback",
+  "viewer.body-mask.heavy-usage",
+  "viewer.bad-fit-report",
+  "viewer.preview.engine-fallback",
+]);
+
+export const viewerTelemetryMetricNames = viewerTelemetryMetricNameSchema.options;
+
+export const viewerTelemetryUnitSchema = z.enum(["ms", "count", "ratio", "bytes", "boolean"]);
+
+export const viewerTelemetryDeviceTierSchema = z.enum(["A", "B", "C", "D", "E", "unknown"]);
+
+export const viewerTelemetryEventSchema = z
+  .object({
+    event_id: z.string().trim().min(1).max(128),
+    metric_name: viewerTelemetryMetricNameSchema,
+    value: z.number().finite().optional(),
+    unit: viewerTelemetryUnitSchema.optional(),
+    occurred_at: z.iso.datetime(),
+    route: z.string().trim().min(1).max(240).optional(),
+    session_id: z.string().trim().min(1).max(160).optional(),
+    anonymous_id: z.string().trim().min(1).max(160).optional(),
+    avatar_id: z.string().trim().min(1).max(160).optional(),
+    body_signature_hash: z.string().trim().min(1).max(160).optional(),
+    garment_id: z.string().trim().min(1).max(160).optional(),
+    garment_ids: z.array(z.string().trim().min(1).max(160)).max(24).default([]),
+    material_class: materialClassSchema.optional(),
+    solver_version: z.string().trim().min(1).max(160).optional(),
+    device_tier: viewerTelemetryDeviceTierSchema.default("unknown"),
+    quality_tier: z.enum(["low", "balanced", "high"]).optional(),
+    viewer_host: z.enum(["runtime-3d", "viewer-react", "unknown"]).default("unknown"),
+    tags: z.record(z.string(), z.string()).default({}),
+  })
+  .strict();
+
+export const viewerTelemetryEnvelopeSchema = z
+  .object({
+    events: z.array(viewerTelemetryEventSchema).min(1).max(50),
+  })
+  .strict();
+
+export const viewerTelemetryRecommendedActionSchema = z
+  .object({
+    action: z.enum([
+      "pause-garment-serving",
+      "reopen-fit-certification",
+      "lower-device-quality-policy",
+      "review-hq-cache-policy",
+      "review-material-delivery",
+      "rollback-viewer-release",
+    ]),
+    severity: z.enum(["info", "warning", "critical"]),
+    subject_type: z.enum(["garment", "device-tier", "solver", "material-class", "viewer-release"]),
+    subject_id: z.string().trim().min(1).max(160),
+    reason: z.string().trim().min(1).max(320),
+  })
+  .strict();
+
+export const viewerTelemetryResponseSchema = z
+  .object({
+    status: z.literal("accepted"),
+    received_count: z.number().int().nonnegative(),
+    accepted_count: z.number().int().nonnegative(),
+    rejected_count: z.number().int().nonnegative(),
+    recommended_actions: z.array(viewerTelemetryRecommendedActionSchema),
+  })
+  .strict();
+
 const unknownRecordSchema = z.record(z.string(), z.unknown());
 
 export const jobPayloadEnvelopeSchema = z
@@ -2384,6 +2461,13 @@ export type WidgetAcceptedEvent = z.infer<typeof widgetAcceptedEventSchema>;
 export type WidgetRejectedEvent = z.infer<typeof widgetRejectedEventSchema>;
 export type WidgetEventsResponse = z.infer<typeof widgetEventsResponseSchema>;
 export type WidgetErrorResponse = z.infer<typeof widgetErrorResponseSchema>;
+export type ViewerTelemetryMetricName = z.infer<typeof viewerTelemetryMetricNameSchema>;
+export type ViewerTelemetryUnit = z.infer<typeof viewerTelemetryUnitSchema>;
+export type ViewerTelemetryDeviceTier = z.infer<typeof viewerTelemetryDeviceTierSchema>;
+export type ViewerTelemetryEvent = z.infer<typeof viewerTelemetryEventSchema>;
+export type ViewerTelemetryEnvelope = z.infer<typeof viewerTelemetryEnvelopeSchema>;
+export type ViewerTelemetryRecommendedAction = z.infer<typeof viewerTelemetryRecommendedActionSchema>;
+export type ViewerTelemetryResponse = z.infer<typeof viewerTelemetryResponseSchema>;
 export type AvatarGender = z.infer<typeof avatarGenderSchema>;
 export type BodyFrame = z.infer<typeof bodyFrameSchema>;
 export type BodyProfile = z.infer<typeof bodyProfileSchema>;

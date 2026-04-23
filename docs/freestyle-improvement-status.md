@@ -20,6 +20,7 @@ It is separate from `docs/replatform-v2/**`.
 The completion estimate is a planning number, not a release gate. It now reflects that the repository-improvement, operational-closeout, and baseline follow-on roadmap tracked in this document are complete. Higher-fidelity cloth solving and richer pressure semantics remain future R&D, but are no longer open seams in this execution program.
 As of `2026-04-22`, release-grade Playwright visual baselines also exist for the current IA plus `Closet` low / balanced / high quality tiers, and the maintenance docs treat them as RC evidence. The last missing HQ-fit consumer seam is also closed: `Closet` can now request an HQ run, poll the persisted record, render `preview_png`, and expose the ordered artifact bundle directly.
 As of `2026-04-24`, the viewer-platform refactor has also closed `Phase 9` for the current repo-scoped baseline: `/app/closet` can now be explicitly forced onto `viewer-react` behind a dedicated release flag and kill switch without relying on the global host env alone, and CI now covers both the cutover path and the rollback path.
+As of `2026-04-24`, viewer-platform `Phase 10` is also closed for the current repo-scoped baseline: CI now runs `npm run check:phase10`, product viewer telemetry enters `POST /v1/telemetry/viewer`, and Phase 9 cutover-source tags are preserved in forwarded telemetry. Hardware-backed GPU automation and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements.
 
 ## Phase Map
 

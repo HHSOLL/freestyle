@@ -142,6 +142,8 @@ Phase 8.5 admin fit-tooling starts at `docs/freestyle-viewer-platform/phase8_5/b
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 Phase 9 starts at `docs/freestyle-viewer-platform/phase9/batch1.md`: the flagged `/app/closet` `viewer-react` path must keep route-level latency attrs plus preview-runtime / preview-engine evidence parity before it can be treated as the blocking UX latency gate, and the blocking smoke should wait for the outer stage-loading fallback to clear before reading latency attrs.
 Phase 9 rollback evidence widens in `docs/freestyle-viewer-platform/phase9/batch2.md`, and the current repo-scoped closeout lives at `docs/freestyle-viewer-platform/phase9/closeout.md`. Keep the route-scoped release flag, kill switch, and rollback smoke aligned together.
+Phase 10 closeout evidence lives at `docs/freestyle-viewer-platform/phase10/closeout.md`, with QA evidence in `docs/qa/phase10-production-telemetry-2026-04-24.md`. The current hard gate is `npm run check:phase10`; it includes the full local gate, asset-budget evidence, Phase 9 cutover/rollback smokes, and operational browser smoke.
+Product viewer telemetry is accepted at `POST /v1/telemetry/viewer`. This route is advisory only: it validates telemetry and returns recommended actions, but it must not mutate garment serving, solver version rollout, or material policy directly until a later control-plane integration is explicitly added.
 
 ## 4. Page Rules
 
@@ -233,6 +235,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - keep preview-engine status in `@freestyle/viewer-protocol` too; compatibility surfaces may expose it through `data-preview-engine-*` attrs or `fit:preview-engine-status`, but should not invent a second fallback/status payload shape
 - keep preview worker setup messages in `@freestyle/viewer-protocol`; compatibility runtimes may derive inline body, collision, fit-mesh, and material payloads, but should not invent a second command surface outside the typed preview worker protocol
 - keep `PREVIEW_DEFORMATION` as the compatibility transfer seam until a later phase ships authoritative cloth buffers; do not relabel transform-only secondary motion as cloth vertex deformation
+- route viewer telemetry through `apps/web/src/lib/viewerTelemetry.ts` and `POST /v1/telemetry/viewer`; do not add another product telemetry envelope for viewer host metrics
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
 - keep starter certification inspection on `/v1/admin/garment-certifications*`; do not widen `/v1/closet/runtime-garments` with authoring or certification evidence

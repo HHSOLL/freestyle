@@ -6,10 +6,17 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -24,32 +31,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test:core
-
-      - name: Build services
-        run: npm run build:services
-
-      - name: Build
-        run: npm run build
-
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Phase 9 closet viewer-react latency gate
-        env:
-          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED: "true"
-        run: npm run test:e2e:phase9:closet
+      - name: Phase 10 hard gate
+        run: npm run check:phase10
 
-      - name: Phase 9 closet rollback gate
-        env:
-          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED: "true"
-          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH: "true"
-          NEXT_PUBLIC_VIEWER_HOST: "viewer-react"
-        run: npm run test:e2e:phase9:rollback
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload asset budget evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-budget-report
+          path: output/asset-budget-report/latest.json
+          if-no-files-found: ignore
+          retention-days: 7

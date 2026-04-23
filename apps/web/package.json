@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev",
-    "build": "next build --webpack",
+    "build": "rm -rf .next && next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

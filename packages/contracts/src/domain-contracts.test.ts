@@ -68,6 +68,8 @@ import {
   publishedRuntimeGarmentListResponseSchema,
   runtimeAssetAuthoringSummarySchema,
   runtimeGarmentAssetSchema,
+  viewerTelemetryEnvelopeSchema,
+  viewerTelemetryResponseSchema,
 } from './index.js';
 
 const readJsonFixture = (relativePath: string) =>
@@ -117,6 +119,50 @@ test('fitSimulationAdminInspectionListResponseSchema accepts read-only admin lis
 
   assert.equal(parsed.items[0]?.artifactCount, 4);
   assert.equal(parsed.items[0]?.hasLineage, true);
+});
+
+test('viewer telemetry schemas preserve operational stop-gate signals', () => {
+  const envelope = viewerTelemetryEnvelopeSchema.parse({
+    events: [
+      {
+        event_id: 'viewer-evt-001',
+        metric_name: 'viewer.host.garment-swap.preview-latency',
+        value: 118,
+        unit: 'ms',
+        occurred_at: '2026-04-24T10:00:00.000Z',
+        route: '/app/closet',
+        session_id: 'session-001',
+        garment_id: 'starter-top-soft-casual',
+        garment_ids: ['starter-top-soft-casual'],
+        device_tier: 'C',
+        quality_tier: 'balanced',
+        viewer_host: 'viewer-react',
+        tags: {
+          source: 'cache',
+        },
+      },
+    ],
+  });
+
+  assert.equal(envelope.events[0]?.metric_name, 'viewer.host.garment-swap.preview-latency');
+
+  const response = viewerTelemetryResponseSchema.parse({
+    status: 'accepted',
+    received_count: 1,
+    accepted_count: 1,
+    rejected_count: 0,
+    recommended_actions: [
+      {
+        action: 'reopen-fit-certification',
+        severity: 'critical',
+        subject_type: 'garment',
+        subject_id: 'starter-top-soft-casual',
+        reason: 'Bad fit reports crossed the production telemetry stop gate.',
+      },
+    ],
+  });
+
+  assert.equal(response.recommended_actions[0]?.action, 'reopen-fit-certification');
 });
 
 test('bodyProfileSchema accepts detailed optional extension fields inside envelope', () => {

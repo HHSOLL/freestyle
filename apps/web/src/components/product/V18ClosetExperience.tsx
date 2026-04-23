@@ -25,6 +25,7 @@ import { useClosetScene } from "@/hooks/useClosetScene";
 import { useFitSimulation } from "@/hooks/useFitSimulation";
 import { useWardrobeAssets } from "@/hooks/useWardrobeAssets";
 import { resolveClosetViewerPhase9Snapshot } from "@/lib/closet-viewer-phase9";
+import { startViewerTelemetryForwarder } from "@/lib/viewerTelemetry";
 import { buildClosetFitCardDisplay } from "./closet-fit-report";
 import {
   BODY_FRAME_META,
@@ -994,6 +995,15 @@ export function V18ClosetExperience() {
     }
     return Array.from(next.values());
   }, [activeTab, closetRuntimeAssets, equippedGarments]);
+  const viewerTelemetryGarmentIds = useMemo(() => equippedGarments.map((item) => item.id), [equippedGarments]);
+  const viewerTelemetryTags = useMemo(
+    () => ({
+      phase9Enabled: String(closetViewerPhase9.phase9Enabled),
+      phase9KillSwitch: String(closetViewerPhase9.killSwitch),
+      phase9Source: closetViewerPhase9.source,
+    }),
+    [closetViewerPhase9.killSwitch, closetViewerPhase9.phase9Enabled, closetViewerPhase9.source],
+  );
 
   useEffect(() => {
     void preloadViewerAssets({
@@ -1003,6 +1013,15 @@ export function V18ClosetExperience() {
       qualityTier: scene.qualityTier,
     }, closetViewerPhase9.host);
   }, [avatarVariantId, closetViewerPhase9.host, preloadCandidates, scene.qualityTier]);
+
+  useEffect(() => {
+    return startViewerTelemetryForwarder({
+      ...closetViewerPhase9,
+      avatarId: avatarVariantId,
+      garmentIds: viewerTelemetryGarmentIds,
+      qualityTier: scene.qualityTier,
+    });
+  }, [avatarVariantId, closetViewerPhase9, scene.qualityTier, viewerTelemetryGarmentIds]);
 
   useEffect(() => {
     if (variantDefaults.hair && (!selection.hair.id || defaultHairIds.has(selection.hair.id)) && selection.hair.id !== variantDefaults.hair) {
@@ -1224,6 +1243,7 @@ export function V18ClosetExperience() {
             qualityTier={scene.qualityTier}
             backgroundColor={backgroundColor}
             viewerHostMode={closetViewerPhase9.host}
+            telemetryTags={viewerTelemetryTags}
           />
         </div>
 

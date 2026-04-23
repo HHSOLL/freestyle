@@ -15,6 +15,7 @@
 11. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
 12. Run `npm run optimize:runtime:assets` when promoted runtime GLBs changed.
 13. Run `npm run viewer:sync:transcoders` and `npm run report:asset-budget` when Phase 3 loader policy, public decoder assets, or promoted runtime GLBs change.
+14. Run `npm run check:phase10` before closing viewer-platform Phase 10 or release-control changes.
 
 ## 2. Product Smoke Checklist
 
@@ -46,6 +47,7 @@ If the Phase 7 preview-runtime seam changes, also update the relevant note under
 That Phase 7 note now includes `batch1.md`, `batch2.md`, `batch3.md`, `batch4.md`, and `closeout.md`; keep the snapshot seam, preview-engine fallback seam, and preview-session bootstrap seam in sync together.
 If the Phase 8 HQ artifact identity seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase8/`, plus `docs/CLOTH_SIMULATE_JOB_DRAFT.md`, `docs/physical-fit-system.md`, and the HQ artifact rules in `docs/quality-gates.md` in the same PR.
 If the Phase 9 `Closet` cutover seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase9/`, plus `docs/rollout-governance/feature-flag-matrix.md`, `docs/DEVELOPMENT_GUIDE.md`, and `docs/quality-gates.md` in the same PR.
+If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR.
 
 ### Redirect smoke
 
@@ -67,6 +69,7 @@ If the Phase 9 `Closet` cutover seam changes, also update the relevant note unde
 - `/v1/profile/body-profile`
 - `/v1/closet/items`
 - `/v1/closet/runtime-garments`
+- `POST /v1/telemetry/viewer`
 - `/v1/canvas/looks`
 - `/v1/community/looks`
 - `/v1/admin/avatars`
@@ -88,6 +91,7 @@ If the Phase 9 `Closet` cutover seam changes, also update the relevant note unde
 Also confirm namespace headers:
 
 - product routes return `x-freestyle-surface: product`
+- product viewer telemetry route returns `x-freestyle-surface: product` and advisory actions only
 - legacy routes return `x-freestyle-surface: legacy` and `deprecation: true`
 - lab routes return `x-freestyle-surface: lab`
 - lab routes reject anonymous-header fallback and require bearer-backed auth outside non-production `DEV_BYPASS_USER_ID`
@@ -99,21 +103,22 @@ Also confirm namespace headers:
 Before a release:
 
 1. Run `PATH="/opt/homebrew/bin:$PATH" npm run check`.
-2. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:ops-closeout`.
-3. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:visual`.
-4. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and the committed snapshot paths or exported screenshot paths used for that run.
-5. If browser smoke retries or fails, keep the Playwright trace artifact using `on-first-retry` or `retain-on-failure`.
-6. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
-7. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
-8. Confirm the committed visual baseline set under `apps/web/e2e/visual-regression.spec.ts-snapshots/` is current for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers.
-9. Confirm old routes are still redirected or removed from the main flow.
-10. Confirm `lab` failures do not break any main product page.
-11. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
-12. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
-13. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
-14. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
-15. When a Vercel security bulletin is active, run `vercel env ls production` and `vercel activity --since 72h --project freestyle`, then record the findings in a dated QA note before RC signoff.
-16. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
+2. Run `PATH="/opt/homebrew/bin:$PATH" npm run check:phase10` when the release includes viewer-platform or telemetry changes.
+3. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:ops-closeout`.
+4. Run `PATH="/opt/homebrew/bin:$PATH" npm run test:e2e:visual`.
+5. Record one current release-evidence note under `docs/qa/` with the commands, API smoke, and the committed snapshot paths or exported screenshot paths used for that run.
+6. If browser smoke retries or fails, keep the Playwright trace artifact using `on-first-retry` or `retain-on-failure`.
+7. Compare `Closet` against `docs/reference/wardrobe-reference.jpg`.
+8. Confirm the shared top bar, bottom mode bar, left rail, right catalog rail, and centered stage hierarchy still hold.
+9. Confirm the committed visual baseline set under `apps/web/e2e/visual-regression.spec.ts-snapshots/` is current for `Home`, `Canvas`, `Community`, `Profile`, and `Closet` low / balanced / high tiers.
+10. Confirm old routes are still redirected or removed from the main flow.
+11. Confirm `lab` failures do not break any main product page.
+12. Confirm `migration-notes.md` reflects the latest deleted, retained, and quarantined flows.
+13. Confirm Vercel browser env only carries low-privilege Supabase vars (`NEXT_PUBLIC_SUPABASE_URL` plus the current browser key env), while Railway API / worker keeps `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+14. Confirm exposed Supabase `public` schema objects used by product/admin flows still have RLS enabled and that Security Advisor findings have been reviewed for RC signoff.
+15. For lab create/status release smoke, use a real backend-injected `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` source; do not count dummy or file-backed env as RC evidence.
+16. When a Vercel security bulletin is active, run `vercel env ls production` and `vercel activity --since 72h --project freestyle`, then record the findings in a dated QA note before RC signoff.
+17. Cut the RC tag only on the validated `main` commit, using the `rc-YYYY-MM-DD-ops-closeout` pattern.
 
 ## 4. Avatar Runtime Regression Checklist
 
@@ -205,6 +210,15 @@ If any of the above regress, stop the release.
 
 - verify `apps/api/src/main.ts`
 - confirm new routes were not mounted directly onto legacy or lab by mistake
+
+### Viewer telemetry regression
+
+- verify `POST /v1/telemetry/viewer` is registered under the product `/v1` namespace and returns `x-freestyle-surface: product`
+- verify payloads parse through `viewerTelemetryEnvelopeSchema` and responses parse through `viewerTelemetryResponseSchema`
+- verify unknown metric names fail with `400 VALIDATION_ERROR`
+- verify repeated garment, solver, material-class, and device-tier signals return advisory recommended actions without mutating publication state
+- verify `apps/web/src/lib/viewerTelemetry.ts` remains the only product viewer telemetry forwarder
+- verify Phase 9 tags still include `phase9Enabled`, `phase9KillSwitch`, `phase9Source`, and `viewerHost`
 
 ### Admin publish regression
 

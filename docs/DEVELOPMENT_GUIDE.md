@@ -132,6 +132,7 @@ Phase 4 closeout evidence for compatibility-runtime material and lighting owners
 Phase 5 closeout evidence for the avatar publication seam lives at `docs/freestyle-viewer-platform/phase5/closeout.md`.
 Phase 6 garment certification evidence starts at `docs/freestyle-viewer-platform/phase6/batch1.md`.
 The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-platform/phase6/batch2.md`.
+The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform/phase6/batch3.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -181,6 +182,7 @@ Use these boundaries:
 - `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
 - `validate:garment3d` now also writes and validates `output/garment-certification/latest.json` for the committed garment-authoring-backed starter pieces before it reports success
 - `/v1/admin/garment-certifications*` is the read-only inspection seam for that starter bundle; keep it separate from `/v1/admin/garments*`
+- in `apps/admin`, certification payloads must stay in separate read-only state; they must not be merged into the editable garment draft JSON
 - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
 - `GET /v1/lab/fit-simulations/:id` may expose a derived `avatarPublication` snapshot for lab consumers, but that field must stay response-only and minimal: no evidence paths, no authoring provenance, and no persistence widening
 

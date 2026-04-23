@@ -40,7 +40,7 @@ If the forced `viewer-react` host changes its latency evidence seam, also update
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 If compatibility-stage lighting, material calibration, or the Phase 4 lab harness changes, also update `docs/freestyle-viewer-platform/phase4/closeout.md` and `docs/material-contract.md` in the same PR.
 If the Phase 5 avatar publication seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase5/` and keep `docs/freestyle-viewer-platform/phase5/closeout.md`, `docs/avatar-pipeline.md`, and `docs/avatar-production-contract.md` in sync in the same PR.
-If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/freestyle-viewer-platform/phase6/batch2.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
+If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/freestyle-viewer-platform/phase6/batch2.md`, `docs/freestyle-viewer-platform/phase6/batch3.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
 
 ### Redirect smoke
 

@@ -136,6 +136,7 @@ As of `2026-04-19`:
 - supported admin garment categories now also synthesize and synchronize an optional canonical `viewerManifest` shadow plus `publication.viewerManifestVersion`; legacy published rows stay readable without that shadow until they re-enter the certification flow
 - `validate:garment3d` now also emits `output/garment-certification/latest.json`, which is the current machine-readable certification bundle for the committed garment-authoring-backed starter pieces
 - the API now exposes that bundle through a dedicated read-only admin seam at `/v1/admin/garment-certifications*`; this does not mutate publication rows and does not widen `/v1/admin/garments*`
+- the admin UI now consumes that seam as a read-only starter certification inspector; it remains separate from the garment editor state and does not write certification data back into manifests
 - `/v1/admin/garments*` now requires explicit admin auth and rejects anonymous-header fallback; local non-production bypass remains allowed only for the configured dev bypass user
 - published runtime-garment persistence now has a dedicated Supabase-backed table and RLS-ready adapter behind the same API-side port; the local JSON store remains only as the isolated fallback for dev/test workflows
 - the dedicated Vercel project is `freestyleadmin` with production alias `https://freestyleadmin.vercel.app`

@@ -11,6 +11,11 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
+import type {
+  GarmentCertificationItemResponse,
+  GarmentCertificationListResponse,
+  GarmentCertificationReportItem,
+} from "@freestyle/contracts";
 import { publishedGarmentAssetSchema } from "@freestyle/shared";
 import type {
   AssetCategory,
@@ -23,8 +28,10 @@ import type {
 } from "@freestyle/shared-types";
 import { wardrobeTokens } from "@freestyle/design-tokens";
 import { DenseCatalogCard, Eyebrow, PillButton, SurfacePanel } from "@freestyle/ui";
+import { GarmentCertificationPanel } from "@/components/GarmentCertificationPanel";
 import { adminApiFetchJson, getApiErrorMessage } from "@/lib/adminApi";
 import { buildAdminFitReview, fitStateTone } from "@/lib/fitReview";
+import { findGarmentCertification, summarizeGarmentCertification } from "@/lib/garmentCertification";
 import {
   APPROVAL_STATE_FILTERS,
   APPROVAL_STATE_OPTIONS,
@@ -313,11 +320,19 @@ export function AdminWorkspace() {
   const [approvalState, setApprovalState] = useState<AssetApprovalState | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorValue, setEditorValue] = useState("");
+  const [certificationItems, setCertificationItems] = useState<GarmentCertificationReportItem[]>([]);
+  const [certificationGeneratedAt, setCertificationGeneratedAt] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [certificationLoadError, setCertificationLoadError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
+  const [selectedCertification, setSelectedCertification] = useState<GarmentCertificationReportItem | null>(null);
+  const [selectedCertificationGeneratedAt, setSelectedCertificationGeneratedAt] = useState<string | null>(null);
+  const [selectedCertificationError, setSelectedCertificationError] = useState<string | null>(null);
   const [activeSizeLabel, setActiveSizeLabel] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [isCertificationFetching, setIsCertificationFetching] = useState(false);
+  const [isCertificationDetailFetching, setIsCertificationDetailFetching] = useState(false);
   const [isSaving, startSaving] = useTransition();
 
   const parsedEditor = useMemo(() => parseEditorState(editorValue), [editorValue]);
@@ -330,6 +345,16 @@ export function AdminWorkspace() {
   const workingItem = useMemo(
     () => parsedEditor.item ?? selectedCatalogItem,
     [parsedEditor.item, selectedCatalogItem],
+  );
+  const workingGarmentId = workingItem?.id ?? null;
+  const certificationCatalogItem = useMemo(
+    () => findGarmentCertification(certificationItems, workingGarmentId),
+    [certificationItems, workingGarmentId],
+  );
+  const effectiveCertification = selectedCertification ?? certificationCatalogItem;
+  const certificationSummary = useMemo(
+    () => summarizeGarmentCertification(effectiveCertification),
+    [effectiveCertification],
   );
 
   const activeSize = useMemo(() => {
@@ -397,9 +422,36 @@ export function AdminWorkspace() {
     setIsFetching(false);
   }, [approvalState, category, sourceSystem, user]);
 
+  const loadCertificationCatalog = useCallback(async () => {
+    if (!user) return;
+
+    setIsCertificationFetching(true);
+    setCertificationLoadError(null);
+
+    const query = new URLSearchParams();
+    if (category !== "all") query.set("category", category);
+
+    const { response, data } = await adminApiFetchJson<GarmentCertificationListResponse>(
+      `/v1/admin/garment-certifications${query.size ? `?${query.toString()}` : ""}`,
+    );
+
+    if (!response.ok || !data) {
+      setCertificationItems([]);
+      setCertificationGeneratedAt(null);
+      setCertificationLoadError(getApiErrorMessage(data, "Starter certification bundle을 불러오지 못했다."));
+      setIsCertificationFetching(false);
+      return;
+    }
+
+    setCertificationItems(data.items);
+    setCertificationGeneratedAt(data.generatedAt);
+    setIsCertificationFetching(false);
+  }, [category, user]);
+
   useEffect(() => {
     void loadItems();
-  }, [loadItems]);
+    void loadCertificationCatalog();
+  }, [loadCertificationCatalog, loadItems]);
 
   useEffect(() => {
     if (!selectedCatalogItem) {
@@ -422,6 +474,65 @@ export function AdminWorkspace() {
         : workingItem.metadata?.selectedSizeLabel ?? workingItem.metadata?.sizeChart?.[0]?.label ?? null,
     );
   }, [workingItem]);
+
+  useEffect(() => {
+    if (
+      !user ||
+      selectedId === DRAFT_SELECTION_ID ||
+      !workingGarmentId ||
+      !certificationCatalogItem
+    ) {
+      setSelectedCertification(null);
+      setSelectedCertificationGeneratedAt(null);
+      setSelectedCertificationError(null);
+      setIsCertificationDetailFetching(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setSelectedCertification(null);
+      setSelectedCertificationGeneratedAt(null);
+      setIsCertificationDetailFetching(true);
+      setSelectedCertificationError(null);
+
+      const { response, data } = await adminApiFetchJson<GarmentCertificationItemResponse>(
+        `/v1/admin/garment-certifications/${certificationCatalogItem.id}`,
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      if (response.status === 404) {
+        setSelectedCertification(null);
+        setSelectedCertificationGeneratedAt(null);
+        setIsCertificationDetailFetching(false);
+        return;
+      }
+
+      if (!response.ok || !data) {
+        setSelectedCertification(null);
+        setSelectedCertificationGeneratedAt(null);
+        setSelectedCertificationError(
+          getApiErrorMessage(data, "Starter certification detail을 불러오지 못했다."),
+        );
+        setIsCertificationDetailFetching(false);
+        return;
+      }
+
+      setSelectedCertification(data.item);
+      setSelectedCertificationGeneratedAt(data.generatedAt);
+      setIsCertificationDetailFetching(false);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [certificationCatalogItem, selectedId, user, workingGarmentId]);
 
   const handleCreateDraft = useCallback(() => {
     const nextCategory = category === "all" ? "tops" : category;
@@ -622,7 +733,14 @@ export function AdminWorkspace() {
                 New garment
               </span>
             </PillButton>
-            <PillButton onClick={() => void loadItems()}>Refresh</PillButton>
+            <PillButton
+              onClick={() => {
+                void loadItems();
+                void loadCertificationCatalog();
+              }}
+            >
+              Refresh
+            </PillButton>
             <PillButton onClick={() => void signOut()}>
               <span className="inline-flex items-center gap-2">
                 <LogOut className="h-4 w-4" />
@@ -675,13 +793,23 @@ export function AdminWorkspace() {
             </div>
 
             <div className="flex items-center justify-between text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
-              <span>{items.length} garments</span>
-              {isFetching ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Loading
-                </span>
-              ) : null}
+              <span>
+                {items.length} garments · {certificationItems.length} starter certifications
+              </span>
+              <div className="flex items-center gap-3">
+                {isCertificationFetching ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Cert bundle
+                  </span>
+                ) : null}
+                {isFetching ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Loading
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <div className="fs-scroll-slim flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
@@ -710,6 +838,12 @@ export function AdminWorkspace() {
                       <span>{item.metadata?.selectedSizeLabel ?? "No size"}</span>
                       <span>·</span>
                       <span>{formatDate(item.publication.publishedAt)}</span>
+                      {findGarmentCertification(certificationItems, item.id) ? (
+                        <>
+                          <span>·</span>
+                          <span>starter cert</span>
+                        </>
+                      ) : null}
                     </div>
                   }
                 />
@@ -759,6 +893,10 @@ export function AdminWorkspace() {
                   { label: "Asset Version", value: workingItem?.publication.assetVersion ?? "-" },
                   { label: "Approval State", value: workingItem?.publication.approvalState ?? "PUBLISHED" },
                   { label: "Published", value: formatDate(workingItem?.publication.publishedAt) },
+                  {
+                    label: "Certification",
+                    value: effectiveCertification ? "Starter bundle" : "Not covered",
+                  },
                 ].map((card) => (
                   <div
                     key={card.label}
@@ -1311,6 +1449,22 @@ export function AdminWorkspace() {
                           )}
                         </div>
                       </div>
+                    </SectionFrame>
+
+                    <SectionFrame
+                      eyebrow="Certification"
+                      title="Starter Certification Snapshot"
+                      description="Phase 6 read-only inspection seam이다. 현재 committed starter certification bundle에 포함된 garment만 summary가 보이고, 이 값은 publish editor state를 바꾸지 않는다."
+                    >
+                      <GarmentCertificationPanel
+                        hasWorkingItem={Boolean(workingItem)}
+                        generatedAtLabel={formatDate(selectedCertificationGeneratedAt ?? certificationGeneratedAt ?? undefined)}
+                        loadError={certificationLoadError}
+                        detailError={selectedCertificationError}
+                        isLoading={isCertificationDetailFetching}
+                        certification={effectiveCertification}
+                        summary={certificationSummary}
+                      />
                     </SectionFrame>
 
                     <SectionFrame

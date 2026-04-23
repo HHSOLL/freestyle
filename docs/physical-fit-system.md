@@ -218,6 +218,7 @@ As of `2026-04-20`:
   - it does not widen `metadata.measurements`, `measurementModes`, `sizeChart`, `physicalProfile`, `correctiveFit`, or `/v1` runtime payloads
 - `Phase B / Batch 2` now adds committed garment `pattern-spec` sidecars under `authoring/garments/mpfb/specs/*.pattern-spec.json`
 - those sidecars mirror the current starter runtime measurement truth while adding authoring-only `materialPreset`, `anchorIds`, and optional `panels` / `seams`
+- `Phase 6 / Batch 1` now aggregates the committed garment authoring summaries plus starter runtime metadata into `output/garment-certification/latest.json`, so garment certification evidence is machine-readable before later admin/runtime consumers widen
 - `Phase B / Batch 3` closes the semantic ownership seam by moving starter pattern-spec parity checks into `packages/domain-garment`, so validator runs and domain tests now share the same rule set
 - `validate:garment3d` now fails closed if the summary is missing its `patternSpec.relativePath`, the sidecar does not parse, or the shared garment-domain parity helper detects starter drift
 - `Phase C / Batch 1` now adds a versioned instant-fit report contract above `GarmentFitAssessment`, so product-facing `overallFit / regions / confidence / explanations` can be derived from one shared schema instead of per-surface summary strings

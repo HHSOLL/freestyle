@@ -75,7 +75,8 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 3`: the shipped default closet path now consumes real committed `LOD1 / LOD2` siblings for avatars plus the promoted garment/hair loadout, and the non-blocking report measures transfer, draw calls, triangles, and texture bytes by quality tier
 - `Phase 4`: compatibility-stage studio lighting and material calibration become explicit repo-owned seams with unit tests plus a dedicated lab smoke route
 - `Phase 5 / Batch 1`: avatar publication metadata now has a blocking read-only seam through `/v1/admin/avatars` plus `output/avatar-certification/latest.json`, and `validate:avatar3d` fails closed on publication/evidence/LOD drift for the committed base variants
-- `Phase 5 / Phase 6`: avatar and garment certification gates become blocking
+- `Phase 5`: avatar certification gate is blocking for the committed base variants
+- `Phase 6 / Batch 1`: `validate:garment3d` now emits `output/garment-certification/latest.json` and fails closed on committed garment-authoring bundle drift for the starter garments that already have authoring summaries
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking
 - `Phase 9`: UX latency gate becomes blocking
@@ -163,6 +164,7 @@ When the runtime or assets change, verify at least the relevant subset of these:
 - garments respect render order and clearance
 - `/v1/admin/garments` save/load keeps supported-category `viewerManifest` shadows synchronized with top-level publication metadata
 - `/v1/admin/avatars` stays a dedicated publication catalog boundary and does not drift from `packages/runtime-3d/src/avatar-manifest.ts` or `output/avatar-certification/latest.json`
+- `validate:garment3d` keeps `output/garment-certification/latest.json` in parity with the committed garment authoring bundle and starter runtime metadata
 - `/v1/closet/runtime-garments` continues to tolerate legacy published rows without a manifest shadow while still excluding non-`PUBLISHED` assets
 - body masks still hide covered geometry correctly
 - low-quality mode still renders

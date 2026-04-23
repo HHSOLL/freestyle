@@ -124,6 +124,8 @@
   - `palette`
   - `publication`
   - garment measurement and size-chart metadata
+- current certification evidence seam for garment-authoring-backed starter pieces:
+  - `output/garment-certification/latest.json`
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`

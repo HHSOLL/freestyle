@@ -22,6 +22,7 @@ This document is intentionally about the runtime product contract.
 - upstream MPFB authoring summaries now have their own versioned parse contract in `packages/contracts`
 - garment starter builds now also point at `authoring/garments/mpfb/specs/*.pattern-spec.json` sidecars for authoring-only pattern/material metadata
 - those authoring summaries are validated by `scripts/validate-garment-3d.mjs`
+- the committed certification evidence bundle emitted from that validator is `output/garment-certification/latest.json`
 - they do not widen `PublishedGarmentAsset`, `RuntimeGarmentAsset`, or `/v1` API payloads
 
 ## 1.1 Authoring Pattern Spec
@@ -67,6 +68,7 @@ The active validator rule is:
 - the sidecar must parse through the shared schema
 - the sidecar's starter-facing semantic parity must be enforced through `validateGarmentPatternSpecAgainstStarterCatalog` in `packages/domain-garment`
 - the full authoring bundle parity (`patternSpec + materialProfile + simProxy + collisionProxy + hqArtifact`) must be enforced through `validateGarmentAuthoringBundleAgainstStarterCatalog` in `packages/domain-garment`
+- the validator must also be able to aggregate the committed authoring summaries into the machine-readable garment certification bundle without changing the public runtime payload shape
 
 The current semantic parity scope is:
 

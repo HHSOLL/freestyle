@@ -19,6 +19,7 @@ import {
   type GarmentSimProxy,
 } from "@freestyle/contracts";
 import type {
+  GarmentCertificationReportItem,
   GarmentFitOverall,
   GarmentFitRegionId,
   GarmentInstantFitReport,
@@ -2494,6 +2495,70 @@ const garmentManifestCategoryDefaults: Partial<Record<GarmentCategory, GarmentMa
   accessories: "accessories",
 };
 
+export const resolveStarterGarmentFitPolicyCategory = (
+  category: GarmentCategory,
+): GarmentManifest["fitPolicyCategory"] | null => garmentManifestCategoryDefaults[category] ?? null;
+
+const toCertificationRuntimeLodPaths = (value: GarmentRuntimeLodPaths | undefined) => {
+  if (!value?.lod1 || !value?.lod2) {
+    return undefined;
+  }
+
+  return {
+    lod1: value.lod1,
+    lod2: value.lod2,
+  };
+};
+
+const toCertificationRuntimePaths = (
+  runtime: StarterGarment["runtime"],
+  authoredVariantIds: readonly AvatarRenderVariantId[],
+) => {
+  const modelPathByVariantEntries = authoredVariantIds.flatMap((variantId) => {
+    const value = runtime.modelPathByVariant?.[variantId];
+    return value ? [[variantId, value] as const] : [];
+  });
+  const lodModelPathsByVariantEntries = authoredVariantIds.flatMap((variantId) => {
+    const value = toCertificationRuntimeLodPaths(runtime.lodModelPathsByVariant?.[variantId]);
+    return value ? [[variantId, value] as const] : [];
+  });
+
+  return {
+    modelPath: runtime.modelPath,
+    ...(modelPathByVariantEntries.length > 0
+      ? { modelPathByVariant: Object.fromEntries(modelPathByVariantEntries) }
+      : {}),
+    ...(toCertificationRuntimeLodPaths(runtime.lodModelPaths)
+      ? { lodModelPaths: toCertificationRuntimeLodPaths(runtime.lodModelPaths) }
+      : {}),
+    ...(lodModelPathsByVariantEntries.length > 0
+      ? { lodModelPathsByVariant: Object.fromEntries(lodModelPathsByVariantEntries) }
+      : {}),
+  };
+};
+
+export const buildStarterGarmentCertificationSeed = (
+  item: Pick<StarterGarment, "id" | "category" | "runtime" | "metadata">,
+  options: { authoredVariantIds: readonly AvatarRenderVariantId[] },
+): Pick<
+  GarmentCertificationReportItem,
+  "id" | "category" | "fitPolicyCategory" | "selectedSizeLabel" | "sizeChartLabels" | "runtimePaths"
+> | null => {
+  const fitPolicyCategory = resolveStarterGarmentFitPolicyCategory(item.category);
+  if (!fitPolicyCategory) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    category: item.category,
+    fitPolicyCategory,
+    selectedSizeLabel: item.metadata?.selectedSizeLabel ?? null,
+    sizeChartLabels: item.metadata?.sizeChart?.map((entry) => entry.label) ?? [],
+    runtimePaths: toCertificationRuntimePaths(item.runtime, options.authoredVariantIds),
+  };
+};
+
 const buildPublishedGarmentManifestRoot = (id: string) => `/assets/viewer-manifests/garments/${id}`;
 
 const buildPublishedGarmentLodPath = (modelPath: string, suffix: "lod1" | "lod2") => {
@@ -2508,7 +2573,7 @@ const buildPublishedGarmentLodPath = (modelPath: string, suffix: "lod1" | "lod2"
 export const buildDefaultPublishedGarmentViewerManifest = (
   item: Pick<PublishedGarmentAsset, "id" | "category" | "runtime" | "publication">,
 ) => {
-  const fitPolicyCategory = garmentManifestCategoryDefaults[item.category];
+  const fitPolicyCategory = resolveStarterGarmentFitPolicyCategory(item.category);
   if (!fitPolicyCategory) {
     return null;
   }

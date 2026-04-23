@@ -129,6 +129,8 @@ Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/fre
 Phase 2 manifest-shadow evidence for the admin publication contract lives at `docs/freestyle-viewer-platform/phase2/manifest-shadow.md`.
 Phase 2.5 closeout evidence for contract enforcement lives at `docs/freestyle-viewer-platform/phase2_5/closeout.md`.
 Phase 4 closeout evidence for compatibility-runtime material and lighting ownership lives at `docs/freestyle-viewer-platform/phase4/closeout.md`.
+Phase 5 closeout evidence for the avatar publication seam lives at `docs/freestyle-viewer-platform/phase5/closeout.md`.
+Phase 6 garment certification evidence starts at `docs/freestyle-viewer-platform/phase6/batch1.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -176,6 +178,7 @@ Use these boundaries:
 - the first read-only avatar publication seam lives in `packages/runtime-3d/src/avatar-publication-catalog.ts` and `GET /v1/admin/avatars`; treat that catalog as publication metadata only, not as a substitute for the full canonical `AvatarManifest`
 - the runtime avatar render catalog now uses `runtime-avatar-render-manifest.v1`, intentionally distinct from the asset-factory `avatar-manifest.v1`
 - `validate:avatar3d` now also validates `output/avatar-certification/latest.json`, the referenced visual / fit / body-signature evidence files, and declared avatar `lod1 / lod2` siblings before it reports success
+- `validate:garment3d` now also writes and validates `output/garment-certification/latest.json` for the committed garment-authoring-backed starter pieces before it reports success
 - `apps/api/src/modules/fit-simulations/fit-simulations.service.ts` is now a production-adjacent consumer of that catalog; do not reintroduce a second avatar path map for HQ fit queueing
 - `GET /v1/lab/fit-simulations/:id` may expose a derived `avatarPublication` snapshot for lab consumers, but that field must stay response-only and minimal: no evidence paths, no authoring provenance, and no persistence widening
 
@@ -316,6 +319,7 @@ Rules:
 - validate promoted avatar assets with `npm run validate:avatar3d`
 - when avatar publication metadata changes, verify `/v1/admin/avatars` and `output/avatar-certification/latest.json` stay in parity with the committed runtime avatar manifest
 - when Phase 5 avatar publication metadata changes, also verify `POST /v1/lab/jobs/fit-simulations` still resolves `avatarManifestUrl` from that catalog seam
+- when garment authoring summaries, starter runtime metadata, or garment-side certification evidence changes, verify `output/garment-certification/latest.json` stays in parity with the committed authoring bundle and starter catalog
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch

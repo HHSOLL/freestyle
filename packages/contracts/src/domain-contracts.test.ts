@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import { runtimeAvatarRenderManifestSchemaVersion } from '@freestyle/shared-types';
 import {
@@ -49,6 +50,7 @@ import {
   fitSimulateHQRequestSchema,
   fitSimulateHQResultEnvelopeSchema,
   garmentAuthoringSummarySchema,
+  garmentCertificationReportSchema,
   normalizeBodyProfile,
   hairAuthoringSummarySchema,
   avatarPublicationCatalogSchema,
@@ -66,6 +68,8 @@ import {
 
 const readJsonFixture = (relativePath: string) =>
   JSON.parse(readFileSync(new URL(relativePath, import.meta.url), 'utf8'));
+
+const repoRoot = process.cwd();
 
 test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
   const parsed = bodyProfileSchema.parse({
@@ -1384,6 +1388,18 @@ test('published avatar catalog responses stay distinct from canonical avatar man
       }),
     /total must match items.length/,
   );
+});
+
+test('garment certification report schema accepts the committed latest bundle', () => {
+  const fixture = JSON.parse(
+    readFileSync(path.join(repoRoot, 'output/garment-certification/latest.json'), 'utf8'),
+  );
+
+  const parsed = garmentCertificationReportSchema.parse(fixture);
+
+  assert.equal(parsed.schemaVersion, 'garment-certification-report.v1');
+  assert.equal(parsed.total, parsed.items.length);
+  assert.ok(parsed.items.some((item) => item.id === 'starter-top-soft-casual'));
 });
 
 test('asset metadata schema accepts garment-facing metadata payloads', () => {

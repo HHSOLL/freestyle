@@ -3,7 +3,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  buildStarterGarmentCertificationSeed,
   collectGarmentRuntimeModelPaths,
+  starterGarmentById,
   starterGarmentCatalog,
   validateGarmentAuthoringBundleAgainstStarterCatalog,
   validateGarmentPatternSpecAgainstStarterCatalog,
@@ -11,6 +13,8 @@ import {
 } from "../packages/domain-garment/src/index.ts";
 import {
   garmentAuthoringSummarySchema,
+  garmentCertificationReportSchema,
+  garmentCertificationReportSchemaVersion,
   garmentCollisionProxySchema,
   garmentHQArtifactSpecSchema,
   garmentMaterialProfileSchema,
@@ -22,6 +26,10 @@ const repoRoot = process.cwd();
 const issues = [];
 const seenIds = new Set();
 const rawSummaryRoot = path.join(repoRoot, "authoring/garments/exports/raw");
+const garmentCertificationGeneratedAt = "2026-04-23T00:00:00.000Z";
+const garmentCertificationReportPath = path.join(repoRoot, "output", "garment-certification", "latest.json");
+const garmentBudgetReportPath = "output/asset-budget-report/latest.json";
+const garmentCertificationBundles = new Map();
 
 const heroFitAuditExpectations = [
   {
@@ -83,6 +91,8 @@ const resolvePublicPath = (assetPath) => {
 };
 
 const readJson = (absolutePath) => JSON.parse(fs.readFileSync(absolutePath, "utf8"));
+
+const toRepoRelativePath = (absolutePath) => path.relative(repoRoot, absolutePath).replace(/\\/g, "/");
 
 for (const item of starterGarmentCatalog) {
   if (seenIds.has(item.id)) {
@@ -276,14 +286,103 @@ for (const summaryFile of committedRawSummaries) {
       starterGarmentCatalog,
     ).map((issue) => `${summaryFile}: ${issue}`),
   );
+
+  const starterId = parsedPatternSpec.data.runtimeStarterId;
+  const currentBundle = garmentCertificationBundles.get(starterId);
+  const nextBundle = {
+    patternSpecPath: parsedSummary.data.patternSpec.relativePath,
+    materialProfilePath: parsedSummary.data.materialProfile.relativePath,
+    simProxyPath: parsedSummary.data.simProxy.relativePath,
+    collisionProxyPath: parsedSummary.data.collisionProxy.relativePath,
+    hqArtifactPath: parsedSummary.data.hqArtifact.relativePath,
+    summaries: [
+      {
+        variantId: parsedSummary.data.variantId,
+        summaryPath: toRepoRelativePath(summaryPath),
+        outputBlend: parsedSummary.data.outputBlend,
+        outputGlb: parsedSummary.data.outputGlb,
+        fitAudit: parsedSummary.data.fitAudit,
+      },
+    ],
+  };
+
+  if (!currentBundle) {
+    garmentCertificationBundles.set(starterId, nextBundle);
+    continue;
+  }
+
+  for (const [field, nextValue] of Object.entries({
+    patternSpecPath: nextBundle.patternSpecPath,
+    materialProfilePath: nextBundle.materialProfilePath,
+    simProxyPath: nextBundle.simProxyPath,
+    collisionProxyPath: nextBundle.collisionProxyPath,
+    hqArtifactPath: nextBundle.hqArtifactPath,
+  })) {
+    if (currentBundle[field] !== nextValue) {
+      issues.push(
+        `${summaryFile}: ${field} ${nextValue} does not match ${starterId} canonical value ${currentBundle[field]}.`,
+      );
+    }
+  }
+
+  const duplicateVariant = currentBundle.summaries.find((entry) => entry.variantId === parsedSummary.data.variantId);
+  if (duplicateVariant) {
+    issues.push(`${summaryFile}: duplicate summary for ${starterId} variant ${parsedSummary.data.variantId}.`);
+    continue;
+  }
+
+  currentBundle.summaries.push(nextBundle.summaries[0]);
 }
 
 if (issues.length > 0) {
+  if (fs.existsSync(garmentCertificationReportPath)) {
+    fs.rmSync(garmentCertificationReportPath);
+  }
   console.error(`Garment 3D validation failed with ${issues.length} issue(s).\n`);
   for (const issue of issues) {
     console.error(`- ${issue}`);
   }
   process.exit(1);
 }
+
+const certificationItems = Array.from(garmentCertificationBundles.entries())
+  .sort(([left], [right]) => left.localeCompare(right))
+  .map(([starterId, bundle]) => {
+    const starter = starterGarmentById.get(starterId);
+    if (!starter) {
+      throw new Error(`Missing starter garment ${starterId} for certification bundle.`);
+    }
+    const seed = buildStarterGarmentCertificationSeed(starter, {
+      authoredVariantIds: bundle.summaries.map((entry) => entry.variantId),
+    });
+    if (!seed) {
+      throw new Error(`Starter garment ${starterId} does not expose a certification seed.`);
+    }
+
+    return {
+      ...seed,
+      authoring: {
+        patternSpecPath: bundle.patternSpecPath,
+        materialProfilePath: bundle.materialProfilePath,
+        simProxyPath: bundle.simProxyPath,
+        collisionProxyPath: bundle.collisionProxyPath,
+        hqArtifactPath: bundle.hqArtifactPath,
+        summaries: bundle.summaries.sort((left, right) => left.variantId.localeCompare(right.variantId)),
+      },
+      evidence: {
+        budgetReportPath: garmentBudgetReportPath,
+      },
+    };
+  });
+
+const certificationReport = garmentCertificationReportSchema.parse({
+  schemaVersion: garmentCertificationReportSchemaVersion,
+  generatedAt: garmentCertificationGeneratedAt,
+  items: certificationItems,
+  total: certificationItems.length,
+});
+
+fs.mkdirSync(path.dirname(garmentCertificationReportPath), { recursive: true });
+fs.writeFileSync(garmentCertificationReportPath, `${JSON.stringify(certificationReport, null, 2)}\n`);
 
 console.log(`Garment 3D validation passed for ${starterGarmentCatalog.length} starter garments.`);

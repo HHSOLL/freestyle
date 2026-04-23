@@ -1243,6 +1243,7 @@ export const garmentMaterialProfileSchemaVersion = "garment-material-profile.v1"
 export const garmentSimProxySchemaVersion = "garment-sim-proxy.v1";
 export const garmentCollisionProxySchemaVersion = "garment-collision-proxy.v1";
 export const garmentHQArtifactSpecSchemaVersion = "garment-hq-artifact-spec.v1";
+export const garmentCertificationReportSchemaVersion = "garment-certification-report.v1";
 
 const repoRelativePathSchema = z
   .string()
@@ -1628,6 +1629,99 @@ export const runtimeAssetAuthoringSummarySchema = z.discriminatedUnion("kind", [
   hairAuthoringSummarySchema,
   accessoryAuthoringSummarySchema,
 ]);
+
+const garmentCertificationRuntimePathsSchema = z
+  .object({
+    modelPath: z.string().trim().min(1),
+    modelPathByVariant: z
+      .object({
+        "female-base": z.string().trim().min(1).optional(),
+        "male-base": z.string().trim().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    lodModelPaths: z
+      .object({
+        lod1: z.string().trim().min(1),
+        lod2: z.string().trim().min(1),
+      })
+      .strict()
+      .optional(),
+    lodModelPathsByVariant: z
+      .object({
+        "female-base": z
+          .object({
+            lod1: z.string().trim().min(1),
+            lod2: z.string().trim().min(1),
+          })
+          .strict()
+          .optional(),
+        "male-base": z
+          .object({
+            lod1: z.string().trim().min(1),
+            lod2: z.string().trim().min(1),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+const garmentCertificationVariantSummarySchema = z
+  .object({
+    variantId: avatarRenderVariantIdSchema,
+    summaryPath: repoRelativePathSchema,
+    outputBlend: repoRelativePathSchema,
+    outputGlb: repoRelativePathSchema,
+    fitAudit: garmentFitAuditSchema,
+  })
+  .strict();
+
+export const garmentCertificationReportItemSchema = z
+  .object({
+    id: z.string().trim().min(1).max(160),
+    category: assetCategorySchema,
+    fitPolicyCategory: garmentManifestSchema.shape.fitPolicyCategory,
+    selectedSizeLabel: z.string().trim().min(1).max(64).nullable(),
+    sizeChartLabels: z.array(z.string().trim().min(1).max(64)),
+    runtimePaths: garmentCertificationRuntimePathsSchema,
+    authoring: z
+      .object({
+        patternSpecPath: repoRelativePathSchema,
+        materialProfilePath: repoRelativePathSchema,
+        simProxyPath: repoRelativePathSchema,
+        collisionProxyPath: repoRelativePathSchema,
+        hqArtifactPath: repoRelativePathSchema,
+        summaries: z.array(garmentCertificationVariantSummarySchema).min(1),
+      })
+      .strict(),
+    evidence: z
+      .object({
+        budgetReportPath: repoRelativePathSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const garmentCertificationReportSchema = z
+  .object({
+    schemaVersion: z.literal(garmentCertificationReportSchemaVersion),
+    generatedAt: z.iso.datetime(),
+    items: z.array(garmentCertificationReportItemSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const garmentRuntimeBindingSchema = z
   .object({
@@ -2249,6 +2343,9 @@ export type GarmentAuthoringSummary = z.infer<typeof garmentAuthoringSummarySche
 export type HairAuthoringSummary = z.infer<typeof hairAuthoringSummarySchema>;
 export type AccessoryAuthoringSummary = z.infer<typeof accessoryAuthoringSummarySchema>;
 export type RuntimeAssetAuthoringSummary = z.infer<typeof runtimeAssetAuthoringSummarySchema>;
+export type GarmentCertificationVariantSummary = z.infer<typeof garmentCertificationVariantSummarySchema>;
+export type GarmentCertificationReportItem = z.infer<typeof garmentCertificationReportItemSchema>;
+export type GarmentCertificationReport = z.infer<typeof garmentCertificationReportSchema>;
 export type PublishedRuntimeAvatarItemResponse = z.infer<typeof publishedRuntimeAvatarItemResponseSchema>;
 export type PublishedRuntimeAvatarListResponse = z.infer<typeof publishedRuntimeAvatarListResponseSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;

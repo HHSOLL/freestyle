@@ -37,7 +37,13 @@ yarn-error.log*
 .pnpm-debug.log*
 .codex/
 .playwright-cli/
-/output/
+/output/*
+!/output/avatar-certification/
+!/output/avatar-certification/latest.json
+!/output/asset-budget-report/
+!/output/asset-budget-report/latest.json
+!/output/garment-certification/
+!/output/garment-certification/latest.json
 /test-results/
 /supabase/.temp/
 /authoring/avatar/.cache/

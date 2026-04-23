@@ -15,6 +15,7 @@ import {
 import {
   assessGarmentPhysicalFit,
   assessGarmentInstantFit,
+  buildStarterGarmentCertificationSeed,
   buildFitMapSummary,
   buildGarmentInstantFitReport,
   computeGarmentCorrectiveTransform,
@@ -84,6 +85,25 @@ test("starter garment catalog carries publication-ready physical fit metadata", 
     assert.ok(item.metadata?.physicalProfile, `${item.id} is missing physicalProfile`);
     assert.ok(assessGarmentPhysicalFit(item, defaultBodyProfile), `${item.id} does not produce a fit assessment`);
   }
+});
+
+test("starter garment certification seed captures runtime LOD and size-chart metadata", () => {
+  const starter = starterGarmentCatalog.find((item) => item.id === "starter-top-soft-casual");
+  assert.ok(starter);
+
+  const seed = buildStarterGarmentCertificationSeed(starter, {
+    authoredVariantIds: ["female-base"],
+  });
+  assert.ok(seed);
+  assert.equal(seed.fitPolicyCategory, "tight_top");
+  assert.equal(seed.selectedSizeLabel, "L");
+  assert.deepEqual(seed.sizeChartLabels, ["M", "L", "XL"]);
+  assert.equal(seed.runtimePaths.modelPath, starter.runtime.modelPath);
+  assert.equal(seed.runtimePaths.modelPathByVariant?.["female-base"], starter.runtime.modelPathByVariant?.["female-base"]);
+  assert.equal(seed.runtimePaths.modelPathByVariant?.["male-base"], undefined);
+  assert.equal(seed.runtimePaths.lodModelPaths?.lod1, starter.runtime.lodModelPaths?.lod1);
+  assert.equal(seed.runtimePaths.lodModelPathsByVariant?.["female-base"]?.lod2, starter.runtime.lodModelPathsByVariant?.["female-base"]?.lod2);
+  assert.equal(seed.runtimePaths.lodModelPathsByVariant?.["male-base"], undefined);
 });
 
 test("committed garment pattern specs stay aligned with starter runtime metadata", () => {

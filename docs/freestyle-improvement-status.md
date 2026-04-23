@@ -8,6 +8,7 @@ It is separate from `docs/replatform-v2/**`.
 
 - `docs/replatform-v2/**` remains the historical rollout and widget/canary track.
 - This file tracks the current mannequin-first product hardening program.
+- the newer viewer-platform refactor and asset-factory evidence live under `docs/freestyle-viewer-platform/**`, including the current garment certification bundle at `output/garment-certification/latest.json`
 - When the two disagree, use this file together with `README.md`, `docs/architecture-overview.md`, `docs/repo-inventory.md`, and `docs/product-boundaries.md`.
 
 ## As Of

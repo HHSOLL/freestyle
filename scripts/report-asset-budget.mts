@@ -75,7 +75,10 @@ const resolveTransferTargets = (family: ReturnType<typeof classifyAsset>) => {
 };
 
 const main = async () => {
-  const glbFiles = await listFilesRecursive(assetsRoot, (targetPath) => targetPath.endsWith(".glb"));
+  const glbFiles = await listFilesRecursive(
+    assetsRoot,
+    (targetPath) => targetPath.endsWith(".glb") && !/\.lod[12]\.glb$/u.test(targetPath),
+  );
   const runtimeKtx2Files = await listFilesRecursive(assetsRoot, (targetPath) => targetPath.endsWith(".ktx2")).catch(() => []);
   const uiTextureFiles = await listFilesRecursive(
     assetsRoot,
@@ -94,6 +97,10 @@ const main = async () => {
       const lod1Path = buildSiblingLodPath(filePath, "lod1");
       const lod2Path = buildSiblingLodPath(filePath, "lod2");
       const [lod1, lod2] = await Promise.all([statIfExists(lod1Path), statIfExists(lod2Path)]);
+      const balancedBytes = lod1?.size ?? stat.size;
+      const lowBytes = lod2?.size ?? lod1?.size ?? stat.size;
+      const balancedPath = lod1 ? lod1Path : filePath;
+      const lowPath = lod2 ? lod2Path : lod1 ? lod1Path : filePath;
 
       return {
         path: relativeFromRepo(filePath),
@@ -105,6 +112,21 @@ const main = async () => {
         lodCoverage: {
           lod1: Boolean(lod1),
           lod2: Boolean(lod2),
+        },
+        qualityTierBytes: {
+          high: stat.size,
+          balanced: balancedBytes,
+          low: lowBytes,
+        },
+        qualityTierTransferStatus: {
+          high: resolveTransferStatus(family, stat.size),
+          balanced: resolveTransferStatus(family, balancedBytes),
+          low: resolveTransferStatus(family, lowBytes),
+        },
+        qualityTierPaths: {
+          high: relativeFromRepo(filePath),
+          balanced: relativeFromRepo(balancedPath),
+          low: relativeFromRepo(lowPath),
         },
       };
     }),
@@ -138,6 +160,8 @@ const main = async () => {
       runtimeKtx2TextureCount: runtimeKtx2Files.length,
       uiTextureCount: uiTextureFiles.length,
       missingLodCount: missingLodEntries.length,
+      balancedReadyAssetCount: filteredEntries.filter((entry) => entry.lodCoverage.lod1).length,
+      lowReadyAssetCount: filteredEntries.filter((entry) => entry.lodCoverage.lod2).length,
       defaultClosetSceneBytes,
       defaultClosetSceneStatus:
         defaultClosetSceneBytes <= phase3AssetBudgetTargets.transferBytes.defaultClosetScene ? "pass" : "fail",

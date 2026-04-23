@@ -23,7 +23,11 @@ import type {
   QualityTier,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
-import { avatarRenderManifest, type AvatarRigAlias } from "./avatar-manifest.js";
+import {
+  avatarRenderManifest,
+  resolveAvatarRuntimeModelPath,
+  type AvatarRigAlias,
+} from "./avatar-manifest.js";
 import { ClosetStageLoadingFallback } from "./closet-stage-fallback.js";
 import {
   getFitLoosenessMultiplier,
@@ -1199,7 +1203,8 @@ function AvatarRig({
   previewFeatureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
-  const avatarGltf = useRuntimeGLTF(manifest.modelPath);
+  const avatarModelPath = resolveAvatarRuntimeModelPath(avatarVariantId, qualityTier) ?? manifest.modelPath;
+  const avatarGltf = useRuntimeGLTF(avatarModelPath);
   const wrapperRef = useRef<THREE.Group>(null);
 
   const avatarScene = useMemo(() => clone(avatarGltf.scene) as THREE.Group, [avatarGltf.scene]);

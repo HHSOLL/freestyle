@@ -116,12 +116,14 @@ Verify these after any mannequin or asset change:
 - loose hero garments (`City Relaxed`, `Tailored Layer`) still show secondary drape without jitter or exploding transforms
 - the reduced preview backend still downgrades cleanly: `worker-reduced` falls back to `cpu-reduced` when `/workers/reference-closet-stage-preview.worker.js` is unavailable or Worker support is missing
 - meshopt-compressed runtime GLBs still load in browser builds; a missing `MeshoptDecoder` is now a release blocker
+- the committed base-avatar sibling files `mpfb-female-base.lod1/.lod2.glb` and `mpfb-male-base.lod1/.lod2.glb` still exist; `balanced` and `low` quality must not 404 back to a blank stage
 - repeated avatar / garment swaps should not leave clone-owned runtime materials without cleanup; cleanup must target only stage-owned material clones
 - secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
 - `apps/web/public/basis/basis_transcoder.js` and `.wasm` still exist and match the loader policy expected by `viewer-core`
 - `output/asset-budget-report/latest.json` is regenerated after promoted runtime asset changes and any new warnings are reviewed before release
+- avatar quality-tier path resolution and preload continue to agree on the same effective asset path
 - active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
 - optimized runtime GLBs stay within explicit avatar / garment / hair / default-loadout budgets
 

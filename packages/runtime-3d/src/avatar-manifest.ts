@@ -1,5 +1,5 @@
 import { avatarManifestSchemaVersion } from "@freestyle/asset-schema/schema-versions";
-import type { AvatarRenderVariantId } from "@freestyle/shared-types";
+import type { AvatarRenderVariantId, QualityTier } from "@freestyle/shared-types";
 
 export type AvatarRigAlias =
   | "root"
@@ -70,6 +70,10 @@ export type AvatarRenderManifestEntry = {
   label: string;
   schemaVersion: typeof avatarManifestSchemaVersion;
   modelPath: string;
+  lodModelPaths?: {
+    lod1?: string;
+    lod2?: string;
+  };
   authoringSource: AvatarSourceSystem;
   sourceProvenance: AvatarSourceProvenance;
   bodyMaskStrategy: "named-mesh-zones" | "none";
@@ -92,6 +96,10 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
     schemaVersion: avatarManifestSchemaVersion,
     label: "Female base",
     modelPath: "/assets/avatars/mpfb-female-base.glb",
+    lodModelPaths: {
+      lod1: "/assets/avatars/mpfb-female-base.lod1.glb",
+      lod2: "/assets/avatars/mpfb-female-base.lod2.glb",
+    },
     authoringSource: "mpfb2",
     sourceProvenance: {
       sourceSystem: "mpfb2",
@@ -143,6 +151,10 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
     schemaVersion: avatarManifestSchemaVersion,
     label: "Male base",
     modelPath: "/assets/avatars/mpfb-male-base.glb",
+    lodModelPaths: {
+      lod1: "/assets/avatars/mpfb-male-base.lod1.glb",
+      lod2: "/assets/avatars/mpfb-male-base.lod2.glb",
+    },
     authoringSource: "mpfb2",
     sourceProvenance: {
       sourceSystem: "mpfb2",
@@ -189,4 +201,24 @@ export const avatarRenderManifest: Record<AvatarRenderVariantId, AvatarRenderMan
       rightFoot: ["footr"],
     } satisfies Record<AvatarRigAlias, string[]>,
   },
+};
+
+export const resolveAvatarRuntimeModelPath = (
+  variantId: AvatarRenderVariantId,
+  qualityTier: QualityTier = "high",
+) => {
+  const entry = avatarRenderManifest[variantId];
+  if (!entry) {
+    return null;
+  }
+
+  if (qualityTier === "low") {
+    return entry.lodModelPaths?.lod2 ?? entry.lodModelPaths?.lod1 ?? entry.modelPath;
+  }
+
+  if (qualityTier === "balanced") {
+    return entry.lodModelPaths?.lod1 ?? entry.modelPath;
+  }
+
+  return entry.modelPath;
 };

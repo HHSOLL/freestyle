@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { AvatarRenderVariantId, RuntimeGarmentAsset } from "@freestyle/shared-types";
+import type { AvatarRenderVariantId, QualityTier, RuntimeGarmentAsset } from "@freestyle/shared-types";
 import { FreestyleViewerHost, type FreestyleViewerHostProps } from "./freestyle-viewer-host.js";
 
 export type ViewerHostMode = "runtime-3d" | "viewer-react";
@@ -8,6 +8,7 @@ export type ViewerPreloadInput = {
   avatarVariantIds?: AvatarRenderVariantId[];
   garmentAssets?: RuntimeGarmentAsset[];
   garmentVariantId?: AvatarRenderVariantId;
+  qualityTier?: QualityTier;
 };
 
 type Runtime3DModule = {

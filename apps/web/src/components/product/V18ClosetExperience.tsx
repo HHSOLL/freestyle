@@ -993,8 +993,9 @@ export function V18ClosetExperience() {
       avatarVariantIds: [avatarVariantId],
       garmentAssets: preloadCandidates,
       garmentVariantId: avatarVariantId,
+      qualityTier: scene.qualityTier,
     });
-  }, [avatarVariantId, preloadCandidates]);
+  }, [avatarVariantId, preloadCandidates, scene.qualityTier]);
 
   useEffect(() => {
     if (variantDefaults.hair && (!selection.hair.id || defaultHairIds.has(selection.hair.id)) && selection.hair.id !== variantDefaults.hair) {

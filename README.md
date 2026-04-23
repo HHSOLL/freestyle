@@ -63,6 +63,7 @@ The shipped runtime now uses:
 - meshopt-compressed runtime GLBs with WebP-compressed textures for shipped browser assets
 - `viewer-core` shared loader policy with committed DRACO + KTX2 transcoder public assets under `apps/web/public/draco` and `apps/web/public/basis`
 - a non-blocking Phase 3 asset-budget report at `output/asset-budget-report/latest.json`
+- committed avatar `LOD1 / LOD2` siblings for the two base MPFB avatars, with the compatibility runtime now resolving avatar GLB paths by quality tier
 - selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
 
 Preferred authoring policy is:
@@ -202,6 +203,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase2/manifest-shadow.md](docs/freestyle-viewer-platform/phase2/manifest-shadow.md)
 - [docs/freestyle-viewer-platform/phase2_5/closeout.md](docs/freestyle-viewer-platform/phase2_5/closeout.md)
 - [docs/freestyle-viewer-platform/phase3/batch1.md](docs/freestyle-viewer-platform/phase3/batch1.md)
+- [docs/freestyle-viewer-platform/phase3/batch2.md](docs/freestyle-viewer-platform/phase3/batch2.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

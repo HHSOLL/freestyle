@@ -1,22 +1,24 @@
 import { resolveGarmentRuntimeModelPath } from "@freestyle/domain-garment";
-import type { AvatarRenderVariantId, RuntimeGarmentAsset } from "@freestyle/shared-types";
-import { avatarRenderManifest } from "./avatar-manifest.js";
+import type { AvatarRenderVariantId, QualityTier, RuntimeGarmentAsset } from "@freestyle/shared-types";
+import { resolveAvatarRuntimeModelPath } from "./avatar-manifest.js";
 
 export const collectRuntimeModelPaths = ({
   avatarVariantIds = [],
   garmentAssets = [],
   garmentVariantId = "female-base",
+  qualityTier = "high",
 }: {
   avatarVariantIds?: AvatarRenderVariantId[];
   garmentAssets?: RuntimeGarmentAsset[];
   garmentVariantId?: AvatarRenderVariantId;
+  qualityTier?: QualityTier;
 } = {}) => {
   const dedupedPaths = new Set<string>();
 
   avatarVariantIds.forEach((variantId) => {
-    const manifestEntry = avatarRenderManifest[variantId];
-    if (manifestEntry) {
-      dedupedPaths.add(manifestEntry.modelPath);
+    const modelPath = resolveAvatarRuntimeModelPath(variantId, qualityTier);
+    if (modelPath) {
+      dedupedPaths.add(modelPath);
     }
   });
 

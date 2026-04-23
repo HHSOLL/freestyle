@@ -71,6 +71,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 2.5`: promoted garment approval states fail closed on write when certification metadata or the canonical manifest seam is missing
 - `Phase 3`: asset budget gate becomes non-blocking
 - `Phase 3`: shared loader policy and KTX2 transcoder public assets become explicit repo-owned seams instead of implicit local tooling assumptions
+- `Phase 3`: avatar quality tiers now consume real committed `LOD1 / LOD2` siblings before widening the same policy to garments
 - `Phase 5 / Phase 6`: avatar and garment certification gates become blocking
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking

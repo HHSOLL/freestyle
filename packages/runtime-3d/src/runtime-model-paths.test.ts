@@ -35,6 +35,7 @@ test("collectRuntimeModelPaths dedupes avatar and garment runtime model paths", 
       avatarVariantIds: ["female-base", "female-base"],
       garmentAssets: [garment, garment],
       garmentVariantId: "female-base",
+      qualityTier: "high",
     }),
     ["/assets/avatars/mpfb-female-base.glb", "/assets/garments/female-top.glb"],
   );
@@ -52,7 +53,26 @@ test("collectRuntimeModelPaths falls back to the default garment model path when
       avatarVariantIds: ["male-base"],
       garmentAssets: [garment],
       garmentVariantId: "male-base",
+      qualityTier: "high",
     }),
     ["/assets/avatars/mpfb-male-base.glb", "/assets/garments/default-top.glb"],
+  );
+});
+
+test("collectRuntimeModelPaths resolves avatar LOD paths for balanced and low quality tiers", () => {
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      avatarVariantIds: ["female-base", "male-base"],
+      qualityTier: "balanced",
+    }),
+    ["/assets/avatars/mpfb-female-base.lod1.glb", "/assets/avatars/mpfb-male-base.lod1.glb"],
+  );
+
+  assert.deepEqual(
+    collectRuntimeModelPaths({
+      avatarVariantIds: ["female-base", "male-base"],
+      qualityTier: "low",
+    }),
+    ["/assets/avatars/mpfb-female-base.lod2.glb", "/assets/avatars/mpfb-male-base.lod2.glb"],
   );
 });

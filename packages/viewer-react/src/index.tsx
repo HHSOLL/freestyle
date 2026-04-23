@@ -15,6 +15,12 @@ export {
   type ViewerQualityTier,
 } from "./freestyle-viewer-host.js";
 export {
+  createViewerRouteTelemetryTracker,
+  initialViewerRouteTelemetrySnapshot,
+  type ViewerRouteSceneKind,
+  type ViewerRouteTelemetrySnapshot,
+} from "./route-telemetry.js";
+export {
   loadConfiguredAvatarStageComponent,
   preloadViewerAssets,
   resolveViewerHost,

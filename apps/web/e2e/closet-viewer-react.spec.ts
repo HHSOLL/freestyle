@@ -14,7 +14,10 @@ test.describe("closet viewer-react host", () => {
     await expect(page.locator("[data-closet-visual-root]").first()).toBeVisible();
     await expect(page.getByText("viewer-core stage failed")).toHaveCount(0);
 
+    const host = page.locator("[data-viewer-host-root]").first();
     const canvas = page.locator('canvas[aria-label="Freestyle experimental viewer stage"]').first();
+    await expect(host).toHaveAttribute("data-first-avatar-paint-ms", /\d+/);
+    await expect(host).toHaveAttribute("data-last-preview-source", "static-fit");
     await expect(canvas).toBeVisible();
   });
 });

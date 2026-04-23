@@ -122,6 +122,8 @@ During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibili
 The direct browser harness for `viewer-core` lives at `/app/lab/viewer-platform`; use it for Phase 1 manual verification before widening product cutover.
 Phase 1 closeout evidence for the viewer-platform refactor lives at `docs/freestyle-viewer-platform/phase1/closeout.md`.
 The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
+Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/freestyle-viewer-platform/phase2/telemetry-slice.md`.
+`viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
 

@@ -27,7 +27,7 @@ export const viewerLoadAvatarCommandSchema = z
 export const viewerApplyGarmentsCommandSchema = z
   .object({
     type: z.literal("apply-garments"),
-    garments: z.array(viewerGarmentSelectionSchema).min(1),
+    garments: z.array(viewerGarmentSelectionSchema),
   })
   .strict();
 

@@ -39,7 +39,7 @@ Run these when the scope touches the matching area.
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
 | promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
-| asset-quality, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `apps/web/src/lib/viewer-host.test.ts`, and `packages/contracts/src/domain-contracts.test.ts` plus `npm run build:services` |
+| asset-quality, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
 
 ### L2. Full Local Gate
 
@@ -65,6 +65,7 @@ This includes:
 The viewer-platform refactor grows gates forward instead of leaving everything for one final hardening batch:
 
 - `Phase 0`: benchmark harness and baseline reports start as non-blocking evidence
+- `Phase 2`: the forced `viewer-react` seam emits non-blocking first-avatar-paint and garment-swap latency evidence
 - `Phase 2.5`: approval-state, body-signature, material, and fit-contract tests start
 - `Phase 3`: asset budget gate becomes non-blocking
 - `Phase 5 / Phase 6`: avatar and garment certification gates become blocking

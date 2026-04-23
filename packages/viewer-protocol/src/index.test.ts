@@ -71,6 +71,25 @@ test("viewer event envelope schema preserves fit preview payloads", () => {
   assert.equal(parsed.payload.source, "static-fit");
 });
 
+test("viewer command and preview payloads allow avatar-only scenes without garments", () => {
+  const command = viewerCommandSchema.parse({
+    type: "apply-garments",
+    garments: [],
+  });
+  const envelope = viewerEventEnvelopeSchema.parse({
+    type: "fit:preview-ready",
+    payload: {
+      garments: [],
+      source: "static-fit",
+    },
+  });
+
+  assert.equal(command.type, "apply-garments");
+  assert.equal(envelope.type, "fit:preview-ready");
+  assert.deepEqual(command.garments, []);
+  assert.deepEqual(envelope.payload.garments, []);
+});
+
 test("viewer manifest envelope schema tracks product approval state", () => {
   const parsed = viewerManifestEnvelopeSchema.parse({
     schemaVersion: "viewer-manifest.v1",

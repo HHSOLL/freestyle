@@ -3,16 +3,14 @@ import { viewerTelemetryEventSchema } from "./telemetry.js";
 
 export const fitPreviewReadyEventSchema = z
   .object({
-    garments: z
-      .array(
-        z
-          .object({
-            garmentId: z.string().trim().min(1).max(160),
-            size: z.string().trim().min(1).max(64).optional(),
-          })
-          .strict(),
-      )
-      .min(1),
+    garments: z.array(
+      z
+        .object({
+          garmentId: z.string().trim().min(1).max(160),
+          size: z.string().trim().min(1).max(64).optional(),
+        })
+        .strict(),
+    ),
     source: z.enum(["cache", "worker", "static-fit"]),
   })
   .strict();

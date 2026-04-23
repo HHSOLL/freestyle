@@ -19,6 +19,15 @@
 | Visual baseline coverage is desktop-heavy | current committed goldens cover route shells and closet low/balanced/high tiers in desktop Chromium | `apps/web/e2e/visual-regression.spec.ts` and `docs/qa/phase5-visual-regression-2026-04-22.md` freeze desktop evidence | no mobile visual baseline set and no full certification matrix for fit-critical zoom views | `P1` |
 | Certification workflow is only partially enforced | `publication.approvalState` is now enforced for product closets and exposed in admin, but certification is not yet a full asset-factory workflow | `/v1/closet/runtime-garments` defaults to `PUBLISHED`, `/v1/admin/garments` can inspect candidate states | no admin certification tool with visual/fit/perf approval evidence bundle yet | `P1` |
 
+## Phase 2 telemetry status note
+
+The `No product-route latency instrumentation for first avatar paint or garment swap` risk is now partially reduced, but not closed.
+
+- the forced `viewer-react` host records first-avatar-paint and garment-swap preview latency as non-blocking browser evidence
+- the seam is currently exposed through host data attributes and typed browser custom events
+- the default `runtime-3d` product host still does not emit the same route-level evidence
+- cached vs uncached preview timing, GPU/render metrics, and context-restore timing remain open risks
+
 ## Phase 0 conclusion
 
 The current architecture is stable enough to keep shipping the mannequin-first product baseline, but it is not yet the production-grade viewer-platform architecture described by the new refactor program.

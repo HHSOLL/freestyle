@@ -9,6 +9,7 @@ test.describe("viewer-platform harness", () => {
     await expect(page.getByRole("heading", { name: "viewer-core browser harness" })).toBeVisible();
 
     const root = page.locator("[data-viewer-platform-root]").first();
+    const host = page.locator("[data-viewer-host-root]").first();
     const canvas = page.locator('canvas[aria-label="Freestyle experimental viewer stage"]').first();
 
     await expect(root).toHaveAttribute("data-selected-avatar", "female-base");
@@ -17,6 +18,7 @@ test.describe("viewer-platform harness", () => {
     await expect(root).toHaveAttribute("data-selected-pose", "neutral");
     await expect(root).toHaveAttribute("data-selected-quality", "balanced");
     await expect(canvas).toBeVisible();
+    await expect(host).toHaveAttribute("data-first-avatar-paint-ms", /\d+/);
 
     await page.getByRole("button", { name: "male-base", exact: true }).click();
     await page.getByRole("button", { name: "stride", exact: true }).click();
@@ -28,6 +30,8 @@ test.describe("viewer-platform harness", () => {
     await expect(root).toHaveAttribute("data-selected-pose", "stride");
     await expect(root).toHaveAttribute("data-selected-quality", "high");
     await expect(root).toHaveAttribute("data-selected-item-id", "starter-shoe-soft-day");
+    await expect(host).toHaveAttribute("data-last-garment-swap-ms", /\d+/);
+    await expect(host).toHaveAttribute("data-last-preview-source", "static-fit");
     await expect(canvas).toHaveAttribute("data-selected-item-id", "starter-shoe-soft-day");
   });
 

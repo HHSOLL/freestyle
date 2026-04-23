@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  viewerTelemetryEventSchema,
+  type ViewerEventEnvelope,
+} from "@freestyle/viewer-protocol";
 import type {
   AvatarPoseId,
   AvatarRenderVariantId,
@@ -9,6 +13,10 @@ import type {
 } from "@freestyle/shared-types";
 import { createFreestyleViewer, type FreestyleViewer } from "@freestyle/viewer-core";
 import { buildViewerSceneInput } from "./bridge.js";
+import {
+  createViewerRouteTelemetryTracker,
+  initialViewerRouteTelemetrySnapshot,
+} from "./route-telemetry.js";
 import { hasViewerViewportChanged, measureViewerViewport } from "./viewport.js";
 
 export type ViewerQualityTier = "low" | "balanced" | "high";
@@ -91,10 +99,12 @@ export function FreestyleViewerHost({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<FreestyleViewer | null>(null);
-  const releaseErrorListenerRef = useRef<(() => void) | null>(null);
+  const releaseViewerListenersRef = useRef<(() => void) | null>(null);
   const viewportRef = useRef<ReturnType<typeof measureViewerViewport> | null>(null);
+  const telemetryTrackerRef = useRef(createViewerRouteTelemetryTracker());
   const [hostState, setHostState] = useState<HostState>("booting");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [telemetrySnapshot, setTelemetrySnapshot] = useState(initialViewerRouteTelemetrySnapshot);
   const sceneInput = useMemo(
     () =>
       buildViewerSceneInput({
@@ -109,6 +119,40 @@ export function FreestyleViewerHost({
     [avatarVariantId, backgroundColor, bodyProfile, equippedGarments, poseId, qualityTier, selectedItemId],
   );
 
+  const emitViewerTelemetry = useCallback(
+    (event: { name: string; value?: number; tags?: Record<string, string> }) => {
+    const parsed = viewerTelemetryEventSchema.parse({
+      ...event,
+      tags: {
+        ...(event.tags ?? {}),
+        route: typeof window === "undefined" ? "unknown" : window.location.pathname,
+        viewerHost: "viewer-react",
+      },
+    });
+    const next = telemetryTrackerRef.current.recordMetric(parsed);
+    setTelemetrySnapshot(next.snapshot);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("freestyle:viewer-telemetry", {
+          detail: parsed,
+        }),
+      );
+    }
+    },
+    [],
+  );
+
+  const emitViewerEnvelope = useCallback((envelope: ViewerEventEnvelope) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent("freestyle:viewer-event", {
+        detail: envelope,
+      }),
+    );
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -120,7 +164,7 @@ export function FreestyleViewerHost({
     void createFreestyleViewer(canvas, {
       renderBackend: "webgl2",
       telemetry: {
-        emit: () => undefined,
+        emit: emitViewerTelemetry,
       },
     })
       .then((viewer) => {
@@ -130,10 +174,31 @@ export function FreestyleViewerHost({
         }
 
         viewerRef.current = viewer;
-        releaseErrorListenerRef.current = viewer.on("error", (event) => {
+        const releaseErrorListener = viewer.on("error", (event) => {
+          emitViewerEnvelope({
+            type: "error",
+            payload: event,
+          });
           setErrorMessage(event.message);
           setHostState("error");
         });
+        const releasePreviewListener = viewer.on("fit:preview-ready", (event) => {
+          const next = telemetryTrackerRef.current.recordPreviewReady(event);
+          setTelemetrySnapshot(next.snapshot);
+          emitViewerEnvelope(next.envelope);
+          next.emitted.forEach((metric) => emitViewerTelemetry(metric));
+        });
+        const releaseHqListener = viewer.on("fit:hq-ready", (event) => {
+          emitViewerEnvelope({
+            type: "fit:hq-ready",
+            payload: event,
+          });
+        });
+        releaseViewerListenersRef.current = () => {
+          releaseErrorListener();
+          releasePreviewListener();
+          releaseHqListener();
+        };
 
         setHostState("ready");
       })
@@ -147,12 +212,12 @@ export function FreestyleViewerHost({
 
     return () => {
       disposed = true;
-      releaseErrorListenerRef.current?.();
-      releaseErrorListenerRef.current = null;
+      releaseViewerListenersRef.current?.();
+      releaseViewerListenersRef.current = null;
       viewerRef.current?.dispose();
       viewerRef.current = null;
     };
-  }, []);
+  }, [emitViewerEnvelope, emitViewerTelemetry]);
 
   useEffect(() => {
     if (hostState !== "ready" || !viewerRef.current || !hostRef.current) {
@@ -193,6 +258,8 @@ export function FreestyleViewerHost({
     }
 
     let cancelled = false;
+    const nextTelemetrySnapshot = telemetryTrackerRef.current.startScene(sceneInput);
+    setTelemetrySnapshot(nextTelemetrySnapshot);
 
     void viewerRef.current.setScene(sceneInput).catch((error) => {
       if (cancelled) {
@@ -210,6 +277,13 @@ export function FreestyleViewerHost({
   return (
     <div
       ref={hostRef}
+      data-viewer-host-root=""
+      data-first-avatar-paint-ms={telemetrySnapshot.firstAvatarPaintMs?.toString() ?? ""}
+      data-last-garment-swap-ms={telemetrySnapshot.lastGarmentSwapMs?.toString() ?? ""}
+      data-last-preview-source={telemetrySnapshot.lastPreviewSource ?? ""}
+      data-last-telemetry-name={telemetrySnapshot.lastTelemetryName ?? ""}
+      data-scene-sequence={String(telemetrySnapshot.sceneSequence)}
+      data-active-scene-kind={telemetrySnapshot.activeSceneKind ?? ""}
       style={{
         position: "relative",
         width: "100%",

@@ -104,6 +104,21 @@ The following Phase 0 metrics are still missing and must remain marked as missin
 5. automated mobile smoke and mobile visual baselines
 6. end-to-end preview-fit latency from user click to visible swap
 
+## Post-baseline status note
+
+Phase 2 of the viewer-platform refactor now adds a narrow, non-blocking latency seam on the forced `viewer-react` host:
+
+- browser-visible `data-first-avatar-paint-ms`
+- browser-visible `data-last-garment-swap-ms`
+- custom events for `freestyle:viewer-telemetry` and `freestyle:viewer-event`
+
+That seam does not replace the frozen Phase 0 baseline.
+
+- it covers the forced `viewer-react` adapter path, not the default `runtime-3d` product path
+- it does not yet distinguish cached vs uncached garment preview latency
+- it does not yet collect draw calls, triangles, GPU texture memory, or context-restore timing
+- it remains evidence-only and non-blocking until later phases harden the gate
+
 ## Interpretation
 
 Phase 0 is intentionally frozen as `partial`, not `complete`.

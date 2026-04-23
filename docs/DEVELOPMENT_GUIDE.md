@@ -133,6 +133,8 @@ Phase 5 closeout evidence for the avatar publication seam lives at `docs/freesty
 Phase 6 garment certification evidence starts at `docs/freestyle-viewer-platform/phase6/batch1.md`.
 The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-platform/phase6/batch2.md`.
 The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform/phase6/batch3.md`.
+The admin-side starter-coverage triage slice is `docs/freestyle-viewer-platform/phase6/batch4.md`.
+Phase 6 closeout evidence for the garment certification seam lives at `docs/freestyle-viewer-platform/phase6/closeout.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules

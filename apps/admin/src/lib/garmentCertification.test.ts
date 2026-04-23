@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { GarmentCertificationReportItem } from "@freestyle/contracts";
-import { findGarmentCertification, summarizeGarmentCertification } from "./garmentCertification.js";
+import {
+  buildGarmentCertificationCoverageSet,
+  filterByGarmentCertificationCoverage,
+  findGarmentCertification,
+  summarizeGarmentCertification,
+  summarizeGarmentCertificationCoverage,
+} from "./garmentCertification.js";
 
 const certificationFixture: GarmentCertificationReportItem = {
   id: "starter-top-soft-casual",
@@ -74,4 +80,26 @@ test("summarizeGarmentCertification keeps variant coverage and hotspot aggregati
   assert.equal(summary.variantCount, 2);
   assert.equal(summary.penetratingVariantCount, 1);
   assert.deepEqual(summary.hotspotZones, ["waist", "chest"]);
+});
+
+test("coverage helpers keep covered and uncovered garment triage explicit", () => {
+  const certificationIds = buildGarmentCertificationCoverageSet([certificationFixture]);
+  const garments = [
+    { id: "starter-top-soft-casual" },
+    { id: "starter-bottom-denim" },
+    { id: "starter-shoe-sandal" },
+  ];
+
+  assert.deepEqual(
+    filterByGarmentCertificationCoverage(garments, certificationIds, "covered").map((item) => item.id),
+    ["starter-top-soft-casual"],
+  );
+  assert.deepEqual(
+    filterByGarmentCertificationCoverage(garments, certificationIds, "missing").map((item) => item.id),
+    ["starter-bottom-denim", "starter-shoe-sandal"],
+  );
+  assert.deepEqual(summarizeGarmentCertificationCoverage(garments, certificationIds), {
+    coveredCount: 1,
+    uncoveredCount: 2,
+  });
 });

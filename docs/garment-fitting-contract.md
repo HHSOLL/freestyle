@@ -89,6 +89,7 @@ The active API boundary rule is:
 
 - the garment certification bundle may be inspected through the dedicated admin-only certification routes
 - that seam is read-only and starter-bundle-scoped
+- `apps/admin` may locally triage garments by `starter covered / bundle missing` using that same seam, but the filter must stay UI-local and must not widen `/v1/admin/garments*`
 - it must not be treated as persisted publish history or as proof that the broader published garment catalog is fully certified
 
 ## 2. Required Contract

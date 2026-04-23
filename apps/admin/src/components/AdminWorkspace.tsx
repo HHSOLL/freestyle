@@ -31,7 +31,14 @@ import { DenseCatalogCard, Eyebrow, PillButton, SurfacePanel } from "@freestyle/
 import { GarmentCertificationPanel } from "@/components/GarmentCertificationPanel";
 import { adminApiFetchJson, getApiErrorMessage } from "@/lib/adminApi";
 import { buildAdminFitReview, fitStateTone } from "@/lib/fitReview";
-import { findGarmentCertification, summarizeGarmentCertification } from "@/lib/garmentCertification";
+import {
+  buildGarmentCertificationCoverageSet,
+  filterByGarmentCertificationCoverage,
+  findGarmentCertification,
+  summarizeGarmentCertification,
+  summarizeGarmentCertificationCoverage,
+  type GarmentCertificationCoverageFilter,
+} from "@/lib/garmentCertification";
 import {
   APPROVAL_STATE_FILTERS,
   APPROVAL_STATE_OPTIONS,
@@ -76,6 +83,15 @@ const selectedSizeChart = (item: PublishedGarmentAsset | null) =>
   item?.metadata?.sizeChart?.find((entry) => entry.label === item.metadata?.selectedSizeLabel) ?? null;
 
 const cloneDraft = (item: PublishedGarmentAsset) => JSON.parse(JSON.stringify(item)) as PublishedGarmentAsset;
+
+const CERTIFICATION_COVERAGE_FILTERS: Array<{
+  id: GarmentCertificationCoverageFilter;
+  label: string;
+}> = [
+  { id: "all", label: "All coverage" },
+  { id: "covered", label: "Starter covered" },
+  { id: "missing", label: "Bundle missing" },
+];
 
 const parseEditorState = (editorValue: string): { item: PublishedGarmentAsset | null; error: string | null } => {
   if (!editorValue.trim()) {
@@ -318,6 +334,8 @@ export function AdminWorkspace() {
   const [category, setCategory] = useState<AssetCategory | "all">("all");
   const [sourceSystem, setSourceSystem] = useState<GarmentPublicationRecord["sourceSystem"] | "all">("all");
   const [approvalState, setApprovalState] = useState<AssetApprovalState | "all">("all");
+  const [certificationCoverageFilter, setCertificationCoverageFilter] =
+    useState<GarmentCertificationCoverageFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorValue, setEditorValue] = useState("");
   const [certificationItems, setCertificationItems] = useState<GarmentCertificationReportItem[]>([]);
@@ -336,6 +354,25 @@ export function AdminWorkspace() {
   const [isSaving, startSaving] = useTransition();
 
   const parsedEditor = useMemo(() => parseEditorState(editorValue), [editorValue]);
+  const certificationCoverageIds = useMemo(
+    () => buildGarmentCertificationCoverageSet(certificationItems),
+    [certificationItems],
+  );
+  const visibleItems = useMemo(
+    () =>
+      certificationLoadError
+        ? items
+        : filterByGarmentCertificationCoverage(
+            items,
+            certificationCoverageIds,
+            certificationCoverageFilter,
+          ),
+    [certificationCoverageFilter, certificationCoverageIds, certificationLoadError, items],
+  );
+  const certificationCoverageSummary = useMemo(
+    () => summarizeGarmentCertificationCoverage(visibleItems, certificationCoverageIds),
+    [certificationCoverageIds, visibleItems],
+  );
 
   const selectedCatalogItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -452,6 +489,23 @@ export function AdminWorkspace() {
     void loadItems();
     void loadCertificationCatalog();
   }, [loadCertificationCatalog, loadItems]);
+
+  useEffect(() => {
+    if (selectedId === DRAFT_SELECTION_ID) {
+      return;
+    }
+
+    if (visibleItems.length === 0) {
+      if (selectedId !== null) {
+        setSelectedId(null);
+      }
+      return;
+    }
+
+    if (!selectedId || !visibleItems.some((item) => item.id === selectedId)) {
+      setSelectedId(visibleItems[0]?.id ?? null);
+    }
+  }, [selectedId, visibleItems]);
 
   useEffect(() => {
     if (!selectedCatalogItem) {
@@ -790,11 +844,24 @@ export function AdminWorkspace() {
                   </PillButton>
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {CERTIFICATION_COVERAGE_FILTERS.map((filter) => (
+                  <PillButton
+                    key={filter.id}
+                    active={certificationCoverageFilter === filter.id}
+                    onClick={() => setCertificationCoverageFilter(filter.id)}
+                    className="px-3 py-1.5 text-[11px]"
+                  >
+                    {filter.label}
+                  </PillButton>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[12px]" style={{ color: wardrobeTokens.color.textMuted }}>
               <span>
-                {items.length} garments · {certificationItems.length} starter certifications
+                {visibleItems.length} visible · {certificationCoverageSummary.coveredCount} starter-covered ·{" "}
+                {certificationCoverageSummary.uncoveredCount} not covered
               </span>
               <div className="flex items-center gap-3">
                 {isCertificationFetching ? (
@@ -823,7 +890,7 @@ export function AdminWorkspace() {
                   footer={<span>Create-ready draft</span>}
                 />
               ) : null}
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <DenseCatalogCard
                   key={item.id}
                   title={item.name}
@@ -838,7 +905,7 @@ export function AdminWorkspace() {
                       <span>{item.metadata?.selectedSizeLabel ?? "No size"}</span>
                       <span>·</span>
                       <span>{formatDate(item.publication.publishedAt)}</span>
-                      {findGarmentCertification(certificationItems, item.id) ? (
+                      {certificationCoverageIds.has(item.id) ? (
                         <>
                           <span>·</span>
                           <span>starter cert</span>
@@ -848,12 +915,12 @@ export function AdminWorkspace() {
                   }
                 />
               ))}
-              {!isFetching && items.length === 0 && selectedId !== DRAFT_SELECTION_ID ? (
+              {!isFetching && visibleItems.length === 0 && selectedId !== DRAFT_SELECTION_ID ? (
                 <div
                   className="rounded-[24px] border px-4 py-5 text-[13px]"
                   style={{ borderColor: wardrobeTokens.color.dividerStrong, color: wardrobeTokens.color.textMuted }}
                 >
-                  현재 필터에 해당하는 published runtime garment가 없다.
+                  현재 필터와 starter certification coverage 조건에 해당하는 published runtime garment가 없다.
                 </div>
               ) : null}
             </div>

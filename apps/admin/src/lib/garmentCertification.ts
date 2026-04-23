@@ -1,5 +1,7 @@
 import type { GarmentCertificationReportItem } from "@freestyle/contracts";
 
+export type GarmentCertificationCoverageFilter = "all" | "covered" | "missing";
+
 export const findGarmentCertification = (
   items: readonly GarmentCertificationReportItem[],
   garmentId: string | null | undefined,
@@ -9,6 +11,36 @@ export const findGarmentCertification = (
   }
 
   return items.find((item) => item.id === garmentId) ?? null;
+};
+
+export const buildGarmentCertificationCoverageSet = (
+  items: readonly GarmentCertificationReportItem[],
+) => new Set(items.map((item) => item.id));
+
+export const filterByGarmentCertificationCoverage = <T extends { id: string }>(
+  items: readonly T[],
+  certificationIds: ReadonlySet<string>,
+  filter: GarmentCertificationCoverageFilter,
+) => {
+  if (filter === "all") {
+    return [...items];
+  }
+
+  return items.filter((item) =>
+    filter === "covered" ? certificationIds.has(item.id) : !certificationIds.has(item.id),
+  );
+};
+
+export const summarizeGarmentCertificationCoverage = <T extends { id: string }>(
+  items: readonly T[],
+  certificationIds: ReadonlySet<string>,
+) => {
+  const coveredCount = items.filter((item) => certificationIds.has(item.id)).length;
+
+  return {
+    coveredCount,
+    uncoveredCount: items.length - coveredCount,
+  };
 };
 
 export const summarizeGarmentCertification = (item: GarmentCertificationReportItem | null) => {

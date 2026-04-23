@@ -286,6 +286,8 @@ Rules:
 - keep layered outfit logic explicit: structured outerwear may auto-fallback to a base inner top, and bulky tops should not remain stacked under outerwear
 - use meshopt-aware glTF loading for shipped runtime assets
 - keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable
+- keep `viewer-core` loader policy canonical: `/draco/gltf/` and `/basis/` paths, KTX2 worker limit, and runtime texture-format preference now come from `packages/shared-types/src/viewer-asset-policy.ts`
+- keep `apps/web/public/basis/*` in sync with `three/examples/jsm/libs/basis/*` through `npm run viewer:sync:transcoders`; do not assume the transcoder files are present by magic in production
 - keep runtime stage loads and runtime preloads on the same shared loader configuration; do not duplicate glTF decoder setup across files
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
@@ -301,6 +303,8 @@ Rules:
 - validate starter and partner fit calibration with `npm run validate:fit-calibration`
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch
+- Phase 3 runtime asset evidence now starts with `npm run report:asset-budget`; treat `output/asset-budget-report/latest.json` as the non-blocking source of truth for missing LOD siblings, missing runtime KTX2 textures, and transfer-budget drift
+- use `npm run build:display-asset`, `npm run generate:lods`, and `npm run encode:ktx2` as the first-party CLI seam for Phase 3 display-asset work; do not add ad-hoc one-off asset conversion scripts before those seams are exhausted
 - rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules

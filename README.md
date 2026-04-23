@@ -61,6 +61,8 @@ The shipped runtime now uses:
 - garment runtime bindings with anchors, collision zones, body masks, and render order
 - pose control and quality tiers
 - meshopt-compressed runtime GLBs with WebP-compressed textures for shipped browser assets
+- `viewer-core` shared loader policy with committed DRACO + KTX2 transcoder public assets under `apps/web/public/draco` and `apps/web/public/basis`
+- a non-blocking Phase 3 asset-budget report at `output/asset-budget-report/latest.json`
 - selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
 
 Preferred authoring policy is:
@@ -145,6 +147,11 @@ Useful commands:
 - `npm run dev:admin`
 - `npm run dev:api`
 - `npm run dev:worker`
+- `npm run viewer:sync:transcoders`
+- `npm run report:asset-budget`
+- `npm run build:display-asset`
+- `npm run encode:ktx2 -- --input <texture>`
+- `npm run generate:lods -- --input <asset.glb>`
 - `npm run optimize:runtime:assets`
 - `npm run check`
 - `npm run validate:garment3d`
@@ -194,6 +201,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase2/telemetry-slice.md](docs/freestyle-viewer-platform/phase2/telemetry-slice.md)
 - [docs/freestyle-viewer-platform/phase2/manifest-shadow.md](docs/freestyle-viewer-platform/phase2/manifest-shadow.md)
 - [docs/freestyle-viewer-platform/phase2_5/closeout.md](docs/freestyle-viewer-platform/phase2_5/closeout.md)
+- [docs/freestyle-viewer-platform/phase3/batch1.md](docs/freestyle-viewer-platform/phase3/batch1.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

@@ -1,5 +1,6 @@
 export {
   createSharedLoaderRegistry,
+  resolveSharedLoaderRegistryPolicy,
   type SharedLoaderRegistry,
   type SharedLoaderRegistryOptions,
 } from "./loader-registry.js";

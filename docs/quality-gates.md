@@ -37,7 +37,8 @@ Run these when the scope touches the matching area.
 | garment metadata, runtime garment contract, or publishable garment assets changed | `npm run validate:garment3d` |
 | avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:avatar3d` |
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
-| promoted runtime GLBs changed | `npm run optimize:runtime:assets` |
+| promoted runtime GLBs changed | `npm run optimize:runtime:assets`, `npm run report:asset-budget` |
+| viewer-core loader policy, decoder public assets, or Phase 3 asset pipeline scripts changed | `npm run viewer:sync:transcoders`, `npm run report:asset-budget`, targeted `tsx --test` runs for `packages/viewer-core/src/loader-registry.test.ts` and `packages/asset-schema/src/index.test.ts`, plus `npm run build:services` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
 | asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
 
@@ -69,6 +70,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 2.5`: approval-state, body-signature, material, and fit-contract tests start
 - `Phase 2.5`: promoted garment approval states fail closed on write when certification metadata or the canonical manifest seam is missing
 - `Phase 3`: asset budget gate becomes non-blocking
+- `Phase 3`: shared loader policy and KTX2 transcoder public assets become explicit repo-owned seams instead of implicit local tooling assumptions
 - `Phase 5 / Phase 6`: avatar and garment certification gates become blocking
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking

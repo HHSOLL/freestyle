@@ -26,6 +26,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "v18/**",
     "apps/web/public/draco/**",
+    "apps/web/public/basis/**",
   ]),
 ]);
 

@@ -14,6 +14,7 @@
 10. Run `npm run validate:avatar3d` when avatar assets or morph mapping changed.
 11. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
 12. Run `npm run optimize:runtime:assets` when promoted runtime GLBs changed.
+13. Run `npm run viewer:sync:transcoders` and `npm run report:asset-budget` when Phase 3 loader policy, public decoder assets, or promoted runtime GLBs change.
 
 ## 2. Product Smoke Checklist
 
@@ -33,6 +34,7 @@
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
 If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If approval-state or fit-quality contract enforcement changes, also update `docs/freestyle-viewer-platform/phase2_5/closeout.md` in the same PR.
+If Phase 3 loader policy, transcoder sync, or asset budget reporting changes, also update `docs/freestyle-viewer-platform/phase3/batch1.md` in the same PR.
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 
@@ -118,6 +120,8 @@ Verify these after any mannequin or asset change:
 - secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
+- `apps/web/public/basis/basis_transcoder.js` and `.wasm` still exist and match the loader policy expected by `viewer-core`
+- `output/asset-budget-report/latest.json` is regenerated after promoted runtime asset changes and any new warnings are reviewed before release
 - active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
 - optimized runtime GLBs stay within explicit avatar / garment / hair / default-loadout budgets
 

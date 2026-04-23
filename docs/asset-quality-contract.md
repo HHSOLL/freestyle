@@ -50,6 +50,11 @@ The required artifact families are:
 - material asset
 - fit artifact asset for HQ simulation outputs
 
+Phase 3 rollout note:
+
+- runtime KTX2 texture adoption is tracked as a non-blocking budget/report seam first
+- `output/asset-budget-report/latest.json` is the current evidence file for missing LOD siblings, missing committed runtime KTX2 textures, and transfer-budget drift
+
 ## Certification Workflow
 
 The certification workflow is:

@@ -1,4 +1,5 @@
 import type { GarmentManifest } from "@freestyle/asset-schema";
+export * from "./viewer-asset-policy.js";
 
 export const bodyProfileSimpleKeys = [
   "heightCm",

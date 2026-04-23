@@ -11,6 +11,7 @@ import {
   defaultGoldenMatrix,
   ensureBodySignatureHash,
   fitQualityHardFailThresholds,
+  phase3AssetBudgetTargets,
   fitArtifactManifestSchema,
   fitArtifactManifestSchemaVersion,
   garmentFitPolicyProfiles,
@@ -98,6 +99,18 @@ test("fit-quality presets keep hard fail thresholds and golden matrices explicit
     "heel_left",
     "heel_right",
   ]);
+});
+
+test("phase 3 asset budget targets keep transfer and render budgets explicit", () => {
+  assert.deepEqual(phase3AssetBudgetTargets.transferBytes, {
+    firstVisibleAvatarDesktop: 3_000_000,
+    firstVisibleAvatarMobileBalanced: 2_000_000,
+    selectedGarmentCriticalDesktop: 1_500_000,
+    selectedGarmentCriticalMobileBalanced: 900_000,
+    defaultClosetScene: 3_800_000,
+  });
+  assert.equal(phase3AssetBudgetTargets.drawCalls.visibleDesktop, 80);
+  assert.equal(phase3AssetBudgetTargets.triangles.visibleMobileBalanced, 75_000);
 });
 
 test("avatar manifest requires render fit and collision asset groups", () => {

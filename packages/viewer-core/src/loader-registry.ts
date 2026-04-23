@@ -1,3 +1,4 @@
+import { viewerAssetLoaderPolicy } from "@freestyle/shared-types";
 import type { WebGLRenderer } from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
@@ -15,23 +16,44 @@ export type SharedLoaderRegistry = {
   dracoLoader: DRACOLoader;
   ktx2Loader: KTX2Loader;
   meshoptDecoder: typeof MeshoptDecoder;
+  policy: {
+    dracoDecoderPath: string;
+    ktx2TranscoderPath: string;
+    ktx2WorkerLimit: number;
+    runtimeMaterialTextureExtensions: readonly string[];
+    preferredUiTextureExtensions: readonly string[];
+    geometryCompression: {
+      draco: string;
+      meshopt: string;
+    };
+  };
   dispose: () => void;
 };
 
+export const resolveSharedLoaderRegistryPolicy = ({
+  dracoDecoderPath = viewerAssetLoaderPolicy.dracoDecoderPath,
+  ktx2TranscoderPath = viewerAssetLoaderPolicy.ktx2TranscoderPath,
+  ktx2WorkerLimit = viewerAssetLoaderPolicy.ktx2WorkerLimit,
+}: SharedLoaderRegistryOptions = {}) => ({
+  dracoDecoderPath,
+  ktx2TranscoderPath,
+  ktx2WorkerLimit,
+  runtimeMaterialTextureExtensions: viewerAssetLoaderPolicy.runtimeMaterialTextureExtensions,
+  preferredUiTextureExtensions: viewerAssetLoaderPolicy.preferredUiTextureExtensions,
+  geometryCompression: viewerAssetLoaderPolicy.geometryCompression,
+});
+
 export const createSharedLoaderRegistry = (
   renderer: WebGLRenderer,
-  {
-    dracoDecoderPath = "/draco/gltf/",
-    ktx2TranscoderPath = "/basis/",
-    ktx2WorkerLimit = 2,
-  }: SharedLoaderRegistryOptions = {},
+  options: SharedLoaderRegistryOptions = {},
 ): SharedLoaderRegistry => {
+  const policy = resolveSharedLoaderRegistryPolicy(options);
   const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath(dracoDecoderPath);
+  dracoLoader.setDecoderPath(policy.dracoDecoderPath);
 
   const ktx2Loader = new KTX2Loader();
-  ktx2Loader.setTranscoderPath(ktx2TranscoderPath);
-  ktx2Loader.setWorkerLimit(ktx2WorkerLimit);
+  ktx2Loader.setTranscoderPath(policy.ktx2TranscoderPath);
+  ktx2Loader.setWorkerLimit(policy.ktx2WorkerLimit);
   ktx2Loader.detectSupport(renderer);
 
   const createGLTFLoader = () => {
@@ -47,6 +69,7 @@ export const createSharedLoaderRegistry = (
     dracoLoader,
     ktx2Loader,
     meshoptDecoder: MeshoptDecoder,
+    policy,
     dispose() {
       ktx2Loader.dispose();
     },

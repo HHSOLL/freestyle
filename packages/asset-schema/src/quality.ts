@@ -275,6 +275,28 @@ export const assetBudgetSchema = z
   })
   .strict();
 
+export const phase3AssetBudgetTargets = {
+  transferBytes: {
+    firstVisibleAvatarDesktop: 3_000_000,
+    firstVisibleAvatarMobileBalanced: 2_000_000,
+    selectedGarmentCriticalDesktop: 1_500_000,
+    selectedGarmentCriticalMobileBalanced: 900_000,
+    defaultClosetScene: 3_800_000,
+  },
+  textureBytes: {
+    fullOutfitDesktop: 180_000_000,
+    fullOutfitMobileBalanced: 90_000_000,
+  },
+  drawCalls: {
+    visibleDesktop: 80,
+    visibleMobileBalanced: 45,
+  },
+  triangles: {
+    visibleDesktop: 180_000,
+    visibleMobileBalanced: 75_000,
+  },
+} as const;
+
 export const assetQualityReportSchema = z
   .object({
     approvalState: assetApprovalStateSchema,

@@ -8,6 +8,7 @@ import {
   buildBodyProfileRevision,
   buildFitSimulationCacheKey,
   buildPublishedGarmentRevision,
+  fitSimulationArtifactLineageGetResponseSchema,
   fitSimulationGetResponseSchema,
   normalizeBodyProfile,
 } from "@freestyle/contracts";
@@ -294,6 +295,30 @@ const fitMapSummaryFixture = {
   ],
 };
 
+const artifactLineageFixture = {
+  schemaVersion: "fit-simulation-artifact-lineage.v1",
+  artifactLineageId: "fit-lineage:route-fit-simulation",
+  generatedAt: "2026-04-20T10:03:00.000Z",
+  cacheKey: fitMapFixture.request.cacheKey,
+  cacheKeyParts: {
+    avatarVariantId: "female-base",
+    bodyProfileRevision: fitMapFixture.request.bodyProfileRevision,
+    garmentVariantId: publishedGarmentFixture.id,
+    garmentRevision: fitMapFixture.request.garmentRevision,
+    materialPreset: "knit_medium",
+    qualityTier: "fast",
+  },
+  avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+  garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
+  storageBackend: "remote-storage",
+  drapeSource: "authored-scene-merge",
+  artifactKinds: ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
+  manifestKey: "fit-simulations/00000000-0000-4000-8000-000000000011/artifact-lineage.json",
+  manifestUrl:
+    "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000011/artifact-lineage.json",
+  warnings: [],
+};
+
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.BODY_PROFILE_STORE_PATH = bodyProfileStorePath;
@@ -446,6 +471,7 @@ test("fit-simulation read route returns the public record shape from the persist
             instantFit: null,
             fitMap: fitMapFixture,
             fitMapSummary: fitMapSummaryFixture,
+            artifactLineage: artifactLineageFixture,
             artifacts: [
               {
                 kind: "metrics_json",
@@ -495,11 +521,222 @@ test("fit-simulation read route returns the public record shape from the persist
   assert.equal(payload.fitSimulation.fitMapSummary?.dominantOverlayKind, "confidenceMap");
   assert.equal(payload.fitSimulation.artifacts[0]?.kind, "draped_glb");
   assert.equal(payload.fitSimulation.artifacts[3]?.kind, "metrics_json");
+  assert.equal("artifactLineage" in payload.fitSimulation, false);
   assert.equal(payload.fitSimulation.avatarPublication?.avatarId, "female-base");
   assert.equal(
     payload.fitSimulation.avatarPublication?.runtimeManifestVersion,
     runtimeAvatarRenderManifestSchemaVersion,
   );
+
+  await app.close();
+});
+
+test("fit-simulation artifact-lineage route returns the persisted inspection seam without widening fitSimulation", async () => {
+  fs.writeFileSync(
+    fitSimulationStorePath,
+    JSON.stringify(
+      {
+        version: 1,
+        items: {
+          "00000000-0000-4000-8000-000000000011": {
+            id: "00000000-0000-4000-8000-000000000011",
+            jobId: "00000000-0000-4000-8000-000000000012",
+            userId: "00000000-0000-4000-8000-000000000001",
+            status: "succeeded",
+            avatarVariantId: "female-base",
+            bodyVersionId: fitMapFixture.request.bodyVersionId,
+            bodyProfileRevision: fitMapFixture.request.bodyProfileRevision,
+            garmentVariantId: publishedGarmentFixture.id,
+            garmentRevision: fitMapFixture.request.garmentRevision,
+            avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+            garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
+            materialPreset: "knit_medium",
+            qualityTier: "fast",
+            cacheKey: fitMapFixture.request.cacheKey,
+            bodyProfile: normalizeBodyProfile({
+              gender: "female",
+              bodyFrame: "balanced",
+              simple: {
+                heightCm: 172,
+                shoulderCm: 44,
+                chestCm: 91,
+                waistCm: 74,
+                hipCm: 95,
+                inseamCm: 79,
+              },
+            }),
+            garmentSnapshot: publishedGarmentFixture,
+            fitAssessment: null,
+            instantFit: null,
+            fitMap: fitMapFixture,
+            fitMapSummary: fitMapSummaryFixture,
+            artifactLineage: artifactLineageFixture,
+            artifacts: [],
+            metrics: null,
+            warnings: [],
+            errorMessage: null,
+            createdAt: "2026-04-20T10:00:00.000Z",
+            updatedAt: "2026-04-20T10:03:00.000Z",
+            completedAt: "2026-04-20T10:03:00.000Z",
+          },
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/lab/fit-simulations/00000000-0000-4000-8000-000000000011/artifact-lineage",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["x-freestyle-surface"], "lab");
+  const payload = fitSimulationArtifactLineageGetResponseSchema.parse(response.json());
+  assert.equal(payload.artifactLineage.artifactLineageId, artifactLineageFixture.artifactLineageId);
+  assert.equal(payload.artifactLineage.artifactKinds[0], "draped_glb");
+  assert.equal(payload.artifactLineage.manifestUrl, artifactLineageFixture.manifestUrl);
+
+  await app.close();
+});
+
+test("fit-simulation artifact-lineage route returns 409 when the simulation exists but no lineage is persisted", async () => {
+  fs.writeFileSync(
+    fitSimulationStorePath,
+    JSON.stringify(
+      {
+        version: 1,
+        items: {
+          "00000000-0000-4000-8000-000000000021": {
+            id: "00000000-0000-4000-8000-000000000021",
+            jobId: "00000000-0000-4000-8000-000000000022",
+            userId: "00000000-0000-4000-8000-000000000001",
+            status: "queued",
+            avatarVariantId: "female-base",
+            bodyVersionId: fitMapFixture.request.bodyVersionId,
+            bodyProfileRevision: fitMapFixture.request.bodyProfileRevision,
+            garmentVariantId: publishedGarmentFixture.id,
+            garmentRevision: fitMapFixture.request.garmentRevision,
+            avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+            garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
+            materialPreset: "knit_medium",
+            qualityTier: "fast",
+            cacheKey: fitMapFixture.request.cacheKey,
+            bodyProfile: normalizeBodyProfile({
+              gender: "female",
+              bodyFrame: "balanced",
+              simple: {
+                heightCm: 172,
+                shoulderCm: 44,
+                chestCm: 91,
+                waistCm: 74,
+                hipCm: 95,
+                inseamCm: 79,
+              },
+            }),
+            garmentSnapshot: publishedGarmentFixture,
+            fitAssessment: null,
+            instantFit: null,
+            fitMap: null,
+            fitMapSummary: null,
+            artifactLineage: null,
+            artifacts: [],
+            metrics: null,
+            warnings: [],
+            errorMessage: null,
+            createdAt: "2026-04-20T10:00:00.000Z",
+            updatedAt: "2026-04-20T10:00:00.000Z",
+            completedAt: null,
+          },
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/lab/fit-simulations/00000000-0000-4000-8000-000000000021/artifact-lineage",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.headers["x-freestyle-surface"], "lab");
+  assert.equal(response.json().error, "PRECONDITION_FAILED");
+
+  await app.close();
+});
+
+test("fit-simulation artifact-lineage route returns 404 for simulations outside the caller scope", async () => {
+  fs.writeFileSync(
+    fitSimulationStorePath,
+    JSON.stringify(
+      {
+        version: 1,
+        items: {
+          "00000000-0000-4000-8000-000000000031": {
+            id: "00000000-0000-4000-8000-000000000031",
+            jobId: "00000000-0000-4000-8000-000000000032",
+            userId: "00000000-0000-4000-8000-000000000099",
+            status: "succeeded",
+            avatarVariantId: "female-base",
+            bodyVersionId: fitMapFixture.request.bodyVersionId,
+            bodyProfileRevision: fitMapFixture.request.bodyProfileRevision,
+            garmentVariantId: publishedGarmentFixture.id,
+            garmentRevision: fitMapFixture.request.garmentRevision,
+            avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+            garmentManifestUrl: "https://freestyle.local/assets/garments/partner/route-fit-sim-tee.glb",
+            materialPreset: "knit_medium",
+            qualityTier: "fast",
+            cacheKey: fitMapFixture.request.cacheKey,
+            bodyProfile: normalizeBodyProfile({
+              gender: "female",
+              bodyFrame: "balanced",
+              simple: {
+                heightCm: 172,
+                shoulderCm: 44,
+                chestCm: 91,
+                waistCm: 74,
+                hipCm: 95,
+                inseamCm: 79,
+              },
+            }),
+            garmentSnapshot: publishedGarmentFixture,
+            fitAssessment: null,
+            instantFit: null,
+            fitMap: fitMapFixture,
+            fitMapSummary: fitMapSummaryFixture,
+            artifactLineage: artifactLineageFixture,
+            artifacts: [],
+            metrics: null,
+            warnings: [],
+            errorMessage: null,
+            createdAt: "2026-04-20T10:00:00.000Z",
+            updatedAt: "2026-04-20T10:00:00.000Z",
+            completedAt: "2026-04-20T10:00:00.000Z",
+          },
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/lab/fit-simulations/00000000-0000-4000-8000-000000000031/artifact-lineage",
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.headers["x-freestyle-surface"], "lab");
+  assert.equal(response.json().error, "NOT_FOUND");
 
   await app.close();
 });

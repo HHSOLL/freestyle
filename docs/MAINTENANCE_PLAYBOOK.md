@@ -77,6 +77,8 @@ If the Phase 8 HQ artifact identity seam changes, also update the relevant note 
 - `POST /v1/lab/jobs/tryons`
 - `POST /v1/lab/jobs/fit-simulations`
 - `GET /v1/lab/evaluations/:id`
+- `GET /v1/lab/fit-simulations/:id`
+- `GET /v1/lab/fit-simulations/:id/artifact-lineage`
 - `GET /v1/lab/tryons/:id`
 
 Also confirm namespace headers:

@@ -178,6 +178,7 @@
 - implemented lab endpoints:
   - `POST /v1/lab/jobs/fit-simulations`
   - `GET /v1/lab/fit-simulations/:id`
+  - `GET /v1/lab/fit-simulations/:id/artifact-lineage`
 - auth:
   - explicit bearer auth required
   - non-production only: `DEV_BYPASS_USER_ID` may satisfy auth for smoke/dev workflows
@@ -198,10 +199,12 @@
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
   - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
   - the detail route returns artifacts in presentation priority order: `draped_glb`, `preview_png`, `fit_map_json`, `metrics_json`
+  - the artifact-lineage route is an owner-scoped inspection seam for the persisted `artifact-lineage.json` snapshot; it does not widen the existing `fitSimulation` detail payload
   - the current first-party web consumer is `apps/web/src/hooks/useFitSimulation.ts`, used by the `Closet` HQ fit panel
 - canonical response schemas are now defined in `@freestyle/contracts`:
   - `fitSimulationCreateResponseSchema`
   - `fitSimulationGetResponseSchema`
+  - `fitSimulationArtifactLineageGetResponseSchema`
 
 #### `POST /v1/lab/jobs/fit-simulations`
 - request body must satisfy:
@@ -304,6 +307,44 @@
     "createdAt": "2026-04-20T10:00:00.000Z",
     "updatedAt": "2026-04-20T10:00:00.842Z",
     "completedAt": "2026-04-20T10:00:00.842Z"
+  }
+}
+```
+
+#### `GET /v1/lab/fit-simulations/:id/artifact-lineage`
+- response body satisfies `fitSimulationArtifactLineageGetResponseSchema`
+- this route is owner-scoped and read-only
+- `404 NOT_FOUND` means the fit simulation does not exist for the caller
+- `409 PRECONDITION_FAILED` means the fit simulation exists but no persisted lineage snapshot is available yet
+- example:
+```json
+{
+  "artifactLineage": {
+    "schemaVersion": "fit-simulation-artifact-lineage.v1",
+    "artifactLineageId": "fit-lineage:route-fit-simulation",
+    "generatedAt": "2026-04-20T10:03:00.000Z",
+    "cacheKey": "fsk_7q0mp3r8d5",
+    "cacheKeyParts": {
+      "avatarVariantId": "female-base",
+      "bodyProfileRevision": "br_1z7w8c5m2s",
+      "garmentVariantId": "published-top-phase-d-smoke",
+      "garmentRevision": "gr_5q94jz62w1",
+      "materialPreset": "knit_medium",
+      "qualityTier": "fast"
+    },
+    "avatarManifestUrl": "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    "garmentManifestUrl": "https://freestyle.local/assets/garments/partner/phase-d-smoke-tee.glb",
+    "storageBackend": "remote-storage",
+    "drapeSource": "authored-scene-merge",
+    "artifactKinds": [
+      "draped_glb",
+      "preview_png",
+      "fit_map_json",
+      "metrics_json"
+    ],
+    "manifestKey": "fit-simulations/00000000-0000-4000-8000-000000000025/artifact-lineage.json",
+    "manifestUrl": "https://freestyle.local/fit-simulations/00000000-0000-4000-8000-000000000025/artifact-lineage.json",
+    "warnings": []
   }
 }
 ```

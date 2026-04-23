@@ -1439,6 +1439,34 @@ Outcome:
 - the cache-key split between API create and queue fallback is closed for new jobs
 - the repo still does **not** claim solver-backed cloth output or public lineage exposure on the lab read route
 
+### `Phase 8 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a dedicated owner-scoped `GET /v1/lab/fit-simulations/:id/artifact-lineage` route instead of widening the existing fit-simulation detail response
+2. exposed the persisted `artifactLineage` snapshot through a separate `fitSimulationArtifactLineageGetResponseSchema` contract in `packages/contracts`
+3. kept `GET /v1/lab/fit-simulations/:id` intentionally unchanged, so product-adjacent consumers still read the same `fitSimulation` detail shape as before
+4. made the new inspection seam fail closed with `404 NOT_FOUND` when the simulation does not exist for the caller and `409 PRECONDITION_FAILED` when the simulation exists but no lineage snapshot is available yet
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/fit-simulations.routes.ts`
+- `apps/api/src/routes/fit-simulations.routes.test.ts`
+- `docs/api-contract.md`
+- `docs/CLOTH_SIMULATE_JOB_DRAFT.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch2.md`
+
+Outcome:
+
+- artifact lineage is now inspectable through a narrow owner-scoped lab seam without changing the existing detail payload
+- the repo still does **not** claim public solver-grade HQ output or a widened lab fit-simulation detail contract
+
 ## Phase 0 Closeout
 
 `Phase 0` is complete when all of the following are true:

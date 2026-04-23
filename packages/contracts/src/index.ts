@@ -1298,6 +1298,12 @@ export const fitSimulationGetResponseSchema = z
   })
   .strict();
 
+export const fitSimulationArtifactLineageGetResponseSchema = z
+  .object({
+    artifactLineage: fitSimulationArtifactLineageSchema,
+  })
+  .strict();
+
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
 export const garmentMaterialProfileSchemaVersion = "garment-material-profile.v1";
@@ -2397,6 +2403,9 @@ export type FitSimulationRecord = z.infer<typeof fitSimulationRecordSchema>;
 export type FitSimulationPublicRecord = z.infer<typeof fitSimulationPublicRecordSchema>;
 export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResponseSchema>;
 export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
+export type FitSimulationArtifactLineageGetResponse = z.infer<
+  typeof fitSimulationArtifactLineageGetResponseSchema
+>;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;
 export type GarmentMeasurementKey = z.infer<typeof garmentMeasurementKeySchema>;

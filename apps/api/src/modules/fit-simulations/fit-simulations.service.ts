@@ -356,6 +356,18 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
   return publicRecord;
 };
 
+export const getFitSimulationArtifactLineageForUser = async (
+  userId: string,
+  fitSimulationId: string,
+) => {
+  const row = await getFitSimulationRecordForUser(fitSimulationId, userId);
+  if (!row) {
+    return null;
+  }
+
+  return row.artifactLineage ?? null;
+};
+
 export const getFitSimulationById = async (fitSimulationId: string) => {
   return getFitSimulationRecordById(fitSimulationId);
 };

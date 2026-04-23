@@ -136,12 +136,13 @@ The current `preview_png` artifact is a generated raster summary card built from
 
 The current `metrics_json` artifact is a typed summary blob containing the recorded HQ metrics, dominant fit-map summary, artifact set, and current drape-source mode.
 
-`Phase 8 / Batch 1` also adds an internal `artifact-lineage.json` sidecar for the same bundle. That lineage manifest is currently an internal evidence seam only:
+`Phase 8 / Batch 1` also adds an internal `artifact-lineage.json` sidecar for the same bundle. `Phase 8 / Batch 2` keeps the main lab detail shape unchanged and exposes that lineage only through a separate owner-scoped inspection seam. The lineage manifest now has these boundaries:
 
 - it captures the canonical cache-key parts used to identify the bundle
 - it records the ordered artifact kinds, storage backend, manifest URLs, and current drape-source mode
 - it is stored on the internal fit-simulation record and written next to the artifact bundle
-- it is **not** yet widened onto `GET /v1/lab/fit-simulations/:id`
+- it is **not** widened onto `GET /v1/lab/fit-simulations/:id`
+- it is available through `GET /v1/lab/fit-simulations/:id/artifact-lineage`
 
 This keeps `Phase D` honest: there is now a working async/offline artifact path with a full bundle, but it is still not a full cloth-simulation runtime.
 

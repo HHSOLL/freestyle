@@ -4,6 +4,7 @@ import { requireBearerOrDevBypassAuth } from "../modules/auth/auth.js";
 import {
   createFitSimulationJob,
   FitSimulationCreateError,
+  getFitSimulationArtifactLineageForUser,
   getFitSimulationForUser,
 } from "../modules/fit-simulations/fit-simulations.service.js";
 
@@ -55,6 +56,34 @@ export const registerFitSimulationRoutes = (app: FastifyInstance) => {
 
     return reply.send({
       fitSimulation: row,
+    });
+  });
+
+  app.get("/fit-simulations/:id/artifact-lineage", async (request, reply) => {
+    const userId = await requireBearerOrDevBypassAuth(request, reply);
+    if (!userId) return;
+
+    const params = request.params as { id?: string };
+    const id = params.id?.trim();
+    if (!id) {
+      return reply.code(400).send({ error: "VALIDATION_ERROR", message: "id is required." });
+    }
+
+    const artifactLineage = await getFitSimulationArtifactLineageForUser(userId, id);
+    if (artifactLineage === null) {
+      const fitSimulation = await getFitSimulationForUser(userId, id);
+      if (!fitSimulation) {
+        return reply.code(404).send({ error: "NOT_FOUND", message: "Fit simulation not found." });
+      }
+
+      return reply.code(409).send({
+        error: "PRECONDITION_FAILED",
+        message: "Artifact lineage is not available for this fit simulation yet.",
+      });
+    }
+
+    return reply.send({
+      artifactLineage,
     });
   });
 };

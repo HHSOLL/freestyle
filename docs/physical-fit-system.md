@@ -250,7 +250,8 @@ As of `2026-04-20`:
   - `packages/contracts` defines canonical `fitSimulationCacheKeyParts` and an internal `fitSimulationArtifactLineage` schema
   - `fit_simulate_hq_v1` queue normalization now preserves `avatarVariantId` so API create and worker fallback derive the same `cacheKey`
   - `worker_fit_simulate_hq` now persists an `artifact-lineage.json` sidecar next to the current artifact bundle and stores that lineage on the internal simulation record
-  - `metrics_json` now includes `artifactLineageId`, but the product-adjacent lab read path is intentionally unchanged
+  - `metrics_json` now includes `artifactLineageId`, while `GET /v1/lab/fit-simulations/:id` stays intentionally unchanged
+  - `GET /v1/lab/fit-simulations/:id/artifact-lineage` is the new owner-scoped inspection seam for that persisted lineage snapshot
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
   - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract

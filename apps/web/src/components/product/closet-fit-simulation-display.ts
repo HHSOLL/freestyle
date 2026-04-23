@@ -1,4 +1,4 @@
-import type { FitSimulationRecord } from "@freestyle/contracts";
+import type { FitSimulationArtifactLineage, FitSimulationRecord } from "@freestyle/contracts";
 import type { FitSimulationClientState } from "@/hooks/useFitSimulation";
 
 const simulationStatusLabels: Record<FitSimulationClientState, string> = {
@@ -55,6 +55,16 @@ const qualityLabels: Record<FitSimulationRecord["qualityTier"], string> = {
   high: "고품질",
 };
 
+const drapeSourceLabels: Record<FitSimulationArtifactLineage["drapeSource"], string> = {
+  "authored-scene-merge": "authored merge",
+  "solver-output": "solver output",
+};
+
+const storageBackendLabels: Record<FitSimulationArtifactLineage["storageBackend"], string> = {
+  "local-file": "local file",
+  "remote-storage": "remote storage",
+};
+
 export type ClosetFitSimulationDisplay = {
   statusLabel: string;
   statusTone: "toneRegular" | "toneSnug" | "toneRelaxed" | "toneCompression";
@@ -68,6 +78,9 @@ export type ClosetFitSimulationDisplay = {
   drapedGlbUrl: string | null;
   fitMapUrl: string | null;
   metricsUrl: string | null;
+  artifactLineageUrl: string | null;
+  drapeSourceLabel: string | null;
+  storageBackendLabel: string | null;
   warning: string | null;
   summary: string | null;
 };
@@ -75,11 +88,13 @@ export type ClosetFitSimulationDisplay = {
 export const buildClosetFitSimulationDisplay = (
   record: FitSimulationRecord | null,
   state: FitSimulationClientState,
+  artifactLineage: FitSimulationArtifactLineage | null = null,
 ): ClosetFitSimulationDisplay => {
   const previewImageUrl = record?.artifacts.find((artifact) => artifact.kind === "preview_png")?.url ?? null;
   const drapedGlbUrl = record?.artifacts.find((artifact) => artifact.kind === "draped_glb")?.url ?? null;
   const fitMapUrl = record?.artifacts.find((artifact) => artifact.kind === "fit_map_json")?.url ?? null;
   const metricsUrl = record?.artifacts.find((artifact) => artifact.kind === "metrics_json")?.url ?? null;
+  const artifactLineageUrl = artifactLineage?.manifestUrl ?? null;
   const summary = record?.instantFit?.summary.ko ?? record?.errorMessage ?? null;
   const firstWarning = record?.warnings[0] ?? null;
   const dominantOverlay = record?.fitMapSummary ? overlayLabels[record.fitMapSummary.dominantOverlayKind] : null;
@@ -89,6 +104,8 @@ export const buildClosetFitSimulationDisplay = (
     : null;
   const durationLabel = record?.metrics ? `${(record.metrics.durationMs / 1000).toFixed(1)}s` : null;
   const stretchLabel = record?.metrics ? `${record.metrics.maxStretchRatio.toFixed(2)}x stretch` : null;
+  const drapeSourceLabel = artifactLineage ? drapeSourceLabels[artifactLineage.drapeSource] : null;
+  const storageBackendLabel = artifactLineage ? storageBackendLabels[artifactLineage.storageBackend] : null;
 
   return {
     statusLabel: simulationStatusLabels[state],
@@ -103,6 +120,9 @@ export const buildClosetFitSimulationDisplay = (
     drapedGlbUrl,
     fitMapUrl,
     metricsUrl,
+    artifactLineageUrl,
+    drapeSourceLabel,
+    storageBackendLabel,
     warning: firstWarning,
     summary,
   };

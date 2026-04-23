@@ -63,6 +63,28 @@ test("buildClosetFitSimulationDisplay summarizes succeeded HQ fit simulations", 
       completedAt: "2026-04-22T09:00:05.000Z",
     },
     "succeeded",
+    {
+      schemaVersion: "fit-simulation-artifact-lineage.v1",
+      artifactLineageId: "fit-lineage:display-smoke",
+      generatedAt: "2026-04-22T09:00:05.000Z",
+      cacheKey: "fit-sim:key",
+      cacheKeyParts: {
+        avatarVariantId: "female-base",
+        bodyProfileRevision: "rev-1",
+        garmentVariantId: "published-top-soft",
+        garmentRevision: "garment-rev-1",
+        materialPreset: "knit_medium",
+        qualityTier: "high",
+      },
+      avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+      garmentManifestUrl: "https://freestyle.local/assets/garments/top-soft.glb",
+      storageBackend: "remote-storage",
+      drapeSource: "authored-scene-merge",
+      artifactKinds: ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
+      manifestKey: "fit-simulations/display-smoke/artifact-lineage.json",
+      manifestUrl: "https://freestyle.local/fit-sim/artifact-lineage.json",
+      warnings: [],
+    },
   );
 
   assert.equal(display.statusLabel, "완료");
@@ -75,6 +97,9 @@ test("buildClosetFitSimulationDisplay summarizes succeeded HQ fit simulations", 
   assert.equal(display.drapedGlbUrl, "https://freestyle.local/fit-sim/draped.glb");
   assert.equal(display.fitMapUrl, "https://freestyle.local/fit-sim/fit-map.json");
   assert.equal(display.metricsUrl, "https://freestyle.local/fit-sim/metrics.json");
+  assert.equal(display.artifactLineageUrl, "https://freestyle.local/fit-sim/artifact-lineage.json");
+  assert.equal(display.drapeSourceLabel, "authored merge");
+  assert.equal(display.storageBackendLabel, "remote storage");
 });
 
 test("buildClosetFitSimulationDisplay keeps auth-required state without record", () => {
@@ -82,4 +107,5 @@ test("buildClosetFitSimulationDisplay keeps auth-required state without record",
   assert.equal(display.statusLabel, "로그인 필요");
   assert.equal(display.statusTone, "toneCompression");
   assert.equal(display.previewImageUrl, null);
+  assert.equal(display.artifactLineageUrl, null);
 });

@@ -1467,6 +1467,35 @@ Outcome:
 - artifact lineage is now inspectable through a narrow owner-scoped lab seam without changing the existing detail payload
 - the repo still does **not** claim public solver-grade HQ output or a widened lab fit-simulation detail contract
 
+### `Phase 8 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. taught the current `useFitSimulation()` web hook to fetch `/v1/lab/fit-simulations/:id/artifact-lineage` as separate read-only state once a simulation reaches a terminal status
+2. kept `404` and `409 PRECONDITION_FAILED` on that route non-fatal for the web consumer so the panel does not overstate lineage availability while jobs are still converging
+3. updated the `Closet` HQ fit panel to expose the lineage `manifestUrl` plus baseline `drapeSource` and `storageBackend` metadata without merging lineage into the main `fitSimulation` detail object
+4. kept the product truth narrow: the panel still prefers `preview_png`, ordered artifact links, and typed fit-map summary as its primary output
+
+Evidence:
+
+- `apps/web/src/hooks/useFitSimulation.ts`
+- `apps/web/src/components/product/V18ClosetExperience.tsx`
+- `apps/web/src/components/product/closet-fit-simulation.tsx`
+- `apps/web/src/components/product/closet-fit-simulation-display.ts`
+- `apps/web/src/components/product/closet-fit-simulation.test.ts`
+- `docs/DEVELOPMENT_GUIDE.md`
+- `docs/physical-fit-system.md`
+- `docs/quality-gates.md`
+- `docs/freestyle-viewer-platform/phase8/batch3.md`
+
+Outcome:
+
+- the new artifact-lineage inspection route now has a first web consumer
+- web state still keeps artifact lineage separate from the main fit-simulation detail payload
+- the repo still does **not** claim stage swap-in, solver-grade cloth output, or a widened fit-simulation detail contract
+
 ## Phase 0 Closeout
 
 `Phase 0` is complete when all of the following are true:

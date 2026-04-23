@@ -89,6 +89,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8 / Batch 1`: the HQ fit worker now writes an internal `artifact-lineage.json` sidecar and canonical cache-key parts for the current four-artifact bundle without widening the lab read contract
 - `Phase 8 / Batch 2`: `/v1/lab/fit-simulations/:id/artifact-lineage` now exposes that persisted lineage as a separate owner-scoped inspection seam while keeping `/v1/lab/fit-simulations/:id` unchanged
+- `Phase 8 / Batch 3`: the current `Closet` HQ fit panel now consumes that lineage seam as separate read-only state, proving a first web consumer without widening the main fit-simulation detail contract
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking
 - `Phase 9`: UX latency gate becomes blocking
 - `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set

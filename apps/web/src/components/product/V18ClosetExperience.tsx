@@ -805,6 +805,8 @@ export function V18ClosetExperience() {
   const { scene, equippedGarments, setPose, equipItem, clearCategory, setSelectedItemId } = useClosetScene(closetRuntimeAssets);
   const {
     fitSimulation,
+    artifactLineage,
+    artifactLineageError,
     state: fitSimulationState,
     error: fitSimulationError,
     startFitSimulation,
@@ -1146,6 +1148,8 @@ export function V18ClosetExperience() {
       state={fitSimulationState}
       error={fitSimulationError}
       fitSimulation={fitSimulation}
+      artifactLineage={artifactLineage}
+      artifactLineageError={artifactLineageError}
     />
   );
 

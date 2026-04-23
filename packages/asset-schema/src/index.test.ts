@@ -5,7 +5,9 @@ import {
   avatarManifestSchema,
   buildBodySignatureHash,
   ensureBodySignatureHash,
+  fitArtifactManifestSchema,
   garmentManifestSchema,
+  materialContractSchema,
 } from "./index.js";
 
 test("asset approval states expose the full production lifecycle", () => {
@@ -156,4 +158,147 @@ test("garment manifest requires fit and quality artifacts before certification",
   });
 
   assert.equal(parsed.fitPolicyCategory, "tight_top");
+});
+
+test("material contract keeps visual and physical properties separate", () => {
+  const parsed = materialContractSchema.parse({
+    schemaVersion: "material-contract.v1",
+    materialClass: "denim",
+    visual: {
+      baseColor: "garment/textures/basecolor.ktx2",
+      normal: "garment/textures/normal.ktx2",
+      orm: "garment/textures/orm.ktx2",
+      detailNormal: "garment/textures/detail_normal.ktx2",
+      clearcoat: 0.1,
+    },
+    physical: {
+      thicknessMm: 1.8,
+      stretchWarp: 0.2,
+      stretchWeft: 0.18,
+      bendStiffness: 0.72,
+      shearStiffness: 0.61,
+      damping: 0.24,
+      friction: 0.33,
+      densityGsm: 420,
+    },
+  });
+
+  assert.equal(parsed.materialClass, "denim");
+  assert.equal(parsed.physical.densityGsm, 420);
+});
+
+test("fit artifact manifest requires typed metrics and artifact bundle paths", () => {
+  const parsed = fitArtifactManifestSchema.parse({
+    schemaVersion: "fit-artifact.v1",
+    production: {
+      approvalState: "CERTIFIED",
+      reviewNotes: [],
+      certificationNotes: ["manual review complete"],
+    },
+    bodySignature: {
+      version: "body-signature.v1",
+      measurements: {
+        heightCm: 168,
+        waistCm: 70,
+        hipCm: 96,
+      },
+      normalizedShape: {
+        heightClass: "average",
+        torsoClass: "average",
+        hipClass: "average",
+        shoulderClass: "average",
+      },
+      hash: "bodyhash",
+    },
+    bodyRegionTaxonomy: ["waist", "hip", "thigh_left"],
+    gates: [
+      {
+        gate: "visible-penetration",
+        status: "pass",
+        notes: [],
+      },
+    ],
+    metrics: {
+      version: "fit-metrics.v1",
+      subject: {
+        avatarId: "female-base",
+        bodySignatureHash: "bodyhash",
+        poseFamily: "standing",
+        garmentId: "starter-bottom-soft-wool",
+        garmentVersion: "v4",
+        size: "S",
+        solverVersion: "solver-v1",
+      },
+      global: {
+        fitScore: 91,
+        visualFitGrade: "A",
+        pass: true,
+        failReasons: [],
+      },
+      penetration: {
+        maxDepthMm: 1.4,
+        p95DepthMm: 0.6,
+        vertexCount: 12,
+        visibleVertexCount: 3,
+        areaCm2: 0.8,
+        byRegion: {
+          waist: {
+            maxDepthMm: 1.4,
+            p95DepthMm: 0.6,
+            vertexCount: 12,
+            visibleVertexCount: 3,
+            areaCm2: 0.8,
+          },
+        },
+      },
+      clearance: {
+        meanMm: 9,
+        p05Mm: 4,
+        p50Mm: 8,
+        p95Mm: 16,
+        byRegion: {
+          hip: {
+            meanMm: 9,
+            p05Mm: 4,
+            p50Mm: 8,
+            p95Mm: 16,
+          },
+        },
+      },
+      floating: {
+        maxFloatingMm: 3,
+        p95FloatingMm: 2,
+        byBoundary: {
+          hem: 2,
+        },
+      },
+      bodyMask: {
+        maskedAreaCm2: 4,
+        visibleMaskedAreaCm2: 0,
+        byRegion: {
+          pelvis: 4,
+        },
+      },
+      stability: {
+        solverIterations: 24,
+        residualError: 0.03,
+        hasNaN: false,
+        selfIntersectionCount: 0,
+      },
+      performance: {
+        previewLatencyMs: 84,
+        hqSolveLatencyMs: 420,
+      },
+    },
+    artifacts: {
+      drapedGlb: "artifact/draped.glb",
+      fitMapJson: "artifact/fit_map.json",
+      metricsJson: "artifact/metrics.json",
+      previewPng: "artifact/preview.png",
+      deformationCache: "artifact/deformation.bin",
+    },
+  });
+
+  assert.equal(parsed.metrics.global.visualFitGrade, "A");
+  assert.equal(parsed.gates[0]?.gate, "visible-penetration");
 });

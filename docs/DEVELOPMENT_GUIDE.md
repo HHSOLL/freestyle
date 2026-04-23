@@ -120,6 +120,7 @@ During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibili
 `viewer-react` must stay thin: it may own product-facing host selection, preload delegation, viewport/support/retry lifecycle, translate product viewport props into a canonical scene payload, and own the controller lifecycle, but it must not rebuild renderer logic or reintroduce direct product-path imports from `runtime-3d/src/**`.
 `apps/web` should import `AvatarStageViewport` and `preloadViewerAssets` from `@freestyle/viewer-react`; product routes should not resolve host mode or import `@freestyle/runtime-3d` directly.
 The direct browser harness for `viewer-core` lives at `/app/lab/viewer-platform`; use it for Phase 1 manual verification before widening product cutover.
+Phase 1 closeout evidence for the viewer-platform refactor lives at `docs/freestyle-viewer-platform/phase1/closeout.md`.
 The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
 
 ## 4. Page Rules

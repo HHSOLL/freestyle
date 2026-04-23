@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { starterGarmentCatalog } from "@freestyle/domain-garment";
 import { defaultBodyProfile, type AvatarPoseId, type AvatarRenderVariantId, type BodyProfile } from "@freestyle/shared-types";
 import { Eyebrow, SurfacePanel } from "@freestyle/ui";
-import { FreestyleViewerHost, type ViewerQualityTier } from "@freestyle/viewer-react";
+import { AvatarStageViewport, type ViewerQualityTier } from "@freestyle/viewer-react";
 
 const harnessGarments = [
   "starter-top-soft-casual",
@@ -76,6 +76,7 @@ export function ViewerCoreHarnessExperience() {
       data-selected-quality={qualityTier}
       data-selected-item-id={selectedItemId ?? ""}
       data-body-profile-gender={activeBodyProfile.gender ?? ""}
+      data-viewer-host-mode="viewer-react"
     >
       <SurfacePanel className="space-y-3 px-5 py-5">
         <Eyebrow>Lab / viewer-core harness</Eyebrow>
@@ -177,13 +178,14 @@ export function ViewerCoreHarnessExperience() {
         </SurfacePanel>
 
         <SurfacePanel className="min-h-[680px] overflow-hidden p-3">
-          <FreestyleViewerHost
+          <AvatarStageViewport
             bodyProfile={activeBodyProfile}
             avatarVariantId={avatarVariantId}
             poseId={poseId}
             equippedGarments={equippedGarments}
             selectedItemId={selectedItemId}
             qualityTier={qualityTier}
+            viewerHostMode="viewer-react"
           />
         </SurfacePanel>
       </div>

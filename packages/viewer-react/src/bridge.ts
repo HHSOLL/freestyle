@@ -1,4 +1,4 @@
-import { buildBodyProfileRevision } from "@freestyle/contracts";
+import { ensureBodySignatureHash, type BodySignature } from "@freestyle/asset-schema";
 import type {
   AvatarPoseId,
   AvatarRenderVariantId,
@@ -12,6 +12,54 @@ import type {
   ViewerCameraPreset,
 } from "@freestyle/viewer-core";
 
+const resolveHeightClass = (heightCm: number): BodySignature["normalizedShape"]["heightClass"] => {
+  if (heightCm < 162) return "short";
+  if (heightCm > 175) return "tall";
+  return "average";
+};
+
+const resolveTorsoClass = (torsoLengthCm?: number): BodySignature["normalizedShape"]["torsoClass"] => {
+  if (!torsoLengthCm) return "average";
+  if (torsoLengthCm < 58) return "short";
+  if (torsoLengthCm > 64) return "long";
+  return "average";
+};
+
+const resolveHipClass = (waistCm: number, hipCm: number): BodySignature["normalizedShape"]["hipClass"] => {
+  const ratio = hipCm / waistCm;
+  if (ratio < 1.2) return "narrow";
+  if (ratio > 1.32) return "wide";
+  return "average";
+};
+
+const resolveShoulderClass = (shoulderCm: number): BodySignature["normalizedShape"]["shoulderClass"] => {
+  if (shoulderCm < 39) return "narrow";
+  if (shoulderCm > 44) return "wide";
+  return "average";
+};
+
+export const buildViewerBodySignature = (bodyProfile: BodyProfile): BodySignature =>
+  ensureBodySignatureHash({
+    version: "body-signature.v1",
+    measurements: {
+      heightCm: bodyProfile.simple.heightCm,
+      bustCm: bodyProfile.simple.chestCm,
+      waistCm: bodyProfile.simple.waistCm,
+      hipCm: bodyProfile.simple.hipCm,
+      shoulderWidthCm: bodyProfile.simple.shoulderCm,
+      armLengthCm: bodyProfile.detailed?.armLengthCm,
+      inseamCm: bodyProfile.simple.inseamCm,
+      thighCm: bodyProfile.detailed?.thighCm,
+      calfCm: bodyProfile.detailed?.calfCm,
+    },
+    normalizedShape: {
+      heightClass: resolveHeightClass(bodyProfile.simple.heightCm),
+      torsoClass: resolveTorsoClass(bodyProfile.detailed?.torsoLengthCm),
+      hipClass: resolveHipClass(bodyProfile.simple.waistCm, bodyProfile.simple.hipCm),
+      shoulderClass: resolveShoulderClass(bodyProfile.simple.shoulderCm),
+    },
+  });
+
 export const buildViewerAvatarInput = ({
   avatarVariantId,
   bodyProfile,
@@ -20,7 +68,7 @@ export const buildViewerAvatarInput = ({
   bodyProfile: BodyProfile;
 }): LoadAvatarInput => ({
   avatarId: avatarVariantId,
-  bodySignature: buildBodyProfileRevision(bodyProfile),
+  bodySignature: buildViewerBodySignature(bodyProfile),
   appearance: {
     avatarVariantId,
     gender: bodyProfile.gender ?? null,

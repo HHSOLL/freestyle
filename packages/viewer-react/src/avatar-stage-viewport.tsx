@@ -14,11 +14,13 @@ import {
 import {
   loadConfiguredAvatarStageComponent,
   resolveViewerHost,
+  type ViewerHostMode,
 } from "./host-selection.js";
 import type { FreestyleViewerHostProps, ViewerQualityTier } from "./freestyle-viewer-host.js";
 
 export type AvatarStageViewportProps = Omit<FreestyleViewerHostProps, "qualityTier"> & {
   qualityTier?: ViewerQualityTier;
+  viewerHostMode?: ViewerHostMode;
 };
 
 type AvatarStageComponent = ComponentType<FreestyleViewerHostProps>;
@@ -45,8 +47,9 @@ export function AvatarStageViewport({
   selectedItemId,
   qualityTier,
   backgroundColor,
+  viewerHostMode,
 }: AvatarStageViewportProps) {
-  const viewerHost = useMemo(() => resolveViewerHost(), []);
+  const viewerHost = useMemo(() => viewerHostMode ?? resolveViewerHost(), [viewerHostMode]);
   const resolvedQualityTier = useMemo(() => {
     return resolveViewerStageQualityTier(qualityTier, detectQualityTier());
   }, [qualityTier]);

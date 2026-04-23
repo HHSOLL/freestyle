@@ -30,6 +30,8 @@
 - `/auth/callback`
 - `/share/[slug]`
 
+When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
+
 ### Redirect smoke
 
 - `/app/fitting -> /app/closet`

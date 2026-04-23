@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { BodyProfile, RuntimeGarmentAsset } from "@freestyle/shared-types";
 import {
+  buildViewerBodySignature,
   buildViewerAvatarInput,
   buildViewerGarmentsInput,
   buildViewerSceneInput,
@@ -43,14 +44,26 @@ const garment: RuntimeGarmentAsset = {
   },
 };
 
-test("buildViewerAvatarInput derives a canonical body-signature hash", () => {
+test("buildViewerBodySignature derives a canonical typed body signature", () => {
+  const signature = buildViewerBodySignature(bodyProfile);
+
+  assert.equal(signature.version, "body-signature.v1");
+  assert.equal(signature.measurements.heightCm, 168);
+  assert.equal(signature.measurements.bustCm, 88);
+  assert.equal(signature.normalizedShape.heightClass, "average");
+  assert.equal(signature.normalizedShape.shoulderClass, "average");
+  assert.match(signature.hash, /^[a-z0-9]+$/);
+});
+
+test("buildViewerAvatarInput derives a canonical typed body signature", () => {
   const input = buildViewerAvatarInput({
     avatarVariantId: "female-base",
     bodyProfile,
   });
 
   assert.equal(input.avatarId, "female-base");
-  assert.match(input.bodySignature ?? "", /^body-profile:/);
+  assert.equal(input.bodySignature?.version, "body-signature.v1");
+  assert.equal(input.bodySignature?.measurements.waistCm, 70);
   assert.deepEqual(input.appearance, {
     avatarVariantId: "female-base",
     gender: "female",

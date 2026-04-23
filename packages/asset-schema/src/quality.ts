@@ -285,6 +285,14 @@ export const assetQualityReportSchema = z
   })
   .strict();
 
+export const assetQualityGateSchema = z
+  .object({
+    gate: z.string().trim().min(1).max(160),
+    status: z.enum(["pass", "warn", "fail"]),
+    notes: z.array(z.string().trim().min(1)).default([]),
+  })
+  .strict();
+
 export const goldenBodyIds = [
   "B01",
   "B02",
@@ -313,6 +321,7 @@ export const goldenMatrixSchema = z
   .strict();
 
 export type AssetQualityReport = z.infer<typeof assetQualityReportSchema>;
+export type AssetQualityGate = z.infer<typeof assetQualityGateSchema>;
 export type BodyRegionId = z.infer<typeof bodyRegionIdSchema>;
 export type FitMetricsJson = z.infer<typeof fitMetricsJsonSchema>;
 export type GarmentFitPolicyCategory = z.infer<typeof garmentFitPolicyCategorySchema>;

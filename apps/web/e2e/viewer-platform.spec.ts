@@ -13,6 +13,7 @@ test.describe("viewer-platform harness", () => {
 
     await expect(root).toHaveAttribute("data-selected-avatar", "female-base");
     await expect(root).toHaveAttribute("data-body-profile-gender", "female");
+    await expect(root).toHaveAttribute("data-viewer-host-mode", "viewer-react");
     await expect(root).toHaveAttribute("data-selected-pose", "neutral");
     await expect(root).toHaveAttribute("data-selected-quality", "balanced");
     await expect(canvas).toBeVisible();

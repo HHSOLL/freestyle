@@ -3,6 +3,7 @@ export {
   type AvatarStageViewportProps,
 } from "./avatar-stage-viewport.js";
 export {
+  buildViewerBodySignature,
   buildViewerAvatarInput,
   buildViewerGarmentsInput,
   buildViewerSceneInput,

@@ -7,6 +7,7 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
+    "@freestyle/asset-schema": "file:../asset-schema",
     "@freestyle/contracts": "file:../contracts",
     "@freestyle/runtime-3d": "file:../runtime-3d",
     "@freestyle/shared-types": "file:../shared-types",

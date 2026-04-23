@@ -6,7 +6,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./approval-state": "./src/approval-state.ts",
-    "./quality": "./src/quality.ts"
+    "./quality": "./src/quality.ts",
+    "./manifest-shared": "./src/manifest-shared.ts",
+    "./avatar-manifest.schema": "./src/avatar-manifest.schema.ts",
+    "./garment-manifest.schema": "./src/garment-manifest.schema.ts",
+    "./material.schema": "./src/material.schema.ts",
+    "./fit-artifact.schema": "./src/fit-artifact.schema.ts"
   },
   "dependencies": {
     "zod": "^4.1.12"

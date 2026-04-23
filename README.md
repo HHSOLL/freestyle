@@ -189,6 +189,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/contract-ownership.md](docs/contract-ownership.md)
 - [docs/ai-agent-playbook.md](docs/ai-agent-playbook.md)
 - [docs/quality-gates.md](docs/quality-gates.md)
+- [docs/freestyle-viewer-platform/phase1/closeout.md](docs/freestyle-viewer-platform/phase1/closeout.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

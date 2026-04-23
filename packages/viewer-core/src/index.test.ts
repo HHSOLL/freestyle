@@ -1,9 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ensureBodySignatureHash } from "@freestyle/asset-schema";
 import { createFreestyleViewer, type FreestyleViewerEventMap } from "./index.js";
 
+const bodySignature = ensureBodySignatureHash({
+  version: "body-signature.v1",
+  measurements: {
+    heightCm: 170,
+    waistCm: 76,
+    hipCm: 96,
+  },
+  normalizedShape: {
+    heightClass: "average",
+    torsoClass: "average",
+    hipClass: "average",
+    shoulderClass: "average",
+  },
+});
+
 test("createFreestyleViewer emits preview and HQ events through the imperative controller", async () => {
-  const telemetry: Array<FreestyleViewerEventMap["metrics"]> = [];
+  const telemetry: Array<{ name: string; value?: number; tags?: Record<string, string> }> = [];
   const viewer = await createFreestyleViewer({} as HTMLCanvasElement, {
     telemetry: {
       emit: (event) => {
@@ -24,7 +40,7 @@ test("createFreestyleViewer emits preview and HQ events through the imperative c
 
   await viewer.loadAvatar({
     avatarId: "female-base",
-    bodySignature: "body-profile:test",
+    bodySignature,
   });
   await viewer.applyGarments([
     {
@@ -70,7 +86,7 @@ test("setScene updates the viewer through one idempotent scene payload", async (
   await viewer.setScene({
     avatar: {
       avatarId: "female-base",
-      bodySignature: "body-profile:test",
+      bodySignature,
     },
     garments: [
       {

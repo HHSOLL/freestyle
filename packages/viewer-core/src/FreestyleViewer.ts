@@ -1,50 +1,45 @@
+import type { BodySignature } from "@freestyle/asset-schema";
+import type {
+  FitHqReadyEvent,
+  FitPreviewReadyEvent,
+  ViewerCameraPreset,
+  ViewerErrorEvent,
+  ViewerGarmentSelection,
+  ViewerQualityMode,
+  ViewerTelemetryEvent,
+} from "@freestyle/viewer-protocol";
 import { createViewerRendererRuntime, type ViewerRendererFactory, type ViewerRendererRuntime } from "./renderer-runtime.js";
 import type { RenderSchedulerAdapter } from "./render-scheduler.js";
 
+export type {
+  ViewerCameraPreset,
+  ViewerGarmentSelection,
+  ViewerQualityMode,
+} from "@freestyle/viewer-protocol";
+
 export type FreestyleViewerEventMap = {
-  "fit:preview-ready": {
-    garments: Array<{ garmentId: string; size?: string }>;
-    source: "cache" | "worker" | "static-fit";
-  };
-  "fit:hq-ready": {
-    artifactId?: string;
-    cacheKey?: string;
-  };
-  metrics: {
-    name: string;
-    value?: number;
-    tags?: Record<string, string>;
-  };
-  error: {
-    code: string;
-    message: string;
-  };
+  "fit:preview-ready": FitPreviewReadyEvent;
+  "fit:hq-ready": FitHqReadyEvent;
+  metrics: ViewerTelemetryEvent;
+  error: ViewerErrorEvent;
 };
 
 type ViewerEventName = keyof FreestyleViewerEventMap;
 type ViewerListener<TName extends ViewerEventName> = (event: FreestyleViewerEventMap[TName]) => void;
 
-export type ViewerCameraPreset =
-  | "full-body-front"
-  | "full-body-three-quarter"
-  | "full-body-front-tight";
-
 export type LoadAvatarInput = {
   avatarId: string;
-  bodySignature?: string;
+  bodySignature?: BodySignature;
   appearance?: Record<string, unknown>;
 };
 
-export type ApplyGarmentsInput = Array<{
-  garmentId: string;
-  size?: string;
-}>;
+export type ApplyGarmentsInput = ViewerGarmentSelection[];
 
 export type FreestyleViewerSceneInput = {
   avatar: LoadAvatarInput;
   garments: ApplyGarmentsInput;
   cameraPreset: ViewerCameraPreset;
-  qualityMode: "low" | "balanced" | "high";
+  qualityMode: ViewerQualityMode;
   selectedItemId?: string | null;
   backgroundColor?: string;
 };
@@ -76,7 +71,7 @@ export interface FreestyleViewer {
   setViewport(input: FreestyleViewerViewportInput): void;
   invalidate(reason?: string): void;
   setCameraPreset(preset: ViewerCameraPreset): void;
-  setQualityMode(mode: "low" | "balanced" | "high"): void;
+  setQualityMode(mode: ViewerQualityMode): void;
   requestHighQualityFit(): Promise<void>;
   on<TName extends ViewerEventName>(eventName: TName, listener: ViewerListener<TName>): () => void;
   dispose(): void;
@@ -165,7 +160,7 @@ export class FreestyleViewerController implements FreestyleViewer {
     });
   }
 
-  setQualityMode(mode: "low" | "balanced" | "high") {
+  setQualityMode(mode: ViewerQualityMode) {
     this.assertActive();
     this.rendererRuntime.syncQualityMode(mode);
     this.emit("metrics", {

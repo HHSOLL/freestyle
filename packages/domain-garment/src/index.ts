@@ -1,6 +1,8 @@
 import {
   garmentManifestSchema,
   garmentManifestSchemaVersion,
+  requiresCanonicalManifestForApprovalState,
+  requiresCertificationMetadataForApprovalState,
   type GarmentManifest,
 } from "@freestyle/asset-schema";
 import { clamp, readStoredJson, rgba, writeStoredJson } from "@freestyle/shared-utils";
@@ -2596,6 +2598,41 @@ export const validatePublishedGarmentAsset = (item: PublishedGarmentAsset) => {
       }
     }
   }
+  return issues;
+};
+
+export const validatePublishedGarmentCertificationState = (item: PublishedGarmentAsset) => {
+  const issues: string[] = [];
+  const approvalState = item.publication.approvalState ?? "DRAFT";
+  const hasCanonicalManifestSupport = buildDefaultPublishedGarmentViewerManifest(item) !== null;
+
+  if (hasCanonicalManifestSupport && requiresCanonicalManifestForApprovalState(approvalState)) {
+    if (!item.viewerManifest) {
+      issues.push(
+        `${item.id}: viewerManifest is required once approvalState reaches ${approvalState}.`,
+      );
+    }
+    if (!item.publication.viewerManifestVersion) {
+      issues.push(
+        `${item.id}: publication.viewerManifestVersion is required once approvalState reaches ${approvalState}.`,
+      );
+    }
+  }
+
+  if (requiresCertificationMetadataForApprovalState(approvalState)) {
+    if (!item.publication.approvedAt) {
+      issues.push(`${item.id}: publication.approvedAt is required when approvalState is ${approvalState}.`);
+    }
+    if (!item.publication.approvedBy) {
+      issues.push(`${item.id}: publication.approvedBy is required when approvalState is ${approvalState}.`);
+    }
+    if (!item.publication.certificationNotes?.length) {
+      issues.push(
+        `${item.id}: publication.certificationNotes must contain at least one note when approvalState is ${approvalState}.`,
+      );
+    }
+  }
+
   return issues;
 };
 

@@ -193,6 +193,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase2/closeout.md](docs/freestyle-viewer-platform/phase2/closeout.md)
 - [docs/freestyle-viewer-platform/phase2/telemetry-slice.md](docs/freestyle-viewer-platform/phase2/telemetry-slice.md)
 - [docs/freestyle-viewer-platform/phase2/manifest-shadow.md](docs/freestyle-viewer-platform/phase2/manifest-shadow.md)
+- [docs/freestyle-viewer-platform/phase2_5/closeout.md](docs/freestyle-viewer-platform/phase2_5/closeout.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

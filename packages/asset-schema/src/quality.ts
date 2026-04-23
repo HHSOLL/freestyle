@@ -320,9 +320,91 @@ export const goldenMatrixSchema = z
   })
   .strict();
 
+export const defaultGoldenMatrix = goldenMatrixSchema.parse({
+  bodyIds: [...goldenBodyIds],
+  footIds: [...goldenFootIds],
+  poseIds: [...goldenPoseIds],
+});
+
+export const fitQualityHardFailThresholds = {
+  visibleCriticalPenetrationMaxMm: 3,
+  visibleNonCriticalPenetrationMaxMm: 6,
+  visiblePenetrationP95Mm: 2,
+  previewLatencyP95Ms: 120,
+  hqCacheHitLatencyP95Ms: 500,
+} as const;
+
+export const garmentFitPolicyProfileSchema = z
+  .object({
+    criticalRegions: z.array(bodyRegionIdSchema).min(1),
+    forbiddenVisibleMaskRegions: z.array(bodyRegionIdSchema).default([]),
+  })
+  .strict();
+
+export const garmentFitPolicyProfiles = {
+  tight_top: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["neck", "shoulder_left", "shoulder_right", "bust", "waist"],
+    forbiddenVisibleMaskRegions: ["neck", "shoulder_left", "shoulder_right"],
+  }),
+  loose_top: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["shoulder_left", "shoulder_right", "chest", "waist"],
+    forbiddenVisibleMaskRegions: ["neck"],
+  }),
+  sleeveless_top: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["neck", "shoulder_left", "shoulder_right", "chest", "bust", "waist"],
+    forbiddenVisibleMaskRegions: ["neck", "shoulder_left", "shoulder_right", "upper_arm_left", "upper_arm_right"],
+  }),
+  pants: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["waist", "hip", "pelvis", "thigh_left", "thigh_right", "ankle_left", "ankle_right"],
+    forbiddenVisibleMaskRegions: ["waist", "ankle_left", "ankle_right"],
+  }),
+  skirt_or_shorts: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["waist", "hip", "pelvis", "thigh_left", "thigh_right"],
+    forbiddenVisibleMaskRegions: ["waist"],
+  }),
+  dress: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["shoulder_left", "shoulder_right", "waist", "hip", "pelvis"],
+    forbiddenVisibleMaskRegions: ["neck", "shoulder_left", "shoulder_right"],
+  }),
+  shoes: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["ankle_left", "ankle_right", "foot_left", "foot_right", "heel_left", "heel_right"],
+    forbiddenVisibleMaskRegions: ["ankle_left", "ankle_right", "heel_left", "heel_right"],
+  }),
+  sandals: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: [
+      "foot_left",
+      "foot_right",
+      "toe_left",
+      "toe_right",
+      "heel_left",
+      "heel_right",
+    ],
+    forbiddenVisibleMaskRegions: [
+      "foot_left",
+      "foot_right",
+      "toe_left",
+      "toe_right",
+      "heel_left",
+      "heel_right",
+    ],
+  }),
+  boots: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["ankle_left", "ankle_right", "calf_left", "calf_right", "foot_left", "foot_right"],
+    forbiddenVisibleMaskRegions: ["ankle_left", "ankle_right"],
+  }),
+  accessories: garmentFitPolicyProfileSchema.parse({
+    criticalRegions: ["head", "neck"],
+    forbiddenVisibleMaskRegions: [],
+  }),
+} as const satisfies Record<
+  z.infer<typeof garmentFitPolicyCategorySchema>,
+  z.infer<typeof garmentFitPolicyProfileSchema>
+>;
+
 export type AssetQualityReport = z.infer<typeof assetQualityReportSchema>;
 export type AssetQualityGate = z.infer<typeof assetQualityGateSchema>;
 export type BodyRegionId = z.infer<typeof bodyRegionIdSchema>;
 export type FitMetricsJson = z.infer<typeof fitMetricsJsonSchema>;
 export type GarmentFitPolicyCategory = z.infer<typeof garmentFitPolicyCategorySchema>;
+export type GarmentFitPolicyProfile = z.infer<typeof garmentFitPolicyProfileSchema>;
 export type MaterialClass = z.infer<typeof materialClassSchema>;

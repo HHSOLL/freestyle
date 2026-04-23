@@ -231,6 +231,34 @@ test("published runtime garments can be upserted through admin routes and consum
   await app.close();
 });
 
+test("admin create route rejects published garments that skip certification metadata", async () => {
+  const app = buildServer();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/v1/admin/garments",
+    payload: {
+      ...publishedGarmentFixture,
+      id: "published-top-missing-cert-evidence",
+      publication: {
+        ...publishedGarmentFixture.publication,
+        approvedAt: undefined,
+        approvedBy: undefined,
+        certificationNotes: [],
+      },
+    },
+  });
+
+  assert.equal(response.statusCode, 400);
+  const payload = response.json() as { error: string; issues?: string[] };
+  assert.equal(payload.error, "VALIDATION_ERROR");
+  assert.ok(payload.issues?.some((issue) => issue.includes("approvedAt is required")));
+  assert.ok(payload.issues?.some((issue) => issue.includes("approvedBy is required")));
+  assert.ok(
+    payload.issues?.some((issue) => issue.includes("certificationNotes must contain at least one note")),
+  );
+});
+
 test("admin create route rejects duplicate garment ids", async () => {
   const app = buildServer();
 

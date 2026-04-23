@@ -1,14 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assetCanonicalManifestRequiredApprovalStates,
+  assetCertificationRequiredApprovalStates,
   assetApprovalStates,
   avatarManifestSchema,
   avatarManifestSchemaVersion,
   bodySignatureSchemaVersion,
   buildBodySignatureHash,
+  defaultGoldenMatrix,
   ensureBodySignatureHash,
+  fitQualityHardFailThresholds,
   fitArtifactManifestSchema,
   fitArtifactManifestSchemaVersion,
+  garmentFitPolicyProfiles,
   garmentManifestSchemaVersion,
   garmentManifestSchema,
   materialContractSchemaVersion,
@@ -25,6 +30,20 @@ test("asset approval states expose the full production lifecycle", () => {
     "PUBLISHED",
     "DEPRECATED",
     "REJECTED",
+  ]);
+});
+
+test("approval-state helper groups keep certification and manifest requirements explicit", () => {
+  assert.deepEqual(assetCertificationRequiredApprovalStates, [
+    "CERTIFIED",
+    "PUBLISHED",
+    "DEPRECATED",
+  ]);
+  assert.deepEqual(assetCanonicalManifestRequiredApprovalStates, [
+    "FIT_CANDIDATE",
+    "CERTIFIED",
+    "PUBLISHED",
+    "DEPRECATED",
   ]);
 });
 
@@ -63,6 +82,22 @@ test("body signature hash remains stable for equivalent objects", () => {
 
   assert.equal(left.hash, right.hash);
   assert.equal(left.hash, buildBodySignatureHash(left));
+});
+
+test("fit-quality presets keep hard fail thresholds and golden matrices explicit", () => {
+  assert.equal(fitQualityHardFailThresholds.visibleCriticalPenetrationMaxMm, 3);
+  assert.equal(fitQualityHardFailThresholds.previewLatencyP95Ms, 120);
+  assert.equal(defaultGoldenMatrix.bodyIds.length, 12);
+  assert.equal(defaultGoldenMatrix.footIds.length, 6);
+  assert.equal(defaultGoldenMatrix.poseIds.length, 8);
+  assert.deepEqual(garmentFitPolicyProfiles.sandals.forbiddenVisibleMaskRegions, [
+    "foot_left",
+    "foot_right",
+    "toe_left",
+    "toe_right",
+    "heel_left",
+    "heel_right",
+  ]);
 });
 
 test("avatar manifest requires render fit and collision asset groups", () => {

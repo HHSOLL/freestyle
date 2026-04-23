@@ -30,6 +30,7 @@ Rules:
 - product routes default to `PUBLISHED` assets only
 - admin and QA surfaces may inspect candidate states
 - legacy converted assets may be used for migration, testing, and fallback only until they pass this certification flow
+- promoted states (`CERTIFIED`, `PUBLISHED`, `DEPRECATED`) require certification metadata on the active admin/API write path
 
 ## Minimum Production Contract
 

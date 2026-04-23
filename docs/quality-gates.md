@@ -67,6 +67,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 0`: benchmark harness and baseline reports start as non-blocking evidence
 - `Phase 2`: the forced `viewer-react` seam emits non-blocking first-avatar-paint and garment-swap latency evidence
 - `Phase 2.5`: approval-state, body-signature, material, and fit-contract tests start
+- `Phase 2.5`: promoted garment approval states fail closed on write when certification metadata or the canonical manifest seam is missing
 - `Phase 3`: asset budget gate becomes non-blocking
 - `Phase 5 / Phase 6`: avatar and garment certification gates become blocking
 - `Phase 7`: preview fit performance gate becomes blocking

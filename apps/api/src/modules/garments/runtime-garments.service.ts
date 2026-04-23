@@ -1,6 +1,7 @@
 import {
   assessGarmentInstantFit,
   synchronizePublishedGarmentViewerManifest,
+  validatePublishedGarmentCertificationState,
   validatePublishedGarmentAsset,
 } from "@freestyle/domain-garment";
 import {
@@ -81,7 +82,10 @@ const parsePublishedRuntimeGarment = (input: unknown) => {
     throw new RuntimeGarmentValidationError(parsed.error.issues.map((issue) => issue.message));
   }
   const normalized = normalizePublishedRuntimeGarmentForWrite(parsed.data);
-  const issues = validatePublishedGarmentAsset(normalized);
+  const issues = [
+    ...validatePublishedGarmentAsset(normalized),
+    ...validatePublishedGarmentCertificationState(normalized),
+  ];
   if (issues.length > 0) {
     throw new RuntimeGarmentValidationError(issues);
   }

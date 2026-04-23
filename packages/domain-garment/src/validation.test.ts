@@ -30,6 +30,7 @@ import {
   resolveLayeredEquippedItemIds,
   resolveDefaultClosetLoadout,
   starterGarmentCatalog,
+  validatePublishedGarmentCertificationState,
   validateGarmentAuthoringBundleAgainstStarterCatalog,
   validateGarmentPatternSpecAgainstStarterCatalog,
   validateGarmentRuntimeBinding,
@@ -42,6 +43,37 @@ const repoRoot = process.cwd();
 test("starter garment catalog satisfies runtime contract", () => {
   const issues = starterGarmentCatalog.flatMap(validateStarterGarment);
   assert.deepEqual(issues, []);
+});
+
+test("published garment certification state requires approval metadata for promoted assets", () => {
+  const starter = starterGarmentCatalog.find((item) => item.category === "tops");
+  assert.ok(starter);
+
+  const issues = validatePublishedGarmentCertificationState({
+    ...starter,
+    source: "inventory",
+    publication: {
+      sourceSystem: "admin-domain",
+      publishedAt: "2026-04-23T00:00:00.000Z",
+      assetVersion: "starter-top-soft-casual@1.0.0",
+      measurementStandard: "body-garment-v1",
+      approvalState: "PUBLISHED",
+      certificationNotes: [],
+    },
+  });
+
+  assert.ok(
+    issues.some((issue) => issue.includes("approvedAt is required")),
+    issues.join("\n"),
+  );
+  assert.ok(
+    issues.some((issue) => issue.includes("approvedBy is required")),
+    issues.join("\n"),
+  );
+  assert.ok(
+    issues.some((issue) => issue.includes("certificationNotes must contain at least one note")),
+    issues.join("\n"),
+  );
 });
 
 test("starter garment catalog carries publication-ready physical fit metadata", () => {

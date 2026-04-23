@@ -125,6 +125,7 @@ The Phase 0 baseline freeze for the new viewer-platform program lives under `doc
 Phase 2 closeout evidence for the schema/protocol foundation lives at `docs/freestyle-viewer-platform/phase2/closeout.md`.
 Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/freestyle-viewer-platform/phase2/telemetry-slice.md`.
 Phase 2 manifest-shadow evidence for the admin publication contract lives at `docs/freestyle-viewer-platform/phase2/manifest-shadow.md`.
+Phase 2.5 closeout evidence for contract enforcement lives at `docs/freestyle-viewer-platform/phase2_5/closeout.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -212,6 +213,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `PublishedGarmentAsset` may now carry an optional `viewerManifest` shadow typed through `@freestyle/asset-schema`; treat it as a canonical runtime-manifest seam, not as proof that an asset is certified
 - admin/API writes may autofill and synchronize `viewerManifest` plus `publication.viewerManifestVersion` for supported garment categories, but read paths must stay tolerant of legacy rows that do not have that shadow yet
 - top-level publication metadata still wins: if nested manifest ids or approval states drift, normalize them on write instead of widening product routes or bypassing the publication gate
+- promoted approval states are enforced on write: `CERTIFIED`, `PUBLISHED`, and `DEPRECATED` require `approvedAt`, `approvedBy`, and at least one certification note; supported garment categories require the canonical manifest seam from `FIT_CANDIDATE` upward
 - the first product consumer now lives in `apps/web/src/components/product/closet-fit-report.ts`; if fit copy, region ordering, or tone mapping changes, update that helper and its test before touching `V18ClosetExperience.tsx`
 - `V18ClosetExperience` may seed fit guidance from the API closet catalog, but active tab and equipped-item review should still prefer locally derived reports from the current deferred body profile
 - `Phase D` now has an active HQ artifact path through `POST /v1/lab/jobs/fit-simulations`, `GET /v1/lab/fit-simulations/:id`, `apps/api/src/modules/fit-simulations/**`, and `workers/fit_simulation/src/worker.ts`

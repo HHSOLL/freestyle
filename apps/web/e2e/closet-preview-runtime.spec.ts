@@ -29,14 +29,17 @@ test.describe("closet preview runtime evidence", () => {
       });
     });
 
-    await page.goto("/", { waitUntil: "domcontentloaded" });
     await page.goto("/app/closet", { waitUntil: "domcontentloaded" });
 
     await expect(page.locator("[data-closet-visual-root]").first()).toBeVisible({
       timeout: 15000,
     });
+    await page.waitForFunction(
+      () => Boolean(document.querySelector("[data-preview-runtime-root]")),
+      undefined,
+      { timeout: 15000 },
+    );
     const root = page.locator("[data-preview-runtime-root]").first();
-    await expect(root).toBeVisible({ timeout: 15000 });
     await expect(root).toHaveAttribute(
       "data-preview-runtime-execution-mode",
       /(reduced-preview|static-fit)/,

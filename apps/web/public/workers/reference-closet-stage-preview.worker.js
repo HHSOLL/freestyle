@@ -1,13 +1,17 @@
 /* global globalThis */
 
-const schemaVersion = "preview-simulation-frame.v1";
+const frameSchemaVersion = "preview-simulation-frame.v1";
+const deformationSchemaVersion = "preview-deformation.v1";
 const resultEnvelopeType = "PREVIEW_FRAME_RESULT";
+const deformationEnvelopeType = "PREVIEW_DEFORMATION";
 const defaultSolverKind = "reduced-preview-spring";
+const defaultTransferMode = "secondary-motion-transform";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const degToRad = (value) => (value * Math.PI) / 180;
 
-const resolveExecutionMode = (backend) => (backend === "static-fit" ? "static-fit" : "reduced-preview");
+const resolveExecutionMode = (backend) =>
+  backend === "static-fit" ? "static-fit" : "reduced-preview";
 
 const springAxis = (value, velocity, target, stiffness, damping, deltaSeconds) => {
   const acceleration = (target - value) * stiffness - velocity * damping;
@@ -27,6 +31,28 @@ const cloneState = (state) => ({
   positionOffset: Array.isArray(state?.positionOffset) ? [...state.positionOffset] : [0, 0, 0],
   positionVelocity: Array.isArray(state?.positionVelocity) ? [...state.positionVelocity] : [0, 0, 0],
 });
+
+const createSolverState = () => ({
+  initialized: false,
+  transport: "transferable-array-buffer",
+  bodySignature: null,
+  collisionBody: null,
+  garments: new Map(),
+});
+
+const solverState = createSolverState();
+
+const ensureGarmentState = (garmentId) => {
+  if (!solverState.garments.has(garmentId)) {
+    solverState.garments.set(garmentId, {
+      fitMesh: null,
+      materialProfile: null,
+      lastResult: null,
+      lastDeformation: null,
+    });
+  }
+  return solverState.garments.get(garmentId);
+};
 
 const stepFrame = (request) => {
   const state = cloneState(request.state);
@@ -102,7 +128,8 @@ const stepFrame = (request) => {
     0.06 * (config.scaleCompensation || 1),
   );
   const targetPosY = clamp(
-    Math.abs(idleCos) * (((config.verticalBobCm || 0) / 100) * looseness) + Math.max(velocityY, 0) * 0.0025,
+    Math.abs(idleCos) * (((config.verticalBobCm || 0) / 100) * looseness) +
+      Math.max(velocityY, 0) * 0.0025,
     0,
     0.08 * (config.scaleCompensation || 1),
   );
@@ -141,7 +168,7 @@ const stepFrame = (request) => {
     Math.abs(targetRoll - state.rotationRad[2]) > 0.002;
 
   return {
-    schemaVersion,
+    schemaVersion: frameSchemaVersion,
     sessionId: String(request.sessionId || ""),
     sequence: Number.isFinite(request.sequence) ? request.sequence : 0,
     backend: request.backend || "worker-reduced",
@@ -157,34 +184,112 @@ const stepFrame = (request) => {
   };
 };
 
-globalThis.onmessage = (event) => {
-  const request = event.data;
-  if (!request || request.schemaVersion !== schemaVersion) {
-    return;
-  }
+const buildResultEnvelope = (result, solveDurationMs) => ({
+  type: resultEnvelopeType,
+  result,
+  metrics: {
+    solverKind: defaultSolverKind,
+    executionMode: resolveExecutionMode(result.backend),
+    backend: result.backend,
+    solveDurationMs,
+    angularEnergy: result.angularEnergy,
+    positionalEnergy: result.positionalEnergy,
+    anchorEnergy: result.anchorEnergy,
+    shouldContinue: result.shouldContinue,
+  },
+});
 
+const buildDeformationEnvelope = (garmentId, result) => ({
+  type: deformationEnvelopeType,
+  deformation: {
+    schemaVersion: deformationSchemaVersion,
+    garmentId,
+    sessionId: String(result.sessionId || ""),
+    sequence: Number.isFinite(result.sequence) ? result.sequence : 0,
+    backend: result.backend || "worker-reduced",
+    executionMode: resolveExecutionMode(result.backend),
+    transferMode: defaultTransferMode,
+    rotationRad: Array.isArray(result.rotationRad) ? [...result.rotationRad] : [0, 0, 0],
+    position: Array.isArray(result.position) ? [...result.position] : [0, 0, 0],
+    settled: !result.shouldContinue,
+  },
+});
+
+const postSolve = (garmentId, frameRequest) => {
+  const garmentState = ensureGarmentState(garmentId);
   const startedAt =
     globalThis.performance && typeof globalThis.performance.now === "function"
       ? globalThis.performance.now()
       : Date.now();
-  const result = stepFrame(request);
+  const result = stepFrame(frameRequest);
   const finishedAt =
     globalThis.performance && typeof globalThis.performance.now === "function"
       ? globalThis.performance.now()
       : Date.now();
 
-  globalThis.postMessage({
-    type: resultEnvelopeType,
-    result,
-    metrics: {
-      solverKind: defaultSolverKind,
-      executionMode: resolveExecutionMode(result.backend),
-      backend: result.backend,
-      solveDurationMs: Math.max(0, finishedAt - startedAt),
-      angularEnergy: result.angularEnergy,
-      positionalEnergy: result.positionalEnergy,
-      anchorEnergy: result.anchorEnergy,
-      shouldContinue: result.shouldContinue,
-    },
-  });
+  garmentState.lastResult = result;
+  garmentState.lastDeformation = buildDeformationEnvelope(garmentId, result);
+
+  globalThis.postMessage(buildResultEnvelope(result, Math.max(0, finishedAt - startedAt)));
+  globalThis.postMessage(garmentState.lastDeformation);
+};
+
+globalThis.onmessage = (event) => {
+  const payload = event.data;
+  if (!payload) {
+    return;
+  }
+
+  switch (payload.type) {
+    case "INIT_SOLVER": {
+      solverState.initialized = true;
+      solverState.transport = payload.backend || "transferable-array-buffer";
+      return;
+    }
+    case "SET_BODY_SIGNATURE": {
+      solverState.bodySignature = payload.bodySignature || null;
+      return;
+    }
+    case "SET_COLLISION_BODY": {
+      solverState.collisionBody = payload.collisionBody || null;
+      return;
+    }
+    case "SET_GARMENT_FIT_MESH": {
+      const garmentState = ensureGarmentState(payload.garmentId);
+      garmentState.fitMesh = payload.fitMesh || null;
+      return;
+    }
+    case "SET_MATERIAL_PHYSICS": {
+      const garmentState = ensureGarmentState(payload.garmentId);
+      garmentState.materialProfile = payload.materialProfile || null;
+      return;
+    }
+    case "SOLVE_PREVIEW": {
+      if (!payload.frame || payload.frame.schemaVersion !== frameSchemaVersion) {
+        return;
+      }
+      postSolve(payload.garmentId, payload.frame);
+      return;
+    }
+    case "GET_DEFORMATION": {
+      const garmentState = ensureGarmentState(payload.garmentId);
+      if (garmentState.lastDeformation) {
+        globalThis.postMessage(garmentState.lastDeformation);
+      }
+      return;
+    }
+    case "DISPOSE_GARMENT": {
+      solverState.garments.delete(payload.garmentId);
+      return;
+    }
+    case "DISPOSE_SOLVER": {
+      solverState.initialized = false;
+      solverState.bodySignature = null;
+      solverState.collisionBody = null;
+      solverState.garments.clear();
+      return;
+    }
+    default:
+      return;
+  }
 };

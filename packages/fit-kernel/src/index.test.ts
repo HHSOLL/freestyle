@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildFitKernelPreviewDeformationEnvelope,
   buildFitKernelPreviewFrameRequest,
   buildFitKernelPreviewResultEnvelope,
   createFitKernelPreviewFrameState,
   defaultFitKernelBufferTransport,
   defaultFitKernelExecutionMode,
+  defaultFitKernelPreviewDeformationTransferMode,
   defaultFitKernelPreviewEngineKind,
   detectFitKernelPreviewFeatures,
   fitKernelBufferTransports,
+  fitKernelPreviewDeformationTransferModes,
   fitKernelExecutionModes,
   fitKernelPreviewEngineKinds,
   fitKernelPreviewEngineStatuses,
+  isFitKernelPreviewDeformationEnvelope,
   isFitKernelPreviewResultEnvelope,
   resolveFitKernelBufferTransport,
   resolveFitKernelPreviewEngineStatus,
@@ -31,7 +35,14 @@ test("fit-kernel exposes canonical execution modes and transports", () => {
   ]);
   assert.equal(defaultFitKernelExecutionMode, "reduced-preview");
   assert.equal(defaultFitKernelBufferTransport, "transferable-array-buffer");
+  assert.equal(
+    defaultFitKernelPreviewDeformationTransferMode,
+    "secondary-motion-transform",
+  );
   assert.equal(defaultFitKernelPreviewEngineKind, "reduced-preview-compat");
+  assert.deepEqual(fitKernelPreviewDeformationTransferModes, [
+    "secondary-motion-transform",
+  ]);
   assert.deepEqual(fitKernelPreviewEngineKinds, [
     "static-fit-compat",
     "reduced-preview-compat",
@@ -206,6 +217,10 @@ test("fit-kernel builds reduced preview metrics and result envelopes from steppe
     result,
     solveDurationMs: 0.42,
   });
+  const deformationEnvelope = buildFitKernelPreviewDeformationEnvelope({
+    garmentId: "starter-top-soft-casual",
+    result,
+  });
 
   assert.equal(result.state.initialized, true);
   assert.equal(envelope.type, "PREVIEW_FRAME_RESULT");
@@ -214,6 +229,13 @@ test("fit-kernel builds reduced preview metrics and result envelopes from steppe
   assert.equal(envelope.metrics.solveDurationMs, 0.42);
   assert.equal(envelope.metrics.shouldContinue, result.shouldContinue);
   assert.equal(isFitKernelPreviewResultEnvelope(envelope), true);
+  assert.equal(isFitKernelPreviewDeformationEnvelope(deformationEnvelope), true);
   assert.equal(isFitKernelPreviewResultEnvelope(result), false);
+  assert.equal(
+    deformationEnvelope.deformation.transferMode,
+    "secondary-motion-transform",
+  );
+  assert.equal(deformationEnvelope.deformation.garmentId, "starter-top-soft-casual");
+  assert.equal(deformationEnvelope.deformation.settled, false);
   assert.notDeepEqual(result.rotationRad, [0, 0, 0]);
 });

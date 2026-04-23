@@ -51,6 +51,9 @@ import {
   type ReferenceClosetStagePreviewResultEnvelope,
 } from "./reference-closet-stage-preview-simulation.js";
 import {
+  buildRuntimePreviewWorkerSetupMessages,
+} from "./preview-session-bridge.js";
+import {
   getAdaptiveCollisionClearanceMultiplier,
   getAdaptiveGarmentAdjustment,
   getFitVisualCue,
@@ -676,6 +679,29 @@ function applyPreviewFrameResult(
   motionTarget.position.set(result.position[0], result.position[1], result.position[2]);
 }
 
+function applyPreviewDeformation(
+  motionTarget: THREE.Group | null,
+  deformation: {
+    rotationRad: [number, number, number];
+    position: [number, number, number];
+  },
+) {
+  if (!motionTarget) {
+    return;
+  }
+
+  motionTarget.rotation.set(
+    deformation.rotationRad[0],
+    deformation.rotationRad[1],
+    deformation.rotationRad[2],
+  );
+  motionTarget.position.set(
+    deformation.position[0],
+    deformation.position[1],
+    deformation.position[2],
+  );
+}
+
 function applySceneFit(
   wrapperRef: React.RefObject<THREE.Group | null>,
   fitInfo: { height: number; centerX: number; centerZ: number; minY: number },
@@ -906,6 +932,15 @@ function BoundGarment({
     const worker = new Worker("/workers/reference-closet-stage-preview.worker.js");
     previewWorkerRef.current = worker;
 
+    const previewWorkerSetup = buildRuntimePreviewWorkerSetupMessages({
+      avatarVariantId,
+      bodyProfile,
+      item,
+    });
+    previewWorkerSetup.messages.forEach((message) => {
+      worker.postMessage(message);
+    });
+
     const flushQueuedRequest = () => {
       if (!previewWorkerRef.current || previewWorkerPendingRef.current) {
         return;
@@ -916,20 +951,54 @@ function BoundGarment({
       }
       queuedPreviewRequestRef.current = null;
       previewWorkerPendingRef.current = true;
-      previewWorkerRef.current.postMessage(nextRequest);
+      previewWorkerRef.current.postMessage({
+        type: "SOLVE_PREVIEW",
+        garmentId: item.id,
+        frame: nextRequest,
+      });
     };
 
     worker.onmessage = (
       event: MessageEvent<
-        ReferenceClosetStagePreviewFrameResult | ReferenceClosetStagePreviewResultEnvelope
+        | ReferenceClosetStagePreviewFrameResult
+        | ReferenceClosetStagePreviewResultEnvelope
+        | {
+            type: "PREVIEW_DEFORMATION";
+            deformation: {
+              garmentId: string;
+              sessionId: string;
+              sequence: number;
+              settled: boolean;
+              rotationRad: [number, number, number];
+              position: [number, number, number];
+            };
+          }
       >,
     ) => {
       const payload = event.data;
+      if (payload && typeof payload === "object" && "type" in payload && payload.type === "PREVIEW_DEFORMATION") {
+        previewWorkerPendingRef.current = false;
+        if (
+          !payload.deformation ||
+          payload.deformation.garmentId !== item.id ||
+          payload.deformation.sessionId !== String(previewSessionRef.current)
+        ) {
+          flushQueuedRequest();
+          return;
+        }
+        applyPreviewDeformation(motionRef.current, payload.deformation);
+        if (!payload.deformation.settled) {
+          invalidate();
+        }
+        flushQueuedRequest();
+        return;
+      }
+
       const result = isReferenceClosetStagePreviewResultEnvelope(payload)
         ? payload.result
         : payload;
-      previewWorkerPendingRef.current = false;
       if (!result || result.sessionId !== String(previewSessionRef.current)) {
+        previewWorkerPendingRef.current = false;
         flushQueuedRequest();
         return;
       }
@@ -939,11 +1008,6 @@ function BoundGarment({
         }),
       );
       motionStateRef.current = result.state;
-      applyPreviewFrameResult(motionRef.current, result);
-      if (result.shouldContinue) {
-        invalidate();
-      }
-      flushQueuedRequest();
     };
 
     worker.onerror = (error) => {
@@ -975,8 +1039,11 @@ function BoundGarment({
       }
     };
   }, [
+    avatarVariantId,
+    bodyProfile,
     effectivePreviewBackend,
     invalidate,
+    item,
     previewFeatureSnapshot,
     publishPreviewEngineStatus,
     publishPreviewRuntimeSnapshot,
@@ -1141,7 +1208,11 @@ function BoundGarment({
         queuedPreviewRequestRef.current = null;
         if (nextRequest) {
           previewWorkerPendingRef.current = true;
-          previewWorkerRef.current.postMessage(nextRequest);
+          previewWorkerRef.current.postMessage({
+            type: "SOLVE_PREVIEW",
+            garmentId: item.id,
+            frame: nextRequest,
+          });
         }
       }
       return;
@@ -1431,6 +1502,15 @@ export function ReferenceClosetStageCanvas({
       ),
     [previewBackend, previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
   );
+  const basePreviewRuntimeSnapshot = useMemo(
+    () =>
+      createPreviewRuntimeSnapshot({
+        sessionId: "compat-preview-bootstrap",
+        sequence: 0,
+        backend: previewBackend,
+      }),
+    [previewBackend],
+  );
 
   const handlePreviewRuntimeSnapshot = useCallback((snapshot: PreviewRuntimeSnapshot) => {
     const previousSnapshot = lastPreviewRuntimeSnapshotRef.current;
@@ -1483,6 +1563,10 @@ export function ReferenceClosetStageCanvas({
     lastPreviewRuntimeSnapshotRef.current = null;
     applyPreviewRuntimeSnapshotDataAttributes(previewRuntimeRootRef.current, null);
   }, [avatarVariantId, bodyProfile, equippedGarments, poseId, qualityTier, selectedItemId]);
+
+  useEffect(() => {
+    handlePreviewRuntimeSnapshot(basePreviewRuntimeSnapshot);
+  }, [basePreviewRuntimeSnapshot, handlePreviewRuntimeSnapshot]);
 
   useEffect(() => {
     handlePreviewEngineStatus(basePreviewEngineStatus);

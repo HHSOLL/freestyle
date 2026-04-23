@@ -17,9 +17,29 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-23
+- 2026-04-24
 
 ## 점검 로그
+### 2026-04-24
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Three.js official docs:
+    - `https://threejs.org/docs/pages/GLTFLoader.html`
+    - `https://threejs.org/docs/pages/KTX2Loader.html`
+  - MDN official docs:
+    - `https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated`
+- 신규 변화 요약:
+  - `Pulse`는 오늘도 현재 인증 환경에서 접근되지 않았다.
+  - Three.js 공식 문서는 여전히 shared loader registry, `KTX2Loader.detectSupport(renderer)`, decoder reuse, explicit `dispose()` 정리를 권장한다.
+  - MDN 공식 문서는 `SharedArrayBuffer` fast path가 필요한 경우 `crossOriginIsolated`와 `COOP/COEP` 전제를 계속 요구한다.
+- 우리 프로젝트 영향:
+  - 오늘 배치는 새로운 외부 아이디어를 도입하기보다, 이미 고정된 preview worker protocol / same-origin worker / `Transferable ArrayBuffer default` 방향을 그대로 유지하는 것이 맞다.
+  - `Phase 7` closeout 문서에는 browser WASM cloth truth를 과장하지 않고, compatibility preview session seam까지만 완료 범위를 적는 편이 맞다.
+- 적용 여부:
+  - 코드/문서 반영 완료:
+    - `docs/TECH_WATCH.md`
+
 ### 2026-04-23
 - 확인 소스:
   - `ChatGPT Pulse`

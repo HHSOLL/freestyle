@@ -254,7 +254,8 @@ As of `2026-04-20`:
   - `packages/viewer-protocol` now adds `previewRuntimeSnapshotSchema`, and `packages/runtime-3d/src/preview-runtime-snapshot.ts` maps both raw frame results and typed worker envelopes into one read-only compatibility snapshot
   - `ReferenceClosetStageCanvas` now exposes `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` browser events for debug/telemetry evidence without widening `/v1` payloads
   - the same compatibility surface now also exposes `previewEngineStatusSchema`, `data-preview-engine-*` attrs, and `fit:preview-engine-status`, so operational fallback reasons stay explicit when the active path is still `static-fit-compat` or `reduced-preview-compat`
-  - this is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth
+  - the same worker path now also uses the typed preview session protocol for body-signature, collision-body, fit-mesh, and material-physics bootstrap, and emits a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary-motion transfer
+  - this closes the current compatibility preview path, but it is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth or fit-mesh vertex deformation
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

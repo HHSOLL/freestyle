@@ -135,7 +135,7 @@ The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-p
 The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform/phase6/batch3.md`.
 The admin-side starter-coverage triage slice is `docs/freestyle-viewer-platform/phase6/batch4.md`.
 Phase 6 closeout evidence for the garment certification seam lives at `docs/freestyle-viewer-platform/phase6/closeout.md`.
-Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md`, widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`, and now includes the explicit preview-engine/fallback seam in `docs/freestyle-viewer-platform/phase7/batch3.md`.
+Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md`, widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`, adds the explicit preview-engine/fallback seam in `docs/freestyle-viewer-platform/phase7/batch3.md`, and closes the compatibility preview session seam in `docs/freestyle-viewer-platform/phase7/batch4.md`. The phase closeout lives at `docs/freestyle-viewer-platform/phase7/closeout.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -226,6 +226,8 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - preview worker transport names now track the `fit-kernel` tuple through `packages/viewer-protocol`; do not define another `"transferable-array-buffer" | "shared-array-buffer"` union in downstream packages
 - keep the preview runtime snapshot contract in `@freestyle/viewer-protocol`; compatibility surfaces may expose it through DOM attrs or browser events, but should not invent ad-hoc payload shapes
 - keep preview-engine status in `@freestyle/viewer-protocol` too; compatibility surfaces may expose it through `data-preview-engine-*` attrs or `fit:preview-engine-status`, but should not invent a second fallback/status payload shape
+- keep preview worker setup messages in `@freestyle/viewer-protocol`; compatibility runtimes may derive inline body, collision, fit-mesh, and material payloads, but should not invent a second command surface outside the typed preview worker protocol
+- keep `PREVIEW_DEFORMATION` as the compatibility transfer seam until a later phase ships authoritative cloth buffers; do not relabel transform-only secondary motion as cloth vertex deformation
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
 - keep starter certification inspection on `/v1/admin/garment-certifications*`; do not widen `/v1/closet/runtime-garments` with authoring or certification evidence
@@ -284,6 +286,7 @@ Rules:
 - keep `closet-stage.tsx` focused on scene logic; view/light/canvas ownership belongs in `reference-closet-stage-view.tsx`, while fit-driven adaptive adjustment belongs in `reference-closet-stage-sim-adapter.ts`
 - keep reduced preview backend selection in `reference-closet-stage-preview-simulation.ts`, but keep the shared reduced-preview frame stepping and metrics contract in `@freestyle/fit-kernel`; `closet-stage.tsx` may orchestrate the active backend, but it should not re-declare spring/invalidation math inline again
 - if the runtime-3d compatibility host exposes preview execution evidence, use `preview-runtime-snapshot.ts` plus `fit:preview-runtime-updated`; do not widen `/v1` routes or mutate admin draft payloads just to surface that debug state
+- if the compatibility host bootstraps preview worker inputs, build them through `preview-session-bridge.ts` from committed runtime metadata instead of stage-local ad-hoc objects
 - preserve quality tiers: `low`, `balanced`, `high`
 - keep asset budgets explicit
 - handle load failure with UI fallbacks, not silent crashes

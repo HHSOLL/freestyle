@@ -8,6 +8,7 @@ export const fitKernelBufferTransports = [
   "shared-array-buffer",
 ] as const;
 export const fitKernelPreviewFrameSchemaVersion = "preview-simulation-frame.v1";
+export const fitKernelPreviewDeformationSchemaVersion = "preview-deformation.v1";
 export const fitKernelPreviewBackendIds = [
   "static-fit",
   "cpu-reduced",
@@ -15,6 +16,9 @@ export const fitKernelPreviewBackendIds = [
   "experimental-webgpu",
 ] as const;
 export const fitKernelPreviewSolverKinds = ["reduced-preview-spring"] as const;
+export const fitKernelPreviewDeformationTransferModes = [
+  "secondary-motion-transform",
+] as const;
 export const fitKernelPreviewEngineKinds = [
   "static-fit-compat",
   "reduced-preview-compat",
@@ -34,6 +38,8 @@ export type FitKernelExecutionMode = (typeof fitKernelExecutionModes)[number];
 export type FitKernelBufferTransport = (typeof fitKernelBufferTransports)[number];
 export type FitKernelPreviewBackendId = (typeof fitKernelPreviewBackendIds)[number];
 export type FitKernelPreviewSolverKind = (typeof fitKernelPreviewSolverKinds)[number];
+export type FitKernelPreviewDeformationTransferMode =
+  (typeof fitKernelPreviewDeformationTransferModes)[number];
 export type FitKernelPreviewEngineKind = (typeof fitKernelPreviewEngineKinds)[number];
 export type FitKernelPreviewEngineStatusKind = (typeof fitKernelPreviewEngineStatuses)[number];
 export type FitKernelPreviewEngineTransport = (typeof fitKernelPreviewEngineTransports)[number];
@@ -136,6 +142,24 @@ export type FitKernelPreviewResultEnvelope = {
   metrics: FitKernelPreviewMetrics;
 };
 
+export type FitKernelPreviewDeformation = {
+  schemaVersion: typeof fitKernelPreviewDeformationSchemaVersion;
+  garmentId: string;
+  sessionId: string;
+  sequence: number;
+  backend: FitKernelPreviewBackendId;
+  executionMode: FitKernelExecutionMode;
+  transferMode: FitKernelPreviewDeformationTransferMode;
+  rotationRad: FitKernelPreviewVector3;
+  position: FitKernelPreviewVector3;
+  settled: boolean;
+};
+
+export type FitKernelPreviewDeformationEnvelope = {
+  type: "PREVIEW_DEFORMATION";
+  deformation: FitKernelPreviewDeformation;
+};
+
 type FitKernelFeatureEnv = Partial<{
   Worker: unknown;
   OffscreenCanvas: unknown;
@@ -149,6 +173,8 @@ export const defaultFitKernelExecutionMode: FitKernelExecutionMode = "reduced-pr
 export const defaultFitKernelBufferTransport: FitKernelBufferTransport = "transferable-array-buffer";
 export const defaultFitKernelPreviewSolverKind: FitKernelPreviewSolverKind =
   "reduced-preview-spring";
+export const defaultFitKernelPreviewDeformationTransferMode: FitKernelPreviewDeformationTransferMode =
+  "secondary-motion-transform";
 export const defaultFitKernelPreviewEngineKind: FitKernelPreviewEngineKind =
   "reduced-preview-compat";
 
@@ -404,6 +430,33 @@ export const buildFitKernelPreviewResultEnvelope = (input: {
   metrics: summarizeFitKernelPreviewMetrics(input),
 });
 
+export const buildFitKernelPreviewDeformation = (input: {
+  garmentId: string;
+  result: FitKernelPreviewFrameResult;
+  executionMode?: FitKernelExecutionMode;
+}): FitKernelPreviewDeformation => ({
+  schemaVersion: fitKernelPreviewDeformationSchemaVersion,
+  garmentId: input.garmentId,
+  sessionId: input.result.sessionId,
+  sequence: input.result.sequence,
+  backend: input.result.backend,
+  executionMode:
+    input.executionMode ?? resolveFitKernelExecutionMode({ backend: input.result.backend }),
+  transferMode: defaultFitKernelPreviewDeformationTransferMode,
+  rotationRad: [...input.result.rotationRad],
+  position: [...input.result.position],
+  settled: !input.result.shouldContinue,
+});
+
+export const buildFitKernelPreviewDeformationEnvelope = (input: {
+  garmentId: string;
+  result: FitKernelPreviewFrameResult;
+  executionMode?: FitKernelExecutionMode;
+}): FitKernelPreviewDeformationEnvelope => ({
+  type: "PREVIEW_DEFORMATION",
+  deformation: buildFitKernelPreviewDeformation(input),
+});
+
 export const resolveFitKernelPreviewEngineStatus = (input: {
   backend: FitKernelPreviewBackendId;
   featureSnapshot: FitKernelPreviewFeatureSnapshot;
@@ -519,4 +572,15 @@ export const isFitKernelPreviewResultEnvelope = (
       value.type === "PREVIEW_FRAME_RESULT" &&
       "result" in value &&
       "metrics" in value,
+  );
+
+export const isFitKernelPreviewDeformationEnvelope = (
+  value: unknown,
+): value is FitKernelPreviewDeformationEnvelope =>
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      "type" in value &&
+      value.type === "PREVIEW_DEFORMATION" &&
+      "deformation" in value,
   );

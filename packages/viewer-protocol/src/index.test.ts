@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fitArtifactCacheKeyPartsSchema,
+  previewDeformationResultEnvelopeSchema,
   previewEngineStatusSchema,
   previewFrameMetricsSchema,
   previewRuntimeSnapshotSchema,
@@ -178,6 +179,137 @@ test("preview worker result envelope keeps reduced-preview metrics explicit", ()
   const metrics = previewFrameMetricsSchema.parse(parsed.metrics);
   assert.equal(parsed.type, "PREVIEW_FRAME_RESULT");
   assert.equal(metrics.executionMode, "reduced-preview");
+});
+
+test("preview worker protocol accepts inline body collision, fit mesh, and material inputs", () => {
+  const collision = previewWorkerMessageSchema.parse({
+    type: "SET_COLLISION_BODY",
+    collisionBody: {
+      schemaVersion: "preview-body-collision.v1",
+      avatarId: "female-base",
+      bodySignatureHash: "bodyhash",
+      colliders: [
+        {
+          id: "torso",
+          zone: "torso",
+          kind: "capsule",
+          radiusCm: 14,
+          halfHeightCm: 24,
+          anchorId: "chestCenter",
+        },
+      ],
+    },
+  });
+  const fitMesh = previewWorkerMessageSchema.parse({
+    type: "SET_GARMENT_FIT_MESH",
+    garmentId: "starter-top-soft-casual",
+    fitMesh: {
+      schemaVersion: "garment-sim-proxy.v1",
+      intendedUse: "solver-authoring",
+      runtimeStarterId: "starter-top-soft-casual",
+      category: "tops",
+      proxyStrategy: "decimated-runtime-mesh",
+      meshRelativePathByVariant: {
+        "female-base": "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+      },
+      triangleBudget: 3200,
+      pinnedAnchorIds: ["leftShoulder", "rightShoulder", "chestCenter"],
+      selfCollision: true,
+    },
+  });
+  const material = previewWorkerMessageSchema.parse({
+    type: "SET_MATERIAL_PHYSICS",
+    garmentId: "starter-top-soft-casual",
+    materialProfile: {
+      schemaVersion: "garment-material-profile.v1",
+      intendedUse: "solver-authoring",
+      runtimeStarterId: "starter-top-soft-casual",
+      category: "tops",
+      materialPresetId: "runtime-compat-tops",
+      fabricFamily: "knit",
+      stretchProfile: "medium",
+      thicknessMm: 1.1,
+      arealDensityGsm: 180,
+      solver: {
+        warpStretchRatio: 0.18,
+        weftStretchRatio: 0.2,
+        biasStretchRatio: 0.24,
+        bendStiffness: 18,
+        shearStiffness: 22,
+        damping: 0.92,
+        friction: 0.55,
+      },
+    },
+  });
+
+  assert.equal(collision.type, "SET_COLLISION_BODY");
+  assert.equal(fitMesh.type, "SET_GARMENT_FIT_MESH");
+  assert.equal(material.type, "SET_MATERIAL_PHYSICS");
+});
+
+test("preview worker protocol preserves solve requests and deformation envelopes", () => {
+  const solve = previewWorkerMessageSchema.parse({
+    type: "SOLVE_PREVIEW",
+    garmentId: "starter-top-soft-casual",
+    frame: {
+      schemaVersion: "preview-simulation-frame.v1",
+      sessionId: "preview-session",
+      sequence: 3,
+      backend: "worker-reduced",
+      elapsedTimeSeconds: 1 / 60,
+      deltaSeconds: 1 / 60,
+      featureSnapshot: {
+        hasWorker: true,
+        hasOffscreenCanvas: false,
+        hasWebGPU: false,
+        crossOriginIsolated: false,
+      },
+      currentAnchorWorld: [0, 1.4, 0],
+      state: {
+        initialized: true,
+        lastAnchorWorld: [0, 1.4, 0],
+        rotationRad: [0, 0, 0],
+        rotationVelocity: [0, 0, 0],
+        positionOffset: [0, 0, 0],
+        positionVelocity: [0, 0, 0],
+      },
+      config: {
+        profileId: "garment-loose",
+        stiffness: 7.5,
+        damping: 3.1,
+        influence: 0.9,
+        looseness: 1.08,
+        scaleCompensation: 1,
+        maxYawDeg: 16,
+        maxPitchDeg: 12,
+        maxRollDeg: 8,
+        idleAmplitudeDeg: 0.4,
+        idleFrequencyHz: 0.9,
+        verticalBobCm: 1.2,
+        lateralSwingCm: 1.6,
+        baseOffsetY: 0.03,
+      },
+    },
+  });
+  const deformation = previewDeformationResultEnvelopeSchema.parse({
+    type: "PREVIEW_DEFORMATION",
+    deformation: {
+      schemaVersion: "preview-deformation.v1",
+      garmentId: "starter-top-soft-casual",
+      sessionId: "preview-session",
+      sequence: 3,
+      backend: "worker-reduced",
+      executionMode: "reduced-preview",
+      transferMode: "secondary-motion-transform",
+      rotationRad: [0.01, 0.02, 0.03],
+      position: [0.001, 0.032, 0],
+      settled: false,
+    },
+  });
+
+  assert.equal(solve.type, "SOLVE_PREVIEW");
+  assert.equal(deformation.type, "PREVIEW_DEFORMATION");
+  assert.equal(deformation.deformation.transferMode, "secondary-motion-transform");
 });
 
 test("viewer event envelope preserves preview runtime snapshots as read-only evidence", () => {

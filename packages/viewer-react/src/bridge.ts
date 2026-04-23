@@ -5,7 +5,12 @@ import type {
   BodyProfile,
   RuntimeGarmentAsset,
 } from "@freestyle/shared-types";
-import type { ApplyGarmentsInput, FreestyleViewerSceneInput, LoadAvatarInput } from "@freestyle/viewer-core";
+import type {
+  ApplyGarmentsInput,
+  FreestyleViewerSceneInput,
+  LoadAvatarInput,
+  ViewerCameraPreset,
+} from "@freestyle/viewer-core";
 
 export const buildViewerAvatarInput = ({
   avatarVariantId,
@@ -29,7 +34,7 @@ export const buildViewerGarmentsInput = (equippedGarments: RuntimeGarmentAsset[]
     size: item.metadata?.selectedSizeLabel,
   }));
 
-export const resolveViewerCameraPreset = (poseId: AvatarPoseId) => {
+export const resolveViewerCameraPreset = (poseId: AvatarPoseId): ViewerCameraPreset => {
   switch (poseId) {
     case "stride":
       return "full-body-three-quarter";

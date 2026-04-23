@@ -26,6 +26,7 @@
 - `/app/community`
 - `/app/profile`
 - `/app/lab`
+- `/app/lab/viewer-platform`
 - `/auth/callback`
 - `/share/[slug]`
 

@@ -24,6 +24,11 @@ export type FreestyleViewerEventMap = {
 type ViewerEventName = keyof FreestyleViewerEventMap;
 type ViewerListener<TName extends ViewerEventName> = (event: FreestyleViewerEventMap[TName]) => void;
 
+export type ViewerCameraPreset =
+  | "full-body-front"
+  | "full-body-three-quarter"
+  | "full-body-front-tight";
+
 export type LoadAvatarInput = {
   avatarId: string;
   bodySignature?: string;
@@ -38,7 +43,7 @@ export type ApplyGarmentsInput = Array<{
 export type FreestyleViewerSceneInput = {
   avatar: LoadAvatarInput;
   garments: ApplyGarmentsInput;
-  cameraPreset: string;
+  cameraPreset: ViewerCameraPreset;
   qualityMode: "low" | "balanced" | "high";
   selectedItemId?: string | null;
   backgroundColor?: string;
@@ -70,7 +75,7 @@ export interface FreestyleViewer {
   setScene(input: FreestyleViewerSceneInput): Promise<void>;
   setViewport(input: FreestyleViewerViewportInput): void;
   invalidate(reason?: string): void;
-  setCameraPreset(preset: string): void;
+  setCameraPreset(preset: ViewerCameraPreset): void;
   setQualityMode(mode: "low" | "balanced" | "high"): void;
   requestHighQualityFit(): Promise<void>;
   on<TName extends ViewerEventName>(eventName: TName, listener: ViewerListener<TName>): () => void;
@@ -96,6 +101,7 @@ export class FreestyleViewerController implements FreestyleViewer {
 
   async loadAvatar(input: LoadAvatarInput) {
     this.assertActive();
+    this.rendererRuntime.syncAvatar(input);
     this.emit("metrics", {
       name: "viewer.avatar.load.requested",
       tags: { avatarId: input.avatarId },
@@ -106,6 +112,7 @@ export class FreestyleViewerController implements FreestyleViewer {
   async applyGarments(input: ApplyGarmentsInput) {
     this.assertActive();
     this.garments = input;
+    this.rendererRuntime.syncGarments(input, this.scene?.selectedItemId);
     this.emit("fit:preview-ready", {
       garments: input,
       source: "static-fit",
@@ -149,13 +156,13 @@ export class FreestyleViewerController implements FreestyleViewer {
     this.rendererRuntime.invalidate(reason);
   }
 
-  setCameraPreset(preset: string) {
+  setCameraPreset(preset: ViewerCameraPreset) {
     this.assertActive();
+    this.rendererRuntime.setCameraPreset(preset);
     this.emit("metrics", {
       name: "viewer.camera.preset",
       tags: { preset },
     });
-    this.rendererRuntime.invalidate("camera-preset");
   }
 
   setQualityMode(mode: "low" | "balanced" | "high") {

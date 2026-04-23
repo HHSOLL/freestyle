@@ -10,6 +10,12 @@ export {
   type RenderSchedulerAdapter,
 } from "./render-scheduler.js";
 export {
+  inferProxyGarmentKind,
+  resolveProxyCameraOrbit,
+  ViewerProxyStage,
+  type ViewerProxyGarmentKind,
+} from "./proxy-stage.js";
+export {
   createViewerRendererRuntime,
   type ViewerRendererBackend,
   type ViewerRendererFactory,
@@ -21,6 +27,7 @@ export {
   type ApplyGarmentsInput,
   type CreateFreestyleViewerOptions,
   type FreestyleViewer,
+  type ViewerCameraPreset,
   type FreestyleViewerEventMap,
   type FreestyleViewerSceneInput,
   type FreestyleViewerViewportInput,

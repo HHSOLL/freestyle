@@ -5,7 +5,14 @@ import {
   type ColorRepresentation,
 } from "three";
 import { createSharedLoaderRegistry } from "./loader-registry.js";
-import type { CreateFreestyleViewerOptions, FreestyleViewerViewportInput } from "./FreestyleViewer.js";
+import { ViewerProxyStage } from "./proxy-stage.js";
+import type {
+  ApplyGarmentsInput,
+  CreateFreestyleViewerOptions,
+  FreestyleViewerViewportInput,
+  LoadAvatarInput,
+  ViewerCameraPreset,
+} from "./FreestyleViewer.js";
 import { createRenderScheduler, type RenderSchedulerAdapter } from "./render-scheduler.js";
 
 export type ViewerRendererBackend = "webgl2" | "webgpu" | "noop";
@@ -25,6 +32,9 @@ export type ViewerRendererRuntime = {
   getMetrics: () => ViewerRendererMetrics;
   invalidate: (reason?: string) => void;
   renderNow: (reason?: string) => void;
+  syncAvatar: (input: LoadAvatarInput) => void;
+  syncGarments: (garments: ApplyGarmentsInput, selectedItemId?: string | null) => void;
+  setCameraPreset: (preset: ViewerCameraPreset) => void;
   setViewport: (viewport: FreestyleViewerViewportInput) => void;
   setBackgroundColor: (color?: string) => void;
   syncQualityMode: (mode: "low" | "balanced" | "high") => void;
@@ -85,6 +95,15 @@ const createNoopViewerRendererRuntime = (): ViewerRendererRuntime => {
       metrics.renderCount += 1;
       metrics.lastRenderReason = reason;
     },
+    syncAvatar() {
+      return;
+    },
+    syncGarments() {
+      return;
+    },
+    setCameraPreset() {
+      return;
+    },
     setViewport(viewport) {
       metrics.width = viewport.widthCssPx;
       metrics.height = viewport.heightCssPx;
@@ -131,6 +150,7 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
   };
 
   let disposed = false;
+  let contextLost = false;
   let qualityMode: "low" | "balanced" | "high" = "balanced";
   let backgroundColor: ColorRepresentation = qualityTierBackdrop.balanced;
   let viewport: FreestyleViewerViewportInput | null = null;
@@ -157,16 +177,24 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
   };
 
   const renderFrame = (reason: string) => {
-    if (disposed) {
+    if (disposed || contextLost) {
       return;
     }
 
     resizeRendererToCanvas();
     renderer.setClearColor(backgroundColor, 1);
     renderer.clear(true, true, true);
+    proxyStage.render(renderer);
     metrics.renderCount += 1;
     metrics.lastRenderReason = reason;
   };
+
+  const proxyStage = new ViewerProxyStage({
+    canvas,
+    requestRender(reason) {
+      scheduler.invalidate(reason);
+    },
+  });
 
   const scheduler = createRenderScheduler(
     (frame) => {
@@ -177,11 +205,12 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
 
   const handleContextLost = (event: Event) => {
     event.preventDefault();
-    scheduler.dispose();
+    contextLost = true;
   };
 
   const handleContextRestored = () => {
-    runtime.invalidate("context-restored");
+    contextLost = false;
+    scheduler.invalidate("context-restored");
   };
 
   canvas.addEventListener("webglcontextlost", handleContextLost);
@@ -198,12 +227,26 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
     renderNow(reason = "viewer.render-now") {
       scheduler.flush(reason);
     },
+    syncAvatar(input) {
+      proxyStage.syncAvatar(input);
+      scheduler.invalidate("avatar-sync");
+    },
+    syncGarments(garments, selectedItemId) {
+      proxyStage.syncGarments(garments, selectedItemId);
+      scheduler.invalidate("garment-sync");
+    },
+    setCameraPreset(preset) {
+      proxyStage.setCameraPreset(preset);
+      scheduler.invalidate("camera-preset");
+    },
     setViewport(nextViewport) {
       viewport = nextViewport;
+      proxyStage.setViewport(nextViewport);
       scheduler.invalidate("viewport");
     },
     setBackgroundColor(color) {
       backgroundColor = color ?? qualityTierBackdrop[qualityMode];
+      proxyStage.setBackgroundColor(typeof backgroundColor === "string" ? backgroundColor : undefined);
       scheduler.invalidate("background-color");
     },
     syncQualityMode(mode) {
@@ -211,6 +254,8 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
       if (!backgroundColor || backgroundColor === qualityTierBackdrop.low || backgroundColor === qualityTierBackdrop.balanced || backgroundColor === qualityTierBackdrop.high) {
         backgroundColor = qualityTierBackdrop[mode];
       }
+      proxyStage.syncQualityMode(mode);
+      proxyStage.setBackgroundColor(typeof backgroundColor === "string" ? backgroundColor : undefined);
       scheduler.invalidate("quality-mode");
     },
     dispose() {
@@ -222,6 +267,7 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
       scheduler.dispose();
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
+      proxyStage.dispose();
       loaderRegistry.dispose();
       renderer.forceContextLoss?.();
       renderer.dispose();

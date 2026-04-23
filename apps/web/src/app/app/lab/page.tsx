@@ -1,9 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { Eyebrow, SurfacePanel } from "@freestyle/ui";
 import { useLanguage } from "@/lib/LanguageContext";
 
 const labSurfaces = [
+  {
+    id: "viewer-core-harness",
+    title: "viewer-core harness",
+    body: "A direct browser harness for the imperative viewer-core + viewer-react stack, isolated from the runtime-3d compatibility stage.",
+    href: "/app/lab/viewer-platform",
+  },
   {
     id: "legacy-import",
     title: "Import ingestion",
@@ -49,6 +56,14 @@ export default function LabPage() {
             <Eyebrow>{surface.id}</Eyebrow>
             <h2 className="text-[18px] font-semibold text-[#151b24]">{surface.title}</h2>
             <p className="text-[13px] leading-6 text-black/52">{surface.body}</p>
+            {surface.href ? (
+              <Link
+                href={surface.href}
+                className="inline-flex items-center rounded-full border border-black/10 bg-white/80 px-4 py-2 text-[13px] font-medium text-[#151b24]"
+              >
+                Open harness
+              </Link>
+            ) : null}
           </SurfacePanel>
         ))}
       </div>

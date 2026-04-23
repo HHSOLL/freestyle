@@ -44,6 +44,7 @@ The repository is now split into four runtime surfaces:
   - response header `x-freestyle-surface: lab`
 
 Main web surfaces should use product routes only. Admin is an operational publishing surface, not part of public product navigation. Legacy and lab are isolated on purpose.
+`/app/lab/viewer-platform` is now reserved for the Phase 1 browser harness that exercises `viewer-core + viewer-react` directly without making it a main product path.
 
 Current fit-specific contract split:
 

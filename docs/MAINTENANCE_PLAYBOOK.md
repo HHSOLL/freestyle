@@ -28,6 +28,7 @@
 - `/app/profile`
 - `/app/lab`
 - `/app/lab/viewer-platform`
+- `/app/lab/material-system`
 - `/auth/callback`
 - `/share/[slug]`
 
@@ -37,6 +38,7 @@ If approval-state or fit-quality contract enforcement changes, also update `docs
 If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD` coverage, or asset budget reporting changes, also update the relevant note under `docs/freestyle-viewer-platform/phase3/` in the same PR. If the batch claims to close or reopen the phase, update `docs/freestyle-viewer-platform/phase3/closeout.md` too.
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
+If compatibility-stage lighting, material calibration, or the Phase 4 lab harness changes, also update `docs/freestyle-viewer-platform/phase4/closeout.md` and `docs/material-contract.md` in the same PR.
 
 ### Redirect smoke
 
@@ -129,6 +131,9 @@ Verify these after any mannequin or asset change:
 - garment and hair quality-tier path resolution continue to agree with preload on the same effective asset path for the default promoted closet loadout
 - active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
 - optimized runtime GLBs stay within explicit avatar / garment / hair / default-loadout budgets
+- `/app/lab/material-system` still mounts a visible canvas and responds to `quality tier` plus `lighting mode` switches
+- compatibility-stage studio lighting still routes through one shared rig spec instead of drifting back to duplicated inline scene literals
+- compatibility-stage material tuning still routes through `packages/runtime-3d/src/material-system.ts` instead of regressing to ad-hoc per-file heuristics
 
 If any of the above regress, stop the release.
 

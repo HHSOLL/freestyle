@@ -25,6 +25,8 @@ const eslintConfig = defineConfig([
     "**/dist/**",
     "next-env.d.ts",
     "v18/**",
+    "test-results/**",
+    "playwright-report/**",
     "apps/web/public/draco/**",
     "apps/web/public/basis/**",
     "tools/ktx-software/**",

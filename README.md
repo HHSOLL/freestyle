@@ -21,6 +21,7 @@ FreeStyle is now a mannequin-first wardrobe product. The main experience is no l
 `Fitting` is no longer a standalone surface. It now lives inside `Closet`, and `/app/fitting` only remains as a compatibility redirect to `/app/closet`.
 `/app/discover` still resolves, but only as a compatibility redirect to `/app/community`.
 `/app/lab` still exists, but it is quarantined as experimental. It is not part of the main product flow.
+`/app/lab/material-system` is now reserved for the Phase 4 material and lighting harness that verifies compatibility-stage studio lighting and material readability outside the main product flow.
 
 ## Product, Admin, Legacy, Lab
 
@@ -68,6 +69,7 @@ The shipped runtime now uses:
 - a repo-local KTX2 bootstrap seam via `npm run viewer:bootstrap:ktx-tools` plus representative committed runtime `.ktx2` textures under `apps/web/public/assets/viewer-manifests/**`
 - compatibility-stage KTX2 support priming against the live browser renderer before runtime asset hooks mount
 - selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
+- a Phase 4 compatibility-stage studio-lighting rig plus centralized runtime material calibration seam, with a dedicated `/app/lab/material-system` evidence route
 
 Preferred authoring policy is:
 
@@ -211,6 +213,7 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase3/batch2.md](docs/freestyle-viewer-platform/phase3/batch2.md)
 - [docs/freestyle-viewer-platform/phase3/batch3.md](docs/freestyle-viewer-platform/phase3/batch3.md)
 - [docs/freestyle-viewer-platform/phase3/closeout.md](docs/freestyle-viewer-platform/phase3/closeout.md)
+- [docs/freestyle-viewer-platform/phase4/closeout.md](docs/freestyle-viewer-platform/phase4/closeout.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

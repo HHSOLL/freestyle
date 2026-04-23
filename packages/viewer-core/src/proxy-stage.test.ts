@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  inferProxyGarmentKind,
-  resolveProxyCameraOrbit,
-  viewerProxyOrbitLimits,
-  viewerProxyPolarLimits,
-} from "./proxy-stage.js";
+import { MeshPhysicalMaterial } from "three";
+import { createViewerMaterial, resolveProxyMaterialClass } from "./material-system.js";
+import { inferProxyGarmentKind, resolveProxyCameraOrbit, viewerProxyOrbitLimits, viewerProxyPolarLimits } from "./proxy-stage.js";
 
 test("inferProxyGarmentKind classifies common starter garment ids", () => {
   assert.equal(inferProxyGarmentKind("starter-hair-long-wave"), "hair");
@@ -47,4 +44,20 @@ test("proxy control limits stay bounded for pointer orbit input", () => {
     min: 0.55,
     max: 1.45,
   });
+});
+
+test("resolveProxyMaterialClass separates hair, fabrics, and footwear families", () => {
+  assert.equal(resolveProxyMaterialClass("starter-hair-long-fall", "hair"), "hair");
+  assert.equal(resolveProxyMaterialClass("starter-bottom-denim-034", "bottom"), "denim");
+  assert.equal(resolveProxyMaterialClass("starter-top-knit-soft", "top"), "knit");
+  assert.equal(resolveProxyMaterialClass("starter-shoe-soft-day", "shoes"), "rubber");
+  assert.equal(resolveProxyMaterialClass("starter-boot-leather-city", "shoes"), "leather");
+});
+
+test("createViewerMaterial returns a physical material with highlighted finish support", () => {
+  const material = createViewerMaterial("leather", { highlighted: true });
+
+  assert.ok(material instanceof MeshPhysicalMaterial);
+  assert.ok(material.clearcoat > 0.2);
+  assert.ok(material.emissiveIntensity > 0);
 });

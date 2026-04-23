@@ -11,6 +11,14 @@ export {
   type RenderSchedulerAdapter,
 } from "./render-scheduler.js";
 export {
+  createViewerMaterial,
+  createViewerSkinMaterial,
+  resolveProxyMaterialClass,
+  viewerMaterialPresets,
+  type ViewerMaterialClass,
+  type ViewerMaterialPreset,
+} from "./material-system.js";
+export {
   inferProxyGarmentKind,
   resolveProxyCameraOrbit,
   ViewerProxyStage,

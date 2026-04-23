@@ -57,6 +57,13 @@ import {
   ReferenceClosetStageView,
   type ReferenceClosetStageOrbitControls,
 } from "./reference-closet-stage-view.js";
+import {
+  applyRuntimeMaterialCalibration,
+  isAlphaCardName,
+  isEyeLikeName,
+  isHairLikeName,
+  resolveRuntimeMaterialCalibration,
+} from "./material-system.js";
 import { disposeRuntimeOwnedMaterials, ensureRuntimeOwnedMaterials } from "./runtime-disposal.js";
 import { useRuntimeGLTF } from "./runtime-gltf-loader.js";
 
@@ -108,42 +115,6 @@ function isRenderableMesh(object: THREE.Object3D): object is THREE.Mesh | THREE.
 function isAvatarHelperMesh(object: THREE.Object3D) {
   const normalized = normalizeBoneName(object.name);
   return normalized === "icosphere" || normalized === "highpoly";
-}
-
-function isHairLikeName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return (
-    normalized.includes("hair") ||
-    normalized.includes("long01") ||
-    normalized.includes("short01") ||
-    normalized.includes("short02") ||
-    normalized.includes("short03") ||
-    normalized.includes("short04") ||
-    normalized.includes("bob01") ||
-    normalized.includes("bob02") ||
-    normalized.includes("braid01") ||
-    normalized.includes("ponytail01") ||
-    normalized.includes("afro01")
-  );
-}
-
-function isAlphaCardName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return (
-    isHairLikeName(name) ||
-    normalized.includes("eyebrow") ||
-    normalized.includes("eyelash") ||
-    normalized.includes("lash")
-  );
-}
-
-function isBodyLikeName(name: string) {
-  return normalizeBoneName(name).includes("body");
-}
-
-function isEyeLikeName(name: string) {
-  const normalized = normalizeBoneName(name);
-  return normalized.includes("eye") || normalized.includes("iris") || normalized.includes("pupil");
 }
 
 function aliasMapFromRoot(root: THREE.Object3D, patterns: Record<AliasKey, readonly string[]>): AliasMap {
@@ -483,76 +454,12 @@ function configureMaterials(root: THREE.Object3D, options: { avatarOnly?: boolea
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     materials.forEach((material) => {
       if (!material) return;
-      const alphaCard = isAlphaCardName(`${object.name}:${material.name}`);
-      const bodyLike = isBodyLikeName(`${object.name}:${material.name}`);
-      const eyeLike = isEyeLikeName(`${object.name}:${material.name}`);
-      const hairLike = isHairLikeName(`${object.name}:${material.name}`);
-      material.side = alphaCard ? THREE.DoubleSide : THREE.FrontSide;
-      const shadedMaterial = material as THREE.Material & {
-        map?: THREE.Texture | null;
-        color?: THREE.Color;
-        emissive?: THREE.Color;
-        emissiveIntensity?: number;
-        roughness?: number;
-        metalness?: number;
-        envMapIntensity?: number;
-        alphaTest?: number;
-      };
-      if (typeof shadedMaterial.roughness === "number") {
-        shadedMaterial.roughness = eyeLike
-          ? Math.min(0.08, shadedMaterial.roughness)
-          : bodyLike
-            ? Math.min(1, Math.max(avatarOnly ? 0.26 : 0.3, shadedMaterial.roughness))
-            : hairLike
-              ? Math.min(1, Math.max(0.18, shadedMaterial.roughness))
-            : alphaCard
-              ? Math.min(1, Math.max(0.42, shadedMaterial.roughness))
-              : Math.min(1, Math.max(0.34, shadedMaterial.roughness));
-      }
-      if (typeof shadedMaterial.metalness === "number") {
-        shadedMaterial.metalness = eyeLike ? Math.min(0.02, shadedMaterial.metalness) : Math.min(0.1, shadedMaterial.metalness);
-      }
-      if (typeof shadedMaterial.envMapIntensity === "number") {
-        shadedMaterial.envMapIntensity = eyeLike
-          ? 1.68
-          : bodyLike
-            ? avatarOnly
-              ? 1.12
-              : 0.92
-            : hairLike
-              ? 1.08
-              : alphaCard
-                ? 0.62
-                : 1.04;
-      }
-      if (shadedMaterial.color) {
-        if (bodyLike) {
-          shadedMaterial.color.offsetHSL(0.008, avatarOnly ? 0.038 : 0.02, avatarOnly ? 0.05 : 0.026);
-        } else if (hairLike) {
-          shadedMaterial.color.offsetHSL(0.006, 0.02, avatarOnly ? -0.008 : 0);
-        } else if (eyeLike) {
-          shadedMaterial.color.offsetHSL(0, 0.012, avatarOnly ? 0.022 : 0.012);
-        }
-      }
-      if (shadedMaterial.emissive) {
-        if (bodyLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#4b2f24");
-          shadedMaterial.emissiveIntensity = 0.012;
-        } else if (hairLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#241d1a");
-          shadedMaterial.emissiveIntensity = 0.008;
-        } else if (eyeLike && avatarOnly) {
-          shadedMaterial.emissive = new THREE.Color("#1f2530");
-          shadedMaterial.emissiveIntensity = 0.016;
-        }
-      }
-      material.transparent = alphaCard ? false : material.transparent;
-      material.depthWrite = true;
-      material.depthTest = true;
-      if (typeof shadedMaterial.alphaTest === "number") {
-        shadedMaterial.alphaTest = alphaCard ? 0.46 : 0;
-      }
-      material.needsUpdate = true;
+      const calibration = resolveRuntimeMaterialCalibration({
+        name: `${object.name}:${material.name}`,
+        avatarOnly,
+        qualityTier,
+      });
+      applyRuntimeMaterialCalibration(material, calibration);
     });
 
     const alphaCard = isAlphaCardName(object.name);
@@ -1411,7 +1318,7 @@ export function ReferenceClosetStageCanvas({
   );
 
   return (
-    <ReferenceClosetStageView scenePolicy={scenePolicy} qualityTier={qualityTier}>
+    <ReferenceClosetStageView scenePolicy={scenePolicy}>
       <Suspense fallback={<ClosetStageLoadingFallback />}>
         <SceneRig
           bodyProfile={bodyProfile}

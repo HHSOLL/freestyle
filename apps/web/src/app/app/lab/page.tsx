@@ -12,6 +12,12 @@ const labSurfaces = [
     href: "/app/lab/viewer-platform",
   },
   {
+    id: "material-system",
+    title: "Material system",
+    body: "An isolated Phase 4 harness for studio lighting and material-class preset readability.",
+    href: "/app/lab/material-system",
+  },
+  {
     id: "legacy-import",
     title: "Import ingestion",
     body: "URL import, cart import, and upload-based extraction remain available only as a quarantined ingestion surface.",

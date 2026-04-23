@@ -120,12 +120,14 @@ During the viewer-platform refactor, keep `packages/runtime-3d` as a compatibili
 `viewer-react` must stay thin: it may own product-facing host selection, preload delegation, viewport/support/retry lifecycle, translate product viewport props into a canonical scene payload, and own the controller lifecycle, but it must not rebuild renderer logic or reintroduce direct product-path imports from `runtime-3d/src/**`.
 `apps/web` should import `AvatarStageViewport` and `preloadViewerAssets` from `@freestyle/viewer-react`; product routes should not resolve host mode or import `@freestyle/runtime-3d` directly.
 The direct browser harness for `viewer-core` lives at `/app/lab/viewer-platform`; use it for Phase 1 manual verification before widening product cutover.
+The Phase 4 material/lighting harness lives at `/app/lab/material-system`; use it to verify compatibility-stage studio lighting and material-class readability without routing through the full product closet.
 Phase 1 closeout evidence for the viewer-platform refactor lives at `docs/freestyle-viewer-platform/phase1/closeout.md`.
 The Phase 0 baseline freeze for the new viewer-platform program lives under `docs/freestyle-viewer-platform/phase0/`. When you add real runtime telemetry or replace an existing baseline claim, update those files in the same PR.
 Phase 2 closeout evidence for the schema/protocol foundation lives at `docs/freestyle-viewer-platform/phase2/closeout.md`.
 Phase 2 telemetry evidence for the forced `viewer-react` path lives at `docs/freestyle-viewer-platform/phase2/telemetry-slice.md`.
 Phase 2 manifest-shadow evidence for the admin publication contract lives at `docs/freestyle-viewer-platform/phase2/manifest-shadow.md`.
 Phase 2.5 closeout evidence for contract enforcement lives at `docs/freestyle-viewer-platform/phase2_5/closeout.md`.
+Phase 4 closeout evidence for compatibility-runtime material and lighting ownership lives at `docs/freestyle-viewer-platform/phase4/closeout.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules

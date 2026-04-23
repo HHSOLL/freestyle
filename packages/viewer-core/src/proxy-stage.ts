@@ -22,6 +22,7 @@ import type {
   LoadAvatarInput,
   ViewerCameraPreset,
 } from "./FreestyleViewer.js";
+import { createViewerMaterial, createViewerSkinMaterial, resolveProxyMaterialClass, type ViewerMaterialClass } from "./material-system.js";
 
 export type ViewerProxyGarmentKind =
   | "hair"
@@ -54,15 +55,6 @@ const proxyBodyTone = {
   male: "#d5b091",
   default: "#dfb199",
 } as const;
-
-const proxyGarmentPalette = [
-  "#5d748d",
-  "#6c9171",
-  "#8c6a56",
-  "#715f89",
-  "#4c6c7f",
-  "#7a5f53",
-];
 
 const hashString = (value: string) => {
   let hash = 0;
@@ -206,11 +198,7 @@ export class ViewerProxyStage {
       | undefined;
 
     const toneKey = appearance?.gender === "male" ? "male" : appearance?.gender === "female" ? "female" : "default";
-    const bodyMaterial = new MeshStandardMaterial({
-      color: proxyBodyTone[toneKey],
-      roughness: 0.84,
-      metalness: 0.02,
-    });
+    const bodyMaterial = createViewerSkinMaterial(proxyBodyTone[toneKey]);
 
     const torsoWidth =
       appearance?.bodyFrame === "athletic"
@@ -250,14 +238,11 @@ export class ViewerProxyStage {
 
     garments.forEach((item, index) => {
       const kind = inferProxyGarmentKind(item.garmentId);
-      const color = proxyGarmentPalette[hashString(item.garmentId) % proxyGarmentPalette.length];
       const highlighted = selectedItemId === item.garmentId;
-      const material = new MeshStandardMaterial({
-        color,
-        roughness: highlighted ? 0.28 : 0.58,
-        metalness: highlighted ? 0.16 : 0.05,
-        emissive: highlighted ? "#d7e5ff" : "#000000",
-        emissiveIntensity: highlighted ? 0.35 : 0,
+      const materialClass = resolveProxyMaterialClass(item.garmentId, kind);
+      const material = createViewerMaterial(materialClass, {
+        color: resolveProxyMaterialColor(item.garmentId, materialClass),
+        highlighted,
       });
 
       const proxy = this.createGarmentProxy(kind, material, index);
@@ -441,3 +426,23 @@ export class ViewerProxyStage {
     this.requestRender("wheel-zoom");
   };
 }
+
+const resolveProxyMaterialColor = (garmentId: string, materialClass: ViewerMaterialClass) => {
+  const seed = hashString(garmentId);
+  const paletteByClass: Record<ViewerMaterialClass, readonly string[]> = {
+    skin: ["#dfb199"],
+    hair: ["#4c3e36", "#5b4b43", "#3f352f"],
+    cotton: ["#5d748d", "#6c9171", "#8c6a56"],
+    denim: ["#536d8d", "#5b7798", "#4b6788"],
+    leather: ["#6b4e44", "#705345", "#584034"],
+    rubber: ["#4a5560", "#505c67", "#434d57"],
+    knit: ["#8b6d7e", "#9a7a8c", "#7c6573"],
+    silk: ["#d2c1cf", "#c8b5c4", "#dbc9d6"],
+    synthetic: ["#6e7287", "#5e748a", "#687e74"],
+    metal: ["#a9acb7", "#b7bbc7", "#9499a6"],
+    plastic: ["#c6ccd4", "#b8c0c9", "#d1d6dd"],
+  };
+
+  const palette = paletteByClass[materialClass];
+  return palette[seed % palette.length];
+};

@@ -1,4 +1,9 @@
-import type { FitSimulationAdminInspectionResponse } from "@freestyle/contracts";
+import type {
+  FitSimulationAdminInspectionResponse,
+  FitSimulationAdminInspectionSummary,
+} from "@freestyle/contracts";
+
+export type FitSimulationInspectionCoverageFilter = "all" | "with-lineage" | "missing-lineage";
 
 export const summarizeFitSimulationInspection = (
   inspection: FitSimulationAdminInspectionResponse | null,
@@ -20,3 +25,22 @@ export const summarizeFitSimulationInspection = (
     hasLineage: Boolean(inspection.artifactLineage),
   };
 };
+
+export const findFitSimulationInspectionSummary = (
+  items: readonly FitSimulationAdminInspectionSummary[],
+  id: string | null | undefined,
+) => {
+  if (!id) {
+    return null;
+  }
+
+  return items.find((item) => item.id === id) ?? null;
+};
+
+export const summarizeFitSimulationInspectionCatalog = (
+  items: readonly FitSimulationAdminInspectionSummary[],
+) => ({
+  totalCount: items.length,
+  withLineageCount: items.filter((item) => item.hasLineage).length,
+  terminalCount: items.filter((item) => item.status === "succeeded" || item.status === "failed").length,
+});

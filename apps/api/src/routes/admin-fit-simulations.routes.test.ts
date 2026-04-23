@@ -8,6 +8,7 @@ import {
   buildFitSimulationArtifactLineageId,
   buildFitSimulationCacheKey,
   buildPublishedGarmentRevision,
+  fitSimulationAdminInspectionListResponseSchema,
   fitSimulationAdminInspectionResponseSchema,
   normalizeBodyProfile,
   type PublishedGarmentAsset,
@@ -108,17 +109,6 @@ const publishedGarmentFixture: PublishedGarmentAsset = {
   },
 };
 
-const bodyProfileRevision = buildBodyProfileRevision(bodyProfileFixture);
-const garmentRevision = buildPublishedGarmentRevision(publishedGarmentFixture);
-const cacheKey = buildFitSimulationCacheKey({
-  avatarVariantId: "female-base",
-  bodyProfileRevision,
-  garmentVariantId: publishedGarmentFixture.id,
-  garmentRevision,
-  materialPreset: "knit_medium",
-  qualityTier: "balanced",
-});
-
 test.beforeEach(() => {
   process.env.DEV_BYPASS_USER_ID = "00000000-0000-4000-8000-000000000001";
   process.env.ADMIN_USER_IDS = process.env.DEV_BYPASS_USER_ID;
@@ -137,27 +127,45 @@ test.after(() => {
 const seedFitSimulation = async (options?: {
   id?: string;
   artifactLineage?: boolean;
+  status?: "queued" | "processing" | "succeeded" | "failed";
+  garmentId?: string;
+  updatedAt?: string;
 }) => {
   const id = options?.id ?? "00000000-0000-4000-8000-000000000801";
   const artifactKinds = ["draped_glb", "preview_png", "fit_map_json", "metrics_json"] as const;
+  const garmentSnapshot = {
+    ...publishedGarmentFixture,
+    id: options?.garmentId ?? publishedGarmentFixture.id,
+  } satisfies PublishedGarmentAsset;
+  const bodyProfileRevisionValue = buildBodyProfileRevision(bodyProfileFixture);
+  const garmentRevision = buildPublishedGarmentRevision(garmentSnapshot);
+  const qualityTier = "balanced" as const;
+  const cacheKeyValue = buildFitSimulationCacheKey({
+    avatarVariantId: "female-base",
+    bodyProfileRevision: bodyProfileRevisionValue,
+    garmentVariantId: garmentSnapshot.id,
+    garmentRevision,
+    materialPreset: "knit_medium",
+    qualityTier,
+  });
 
   await upsertFitSimulationRecord({
     id,
     jobId: "00000000-0000-4000-8000-000000000901",
     userId: "00000000-0000-4000-8000-000000000777",
-    status: "succeeded",
+    status: options?.status ?? "succeeded",
     avatarVariantId: "female-base",
-    bodyVersionId: `body-profile:00000000-0000-4000-8000-000000000777:${bodyProfileRevision}`,
-    bodyProfileRevision,
-    garmentVariantId: publishedGarmentFixture.id,
+    bodyVersionId: `body-profile:00000000-0000-4000-8000-000000000777:${bodyProfileRevisionValue}`,
+    bodyProfileRevision: bodyProfileRevisionValue,
+    garmentVariantId: garmentSnapshot.id,
     garmentRevision,
     avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
     garmentManifestUrl: "https://freestyle.local/assets/garments/partner/admin-fit-sim-tee.glb",
     materialPreset: "knit_medium",
-    qualityTier: "balanced",
-    cacheKey,
+    qualityTier,
+    cacheKey: cacheKeyValue,
     bodyProfile: bodyProfileFixture,
-    garmentSnapshot: publishedGarmentFixture,
+    garmentSnapshot,
     fitAssessment: null,
     instantFit: null,
     fitMap: null,
@@ -178,11 +186,11 @@ const seedFitSimulation = async (options?: {
       : {
           schemaVersion: "fit-simulation-artifact-lineage.v1",
           artifactLineageId: buildFitSimulationArtifactLineageId({
-            cacheKey,
+            cacheKey: cacheKeyValue,
             cacheKeyParts: {
               avatarVariantId: "female-base",
-              bodyProfileRevision,
-              garmentVariantId: publishedGarmentFixture.id,
+              bodyProfileRevision: bodyProfileRevisionValue,
+              garmentVariantId: garmentSnapshot.id,
               garmentRevision,
               materialPreset: "knit_medium",
               qualityTier: "balanced",
@@ -191,11 +199,11 @@ const seedFitSimulation = async (options?: {
             drapeSource: "authored-scene-merge",
           }),
           generatedAt: "2026-04-24T09:02:00.000Z",
-          cacheKey,
+          cacheKey: cacheKeyValue,
           cacheKeyParts: {
             avatarVariantId: "female-base",
-            bodyProfileRevision,
-            garmentVariantId: publishedGarmentFixture.id,
+            bodyProfileRevision: bodyProfileRevisionValue,
+            garmentVariantId: garmentSnapshot.id,
             garmentRevision,
             materialPreset: "knit_medium",
             qualityTier: "balanced",
@@ -212,7 +220,7 @@ const seedFitSimulation = async (options?: {
     warnings: [],
     errorMessage: null,
     createdAt: "2026-04-24T09:00:00.000Z",
-    updatedAt: "2026-04-24T09:02:00.000Z",
+    updatedAt: options?.updatedAt ?? "2026-04-24T09:02:00.000Z",
     completedAt: "2026-04-24T09:02:00.000Z",
   });
 
@@ -236,6 +244,94 @@ test("admin fit-simulation inspection route returns persisted detail and lineage
   assert.equal(payload.artifactLineage?.manifestUrl, `https://freestyle.local/fit-simulations/${fitSimulationId}/artifact-lineage.json`);
   assert.equal(payload.fitSimulation.artifacts[0]?.kind, "draped_glb");
 
+  await app.close();
+});
+
+test("admin fit-simulation list route returns newest-first summaries for the current garment", async () => {
+  const newestId = await seedFitSimulation({
+    id: "00000000-0000-4000-8000-000000000811",
+    updatedAt: "2026-04-24T09:05:00.000Z",
+  });
+  await seedFitSimulation({
+    id: "00000000-0000-4000-8000-000000000812",
+    garmentId: "published-bottom-admin-fit-sim",
+    updatedAt: "2026-04-24T09:06:00.000Z",
+  });
+  const olderId = await seedFitSimulation({
+    id: "00000000-0000-4000-8000-000000000813",
+    updatedAt: "2026-04-24T09:01:00.000Z",
+  });
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: `/v1/admin/fit-simulations?garment_variant_id=${publishedGarmentFixture.id}`,
+  });
+
+  assert.equal(response.statusCode, 200);
+  const payload = fitSimulationAdminInspectionListResponseSchema.parse(response.json());
+  assert.equal(payload.total, 2);
+  assert.deepEqual(
+    payload.items.map((item) => item.id),
+    [newestId, olderId],
+  );
+  assert.equal(payload.items[0]?.hasLineage, true);
+  assert.equal(payload.items[0]?.artifactCount, 4);
+  assert.equal(payload.items[0]?.warningCount, 0);
+
+  await app.close();
+});
+
+test("admin fit-simulation list route filters by lineage and status", async () => {
+  await seedFitSimulation({
+    id: "00000000-0000-4000-8000-000000000821",
+    artifactLineage: false,
+    status: "failed",
+  });
+  const matchingId = await seedFitSimulation({
+    id: "00000000-0000-4000-8000-000000000822",
+    status: "succeeded",
+  });
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: `/v1/admin/fit-simulations?garment_variant_id=${publishedGarmentFixture.id}&status=succeeded&has_artifact_lineage=true&limit=1`,
+  });
+
+  assert.equal(response.statusCode, 200);
+  const payload = fitSimulationAdminInspectionListResponseSchema.parse(response.json());
+  assert.equal(payload.total, 1);
+  assert.equal(payload.items[0]?.id, matchingId);
+  assert.equal(payload.items[0]?.status, "succeeded");
+  assert.equal(payload.items[0]?.hasLineage, true);
+
+  await app.close();
+});
+
+test("admin fit-simulation list route returns 200 empty list when the store is empty", async () => {
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/admin/fit-simulations",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const payload = fitSimulationAdminInspectionListResponseSchema.parse(response.json());
+  assert.equal(payload.total, 0);
+  assert.deepEqual(payload.items, []);
+
+  await app.close();
+});
+
+test("admin fit-simulation list route validates query parameters", async () => {
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/admin/fit-simulations?has_artifact_lineage=maybe",
+  });
+
+  assert.equal(response.statusCode, 400);
   await app.close();
 });
 
@@ -279,6 +375,20 @@ test("admin fit-simulation inspection route rejects anonymous callers", async ()
   const response = await app.inject({
     method: "GET",
     url: "/v1/admin/fit-simulations/00000000-0000-4000-8000-000000000899",
+  });
+
+  assert.equal(response.statusCode, 401);
+  await app.close();
+});
+
+test("admin fit-simulation list route rejects anonymous callers", async () => {
+  delete process.env.DEV_BYPASS_USER_ID;
+  delete process.env.ADMIN_USER_IDS;
+
+  const app = buildServer();
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/admin/fit-simulations",
   });
 
   assert.equal(response.statusCode, 401);

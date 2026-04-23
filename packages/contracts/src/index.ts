@@ -1305,6 +1305,26 @@ export const fitSimulationArtifactLineageGetResponseSchema = z
   .strict();
 
 export const fitSimulationAdminInspectionSchemaVersion = "fit-simulation-admin-inspection.v1";
+export const fitSimulationAdminInspectionListSchemaVersion = "fit-simulation-admin-inspection-list.v1";
+
+export const fitSimulationAdminInspectionSummarySchema = z
+  .object({
+    id: z.uuid(),
+    status: fitSimulationStatusSchema,
+    avatarVariantId: avatarRenderVariantIdSchema,
+    garmentVariantId: fitSimulationOpaqueIdSchema,
+    qualityTier: fitSimulationQualityTierSchema,
+    materialPreset: z.string().trim().min(1).max(120),
+    artifactCount: z.number().int().nonnegative(),
+    warningCount: z.number().int().nonnegative(),
+    hasLineage: z.boolean(),
+    drapeSource: fitSimulationArtifactLineageSchema.shape.drapeSource.nullable(),
+    storageBackend: fitSimulationArtifactStorageBackendSchema.nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    completedAt: z.iso.datetime().nullable(),
+  })
+  .strict();
 
 export const fitSimulationAdminInspectionResponseSchema = z
   .object({
@@ -1313,6 +1333,23 @@ export const fitSimulationAdminInspectionResponseSchema = z
     artifactLineage: fitSimulationArtifactLineageSchema.nullable(),
   })
   .strict();
+
+export const fitSimulationAdminInspectionListResponseSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationAdminInspectionListSchemaVersion),
+    items: z.array(fitSimulationAdminInspectionSummarySchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
 
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
@@ -2415,6 +2452,12 @@ export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResp
 export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
 export type FitSimulationArtifactLineageGetResponse = z.infer<
   typeof fitSimulationArtifactLineageGetResponseSchema
+>;
+export type FitSimulationAdminInspectionSummary = z.infer<
+  typeof fitSimulationAdminInspectionSummarySchema
+>;
+export type FitSimulationAdminInspectionListResponse = z.infer<
+  typeof fitSimulationAdminInspectionListResponseSchema
 >;
 export type FitSimulationAdminInspectionResponse = z.infer<
   typeof fitSimulationAdminInspectionResponseSchema

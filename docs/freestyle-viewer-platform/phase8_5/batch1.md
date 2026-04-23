@@ -11,10 +11,9 @@ The smallest safe slice is:
 
 ## Implemented
 
-1. added `fitSimulationAdminInspectionResponseSchema`
-2. added `GET /v1/admin/fit-simulations/:id`
-3. added a read-only `Artifact Inspection` section in `apps/admin`
-4. kept inspection state isolated from:
+1. consumed the existing `Phase 8 / Batch 4` admin seam at `GET /v1/admin/fit-simulations/:id`
+2. added a read-only `Artifact Inspection` section in `apps/admin`
+3. kept inspection state isolated from:
    - `/v1/admin/garments*`
    - starter garment certification state
    - current publish draft/editor state

@@ -1561,6 +1561,55 @@ Outcome:
 - `Phase 8.5` has started with a real admin tooling seam
 - the repo still does **not** claim approve/reject/certify workflow or broader HQ artifact registry coverage
 
+### `Phase 8.5 / Batch 2`
+
+Status: `completed`
+
+Completed work:
+
+1. added a bounded admin HQ fit catalog route at `GET /v1/admin/fit-simulations`
+2. added repository/service list seams with filterable, newest-first read-only summaries
+3. kept store-missing behavior fail-soft as `200` empty list instead of widening this into a bundle/service outage
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.repository.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.test.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.test.ts`
+- `docs/freestyle-viewer-platform/phase8_5/batch2.md`
+
+Outcome:
+
+- admin tooling no longer depends on out-of-band UUID lookup alone
+- the repo still does **not** claim mutation workflow or write-side garment linkage
+
+### `Phase 8.5 / Batch 3`
+
+Status: `completed`
+
+Completed work:
+
+1. taught `apps/admin` to load current-garment HQ fit evidence from the new admin catalog seam
+2. added local status / lineage filters and one-click selection into the existing detail inspector
+3. kept HQ fit list state, detail state, and garment publication state separate
+
+Evidence:
+
+- `apps/admin/src/components/AdminWorkspace.tsx`
+- `apps/admin/src/lib/fitSimulationInspection.ts`
+- `apps/admin/src/lib/fitSimulationInspection.test.ts`
+- `docs/freestyle-viewer-platform/phase8_5/batch3.md`
+- `docs/freestyle-viewer-platform/phase8_5/closeout.md`
+
+Outcome:
+
+- `Phase 8.5` is now closed for the current repo-scoped baseline as read-only admin HQ fit inspection + triage tooling
+- the repo still does **not** claim approve/reject/certify mutations, persisted garment-to-fit linkage, or solver-grade cloth truth
+
 ## Phase 0 Closeout
 
 `Phase 0` is complete when all of the following are true:

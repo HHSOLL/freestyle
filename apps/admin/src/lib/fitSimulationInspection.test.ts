@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { FitSimulationAdminInspectionResponse } from "@freestyle/contracts";
-import { summarizeFitSimulationInspection } from "./fitSimulationInspection.js";
+import type {
+  FitSimulationAdminInspectionResponse,
+  FitSimulationAdminInspectionSummary,
+} from "@freestyle/contracts";
+import {
+  findFitSimulationInspectionSummary,
+  summarizeFitSimulationInspection,
+  summarizeFitSimulationInspectionCatalog,
+} from "./fitSimulationInspection.js";
 
 test("summarizeFitSimulationInspection reports artifact and lineage coverage", () => {
   const inspection: FitSimulationAdminInspectionResponse = {
@@ -73,5 +80,75 @@ test("summarizeFitSimulationInspection handles empty state", () => {
     warningCount: 0,
     artifactKinds: [],
     hasLineage: false,
+  });
+});
+
+test("findFitSimulationInspectionSummary resolves the matching summary item", () => {
+  const items: FitSimulationAdminInspectionSummary[] = [
+    {
+      id: "00000000-0000-4000-8000-000000000801",
+      status: "queued",
+      avatarVariantId: "female-base",
+      garmentVariantId: "published-top-admin-fit-sim",
+      qualityTier: "balanced",
+      materialPreset: "knit_medium",
+      artifactCount: 0,
+      warningCount: 0,
+      hasLineage: false,
+      drapeSource: null,
+      storageBackend: null,
+      createdAt: "2026-04-24T09:00:00.000Z",
+      updatedAt: "2026-04-24T09:00:00.000Z",
+      completedAt: null,
+    },
+  ];
+
+  assert.equal(
+    findFitSimulationInspectionSummary(items, "00000000-0000-4000-8000-000000000801")?.status,
+    "queued",
+  );
+  assert.equal(findFitSimulationInspectionSummary(items, "missing"), null);
+});
+
+test("summarizeFitSimulationInspectionCatalog counts lineage and terminal records", () => {
+  const items: FitSimulationAdminInspectionSummary[] = [
+    {
+      id: "00000000-0000-4000-8000-000000000801",
+      status: "queued",
+      avatarVariantId: "female-base",
+      garmentVariantId: "published-top-admin-fit-sim",
+      qualityTier: "balanced",
+      materialPreset: "knit_medium",
+      artifactCount: 0,
+      warningCount: 0,
+      hasLineage: false,
+      drapeSource: null,
+      storageBackend: null,
+      createdAt: "2026-04-24T09:00:00.000Z",
+      updatedAt: "2026-04-24T09:00:00.000Z",
+      completedAt: null,
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000802",
+      status: "succeeded",
+      avatarVariantId: "female-base",
+      garmentVariantId: "published-top-admin-fit-sim",
+      qualityTier: "high",
+      materialPreset: "woven_low",
+      artifactCount: 4,
+      warningCount: 1,
+      hasLineage: true,
+      drapeSource: "authored-scene-merge",
+      storageBackend: "remote-storage",
+      createdAt: "2026-04-24T09:00:00.000Z",
+      updatedAt: "2026-04-24T09:03:00.000Z",
+      completedAt: "2026-04-24T09:03:00.000Z",
+    },
+  ];
+
+  assert.deepEqual(summarizeFitSimulationInspectionCatalog(items), {
+    totalCount: 2,
+    withLineageCount: 1,
+    terminalCount: 1,
   });
 });

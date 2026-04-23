@@ -23,12 +23,16 @@ import {
 } from "@freestyle/shared";
 import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import type {
+  FitSimulationAdminInspectionListResponse,
+  FitSimulationAdminInspectionSummary,
   FitSimulationAdminInspectionResponse,
   FitSimulationAvatarPublicationSnapshot,
   FitSimulationPublicRecord,
   PublishedGarmentAsset,
 } from "@freestyle/contracts";
 import {
+  fitSimulationAdminInspectionListResponseSchema,
+  fitSimulationAdminInspectionListSchemaVersion,
   fitSimulationAdminInspectionResponseSchema,
   fitSimulationAdminInspectionSchemaVersion,
 } from "@freestyle/contracts";
@@ -39,6 +43,7 @@ import {
   deleteFitSimulationRecord,
   getFitSimulationRecordById,
   getFitSimulationRecordForUser,
+  listFitSimulationRecords,
   upsertFitSimulationRecord,
 } from "./fit-simulations.repository.js";
 
@@ -367,6 +372,29 @@ const buildFitSimulationPublicRecord = (
   };
 };
 
+const buildFitSimulationAdminInspectionSummary = (
+  row: NonNullable<Awaited<ReturnType<typeof getFitSimulationById>>>,
+): FitSimulationAdminInspectionSummary => {
+  const warningCount = row.warnings.length + (row.artifactLineage?.warnings.length ?? 0);
+
+  return {
+    id: row.id,
+    status: row.status,
+    avatarVariantId: row.avatarVariantId,
+    garmentVariantId: row.garmentVariantId,
+    qualityTier: row.qualityTier,
+    materialPreset: row.materialPreset,
+    artifactCount: row.artifacts.length,
+    warningCount,
+    hasLineage: Boolean(row.artifactLineage),
+    drapeSource: row.artifactLineage?.drapeSource ?? null,
+    storageBackend: row.artifactLineage?.storageBackend ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    completedAt: row.completedAt,
+  };
+};
+
 export const getFitSimulationArtifactLineageForUser = async (
   userId: string,
   fitSimulationId: string,
@@ -381,6 +409,22 @@ export const getFitSimulationArtifactLineageForUser = async (
 
 export const getFitSimulationById = async (fitSimulationId: string) => {
   return getFitSimulationRecordById(fitSimulationId);
+};
+
+export const listFitSimulationInspectionSummaries = async (filters?: {
+  garmentVariantId?: string;
+  status?: FitSimulationAdminInspectionSummary["status"];
+  hasArtifactLineage?: boolean;
+  limit?: number;
+}): Promise<FitSimulationAdminInspectionListResponse> => {
+  const rows = await listFitSimulationRecords(filters);
+  const items = rows.map((row) => buildFitSimulationAdminInspectionSummary(row));
+
+  return fitSimulationAdminInspectionListResponseSchema.parse({
+    schemaVersion: fitSimulationAdminInspectionListSchemaVersion,
+    items,
+    total: items.length,
+  });
 };
 
 export const getFitSimulationInspectionById = async (

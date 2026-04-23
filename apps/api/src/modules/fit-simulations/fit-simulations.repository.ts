@@ -10,6 +10,7 @@ import {
   type BodyProfile,
   type FitSimulationArtifactLineage,
   type FitSimulationRecord,
+  type FitSimulationStatus,
   type GarmentFitAssessment,
   type PublishedGarmentAsset,
 } from "@freestyle/contracts";
@@ -45,6 +46,12 @@ type FitSimulationStoreShape = {
 export type FitSimulationPersistencePort = {
   getFitSimulationRecordById: (id: string) => Promise<StoredFitSimulationRecord | null>;
   getFitSimulationRecordForUser: (id: string, userId: string) => Promise<StoredFitSimulationRecord | null>;
+  listFitSimulationRecords: (options?: {
+    garmentVariantId?: string;
+    status?: FitSimulationStatus;
+    hasArtifactLineage?: boolean;
+    limit?: number;
+  }) => Promise<StoredFitSimulationRecord[]>;
   upsertFitSimulationRecord: (record: StoredFitSimulationRecord) => Promise<StoredFitSimulationRecord>;
   deleteFitSimulationRecord: (id: string) => Promise<void>;
 };
@@ -63,6 +70,53 @@ const parseEntries = (value: unknown) => {
     const result = storedFitSimulationRecordSchema.safeParse(record);
     return result.success ? [[id, result.data] as const] : [];
   });
+};
+
+const sortFitSimulationRecordsForList = (
+  left: StoredFitSimulationRecord,
+  right: StoredFitSimulationRecord,
+) => {
+  const updatedDelta =
+    new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+  if (updatedDelta !== 0) {
+    return updatedDelta;
+  }
+
+  return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+};
+
+const filterFitSimulationRecords = (
+  items: StoredFitSimulationRecord[],
+  options?: {
+    garmentVariantId?: string;
+    status?: FitSimulationStatus;
+    hasArtifactLineage?: boolean;
+    limit?: number;
+  },
+) => {
+  const filtered = items.filter((record) => {
+    if (options?.garmentVariantId && record.garmentVariantId !== options.garmentVariantId) {
+      return false;
+    }
+    if (options?.status && record.status !== options.status) {
+      return false;
+    }
+    if (
+      typeof options?.hasArtifactLineage === "boolean" &&
+      Boolean(record.artifactLineage) !== options.hasArtifactLineage
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  filtered.sort(sortFitSimulationRecordsForList);
+
+  if (typeof options?.limit === "number") {
+    return filtered.slice(0, Math.max(0, options.limit));
+  }
+
+  return filtered;
 };
 
 const readStoreFromPath = async (storePath: string) => {
@@ -118,6 +172,10 @@ export const createFileFitSimulationPersistencePort = (options?: {
       const record = store.items[id] ?? null;
       return record?.userId === userId ? record : null;
     },
+    async listFitSimulationRecords(options) {
+      const store = await readStoreFromPath(resolveStorePath());
+      return filterFitSimulationRecords(Object.values(store.items), options);
+    },
     async upsertFitSimulationRecord(record) {
       const parsed = storedFitSimulationRecordSchema.parse(record);
       const store = await readStoreFromPath(resolveStorePath());
@@ -158,6 +216,9 @@ export const createMemoryFitSimulationPersistencePort = (
       const record = store.get(id) ?? null;
       return record?.userId === userId ? record : null;
     },
+    async listFitSimulationRecords(options) {
+      return filterFitSimulationRecords([...store.values()], options);
+    },
     async upsertFitSimulationRecord(record) {
       const parsed = storedFitSimulationRecordSchema.parse(record);
       store.set(parsed.id, parsed);
@@ -177,6 +238,15 @@ export const getFitSimulationRecordById = async (id: string) => {
 
 export const getFitSimulationRecordForUser = async (id: string, userId: string) => {
   return defaultFitSimulationPersistencePort.getFitSimulationRecordForUser(id, userId);
+};
+
+export const listFitSimulationRecords = async (options?: {
+  garmentVariantId?: string;
+  status?: FitSimulationStatus;
+  hasArtifactLineage?: boolean;
+  limit?: number;
+}) => {
+  return defaultFitSimulationPersistencePort.listFitSimulationRecords(options);
 };
 
 export const upsertFitSimulationRecord = async (record: {

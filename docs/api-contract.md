@@ -117,6 +117,7 @@
   - `PUT /v1/admin/garments/:id`
   - `GET /v1/admin/garment-certifications`
   - `GET /v1/admin/garment-certifications/:id`
+  - `GET /v1/admin/fit-simulations`
   - `GET /v1/admin/fit-simulations/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
@@ -133,12 +134,14 @@
   - `GET /v1/admin/garment-certifications`
   - `GET /v1/admin/garment-certifications/:id`
 - current admin-only HQ artifact inspection seam:
+  - `GET /v1/admin/fit-simulations`
   - `GET /v1/admin/fit-simulations/:id`
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
   - `garmentCertificationListResponseSchema`
   - `garmentCertificationItemResponseSchema`
+  - `fitSimulationAdminInspectionListResponseSchema`
   - `fitSimulationAdminInspectionResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
@@ -433,6 +436,17 @@
 - auth: same admin-only rule as `GET /v1/admin/garments`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`
 - if the stored row for `:id` is malformed or fails semantic garment validation, the route returns `404 NOT_FOUND`
+
+#### `GET /v1/admin/fit-simulations`
+- auth: same admin-only rule as `GET /v1/admin/garments`
+- response body satisfies `fitSimulationAdminInspectionListResponseSchema`
+- supports bounded read-only filters:
+  - `garment_variant_id`
+  - `status`
+  - `has_artifact_lineage`
+  - `limit`
+- returns `200` with an empty list when no current persisted HQ fit records match
+- this route is an operator/admin seam only; it must not be treated as product-path proof of solver-grade HQ cloth output
 
 #### `GET /v1/admin/fit-simulations/:id`
 - auth: same admin-only rule as `GET /v1/admin/garments`

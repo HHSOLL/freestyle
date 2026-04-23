@@ -9,6 +9,7 @@ import {
   buildPublishedGarmentRevision,
   fitMapArtifactDataSchema,
   normalizeBodyProfile,
+  type FitSimulationArtifactKind,
   type PublishedGarmentAsset,
 } from "@freestyle/contracts";
 import { createFileFitSimulationPersistencePort } from "./fit-simulations.repository.js";
@@ -270,6 +271,97 @@ const fitMapSummaryFixture = {
   ],
 };
 
+const buildStoredRecord = (options?: {
+  id?: string;
+  garmentVariantId?: string;
+  status?: "queued" | "processing" | "succeeded" | "failed";
+  hasArtifactLineage?: boolean;
+  updatedAt?: string;
+  createdAt?: string;
+}) => {
+  const garmentVariantId = options?.garmentVariantId ?? garmentSnapshot.id;
+  const garmentRecord =
+    garmentVariantId === garmentSnapshot.id
+      ? garmentSnapshot
+      : {
+          ...garmentSnapshot,
+          id: garmentVariantId,
+          name: `${garmentSnapshot.name} ${garmentVariantId}`,
+        };
+  const bodyProfileRevision = buildBodyProfileRevision(bodyProfile);
+  const garmentRevision = buildPublishedGarmentRevision(garmentRecord);
+  const cacheKey = buildFitSimulationCacheKey({
+    avatarVariantId: "female-base",
+    bodyProfileRevision,
+    garmentVariantId,
+    garmentRevision,
+    materialPreset: "knit_medium",
+    qualityTier: "balanced",
+  });
+  const artifactKinds: FitSimulationArtifactKind[] = [
+    "draped_glb",
+    "preview_png",
+    "fit_map_json",
+    "metrics_json",
+  ];
+
+  return {
+    id: options?.id ?? "00000000-0000-4000-8000-000000000071",
+    jobId: "00000000-0000-4000-8000-000000000072",
+    userId: "00000000-0000-4000-8000-000000000073",
+    status: options?.status ?? "queued",
+    avatarVariantId: "female-base" as const,
+    bodyVersionId: `body-profile:00000000-0000-4000-8000-000000000073:${bodyProfileRevision}`,
+    bodyProfileRevision,
+    garmentVariantId,
+    garmentRevision,
+    avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
+    materialPreset: "knit_medium",
+    qualityTier: "balanced" as const,
+    cacheKey,
+    bodyProfile,
+    garmentSnapshot: garmentRecord,
+    fitAssessment: null,
+    instantFit: null,
+    fitMap: fitMapFixture,
+    fitMapSummary: fitMapSummaryFixture,
+    artifacts: [],
+    metrics: null,
+    artifactLineage:
+      options?.hasArtifactLineage === false
+        ? null
+        : {
+            schemaVersion: "fit-simulation-artifact-lineage.v1" as const,
+            artifactLineageId: `fit-lineage:${options?.id ?? "repo-test-lineage"}`,
+            generatedAt: "2026-04-20T00:05:00.000Z",
+            cacheKey,
+            cacheKeyParts: {
+              avatarVariantId: "female-base" as const,
+              bodyProfileRevision,
+              garmentVariantId,
+              garmentRevision,
+              materialPreset: "knit_medium",
+              qualityTier: "balanced" as const,
+            },
+            avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+            garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
+            storageBackend: "local-file" as const,
+            drapeSource: "authored-scene-merge" as const,
+            artifactKinds,
+            manifestKey: `fit-simulations/${options?.id ?? "00000000-0000-4000-8000-000000000071"}/artifact-lineage.json`,
+            manifestUrl:
+              `file:///tmp/freestyle-fit-simulations/${options?.id ?? "00000000-0000-4000-8000-000000000071"}/artifact-lineage.json`,
+            warnings: [],
+          },
+    warnings: [],
+    errorMessage: null,
+    createdAt: options?.createdAt ?? "2026-04-20T00:00:00.000Z",
+    updatedAt: options?.updatedAt ?? "2026-04-20T00:00:00.000Z",
+    completedAt: null,
+  };
+};
+
 test.beforeEach(() => {
   try {
     fs.unlinkSync(storePath);
@@ -286,72 +378,7 @@ test.after(() => {
 
 test("file fit-simulation persistence port round-trips stored records", async () => {
   const port = createFileFitSimulationPersistencePort({ storePath });
-  const record = await port.upsertFitSimulationRecord({
-    id: "00000000-0000-4000-8000-000000000071",
-    jobId: "00000000-0000-4000-8000-000000000072",
-    userId: "00000000-0000-4000-8000-000000000073",
-    status: "queued",
-    avatarVariantId: "female-base",
-    bodyVersionId: `body-profile:00000000-0000-4000-8000-000000000073:${buildBodyProfileRevision(bodyProfile)}`,
-    bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
-    garmentVariantId: garmentSnapshot.id,
-    garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
-    avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
-    garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
-    materialPreset: "knit_medium",
-    qualityTier: "balanced",
-    cacheKey: buildFitSimulationCacheKey({
-      avatarVariantId: "female-base",
-      bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
-      garmentVariantId: garmentSnapshot.id,
-      garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
-      materialPreset: "knit_medium",
-      qualityTier: "balanced",
-    }),
-    bodyProfile,
-    garmentSnapshot,
-    fitAssessment: null,
-    instantFit: null,
-    fitMap: fitMapFixture,
-    fitMapSummary: fitMapSummaryFixture,
-    artifacts: [],
-    metrics: null,
-    artifactLineage: {
-      schemaVersion: "fit-simulation-artifact-lineage.v1",
-      artifactLineageId: "fit-lineage:repo-test-lineage",
-      generatedAt: "2026-04-20T00:05:00.000Z",
-      cacheKey: buildFitSimulationCacheKey({
-        avatarVariantId: "female-base",
-        bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
-        garmentVariantId: garmentSnapshot.id,
-        garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
-        materialPreset: "knit_medium",
-        qualityTier: "balanced",
-      }),
-      cacheKeyParts: {
-        avatarVariantId: "female-base",
-        bodyProfileRevision: buildBodyProfileRevision(bodyProfile),
-        garmentVariantId: garmentSnapshot.id,
-        garmentRevision: buildPublishedGarmentRevision(garmentSnapshot),
-        materialPreset: "knit_medium",
-        qualityTier: "balanced",
-      },
-      avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
-      garmentManifestUrl: "https://freestyle.local/assets/garments/starter/top-soft-casual.glb",
-      storageBackend: "local-file",
-      drapeSource: "authored-scene-merge",
-      artifactKinds: ["draped_glb", "preview_png", "fit_map_json", "metrics_json"],
-      manifestKey: "fit-simulations/00000000-0000-4000-8000-000000000071/artifact-lineage.json",
-      manifestUrl:
-        "file:///tmp/freestyle-fit-simulations/00000000-0000-4000-8000-000000000071/artifact-lineage.json",
-      warnings: [],
-    },
-    warnings: [],
-    errorMessage: null,
-    createdAt: "2026-04-20T00:00:00.000Z",
-    updatedAt: "2026-04-20T00:00:00.000Z",
-    completedAt: null,
-  });
+  const record = await port.upsertFitSimulationRecord(buildStoredRecord());
 
   assert.equal(record.id, "00000000-0000-4000-8000-000000000071");
   const byId = await port.getFitSimulationRecordById(record.id);
@@ -370,4 +397,41 @@ test("file fit-simulation persistence port round-trips stored records", async ()
   await port.deleteFitSimulationRecord(record.id);
   const deleted = await port.getFitSimulationRecordById(record.id);
   assert.equal(deleted, null);
+});
+
+test("file fit-simulation persistence port lists filtered newest-first records", async () => {
+  const port = createFileFitSimulationPersistencePort({ storePath });
+  await port.upsertFitSimulationRecord(
+    buildStoredRecord({
+      id: "00000000-0000-4000-8000-000000000081",
+      updatedAt: "2026-04-20T00:04:00.000Z",
+    }),
+  );
+  await port.upsertFitSimulationRecord(
+    buildStoredRecord({
+      id: "00000000-0000-4000-8000-000000000082",
+      garmentVariantId: "starter-bottom-soft-casual",
+      hasArtifactLineage: false,
+      status: "failed",
+      updatedAt: "2026-04-20T00:05:00.000Z",
+    }),
+  );
+  await port.upsertFitSimulationRecord(
+    buildStoredRecord({
+      id: "00000000-0000-4000-8000-000000000083",
+      updatedAt: "2026-04-20T00:06:00.000Z",
+    }),
+  );
+
+  const filtered = await port.listFitSimulationRecords({
+    garmentVariantId: garmentSnapshot.id,
+    hasArtifactLineage: true,
+    limit: 1,
+  });
+  assert.deepEqual(filtered.map((item) => item.id), ["00000000-0000-4000-8000-000000000083"]);
+
+  const failed = await port.listFitSimulationRecords({
+    status: "failed",
+  });
+  assert.deepEqual(failed.map((item) => item.id), ["00000000-0000-4000-8000-000000000082"]);
 });

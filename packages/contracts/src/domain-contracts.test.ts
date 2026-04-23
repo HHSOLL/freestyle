@@ -46,6 +46,7 @@ import {
   fitSimulationMetricsArtifactDataSchema,
   fitSimulationCreateResponseSchema,
   fitSimulationAdminInspectionResponseSchema,
+  fitSimulationAdminInspectionListResponseSchema,
   fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
   fitSimulateHQRequestSchema,
@@ -88,6 +89,34 @@ test('bodyProfileSchema accepts canonical simple+detailed envelope', () => {
 
   assert.equal(parsed.simple.heightCm, 172);
   assert.equal(parsed.simple.inseamCm, 79);
+});
+
+test('fitSimulationAdminInspectionListResponseSchema accepts read-only admin list payloads', () => {
+  const parsed = fitSimulationAdminInspectionListResponseSchema.parse({
+    schemaVersion: 'fit-simulation-admin-inspection-list.v1',
+    items: [
+      {
+        id: '00000000-0000-4000-8000-000000000801',
+        status: 'succeeded',
+        avatarVariantId: 'female-base',
+        garmentVariantId: 'published-top-admin-fit-sim',
+        qualityTier: 'balanced',
+        materialPreset: 'knit_medium',
+        artifactCount: 4,
+        warningCount: 1,
+        hasLineage: true,
+        drapeSource: 'authored-scene-merge',
+        storageBackend: 'remote-storage',
+        createdAt: '2026-04-24T09:00:00.000Z',
+        updatedAt: '2026-04-24T09:03:00.000Z',
+        completedAt: '2026-04-24T09:03:00.000Z',
+      },
+    ],
+    total: 1,
+  });
+
+  assert.equal(parsed.items[0]?.artifactCount, 4);
+  assert.equal(parsed.items[0]?.hasLineage, true);
 });
 
 test('bodyProfileSchema accepts detailed optional extension fields inside envelope', () => {

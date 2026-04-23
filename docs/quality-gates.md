@@ -93,6 +93,9 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8 / Batch 4`: `/v1/admin/fit-simulations/:id` now exposes the same persisted HQ bundle + lineage snapshot through an admin-only read-only inspection seam
 - `Phase 8`: HQ artifact identity and lineage inspection gate is closed for the current baseline bundle and becomes blocking
 - `Phase 8.5 / Batch 1`: `apps/admin` now consumes the admin HQ artifact inspection seam in a separate read-only panel without mixing that state into garment publication editing
+- `Phase 8.5 / Batch 2`: `/v1/admin/fit-simulations` now exposes a bounded read-only HQ fit catalog for operator triage without widening garment publication payloads
+- `Phase 8.5 / Batch 3`: `apps/admin` now shows current-garment HQ fit evidence, local status/lineage filters, and one-click open into the existing detail inspector
+- `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
 - `Phase 9`: UX latency gate becomes blocking
 - `Phase 10`: CI, hardware-backed GPU, and production telemetry rules freeze as the full hard gate set
 

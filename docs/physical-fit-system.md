@@ -252,8 +252,10 @@ As of `2026-04-20`:
   - `worker_fit_simulate_hq` now persists an `artifact-lineage.json` sidecar next to the current artifact bundle and stores that lineage on the internal simulation record
   - `metrics_json` now includes `artifactLineageId`, while `GET /v1/lab/fit-simulations/:id` stays intentionally unchanged
   - `GET /v1/lab/fit-simulations/:id/artifact-lineage` is the new owner-scoped inspection seam for that persisted lineage snapshot
+  - `GET /v1/admin/fit-simulations` is the bounded admin/operator catalog seam for current persisted HQ fit evidence
   - `GET /v1/admin/fit-simulations/:id` is the matching admin/operator read-only inspection seam for the same persisted fit simulation and lineage snapshot
   - the current web HQ fit panel may consume that lineage seam separately for inspection links and baseline metadata, but it still must not merge lineage into the main `fitSimulation` detail payload
+  - `apps/admin` may now triage current-garment HQ fit evidence through the read-only admin catalog plus detail seam, but this still does not imply approve/reject/certify workflow or solver-grade cloth truth
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
   - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract

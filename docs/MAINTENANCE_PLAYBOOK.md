@@ -42,6 +42,7 @@ If compatibility-stage lighting, material calibration, or the Phase 4 lab harnes
 If the Phase 5 avatar publication seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase5/` and keep `docs/freestyle-viewer-platform/phase5/closeout.md`, `docs/avatar-pipeline.md`, and `docs/avatar-production-contract.md` in sync in the same PR.
 If the Phase 6 garment certification seam changes, also update `docs/freestyle-viewer-platform/phase6/batch1.md`, `docs/freestyle-viewer-platform/phase6/batch2.md`, `docs/freestyle-viewer-platform/phase6/batch3.md`, `docs/freestyle-viewer-platform/phase6/batch4.md`, `docs/freestyle-viewer-platform/phase6/closeout.md`, `docs/garment-fitting-contract.md`, and `docs/admin-asset-publishing.md` in the same PR.
 If the Phase 7 preview-runtime seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase7/`, plus `docs/physical-fit-system.md` and the preview-runtime rules in `docs/DEVELOPMENT_GUIDE.md` in the same PR. If the compatibility host changes its read-only evidence surface, keep `apps/web/e2e/closet-preview-runtime.spec.ts` in sync in the same commit.
+That Phase 7 note now includes `batch1.md`, `batch2.md`, and `batch3.md`; keep the snapshot seam and the preview-engine fallback seam in sync together.
 
 ### Redirect smoke
 

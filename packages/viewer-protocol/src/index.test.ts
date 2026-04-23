@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fitArtifactCacheKeyPartsSchema,
+  previewEngineStatusSchema,
   previewFrameMetricsSchema,
   previewRuntimeSnapshotSchema,
   previewTransportBackendDefault,
@@ -202,4 +203,29 @@ test("viewer event envelope preserves preview runtime snapshots as read-only evi
   assert.equal(parsed.type, "fit:preview-runtime-updated");
   assert.equal(parsed.payload.backend, "worker-reduced");
   assert.equal(parsed.payload.executionMode, "reduced-preview");
+});
+
+test("viewer event envelope preserves preview engine status without overstating wasm preview", () => {
+  const status = previewEngineStatusSchema.parse({
+    schemaVersion: "preview-engine-status.v1",
+    engineKind: "reduced-preview-compat",
+    executionMode: "reduced-preview",
+    backend: "experimental-webgpu",
+    transport: "main-thread",
+    status: "fallback",
+    fallbackReason: "wasm-preview-disabled",
+    featureSnapshot: {
+      hasWorker: true,
+      hasOffscreenCanvas: false,
+      hasWebGPU: true,
+      crossOriginIsolated: false,
+    },
+  });
+  const parsed = viewerEventEnvelopeSchema.parse({
+    type: "fit:preview-engine-status",
+    payload: status,
+  });
+
+  assert.equal(parsed.type, "fit:preview-engine-status");
+  assert.equal(parsed.payload.fallbackReason, "wasm-preview-disabled");
 });

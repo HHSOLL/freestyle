@@ -8,7 +8,9 @@ import {
   fitKernelPreviewFrameSchemaVersion,
   fitKernelPreviewBackendIds,
   isFitKernelPreviewResultEnvelope,
+  resolveFitKernelPreviewEngineStatus,
   stepFitKernelPreviewFrame,
+  type FitKernelPreviewEngineStatus,
   type FitKernelPreviewFeatureSnapshot,
   type FitKernelPreviewFrameConfig,
   type FitKernelPreviewFrameRequest,
@@ -38,6 +40,7 @@ export type ReferenceClosetStagePreviewFrameRequest = FitKernelPreviewFrameReque
 export type ReferenceClosetStagePreviewFrameResult = FitKernelPreviewFrameResult;
 
 export type ReferenceClosetStagePreviewResultEnvelope = FitKernelPreviewResultEnvelope;
+export type ReferenceClosetStagePreviewEngineStatus = FitKernelPreviewEngineStatus;
 
 export const isReferenceClosetStagePreviewResultEnvelope = (
   value: unknown,
@@ -74,6 +77,17 @@ export function resolveReferenceClosetStagePreviewBackend({
   }
 
   return "cpu-reduced";
+}
+
+export function resolveReferenceClosetStagePreviewEngineStatus(input: {
+  qualityTier: QualityTier;
+  hasContinuousMotion: boolean;
+  featureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
+  backend: ReferenceClosetStagePreviewBackendId;
+  workerAvailable?: boolean;
+  workerBootFailed?: boolean;
+}): ReferenceClosetStagePreviewEngineStatus {
+  return resolveFitKernelPreviewEngineStatus(input);
 }
 
 export function createReferenceClosetStagePreviewFrameState(): ReferenceClosetStagePreviewFrameState {

@@ -4,6 +4,10 @@ import {
   defaultFitKernelBufferTransport,
   fitKernelExecutionModes,
   fitKernelPreviewBackendIds,
+  fitKernelPreviewEngineKinds,
+  fitKernelPreviewEngineStatuses,
+  fitKernelPreviewEngineTransports,
+  fitKernelPreviewFallbackReasons,
   fitKernelPreviewFrameSchemaVersion,
   fitKernelPreviewSolverKinds,
   fitKernelBufferTransports,
@@ -15,6 +19,10 @@ export const previewTransportBackendDefault = defaultFitKernelBufferTransport;
 export const previewKernelExecutionModeSchema = z.enum(fitKernelExecutionModes);
 export const previewKernelBackendSchema = z.enum(fitKernelPreviewBackendIds);
 export const previewKernelSolverKindSchema = z.enum(fitKernelPreviewSolverKinds);
+export const previewEngineKindSchema = z.enum(fitKernelPreviewEngineKinds);
+export const previewEngineStatusKindSchema = z.enum(fitKernelPreviewEngineStatuses);
+export const previewEngineTransportSchema = z.enum(fitKernelPreviewEngineTransports);
+export const previewEngineFallbackReasonSchema = z.enum(fitKernelPreviewFallbackReasons);
 
 export const previewWorkerMessageSchema = z.discriminatedUnion("type", [
   z
@@ -123,6 +131,7 @@ export const previewWorkerResultEnvelopeSchema = z
   .strict();
 
 export const previewRuntimeSnapshotSchemaVersion = "preview-runtime-snapshot.v1";
+export const previewEngineStatusSchemaVersion = "preview-engine-status.v1";
 
 export const previewRuntimeSnapshotSchema = z
   .object({
@@ -138,6 +147,26 @@ export const previewRuntimeSnapshotSchema = z
     anchorEnergy: z.number().nonnegative(),
     shouldContinue: z.boolean(),
     settled: z.boolean(),
+  })
+  .strict();
+
+export const previewEngineStatusSchema = z
+  .object({
+    schemaVersion: z.literal(previewEngineStatusSchemaVersion),
+    engineKind: previewEngineKindSchema,
+    executionMode: previewKernelExecutionModeSchema,
+    backend: previewKernelBackendSchema,
+    transport: previewEngineTransportSchema,
+    status: previewEngineStatusKindSchema,
+    fallbackReason: previewEngineFallbackReasonSchema.optional(),
+    featureSnapshot: z
+      .object({
+        hasWorker: z.boolean(),
+        hasOffscreenCanvas: z.boolean(),
+        hasWebGPU: z.boolean(),
+        crossOriginIsolated: z.boolean(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -175,6 +204,7 @@ export const hqArtifactEnvelopeSchema = z
 
 export type FitArtifactCacheKeyParts = z.infer<typeof fitArtifactCacheKeyPartsSchema>;
 export type HqArtifactEnvelope = z.infer<typeof hqArtifactEnvelopeSchema>;
+export type PreviewEngineStatus = z.infer<typeof previewEngineStatusSchema>;
 export type PreviewRuntimeSnapshot = z.infer<typeof previewRuntimeSnapshotSchema>;
 export type PreviewTransportBackend = FitKernelBufferTransport;
 export type PreviewWorkerMessage = z.infer<typeof previewWorkerMessageSchema>;

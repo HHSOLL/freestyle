@@ -83,6 +83,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 6`: garment certification gate is closed for the current starter-bundle-backed scope
 - `Phase 7 / Batch 1`: the active reduced preview spring contract now lives in `@freestyle/fit-kernel`, and the same-origin worker returns a typed `PREVIEW_FRAME_RESULT` envelope without claiming browser WASM cloth truth
 - `Phase 7 / Batch 2`: the `runtime-3d` compatibility host now exposes a typed read-only preview runtime snapshot through `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` viewer events, without widening `/v1` payloads
+- `Phase 7 / Batch 3`: the compatibility host now also exposes typed preview-engine status through `data-preview-engine-*` attrs and `fit:preview-engine-status`, including explicit fallback reasons when the active path is not real WASM preview
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Phase 8`: HQ artifact validity and lineage gate becomes blocking
 - `Phase 9`: UX latency gate becomes blocking

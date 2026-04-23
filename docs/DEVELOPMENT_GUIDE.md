@@ -135,7 +135,7 @@ The first admin-only inspection seam for that bundle is `docs/freestyle-viewer-p
 The first `apps/admin` consumer for that seam is `docs/freestyle-viewer-platform/phase6/batch3.md`.
 The admin-side starter-coverage triage slice is `docs/freestyle-viewer-platform/phase6/batch4.md`.
 Phase 6 closeout evidence for the garment certification seam lives at `docs/freestyle-viewer-platform/phase6/closeout.md`.
-Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md` and widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`.
+Phase 7 preview-runtime evidence starts at `docs/freestyle-viewer-platform/phase7/batch1.md`, widens with the read-only snapshot seam in `docs/freestyle-viewer-platform/phase7/batch2.md`, and now includes the explicit preview-engine/fallback seam in `docs/freestyle-viewer-platform/phase7/batch3.md`.
 `viewer-react` may expose non-blocking browser telemetry seams for first-avatar-paint and garment-swap preview latency through typed custom events and host data attributes, but those seams must stay adapter-level and must not pull renderer statistics logic back into React.
 
 ## 4. Page Rules
@@ -225,6 +225,7 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - Phase 2 schema version literals now come from `packages/asset-schema/src/schema-versions.ts`; do not reintroduce runtime-only duplicates for avatar, garment, material, or fit-artifact manifest versions
 - preview worker transport names now track the `fit-kernel` tuple through `packages/viewer-protocol`; do not define another `"transferable-array-buffer" | "shared-array-buffer"` union in downstream packages
 - keep the preview runtime snapshot contract in `@freestyle/viewer-protocol`; compatibility surfaces may expose it through DOM attrs or browser events, but should not invent ad-hoc payload shapes
+- keep preview-engine status in `@freestyle/viewer-protocol` too; compatibility surfaces may expose it through `data-preview-engine-*` attrs or `fit:preview-engine-status`, but should not invent a second fallback/status payload shape
 - `Phase C` starts from the shared `garmentInstantFitReportSchema` plus `assessGarmentInstantFit` / `buildGarmentInstantFitReport`; keep product-facing fit recommendations derived from `GarmentFitAssessment` instead of inventing surface-specific report shapes
 - the current product adapter is `closetRuntimeGarmentListResponseSchema`, used only by `/v1/closet/runtime-garments`; keep `/v1/admin/garments*` on the publication contract unless the admin surface explicitly needs a user-scoped fit recommendation
 - keep starter certification inspection on `/v1/admin/garment-certifications*`; do not widen `/v1/closet/runtime-garments` with authoring or certification evidence

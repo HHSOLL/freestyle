@@ -13,10 +13,16 @@ test.describe("closet preview runtime evidence", () => {
 
     await page.addInitScript(() => {
       (window as Window & { __previewRuntimeEvents?: unknown[] }).__previewRuntimeEvents = [];
+      (window as Window & { __previewEngineEvents?: unknown[] }).__previewEngineEvents = [];
       window.addEventListener("freestyle:viewer-event", (event) => {
         const detail = (event as CustomEvent).detail;
         if (detail?.type === "fit:preview-runtime-updated") {
           (window as Window & { __previewRuntimeEvents?: unknown[] }).__previewRuntimeEvents?.push(
+            detail.payload,
+          );
+        }
+        if (detail?.type === "fit:preview-engine-status") {
+          (window as Window & { __previewEngineEvents?: unknown[] }).__previewEngineEvents?.push(
             detail.payload,
           );
         }
@@ -39,17 +45,35 @@ test.describe("closet preview runtime evidence", () => {
       "data-preview-runtime-backend",
       /(worker-reduced|cpu-reduced|static-fit|experimental-webgpu)/,
     );
+    await expect(root).toHaveAttribute(
+      "data-preview-engine-kind",
+      /(static-fit-compat|reduced-preview-compat|wasm-preview)/,
+    );
+    await expect(root).toHaveAttribute(
+      "data-preview-engine-status",
+      /(ready|fallback)/,
+    );
 
     const payload = await page.waitForFunction(() => {
       const events = (window as Window & { __previewRuntimeEvents?: unknown[] })
         .__previewRuntimeEvents;
       return Array.isArray(events) && events.length > 0 ? events.at(-1) : null;
     });
+    const enginePayload = await page.waitForFunction(() => {
+      const events = (window as Window & { __previewEngineEvents?: unknown[] })
+        .__previewEngineEvents;
+      return Array.isArray(events) && events.length > 0 ? events.at(-1) : null;
+    });
     const lastEvent = await payload.jsonValue();
+    const lastEngineEvent = await enginePayload.jsonValue();
 
     expect(lastEvent).toMatchObject({
       schemaVersion: "preview-runtime-snapshot.v1",
     });
+    expect(lastEngineEvent).toMatchObject({
+      schemaVersion: "preview-engine-status.v1",
+    });
     expect(typeof (lastEvent as { settled?: unknown }).settled).toBe("boolean");
+    expect(typeof (lastEngineEvent as { status?: unknown }).status).toBe("string");
   });
 });

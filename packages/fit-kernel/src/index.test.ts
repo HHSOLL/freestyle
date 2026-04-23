@@ -6,11 +6,15 @@ import {
   createFitKernelPreviewFrameState,
   defaultFitKernelBufferTransport,
   defaultFitKernelExecutionMode,
+  defaultFitKernelPreviewEngineKind,
   detectFitKernelPreviewFeatures,
   fitKernelBufferTransports,
   fitKernelExecutionModes,
+  fitKernelPreviewEngineKinds,
+  fitKernelPreviewEngineStatuses,
   isFitKernelPreviewResultEnvelope,
   resolveFitKernelBufferTransport,
+  resolveFitKernelPreviewEngineStatus,
   resolveFitKernelExecutionMode,
   stepFitKernelPreviewFrame,
 } from "./index.js";
@@ -27,6 +31,13 @@ test("fit-kernel exposes canonical execution modes and transports", () => {
   ]);
   assert.equal(defaultFitKernelExecutionMode, "reduced-preview");
   assert.equal(defaultFitKernelBufferTransport, "transferable-array-buffer");
+  assert.equal(defaultFitKernelPreviewEngineKind, "reduced-preview-compat");
+  assert.deepEqual(fitKernelPreviewEngineKinds, [
+    "static-fit-compat",
+    "reduced-preview-compat",
+    "wasm-preview",
+  ]);
+  assert.deepEqual(fitKernelPreviewEngineStatuses, ["ready", "fallback"]);
 });
 
 test("fit-kernel only enables SharedArrayBuffer on the optional fast path", () => {
@@ -68,6 +79,87 @@ test("fit-kernel resolves current execution mode truthfully for reduced preview 
   assert.equal(
     resolveFitKernelExecutionMode({ backend: "worker-reduced", wasmPreviewEnabled: true }),
     "wasm-preview",
+  );
+});
+
+test("fit-kernel resolves preview engine status without overstating wasm availability", () => {
+  const featureSnapshot = {
+    hasWorker: true,
+    hasOffscreenCanvas: false,
+    hasWebGPU: true,
+    crossOriginIsolated: false,
+  } as const;
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "static-fit",
+      featureSnapshot,
+      hasContinuousMotion: false,
+      qualityTier: "balanced",
+    }),
+    {
+      engineKind: "static-fit-compat",
+      executionMode: "static-fit",
+      backend: "static-fit",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "no-continuous-motion",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "worker-reduced",
+      featureSnapshot,
+      hasContinuousMotion: true,
+      qualityTier: "balanced",
+    }),
+    {
+      engineKind: "reduced-preview-compat",
+      executionMode: "reduced-preview",
+      backend: "worker-reduced",
+      transport: "worker-message",
+      status: "ready",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "experimental-webgpu",
+      featureSnapshot,
+      hasContinuousMotion: true,
+      qualityTier: "high",
+    }),
+    {
+      engineKind: "reduced-preview-compat",
+      executionMode: "reduced-preview",
+      backend: "experimental-webgpu",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "wasm-preview-disabled",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "worker-reduced",
+      featureSnapshot,
+      hasContinuousMotion: true,
+      qualityTier: "balanced",
+      workerBootFailed: true,
+    }),
+    {
+      engineKind: "reduced-preview-compat",
+      executionMode: "reduced-preview",
+      backend: "worker-reduced",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "engine-boot-failed",
+      featureSnapshot,
+    },
   );
 });
 

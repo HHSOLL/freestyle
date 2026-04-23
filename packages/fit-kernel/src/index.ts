@@ -15,12 +15,31 @@ export const fitKernelPreviewBackendIds = [
   "experimental-webgpu",
 ] as const;
 export const fitKernelPreviewSolverKinds = ["reduced-preview-spring"] as const;
+export const fitKernelPreviewEngineKinds = [
+  "static-fit-compat",
+  "reduced-preview-compat",
+  "wasm-preview",
+] as const;
+export const fitKernelPreviewEngineStatuses = ["ready", "fallback"] as const;
+export const fitKernelPreviewEngineTransports = ["main-thread", "worker-message"] as const;
+export const fitKernelPreviewFallbackReasons = [
+  "no-continuous-motion",
+  "low-quality-tier",
+  "worker-unavailable",
+  "wasm-preview-disabled",
+  "engine-boot-failed",
+] as const;
 
 export type FitKernelExecutionMode = (typeof fitKernelExecutionModes)[number];
 export type FitKernelBufferTransport = (typeof fitKernelBufferTransports)[number];
 export type FitKernelPreviewBackendId = (typeof fitKernelPreviewBackendIds)[number];
 export type FitKernelPreviewSolverKind = (typeof fitKernelPreviewSolverKinds)[number];
+export type FitKernelPreviewEngineKind = (typeof fitKernelPreviewEngineKinds)[number];
+export type FitKernelPreviewEngineStatusKind = (typeof fitKernelPreviewEngineStatuses)[number];
+export type FitKernelPreviewEngineTransport = (typeof fitKernelPreviewEngineTransports)[number];
+export type FitKernelPreviewFallbackReason = (typeof fitKernelPreviewFallbackReasons)[number];
 export type FitKernelPreviewVector3 = [number, number, number];
+export type FitKernelPreviewQualityTier = "low" | "balanced" | "high";
 export type FitKernelPreviewMotionProfileId =
   | "hair-sway"
   | "hair-long"
@@ -101,6 +120,16 @@ export type FitKernelPreviewMetrics = {
   shouldContinue: boolean;
 };
 
+export type FitKernelPreviewEngineStatus = {
+  engineKind: FitKernelPreviewEngineKind;
+  executionMode: FitKernelExecutionMode;
+  backend: FitKernelPreviewBackendId;
+  transport: FitKernelPreviewEngineTransport;
+  status: FitKernelPreviewEngineStatusKind;
+  fallbackReason?: FitKernelPreviewFallbackReason;
+  featureSnapshot: FitKernelPreviewFeatureSnapshot;
+};
+
 export type FitKernelPreviewResultEnvelope = {
   type: "PREVIEW_FRAME_RESULT";
   result: FitKernelPreviewFrameResult;
@@ -120,6 +149,8 @@ export const defaultFitKernelExecutionMode: FitKernelExecutionMode = "reduced-pr
 export const defaultFitKernelBufferTransport: FitKernelBufferTransport = "transferable-array-buffer";
 export const defaultFitKernelPreviewSolverKind: FitKernelPreviewSolverKind =
   "reduced-preview-spring";
+export const defaultFitKernelPreviewEngineKind: FitKernelPreviewEngineKind =
+  "reduced-preview-compat";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -372,6 +403,111 @@ export const buildFitKernelPreviewResultEnvelope = (input: {
   result: input.result,
   metrics: summarizeFitKernelPreviewMetrics(input),
 });
+
+export const resolveFitKernelPreviewEngineStatus = (input: {
+  backend: FitKernelPreviewBackendId;
+  featureSnapshot: FitKernelPreviewFeatureSnapshot;
+  hasContinuousMotion: boolean;
+  qualityTier: FitKernelPreviewQualityTier;
+  workerAvailable?: boolean;
+  workerBootFailed?: boolean;
+}): FitKernelPreviewEngineStatus => {
+  const executionMode = resolveFitKernelExecutionMode({ backend: input.backend });
+  const workerActive =
+    input.backend === "worker-reduced" && (input.workerAvailable ?? input.featureSnapshot.hasWorker);
+
+  if (!input.hasContinuousMotion) {
+    return {
+      engineKind: "static-fit-compat",
+      executionMode: "static-fit",
+      backend: "static-fit",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "no-continuous-motion",
+      featureSnapshot: input.featureSnapshot,
+    };
+  }
+
+  if (input.qualityTier === "low") {
+    return {
+      engineKind: "static-fit-compat",
+      executionMode: "static-fit",
+      backend: "static-fit",
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "low-quality-tier",
+      featureSnapshot: input.featureSnapshot,
+    };
+  }
+
+  if (input.backend === "worker-reduced") {
+    if (input.workerBootFailed) {
+      return {
+        engineKind: "reduced-preview-compat",
+        executionMode,
+        backend: input.backend,
+        transport: "main-thread",
+        status: "fallback",
+        fallbackReason: "engine-boot-failed",
+        featureSnapshot: input.featureSnapshot,
+      };
+    }
+
+    if (!workerActive) {
+      return {
+        engineKind: "reduced-preview-compat",
+        executionMode,
+        backend: input.backend,
+        transport: "main-thread",
+        status: "fallback",
+        fallbackReason: "worker-unavailable",
+        featureSnapshot: input.featureSnapshot,
+      };
+    }
+
+    return {
+      engineKind: "reduced-preview-compat",
+      executionMode,
+      backend: input.backend,
+      transport: "worker-message",
+      status: "ready",
+      featureSnapshot: input.featureSnapshot,
+    };
+  }
+
+  if (input.backend === "experimental-webgpu") {
+    return {
+      engineKind: "reduced-preview-compat",
+      executionMode,
+      backend: input.backend,
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "wasm-preview-disabled",
+      featureSnapshot: input.featureSnapshot,
+    };
+  }
+
+  if (input.backend === "cpu-reduced") {
+    return {
+      engineKind: "reduced-preview-compat",
+      executionMode,
+      backend: input.backend,
+      transport: "main-thread",
+      status: "fallback",
+      fallbackReason: "worker-unavailable",
+      featureSnapshot: input.featureSnapshot,
+    };
+  }
+
+  return {
+    engineKind: "static-fit-compat",
+    executionMode,
+    backend: input.backend,
+    transport: "main-thread",
+    status: "ready",
+    featureSnapshot: input.featureSnapshot,
+  };
+};
 
 export const isFitKernelPreviewResultEnvelope = (
   value: unknown,

@@ -22,7 +22,7 @@
     "start:worker": "node dist/workers/runtime/src/worker.js",
     "build": "npm --prefix apps/web run build",
     "build:admin": "npm --prefix apps/admin run build",
-    "check": "npm run lint && npm run typecheck && npm run typecheck:admin && npm run test:core && npm run validate:garment3d && npm run validate:avatar3d && npm run validate:fit-calibration && npm run build:services && npm run build && npm run build:admin",
+    "check": "npm run lint && npm run typecheck && npm run typecheck:admin && npm run test:core && npm run validate:garment3d && npm run validate:fit-calibration && npm run validate:avatar3d && npm run build:services && npm run build && npm run build:admin",
     "check:phase10": "npm run check && npm run report:asset-budget && npm run test:e2e:phase9:closet && npm run test:e2e:phase9:rollback && npm run test:e2e:ops-closeout",
     "test:e2e": "playwright test",
     "test:e2e:ops-closeout": "playwright test apps/web/e2e/operational-closeout.spec.ts --project=chromium",

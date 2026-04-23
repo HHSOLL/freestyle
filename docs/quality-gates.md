@@ -37,8 +37,8 @@ Run these when the scope touches the matching area.
 | --- | --- |
 | admin UI or admin build path changed | `npm run typecheck:admin`, `npm run build:admin` |
 | garment metadata, runtime garment contract, or publishable garment assets changed | `npm run validate:garment3d` |
-| avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:avatar3d` |
 | body mapping, size charts, fit heuristics, or physical fit metadata changed | `npm run validate:fit-calibration` |
+| avatar assets, avatar manifest, morph mapping, or runtime avatar calibration changed | `npm run validate:fit-calibration`, then `npm run validate:avatar3d` |
 | promoted runtime GLBs changed | `npm run optimize:runtime:assets`, `npm run report:asset-budget` |
 | viewer-core loader policy, decoder public assets, or Phase 3 asset pipeline scripts changed | `npm run viewer:sync:transcoders`, `npm run viewer:bootstrap:ktx-tools`, `npm run report:asset-budget`, targeted `tsx --test` runs for `packages/viewer-core/src/loader-registry.test.ts` and the runtime loader/model-path tests, plus `npm run build:services` |
 | compatibility-stage material or lighting system changed | targeted `tsx --test` runs for `packages/runtime-3d/src/material-system.test.ts`, `packages/runtime-3d/src/studio-lighting-rig.test.ts`, `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`, `packages/viewer-core/src/proxy-stage.test.ts`, plus `npx playwright test apps/web/e2e/material-system.spec.ts --project=chromium`, `npm run build:services`, and `npm run build` |

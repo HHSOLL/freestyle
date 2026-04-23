@@ -11,8 +11,8 @@
 7. Run `npm run build`.
 8. Run `npm run build:admin`.
 9. Run `npm run validate:garment3d` when asset metadata changed.
-10. Run `npm run validate:avatar3d` when avatar assets or morph mapping changed.
-11. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
+10. Run `npm run validate:fit-calibration` when body mapping, size charts, or fit heuristics changed.
+11. Run `npm run validate:avatar3d` when avatar assets or morph mapping changed. This gate expects the fit-calibration report to already exist in clean CI.
 12. Run `npm run optimize:runtime:assets` when promoted runtime GLBs changed.
 13. Run `npm run viewer:sync:transcoders` and `npm run report:asset-budget` when Phase 3 loader policy, public decoder assets, or promoted runtime GLBs change.
 14. Run `npm run check:phase10` before closing viewer-platform Phase 10 or release-control changes.

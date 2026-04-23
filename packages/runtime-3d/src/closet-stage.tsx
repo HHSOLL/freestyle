@@ -870,7 +870,7 @@ function BoundGarment({
   avatarSceneScale: number;
 }) {
   const manifest = avatarRenderManifest[avatarVariantId];
-  const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId);
+  const modelPath = resolveGarmentRuntimeModelPath(item.runtime, avatarVariantId, qualityTier);
   const gltf = useRuntimeGLTF(modelPath);
   const invalidate = useThree((state) => state.invalidate);
   const fitRef = useRef<THREE.Group>(null);

@@ -11,6 +11,23 @@ const resolveTextureSize = (targetPath: string) => {
   return "1024";
 };
 
+const resolveLodRatios = (targetPath: string) => {
+  const normalized = relativeFromRepo(targetPath);
+  if (normalized.includes("/assets/avatars/")) {
+    return { ratio1: "0.65", ratio2: "0.35" };
+  }
+  if (normalized.includes("/shoes_soft_flat_v1.glb")) {
+    return { ratio1: "0.25", ratio2: "0.14" };
+  }
+  if (normalized.includes("/shoes_")) {
+    return { ratio1: "0.45", ratio2: "0.2" };
+  }
+  if (normalized.includes("/hair_")) {
+    return { ratio1: "0.55", ratio2: "0.3" };
+  }
+  return { ratio1: "0.65", ratio2: "0.35" };
+};
+
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
   const input = typeof args.input === "string" ? args.input : null;
@@ -23,8 +40,9 @@ const main = async () => {
   const resolvedInput = path.isAbsolute(input) ? input : path.join(repoRoot, input);
   const lod1Output = typeof args.lod1 === "string" ? args.lod1 : resolvedInput.replace(/\.glb$/u, ".lod1.glb");
   const lod2Output = typeof args.lod2 === "string" ? args.lod2 : resolvedInput.replace(/\.glb$/u, ".lod2.glb");
-  const ratio1 = typeof args.ratio1 === "string" ? args.ratio1 : "0.65";
-  const ratio2 = typeof args.ratio2 === "string" ? args.ratio2 : "0.35";
+  const derivedRatios = resolveLodRatios(resolvedInput);
+  const ratio1 = typeof args.ratio1 === "string" ? args.ratio1 : derivedRatios.ratio1;
+  const ratio2 = typeof args.ratio2 === "string" ? args.ratio2 : derivedRatios.ratio2;
   const textureSize = resolveTextureSize(resolvedInput);
 
   await ensureDir(path.dirname(lod1Output));

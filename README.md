@@ -64,6 +64,9 @@ The shipped runtime now uses:
 - `viewer-core` shared loader policy with committed DRACO + KTX2 transcoder public assets under `apps/web/public/draco` and `apps/web/public/basis`
 - a non-blocking Phase 3 asset-budget report at `output/asset-budget-report/latest.json`
 - committed avatar `LOD1 / LOD2` siblings for the two base MPFB avatars, with the compatibility runtime now resolving avatar GLB paths by quality tier
+- committed sibling `LOD1 / LOD2` garment and hair GLBs for the default promoted closet path, with the compatibility runtime now resolving equipped garment/hair model paths by quality tier too
+- a repo-local KTX2 bootstrap seam via `npm run viewer:bootstrap:ktx-tools` plus representative committed runtime `.ktx2` textures under `apps/web/public/assets/viewer-manifests/**`
+- compatibility-stage KTX2 support priming against the live browser renderer before runtime asset hooks mount
 - selective preload of the active avatar and nearby closet assets instead of whole-catalog eager preload
 
 Preferred authoring policy is:
@@ -149,8 +152,10 @@ Useful commands:
 - `npm run dev:api`
 - `npm run dev:worker`
 - `npm run viewer:sync:transcoders`
+- `npm run viewer:bootstrap:ktx-tools`
 - `npm run report:asset-budget`
 - `npm run build:display-asset`
+- `npm run build:phase3:texture-samples`
 - `npm run encode:ktx2 -- --input <texture>`
 - `npm run generate:lods -- --input <asset.glb>`
 - `npm run optimize:runtime:assets`
@@ -204,6 +209,8 @@ If any document under `docs/replatform-v2/**`, `docs/RENEWAL_*`, or older health
 - [docs/freestyle-viewer-platform/phase2_5/closeout.md](docs/freestyle-viewer-platform/phase2_5/closeout.md)
 - [docs/freestyle-viewer-platform/phase3/batch1.md](docs/freestyle-viewer-platform/phase3/batch1.md)
 - [docs/freestyle-viewer-platform/phase3/batch2.md](docs/freestyle-viewer-platform/phase3/batch2.md)
+- [docs/freestyle-viewer-platform/phase3/batch3.md](docs/freestyle-viewer-platform/phase3/batch3.md)
+- [docs/freestyle-viewer-platform/phase3/closeout.md](docs/freestyle-viewer-platform/phase3/closeout.md)
 - [docs/asset-quality-contract.md](docs/asset-quality-contract.md)
 - [docs/avatar-production-contract.md](docs/avatar-production-contract.md)
 - [docs/garment-production-contract.md](docs/garment-production-contract.md)

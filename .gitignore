@@ -44,6 +44,7 @@ yarn-error.log*
 /authoring/garments/.cache/
 /authoring/**/exports/raw/*.blend
 /authoring/**/exports/raw/*.blend1
+/tools/ktx-software/
 
 # env files (can opt-in for committing if needed)
 .env*

@@ -359,9 +359,16 @@ export type GarmentSecondaryMotionBinding = {
   lateralSwingCm?: number;
 };
 
+export type GarmentRuntimeLodPaths = {
+  lod1?: string;
+  lod2?: string;
+};
+
 export type GarmentRuntimeBinding = {
   modelPath: string;
   modelPathByVariant?: Partial<Record<AvatarRenderVariantId, string>>;
+  lodModelPaths?: GarmentRuntimeLodPaths;
+  lodModelPathsByVariant?: Partial<Record<AvatarRenderVariantId, GarmentRuntimeLodPaths>>;
   skeletonProfileId: string;
   anchorBindings: GarmentAnchorBinding[];
   collisionZones: GarmentCollisionZone[];

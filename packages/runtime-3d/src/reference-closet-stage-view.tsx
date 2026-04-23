@@ -14,6 +14,7 @@ import { OrbitControls } from "@react-three/drei";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { QualityTier } from "@freestyle/shared-types";
 import { resolveReferenceClosetStageScenePolicy } from "./reference-closet-stage-policy.js";
+import { primeRuntimeGLTFLoaderSupport } from "./runtime-gltf-loader.js";
 
 export type ReferenceClosetStageOrbitControls = ComponentRef<typeof OrbitControls>;
 type ReferenceClosetStageScenePolicy = ReturnType<typeof resolveReferenceClosetStageScenePolicy>;
@@ -84,6 +85,7 @@ function StageEnvironment({
   exposure: number;
 }) {
   const gl = useThree((state) => state.gl);
+  primeRuntimeGLTFLoaderSupport(gl);
   const environmentTexture = useMemo(() => {
     const pmremGenerator = new THREE.PMREMGenerator(gl);
     const texture = pmremGenerator.fromScene(

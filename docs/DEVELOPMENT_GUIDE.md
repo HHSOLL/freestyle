@@ -288,8 +288,11 @@ Rules:
 - keep `GLTFLoader` configured for both `DRACOLoader` and `MeshoptDecoder`; optimized runtime GLBs now rely on both compression paths being decodable
 - keep `viewer-core` loader policy canonical: `/draco/gltf/` and `/basis/` paths, KTX2 worker limit, and runtime texture-format preference now come from `packages/shared-types/src/viewer-asset-policy.ts`
 - keep `apps/web/public/basis/*` in sync with `three/examples/jsm/libs/basis/*` through `npm run viewer:sync:transcoders`; do not assume the transcoder files are present by magic in production
+- keep the repo-local KTX tool seam reproducible: `npm run viewer:bootstrap:ktx-tools` owns workspace-local `toktx` bootstrap under the ignored `tools/ktx-software/` path, and `scripts/encode-ktx2.mts` must prefer that seam before falling back to a machine-global binary
 - keep runtime stage loads and runtime preloads on the same shared loader configuration; do not duplicate glTF decoder setup across files
+- keep runtime KTX2 support renderer-owned: the active stage must call `primeRuntimeGLTFLoaderSupport(renderer)` before asset hooks depend on `.ktx2` decode support, and disposal must stay inside the shared runtime loader seam
 - keep runtime avatar path resolution quality-aware: `resolveAvatarRuntimeModelPath` plus `collectRuntimeModelPaths` must preload and consume the same avatar LOD sibling that the stage will render for the current quality tier
+- keep runtime garment path resolution quality-aware too: `resolveGarmentRuntimeModelPath` plus `collectRuntimeModelPaths` must preload and consume the same garment or hair LOD sibling that the stage will render for the current quality tier
 - keep clone-owned runtime materials on an explicit cleanup path; dispose only cloned stage-owned materials, never `useGLTF` cache source geometry or shared textures
 - keep visible stage fallback ownership split by seam: host chunk/WebGL fallback in `apps/web/src/components/product/AvatarStageViewport.tsx`, in-canvas asset-loading placeholder in `packages/runtime-3d/src/closet-stage.tsx`
 - keep host stage support/load/retry lifecycle policy in a pure helper so `AvatarStageViewport` transitions stay testable without mounting the 3D canvas
@@ -305,8 +308,8 @@ Rules:
 - validate hero garment source summaries with `npm run validate:garment3d`; the measured `fitAudit` regression budget is now part of the garment gate, and the default equipped `Soft Casual` top is included in that guardrail
 - keep starter garment pattern/material sidecars and starter runtime metadata in lockstep; `validate:garment3d` now treats sidecar drift as a contract failure instead of a docs-only mismatch
 - Phase 3 runtime asset evidence now starts with `npm run report:asset-budget`; treat `output/asset-budget-report/latest.json` as the non-blocking source of truth for missing LOD siblings, missing runtime KTX2 textures, and transfer-budget drift
-- the first real LOD consumer is avatar-only: committed MPFB base avatars now ship `.lod1/.lod2` siblings, while garments still fall back to `LOD0` until promoted siblings are authored and committed
-- use `npm run build:display-asset`, `npm run generate:lods`, and `npm run encode:ktx2` as the first-party CLI seam for Phase 3 display-asset work; do not add ad-hoc one-off asset conversion scripts before those seams are exhausted
+- the current promoted/default runtime path now consumes real sibling `LOD1 / LOD2` files for avatars plus the equipped starter garments and textured-crop hair; wider catalog coverage is backlog, not a reason to bypass the quality-tier path
+- use `npm run build:display-asset`, `npm run generate:lods`, `npm run viewer:bootstrap:ktx-tools`, `npm run build:phase3:texture-samples`, and `npm run encode:ktx2` as the first-party CLI seam for Phase 3 display-asset work; do not add ad-hoc one-off asset conversion scripts before those seams are exhausted
 - rerun `npm run optimize:runtime:assets` after promoting new runtime GLBs
 
 ## 8. Persistence Rules

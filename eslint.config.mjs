@@ -27,6 +27,7 @@ const eslintConfig = defineConfig([
     "v18/**",
     "apps/web/public/draco/**",
     "apps/web/public/basis/**",
+    "tools/ktx-software/**",
   ]),
 ]);
 

@@ -23,7 +23,7 @@ export const collectRuntimeModelPaths = ({
   });
 
   garmentAssets.forEach((item) => {
-    const modelPath = resolveGarmentRuntimeModelPath(item.runtime, garmentVariantId);
+    const modelPath = resolveGarmentRuntimeModelPath(item.runtime, garmentVariantId, qualityTier);
     if (modelPath) {
       dedupedPaths.add(modelPath);
     }

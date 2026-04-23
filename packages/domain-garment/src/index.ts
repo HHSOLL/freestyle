@@ -49,6 +49,8 @@ import type {
   PublishedGarmentAsset,
   RuntimeGarmentAsset,
   StarterGarment,
+  QualityTier,
+  GarmentRuntimeLodPaths,
 } from "@freestyle/shared-types";
 import { flattenBodyProfile } from "@freestyle/shared-types";
 import {
@@ -61,6 +63,14 @@ export const publishedGarmentStorageKey = "freestyle:published-garments:v1";
 
 const svgLabel = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const buildGarmentRuntimeLodPath = (modelPath: string, suffix: "lod1" | "lod2") =>
+  modelPath.replace(/\.glb$/u, `.${suffix}.glb`);
+
+const buildGarmentRuntimeLodPaths = (modelPath: string): GarmentRuntimeLodPaths => ({
+  lod1: buildGarmentRuntimeLodPath(modelPath, "lod1"),
+  lod2: buildGarmentRuntimeLodPath(modelPath, "lod2"),
+});
 
 const createSwatchThumbnail = (title: string, color: string) => {
   const svg = `
@@ -84,6 +94,9 @@ const createRuntime = (
   config: {
     modelPath: string;
     modelPathByVariant?: Partial<Record<AvatarRenderVariantId, string>>;
+    deriveSiblingLods?: boolean;
+    lodModelPaths?: GarmentRuntimeLodPaths;
+    lodModelPathsByVariant?: Partial<Record<AvatarRenderVariantId, GarmentRuntimeLodPaths>>;
     collisionZones: GarmentCollisionZone[];
     bodyMaskZones: GarmentCollisionZone[];
     anchorBindings?: GarmentAnchorBinding[];
@@ -95,6 +108,15 @@ const createRuntime = (
 ): GarmentRuntimeBinding => ({
   modelPath: config.modelPath,
   modelPathByVariant: config.modelPathByVariant,
+  lodModelPaths: config.deriveSiblingLods ? buildGarmentRuntimeLodPaths(config.modelPath) : config.lodModelPaths,
+  lodModelPathsByVariant: config.deriveSiblingLods
+    ? Object.fromEntries(
+        Object.entries(config.modelPathByVariant ?? {}).map(([variantId, modelPath]) => [
+          variantId,
+          buildGarmentRuntimeLodPaths(modelPath),
+        ]),
+      )
+    : config.lodModelPathsByVariant,
   skeletonProfileId: defaultSkeletonProfileId,
   anchorBindings:
     config.anchorBindings ?? [
@@ -141,10 +163,22 @@ export const collectGarmentRuntimeModelPaths = (binding: GarmentRuntimeBinding) 
   if (binding.modelPath) {
     paths.add(binding.modelPath);
   }
+  Object.values(binding.lodModelPaths ?? {}).forEach((value) => {
+    if (value) {
+      paths.add(value);
+    }
+  });
   Object.values(binding.modelPathByVariant ?? {}).forEach((value) => {
     if (value) {
       paths.add(value);
     }
+  });
+  Object.values(binding.lodModelPathsByVariant ?? {}).forEach((value) => {
+    Object.values(value ?? {}).forEach((lodPath) => {
+      if (lodPath) {
+        paths.add(lodPath);
+      }
+    });
   });
   return Array.from(paths);
 };
@@ -152,7 +186,21 @@ export const collectGarmentRuntimeModelPaths = (binding: GarmentRuntimeBinding) 
 export const resolveGarmentRuntimeModelPath = (
   binding: GarmentRuntimeBinding,
   avatarVariantId: AvatarRenderVariantId,
-) => binding.modelPathByVariant?.[avatarVariantId] ?? binding.modelPath;
+  qualityTier: QualityTier = "high",
+) => {
+  const baseModelPath = binding.modelPathByVariant?.[avatarVariantId] ?? binding.modelPath;
+  const lodPaths = binding.lodModelPathsByVariant?.[avatarVariantId] ?? binding.lodModelPaths;
+
+  if (qualityTier === "low") {
+    return lodPaths?.lod2 ?? lodPaths?.lod1 ?? baseModelPath;
+  }
+
+  if (qualityTier === "balanced") {
+    return lodPaths?.lod1 ?? baseModelPath;
+  }
+
+  return baseModelPath;
+};
 
 export const getGarmentPoseRuntimeTuning = (
   binding: Pick<GarmentRuntimeBinding, "poseTuning">,
@@ -325,6 +373,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/top_soft_casual_v4.glb",
         "male-base": "/assets/garments/mpfb/male/top_soft_casual_v4.glb",
       },
+      deriveSiblingLods: true,
       collisionZones: ["torso", "arms", "hips"],
       bodyMaskZones: ["torso"],
       poseTuning: poseTuning({
@@ -415,6 +464,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
         "male-base": "/assets/garments/mpfb/male/bottom_soft_wool_v1.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "waistCenter", weight: 0.34 },
         { id: "hipCenter", weight: 0.34 },
@@ -701,6 +751,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_sneaker.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "leftAnkle", weight: 0.25 },
         { id: "rightAnkle", weight: 0.25 },
@@ -764,6 +815,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/shoes_soft_flat_v1.glb",
         "male-base": "/assets/garments/mpfb/male/shoes_soft_sneaker.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "leftAnkle", weight: 0.25 },
         { id: "rightAnkle", weight: 0.25 },
@@ -1169,6 +1221,7 @@ export const starterGarmentCatalog: StarterGarment[] = [
         "female-base": "/assets/garments/mpfb/female/hair_textured_crop.glb",
         "male-base": "/assets/garments/mpfb/male/hair_textured_crop.glb",
       },
+      deriveSiblingLods: true,
       anchorBindings: [
         { id: "headCenter", weight: 0.46 },
         { id: "foreheadCenter", weight: 0.28 },

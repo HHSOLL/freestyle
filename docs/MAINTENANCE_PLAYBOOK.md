@@ -34,7 +34,7 @@
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
 If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If approval-state or fit-quality contract enforcement changes, also update `docs/freestyle-viewer-platform/phase2_5/closeout.md` in the same PR.
-If Phase 3 loader policy, transcoder sync, or asset budget reporting changes, also update `docs/freestyle-viewer-platform/phase3/batch1.md` in the same PR.
+If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD` coverage, or asset budget reporting changes, also update the relevant note under `docs/freestyle-viewer-platform/phase3/` in the same PR. If the batch claims to close or reopen the phase, update `docs/freestyle-viewer-platform/phase3/closeout.md` too.
 If the forced `viewer-react` host changes its latency evidence seam, also update `docs/freestyle-viewer-platform/phase2/telemetry-slice.md` and the Phase 0 risk/baseline notes in the same PR.
 If admin/runtime garment publication changes the canonical manifest shadow seam, also update `docs/freestyle-viewer-platform/phase2/manifest-shadow.md` and the admin publish regression checklist in the same PR.
 
@@ -117,13 +117,16 @@ Verify these after any mannequin or asset change:
 - the reduced preview backend still downgrades cleanly: `worker-reduced` falls back to `cpu-reduced` when `/workers/reference-closet-stage-preview.worker.js` is unavailable or Worker support is missing
 - meshopt-compressed runtime GLBs still load in browser builds; a missing `MeshoptDecoder` is now a release blocker
 - the committed base-avatar sibling files `mpfb-female-base.lod1/.lod2.glb` and `mpfb-male-base.lod1/.lod2.glb` still exist; `balanced` and `low` quality must not 404 back to a blank stage
+- the committed promoted garment and hair sibling files for the default closet path still exist; `balanced` and `low` quality must not silently fall back to `LOD0` for the equipped starter path
 - repeated avatar / garment swaps should not leave clone-owned runtime materials without cleanup; cleanup must target only stage-owned material clones
 - secondary motion still settles back to idle under `frameloop="demand"` instead of forcing a permanent render loop
 - `low` quality mode still renders on weaker devices
 - asset preloading does not exceed declared budgets
 - `apps/web/public/basis/basis_transcoder.js` and `.wasm` still exist and match the loader policy expected by `viewer-core`
+- repo-local `toktx` bootstrap still works through `npm run viewer:bootstrap:ktx-tools` when Phase 3 scripts or committed `.ktx2` samples change
 - `output/asset-budget-report/latest.json` is regenerated after promoted runtime asset changes and any new warnings are reviewed before release
 - avatar quality-tier path resolution and preload continue to agree on the same effective asset path
+- garment and hair quality-tier path resolution continue to agree with preload on the same effective asset path for the default promoted closet loadout
 - active runtime preload stays scoped to the current avatar, equipped garments, and near-term closet candidates
 - optimized runtime GLBs stay within explicit avatar / garment / hair / default-loadout budgets
 

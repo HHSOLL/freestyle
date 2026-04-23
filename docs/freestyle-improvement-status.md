@@ -1496,6 +1496,71 @@ Outcome:
 - web state still keeps artifact lineage separate from the main fit-simulation detail payload
 - the repo still does **not** claim stage swap-in, solver-grade cloth output, or a widened fit-simulation detail contract
 
+### `Phase 8 / Batch 4`
+
+Status: `completed`
+
+Completed work:
+
+1. added an admin-only `GET /v1/admin/fit-simulations/:id` inspection route for the persisted HQ fit simulation and lineage snapshot
+2. kept the route read-only and detail-by-id only, without adding a registry or mutation workflow
+3. reused the current persisted fit-simulation record plus lineage snapshot instead of inventing a second storage shape
+
+Evidence:
+
+- `packages/contracts/src/index.ts`
+- `packages/contracts/src/domain-contracts.test.ts`
+- `apps/api/src/modules/fit-simulations/fit-simulations.service.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.ts`
+- `apps/api/src/routes/admin-fit-simulations.routes.test.ts`
+- `docs/freestyle-viewer-platform/phase8/batch4.md`
+
+Outcome:
+
+- HQ artifact lineage is now inspectable through both owner-scoped lab and admin-scoped read-only seams
+- the repo still does **not** claim artifact certification workflow, solver-grade cloth truth, or widened public detail contracts
+
+### `Phase 8 Closeout`
+
+Status: `completed`
+
+Completed work:
+
+1. closed the current repo-scoped HQ artifact identity / lineage / inspection baseline
+2. recorded the closeout and its non-goals explicitly
+
+Evidence:
+
+- `docs/freestyle-viewer-platform/phase8/closeout.md`
+
+Outcome:
+
+- `Phase 8` is now closed for the current viewer-platform refactor track
+- remaining HQ artifact tooling work moves to `Phase 8.5`
+
+### `Phase 8.5 / Batch 1`
+
+Status: `completed`
+
+Completed work:
+
+1. added a typed admin inspection envelope for `fitSimulation + artifactLineage`
+2. added a separate read-only HQ artifact inspection panel in `apps/admin`
+3. kept that inspection state isolated from garment draft editor state and starter certification state
+
+Evidence:
+
+- `apps/admin/src/components/FitSimulationInspectionPanel.tsx`
+- `apps/admin/src/lib/fitSimulationInspection.ts`
+- `apps/admin/src/lib/fitSimulationInspection.test.ts`
+- `apps/admin/src/components/AdminWorkspace.tsx`
+- `docs/freestyle-viewer-platform/phase8_5/batch1.md`
+
+Outcome:
+
+- `Phase 8.5` has started with a real admin tooling seam
+- the repo still does **not** claim approve/reject/certify workflow or broader HQ artifact registry coverage
+
 ## Phase 0 Closeout
 
 `Phase 0` is complete when all of the following are true:

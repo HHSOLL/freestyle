@@ -71,6 +71,7 @@ If the Phase 8 HQ artifact identity seam changes, also update the relevant note 
 - `/v1/admin/garments`
 - `POST /v1/admin/garments`
 - `/v1/admin/garment-certifications`
+- `/v1/admin/fit-simulations/:id`
 - `/v1/legacy/assets`
 - `GET /v1/legacy/jobs/:job_id`
 - `POST /v1/lab/jobs/evaluations`
@@ -212,6 +213,7 @@ If any of the above regress, stop the release.
 - verify product routes still default to `PUBLISHED` assets while admin surfaces can inspect candidate approval states
 - verify `/v1/admin/garments?approval_state=...` still filters certification candidates without leaking those assets into `/v1/closet/runtime-garments`
 - verify `/v1/admin/garment-certifications` still reflects the committed `output/garment-certification/latest.json` bundle and stays admin-only
+- verify `/v1/admin/fit-simulations/:id` still returns a read-only inspection envelope and does not mutate or widen the existing lab fit-simulation detail contract
 - the garment-certification read seam resolves that bundle from repo-root `output/garment-certification/latest.json` by default; use `GARMENT_CERTIFICATION_BUNDLE_PATH` only when an explicit deployment/test override is required
 - verify `approvalState`, `approvedAt/by`, and certification notes survive admin save/load without affecting legacy upload asset statuses
 - verify legacy published rows with missing approval metadata normalize to `PUBLISHED` on read only; re-saved records must persist an explicit approval state

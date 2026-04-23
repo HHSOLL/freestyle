@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -12,10 +12,12 @@ import {
   Trash2,
 } from "lucide-react";
 import type {
+  FitSimulationAdminInspectionResponse,
   GarmentCertificationItemResponse,
   GarmentCertificationListResponse,
   GarmentCertificationReportItem,
 } from "@freestyle/contracts";
+import { fitSimulationAdminInspectionResponseSchema } from "@freestyle/contracts";
 import { publishedGarmentAssetSchema } from "@freestyle/shared";
 import type {
   AssetCategory,
@@ -28,9 +30,11 @@ import type {
 } from "@freestyle/shared-types";
 import { wardrobeTokens } from "@freestyle/design-tokens";
 import { DenseCatalogCard, Eyebrow, PillButton, SurfacePanel } from "@freestyle/ui";
+import { FitSimulationInspectionPanel } from "@/components/FitSimulationInspectionPanel";
 import { GarmentCertificationPanel } from "@/components/GarmentCertificationPanel";
 import { adminApiFetchJson, getApiErrorMessage } from "@/lib/adminApi";
 import { buildAdminFitReview, fitStateTone } from "@/lib/fitReview";
+import { summarizeFitSimulationInspection } from "@/lib/fitSimulationInspection";
 import {
   buildGarmentCertificationCoverageSet,
   filterByGarmentCertificationCoverage,
@@ -347,11 +351,17 @@ export function AdminWorkspace() {
   const [selectedCertification, setSelectedCertification] = useState<GarmentCertificationReportItem | null>(null);
   const [selectedCertificationGeneratedAt, setSelectedCertificationGeneratedAt] = useState<string | null>(null);
   const [selectedCertificationError, setSelectedCertificationError] = useState<string | null>(null);
+  const [fitSimulationInspectionId, setFitSimulationInspectionId] = useState("");
+  const [fitSimulationInspection, setFitSimulationInspection] =
+    useState<FitSimulationAdminInspectionResponse | null>(null);
+  const [fitSimulationInspectionError, setFitSimulationInspectionError] = useState<string | null>(null);
   const [activeSizeLabel, setActiveSizeLabel] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [isCertificationFetching, setIsCertificationFetching] = useState(false);
   const [isCertificationDetailFetching, setIsCertificationDetailFetching] = useState(false);
+  const [isFitSimulationInspectionFetching, setIsFitSimulationInspectionFetching] = useState(false);
   const [isSaving, startSaving] = useTransition();
+  const activeFitSimulationInspectionIdRef = useRef<string | null>(null);
 
   const parsedEditor = useMemo(() => parseEditorState(editorValue), [editorValue]);
   const certificationCoverageIds = useMemo(
@@ -392,6 +402,10 @@ export function AdminWorkspace() {
   const certificationSummary = useMemo(
     () => summarizeGarmentCertification(effectiveCertification),
     [effectiveCertification],
+  );
+  const fitSimulationInspectionSummary = useMemo(
+    () => summarizeFitSimulationInspection(fitSimulationInspection),
+    [fitSimulationInspection],
   );
 
   const activeSize = useMemo(() => {
@@ -484,6 +498,51 @@ export function AdminWorkspace() {
     setCertificationGeneratedAt(data.generatedAt);
     setIsCertificationFetching(false);
   }, [category, user]);
+
+  const loadFitSimulationInspection = useCallback(async () => {
+    if (!user) return;
+
+    const fitSimulationId = fitSimulationInspectionId.trim();
+    if (!fitSimulationId) {
+      activeFitSimulationInspectionIdRef.current = null;
+      setFitSimulationInspection(null);
+      setFitSimulationInspectionError("HQ fit simulation id를 입력해라.");
+      return;
+    }
+
+    activeFitSimulationInspectionIdRef.current = fitSimulationId;
+    setIsFitSimulationInspectionFetching(true);
+    setFitSimulationInspectionError(null);
+    setFitSimulationInspection(null);
+
+    const { response, data } = await adminApiFetchJson<FitSimulationAdminInspectionResponse>(
+      `/v1/admin/fit-simulations/${fitSimulationId}`,
+    );
+
+    if (activeFitSimulationInspectionIdRef.current !== fitSimulationId) {
+      return;
+    }
+
+    if (!response.ok || !data) {
+      setFitSimulationInspection(null);
+      setFitSimulationInspectionError(
+        getApiErrorMessage(data, "HQ artifact inspection을 불러오지 못했다."),
+      );
+      setIsFitSimulationInspectionFetching(false);
+      return;
+    }
+
+    const parsed = fitSimulationAdminInspectionResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      setFitSimulationInspection(null);
+      setFitSimulationInspectionError("HQ artifact inspection 응답 형식이 올바르지 않다.");
+      setIsFitSimulationInspectionFetching(false);
+      return;
+    }
+
+    setFitSimulationInspection(parsed.data);
+    setIsFitSimulationInspectionFetching(false);
+  }, [fitSimulationInspectionId, user]);
 
   useEffect(() => {
     void loadItems();
@@ -587,6 +646,22 @@ export function AdminWorkspace() {
       cancelled = true;
     };
   }, [certificationCatalogItem, selectedId, user, workingGarmentId]);
+
+  const handleFitSimulationInspectionIdChange = useCallback((value: string) => {
+    activeFitSimulationInspectionIdRef.current = null;
+    setFitSimulationInspectionId(value);
+    setFitSimulationInspection(null);
+    setFitSimulationInspectionError(null);
+    setIsFitSimulationInspectionFetching(false);
+  }, []);
+
+  const handleClearFitSimulationInspection = useCallback(() => {
+    activeFitSimulationInspectionIdRef.current = null;
+    setFitSimulationInspectionId("");
+    setFitSimulationInspection(null);
+    setFitSimulationInspectionError(null);
+    setIsFitSimulationInspectionFetching(false);
+  }, []);
 
   const handleCreateDraft = useCallback(() => {
     const nextCategory = category === "all" ? "tops" : category;
@@ -1532,6 +1607,45 @@ export function AdminWorkspace() {
                         certification={effectiveCertification}
                         summary={certificationSummary}
                       />
+                    </SectionFrame>
+
+                    <SectionFrame
+                      eyebrow="HQ Fit"
+                      title="Artifact Inspection"
+                      description="Phase 8.5 read-only admin inspection seam이다. persisted HQ fit simulation id를 기준으로 artifact bundle과 lineage snapshot을 확인하고, publish editor state와는 분리해서 유지한다."
+                    >
+                      <div className="space-y-4">
+                        <TextInputField
+                          label="Fit Simulation ID"
+                          value={fitSimulationInspectionId}
+                          onChange={handleFitSimulationInspectionIdChange}
+                          placeholder="00000000-0000-4000-8000-000000000801"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <PillButton
+                            active={false}
+                            onClick={() => {
+                              void loadFitSimulationInspection();
+                            }}
+                            className="px-4 py-2 text-[12px]"
+                          >
+                            Load inspection
+                          </PillButton>
+                          <PillButton
+                            active={false}
+                            onClick={handleClearFitSimulationInspection}
+                            className="px-4 py-2 text-[12px]"
+                          >
+                            Clear
+                          </PillButton>
+                        </div>
+                        <FitSimulationInspectionPanel
+                          inspection={fitSimulationInspection}
+                          summary={fitSimulationInspectionSummary}
+                          isLoading={isFitSimulationInspectionFetching}
+                          loadError={fitSimulationInspectionError}
+                        />
+                      </div>
                     </SectionFrame>
 
                     <SectionFrame

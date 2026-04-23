@@ -45,6 +45,7 @@ import {
   fitMapArtifactDataSchema,
   fitSimulationMetricsArtifactDataSchema,
   fitSimulationCreateResponseSchema,
+  fitSimulationAdminInspectionResponseSchema,
   fitSimulationGetResponseSchema,
   fitSimulateHQJobType,
   fitSimulateHQRequestSchema,
@@ -580,6 +581,40 @@ test('fitSimulation read response defaults avatarPublication to null when omitte
   });
 
   assert.equal(parsed.fitSimulation.avatarPublication, null);
+});
+
+test('fitSimulation admin inspection response keeps lineage separate from the public detail payload', () => {
+  const parsed = fitSimulationAdminInspectionResponseSchema.parse({
+    schemaVersion: 'fit-simulation-admin-inspection.v1',
+    fitSimulation: {
+      id: '00000000-0000-4000-8000-000000000026',
+      jobId: null,
+      status: 'succeeded',
+      avatarVariantId: 'female-base',
+      bodyVersionId: 'body-profile:user-1:2026-04-20T10:00:00.000Z',
+      garmentVariantId: 'starter-top-soft-casual',
+      avatarManifestUrl: 'https://freestyle.local/assets/avatars/mpfb-female-base.glb',
+      garmentManifestUrl: 'https://freestyle.local/assets/garments/starter/top-soft-casual.glb',
+      materialPreset: 'knit_medium',
+      qualityTier: 'balanced',
+      instantFit: null,
+      fitMap: null,
+      fitMapSummary: null,
+      artifacts: [],
+      metrics: null,
+      warnings: [],
+      errorMessage: null,
+      avatarPublication: null,
+      createdAt: '2026-04-20T10:00:00.000Z',
+      updatedAt: '2026-04-20T10:00:00.000Z',
+      completedAt: '2026-04-20T10:00:00.000Z',
+    },
+    artifactLineage: null,
+  });
+
+  assert.equal(parsed.fitSimulation.id, '00000000-0000-4000-8000-000000000026');
+  assert.equal(parsed.artifactLineage, null);
+  assert.equal('artifactLineage' in parsed.fitSimulation, false);
 });
 
 test("preview simulation frame schemas accept worker-offload request and result payloads", () => {

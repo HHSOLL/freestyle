@@ -23,9 +23,14 @@ import {
 } from "@freestyle/shared";
 import { runtimeAvatarRenderManifestSchemaVersion } from "@freestyle/shared-types";
 import type {
+  FitSimulationAdminInspectionResponse,
   FitSimulationAvatarPublicationSnapshot,
   FitSimulationPublicRecord,
   PublishedGarmentAsset,
+} from "@freestyle/contracts";
+import {
+  fitSimulationAdminInspectionResponseSchema,
+  fitSimulationAdminInspectionSchemaVersion,
 } from "@freestyle/contracts";
 import { getPublishedRuntimeAvatarByVariantId } from "../avatars/runtime-avatars.service.js";
 import { getBodyProfileRecordForUser } from "../profile/body-profile.repository.js";
@@ -326,7 +331,15 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     return null;
   }
 
-  const publicRecord: FitSimulationPublicRecord = {
+  const publicRecord = buildFitSimulationPublicRecord(row);
+
+  return publicRecord;
+};
+
+const buildFitSimulationPublicRecord = (
+  row: NonNullable<Awaited<ReturnType<typeof getFitSimulationById>>>,
+): FitSimulationPublicRecord => {
+  return {
     id: row.id,
     jobId: row.jobId,
     status: row.status,
@@ -352,8 +365,6 @@ export const getFitSimulationForUser = async (userId: string, fitSimulationId: s
     updatedAt: row.updatedAt,
     completedAt: row.completedAt,
   };
-
-  return publicRecord;
 };
 
 export const getFitSimulationArtifactLineageForUser = async (
@@ -370,4 +381,19 @@ export const getFitSimulationArtifactLineageForUser = async (
 
 export const getFitSimulationById = async (fitSimulationId: string) => {
   return getFitSimulationRecordById(fitSimulationId);
+};
+
+export const getFitSimulationInspectionById = async (
+  fitSimulationId: string,
+): Promise<FitSimulationAdminInspectionResponse | null> => {
+  const row = await getFitSimulationRecordById(fitSimulationId);
+  if (!row) {
+    return null;
+  }
+
+  return fitSimulationAdminInspectionResponseSchema.parse({
+    schemaVersion: fitSimulationAdminInspectionSchemaVersion,
+    fitSimulation: buildFitSimulationPublicRecord(row),
+    artifactLineage: row.artifactLineage ?? null,
+  });
 };

@@ -1304,6 +1304,16 @@ export const fitSimulationArtifactLineageGetResponseSchema = z
   })
   .strict();
 
+export const fitSimulationAdminInspectionSchemaVersion = "fit-simulation-admin-inspection.v1";
+
+export const fitSimulationAdminInspectionResponseSchema = z
+  .object({
+    schemaVersion: z.literal(fitSimulationAdminInspectionSchemaVersion),
+    fitSimulation: fitSimulationPublicRecordSchema,
+    artifactLineage: fitSimulationArtifactLineageSchema.nullable(),
+  })
+  .strict();
+
 export const assetAuthoringSummarySchemaVersion = "runtime-asset-authoring-summary.v1";
 export const garmentPatternSpecSchemaVersion = "garment-pattern-spec.v1";
 export const garmentMaterialProfileSchemaVersion = "garment-material-profile.v1";
@@ -2405,6 +2415,9 @@ export type FitSimulationCreateResponse = z.infer<typeof fitSimulationCreateResp
 export type FitSimulationGetResponse = z.infer<typeof fitSimulationGetResponseSchema>;
 export type FitSimulationArtifactLineageGetResponse = z.infer<
   typeof fitSimulationArtifactLineageGetResponseSchema
+>;
+export type FitSimulationAdminInspectionResponse = z.infer<
+  typeof fitSimulationAdminInspectionResponseSchema
 >;
 export type AssetCategory = z.infer<typeof assetCategorySchema>;
 export type AssetSource = z.infer<typeof assetSourceSchema>;

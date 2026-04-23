@@ -117,6 +117,7 @@
   - `PUT /v1/admin/garments/:id`
   - `GET /v1/admin/garment-certifications`
   - `GET /v1/admin/garment-certifications/:id`
+  - `GET /v1/admin/fit-simulations/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
   - `POST /v1/admin/garments/:id/publish`
@@ -131,11 +132,14 @@
 - current admin-only inspection seam for that bundle:
   - `GET /v1/admin/garment-certifications`
   - `GET /v1/admin/garment-certifications/:id`
+- current admin-only HQ artifact inspection seam:
+  - `GET /v1/admin/fit-simulations/:id`
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
   - `garmentCertificationListResponseSchema`
   - `garmentCertificationItemResponseSchema`
+  - `fitSimulationAdminInspectionResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
@@ -429,6 +433,15 @@
 - auth: same admin-only rule as `GET /v1/admin/garments`
 - response body satisfies `publishedRuntimeGarmentItemResponseSchema`
 - if the stored row for `:id` is malformed or fails semantic garment validation, the route returns `404 NOT_FOUND`
+
+#### `GET /v1/admin/fit-simulations/:id`
+- auth: same admin-only rule as `GET /v1/admin/garments`
+- response body satisfies `fitSimulationAdminInspectionResponseSchema`
+- returns one read-only inspection envelope:
+  - `fitSimulation`
+  - `artifactLineage`
+- `artifactLineage` may be `null` when the persisted record exists but the baseline lineage snapshot is missing
+- this route is an operator/admin seam only; it must not be treated as product-path proof of solver-grade HQ cloth output
 
 #### `POST /v1/admin/garments`
 - auth: same admin-only rule as `GET /v1/admin/garments`

@@ -18,6 +18,7 @@ import { registerCanvasRoutes } from "./routes/canvas.routes.js";
 import { registerCommunityRoutes } from "./routes/community.routes.js";
 import { registerRuntimeAvatarRoutes } from "./routes/runtime-avatars.routes.js";
 import { registerGarmentCertificationRoutes } from "./routes/garment-certification.routes.js";
+import { registerAdminFitSimulationRoutes } from "./routes/admin-fit-simulations.routes.js";
 import { registerRuntimeGarmentRoutes } from "./routes/runtime-garments.routes.js";
 import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
 import { buildOriginPolicy } from "./lib/originPolicy.js";
@@ -65,6 +66,7 @@ export const buildServer = () => {
     registerClosetRoutes(product);
     registerRuntimeAvatarRoutes(product);
     registerGarmentCertificationRoutes(product);
+    registerAdminFitSimulationRoutes(product);
     registerRuntimeGarmentRoutes(product);
     registerCanvasRoutes(product);
     registerCommunityRoutes(product);

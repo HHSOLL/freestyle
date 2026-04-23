@@ -143,6 +143,7 @@ The current `metrics_json` artifact is a typed summary blob containing the recor
 - it is stored on the internal fit-simulation record and written next to the artifact bundle
 - it is **not** widened onto `GET /v1/lab/fit-simulations/:id`
 - it is available through `GET /v1/lab/fit-simulations/:id/artifact-lineage`
+- it is also inspectable through `GET /v1/admin/fit-simulations/:id` as a read-only admin/operator seam
 
 This keeps `Phase D` honest: there is now a working async/offline artifact path with a full bundle, but it is still not a full cloth-simulation runtime.
 

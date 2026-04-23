@@ -41,8 +41,8 @@ export const preloadViewerAssets = async (
   host = resolveViewerHost(),
   loadRuntime3D = loadRuntime3DModule,
 ) => {
-  if (host !== "runtime-3d") {
-    return;
+  if (host === "viewer-react") {
+    await Promise.resolve(FreestyleViewerHost);
   }
 
   const runtime3DModule = await loadRuntime3D();

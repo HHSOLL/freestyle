@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+const phase9ClosetKillSwitchEnabled =
+  process.env.NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH === "true";
+
+const viewerReactClosetHostEnabled =
+  !phase9ClosetKillSwitchEnabled &&
+  (process.env.NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_VIEWER_HOST === "viewer-react");
+
 test.describe("closet preview runtime evidence", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -7,7 +15,7 @@ test.describe("closet preview runtime evidence", () => {
     page,
   }) => {
     test.skip(
-      process.env.NEXT_PUBLIC_VIEWER_HOST === "viewer-react",
+      viewerReactClosetHostEnabled,
       "This smoke only applies when the runtime-3d compatibility host is active.",
     );
 

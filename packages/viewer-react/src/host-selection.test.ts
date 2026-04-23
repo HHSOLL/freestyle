@@ -29,7 +29,7 @@ test("loadConfiguredAvatarStageComponent resolves the runtime-3d shim lazily", a
   assert.equal(component, runtimeComponent);
 });
 
-test("preloadViewerAssets delegates to runtime-3d only when the compatibility host is active", async () => {
+test("preloadViewerAssets delegates runtime asset warming for both product hosts", async () => {
   const calls: ViewerPreloadInput[] = [];
   const input: ViewerPreloadInput = {
     avatarVariantIds: ["female-base"],
@@ -49,5 +49,5 @@ test("preloadViewerAssets delegates to runtime-3d only when the compatibility ho
     },
   }));
 
-  assert.deepEqual(calls, [input]);
+  assert.deepEqual(calls, [input, input]);
 });

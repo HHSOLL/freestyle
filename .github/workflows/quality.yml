@@ -9,7 +9,7 @@ on:
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -38,3 +38,11 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Phase 9 closet viewer-react latency gate
+        env:
+          NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED: "true"
+        run: npm run test:e2e:phase9:closet

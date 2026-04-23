@@ -24,6 +24,7 @@ import { useBodyProfile } from "@/hooks/useBodyProfile";
 import { useClosetScene } from "@/hooks/useClosetScene";
 import { useFitSimulation } from "@/hooks/useFitSimulation";
 import { useWardrobeAssets } from "@/hooks/useWardrobeAssets";
+import { resolveClosetViewerPhase9Snapshot } from "@/lib/closet-viewer-phase9";
 import { buildClosetFitCardDisplay } from "./closet-fit-report";
 import {
   BODY_FRAME_META,
@@ -752,6 +753,9 @@ function AssetPanel({
                   key={item.id}
                   type="button"
                   className={`${styles["asset-tile"]} ${isSelected(item) ? styles.selected : ""}`}
+                  data-closet-asset-tile=""
+                  data-closet-asset-id={item.id}
+                  data-closet-asset-selected={String(isSelected(item))}
                   onClick={() => onPick(item)}
                   onMouseEnter={() => onPreviewItem(item.id)}
                   onMouseLeave={onClearPreview}
@@ -820,6 +824,7 @@ export function V18ClosetExperience() {
   const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BG);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPreviewMannequinId, setSelectedPreviewMannequinId] = useState("female_standard");
+  const closetViewerPhase9 = useMemo(() => resolveClosetViewerPhase9Snapshot(), []);
   const deferredProfile = useDeferredValue(profile);
   const genderState: GenderValue = (profile.gender as GenderValue | undefined) === "male" ? "male" : "female";
   const bodyFrameState: BodyFrame = profile.bodyFrame ?? "balanced";
@@ -996,8 +1001,8 @@ export function V18ClosetExperience() {
       garmentAssets: preloadCandidates,
       garmentVariantId: avatarVariantId,
       qualityTier: scene.qualityTier,
-    });
-  }, [avatarVariantId, preloadCandidates, scene.qualityTier]);
+    }, closetViewerPhase9.host);
+  }, [avatarVariantId, closetViewerPhase9.host, preloadCandidates, scene.qualityTier]);
 
   useEffect(() => {
     if (variantDefaults.hair && (!selection.hair.id || defaultHairIds.has(selection.hair.id)) && selection.hair.id !== variantDefaults.hair) {
@@ -1200,7 +1205,14 @@ export function V18ClosetExperience() {
   };
 
   return (
-    <div className={styles["app-shell"]} style={theme.cssVars as CSSProperties} data-closet-visual-root>
+    <div
+      className={styles["app-shell"]}
+      style={theme.cssVars as CSSProperties}
+      data-closet-visual-root
+      data-closet-viewer-host={closetViewerPhase9.host}
+      data-closet-viewer-phase9-enabled={String(closetViewerPhase9.phase9Enabled)}
+      data-closet-viewer-flag-source={closetViewerPhase9.source}
+    >
       <div className={styles["scene-shell"]}>
         <div className={styles["scene-surface"]}>
           <AvatarStageViewport
@@ -1211,6 +1223,7 @@ export function V18ClosetExperience() {
             selectedItemId={scene.selectedItemId}
             qualityTier={scene.qualityTier}
             backgroundColor={backgroundColor}
+            viewerHostMode={closetViewerPhase9.host}
           />
         </div>
 

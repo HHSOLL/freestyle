@@ -258,6 +258,9 @@ Every new garment asset must validate before product use. Use `npm run validate:
 - `Phase 8.5 / Batch 3` ties that catalog back to the current working garment inside `apps/admin`; keep it triage-only and read-only
 - the current product-facing HQ fit consumer seam is `apps/web/src/hooks/useFitSimulation.ts` plus `apps/web/src/components/product/closet-fit-simulation.tsx`; keep `Closet` on preview-image and typed-summary consumption until a real `draped_glb` stage swap-in exists
 - lab/detail consumers should treat the artifact list as presentation-ordered: `draped_glb`, then `preview_png`, then `fit_map_json`, then `metrics_json`
+- HQ fit identity must include `selectedSizeLabel`, `providerId`, `solverVersion`, `fitPolicyVersion`, and `artifactCertificationStatus` when created by API/worker paths; `repo-authored-merge + preview_only` is an explicit baseline truth label, not a certified solver result
+- generated asset intake lives behind `/v1/admin/asset-generation*` and `assetGeneration*Schema`; provider output must remain `TECH_CANDIDATE` and must not bypass display/fit mesh alignment, material, collision/body-mask, fit metrics, and golden-fit certification evidence
+- concrete external asset-generation provider adapters require explicit approval before credentials, webhooks, paid calls, or provider-specific code are added; keep the current seam vendor-neutral until then
 - `Phase 5` now uses committed Playwright visual baselines for route-shell and closet-tier regression; when changing route chrome, stage framing, or closet quality tiers, update `apps/web/e2e/visual-regression.spec.ts` and its snapshot directory in the same PR
 - `Phase 3` of the deep-research runtime plan now owns the interactive preview seam through `packages/runtime-3d/src/reference-closet-stage-preview-simulation.ts` plus the same-origin worker script at `apps/web/public/workers/reference-closet-stage-preview.worker.js`
 - keep preview backend selection truthful: `static-fit`, `cpu-reduced`, and `worker-reduced` are current product paths; `experimental-webgpu` is only a reserved selector and must not be documented as solver-grade cloth unless a real compute path exists
@@ -377,7 +380,7 @@ Compatibility rules:
 - API-side published runtime-garment persistence must also stay behind a replaceable port so admin publication can move between the file fallback and the Supabase-backed `published_runtime_garments` store without changing route contracts
 - use `GARMENT_PUBLICATION_PERSISTENCE_DRIVER=supabase` when the API should write and read from the remote publication table
 - fit-simulation identity must stay revision-based, not timestamp-based; use canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey` instead of ad-hoc `updatedAt` snapshots for dedupe
-- if the fit-simulation queue path needs to recompute identity, it must use the shared `fitSimulationCacheKeyParts` contract; do not let API create, queue normalization, and worker fallback invent different cache inputs
+- if the fit-simulation queue path needs to recompute identity, it must use the shared `fitSimulationCacheKeyParts` contract, including selected size and provider/certification truth fields; do not let API create, queue normalization, and worker fallback invent different cache inputs
 - future API adapters must match the same repository boundary instead of rewriting page logic
 
 ## 9. API Usage Rules

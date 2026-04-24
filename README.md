@@ -40,6 +40,7 @@ The repository is now split into four runtime surfaces:
   - `/v1/admin/garments`
   - `/v1/admin/garment-certifications`
   - `/v1/admin/fit-simulations/:id`
+  - `/v1/admin/asset-generation`
 - `Legacy`: `/v1/legacy/*`
   - old import/assets/outfits/widget APIs
   - response header `x-freestyle-surface: legacy`
@@ -55,6 +56,7 @@ Current fit-specific contract split:
 
 - `/v1/admin/garments*` remains the publication-focused runtime-garment boundary
 - `/v1/admin/garment-certifications*` is the read-only starter certification inspection seam backed by `output/garment-certification/latest.json`
+- `/v1/admin/asset-generation*` is a generated-asset intake seam; it creates/list/reads `TECH_CANDIDATE` records only and never auto-publishes provider output
 - `/v1/closet/runtime-garments` is the product-facing closet catalog boundary and now returns `{ item, instantFit }` entries seeded from the current persisted body profile
 
 ## Current Runtime Status
@@ -85,6 +87,7 @@ The shipped runtime now uses:
 - the current Phase 9 baseline is now closed for `/app/closet`: CI exercises both the flagged `viewer-react` cutover path and the `runtime-3d` rollback path through the kill switch
 - a Phase 10 hard gate through `npm run check:phase10`, which layers asset-budget evidence, Phase 9 cutover/rollback smokes, and operational browser smoke on top of the full local gate
 - a product telemetry ingress route at `POST /v1/telemetry/viewer`; `Closet` forwards viewer telemetry there when the client API base URL is configured, including Phase 9 release-flag / kill-switch / host tags for rollback analysis
+- a post-Phase 10 commercial-fit intake seam at `/v1/admin/asset-generation` for manual DCC, internal Blender, or approved external provider output; every generated asset remains `TECH_CANDIDATE` until fit mesh, collision, material, fit metrics, and golden-fit evidence pass certification
 
 Preferred authoring policy is:
 
@@ -98,6 +101,7 @@ The repo now also ships a representative archetype review layer for partner publ
 `Phase 3` of the deep-research runtime plan now has a formal interactive-preview seam: the browser stage selects `static-fit`, `cpu-reduced`, or same-origin `worker-reduced` preview backends from one shared policy, and uses typed preview-frame messaging plus demand-driven invalidation for long-hair / loose-garment motion. This is still a reduced preview baseline, not solver-grade cloth truth.
 `Phase 7 / Batch 1` now promotes that reduced preview seam into `@freestyle/fit-kernel`: the active spring-style frame state, stepping, and solve metrics live there, while the same-origin worker emits a typed `PREVIEW_FRAME_RESULT` envelope. `Phase 7 / Batch 2` then adds a typed read-only preview runtime snapshot on the `runtime-3d` compatibility host via `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` viewer events. `Phase 7 / Batch 3` adds the matching preview-engine truth seam through `data-preview-engine-*` attrs and `fit:preview-engine-status`, including explicit fallback reasons such as `no-continuous-motion`, `low-quality-tier`, or `wasm-preview-disabled`. `Phase 7 / Batch 4` closes the current compatibility preview path by moving the same-origin worker onto the typed preview session protocol, bootstrapping body-signature / collision / fit-mesh / material-physics setup messages, and emitting a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary-motion transfer. `Phase 7` is now closed for the current repo-scoped compatibility path, but that still does not claim browser WASM cloth truth, fit-mesh vertex deformation, or solver-grade cloth yet.
 `Phase D` now also has an active offline HQ-fit artifact pipeline: `POST /v1/lab/jobs/fit-simulations` queues `fit_simulate_hq_v1`, the runtime worker processes it asynchronously, and the current artifact bundle is `draped_glb + fit_map_json + preview_png + metrics_json`. `Closet` now consumes that path directly through an HQ-fit panel that can request a run, poll the persisted record, render the generated `preview_png`, and open the ordered artifact bundle. The current `draped_glb` is still an authored-scene merge baseline for artifact/persistence/swap-in plumbing, not a claim that solver-deformed cloth truth is already solved.
+HQ fit cache identity now includes selected size, provider, solver version, fit-policy version, and artifact certification status. The current baseline emits `providerId: repo-authored-merge` and `artifactCertificationStatus: preview_only`, so downstream admin/product surfaces can distinguish placeholder authored-merge artifacts from future certified solver output.
 `Phase 8` of the viewer-platform refactor is now closed for the current repo-scoped baseline: HQ fit simulations persist a typed `artifact-lineage.json` sidecar, the lineage is inspectable through owner-scoped lab and admin-scoped read-only seams, and product state still keeps that lineage separate from the main fit-simulation detail payload. `Phase 8.5` is now also closed for the current admin tooling baseline: `apps/admin` can read both a bounded HQ fit catalog and detail inspection seam for the current garment context, while still stopping short of approve/reject/certify mutation workflow.
 `Phase 5` of the deep-research runtime plan now has a committed visual-regression and release-hardening seam: Playwright route goldens cover `Home`, `Canvas`, `Community`, `Profile`, plus `Closet` low / balanced / high quality tiers, and the release docs now treat those snapshots as RC evidence instead of ad-hoc operator screenshots only.
 The first avatar-factory publication seam is now also explicit: `packages/runtime-3d/src/avatar-publication-catalog.ts` derives a read-only admin/runtime catalog from the committed MPFB base variants, and `npm run validate:avatar3d` now fails closed when that catalog, its certification evidence bundle, or declared avatar `LOD1 / LOD2` siblings drift from the committed runtime manifest and sidecars.

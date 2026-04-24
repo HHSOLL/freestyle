@@ -90,6 +90,7 @@ export const createTryonInputSchema = z.object({
 
 export const createFitSimulationInputSchema = z.object({
   garment_id: z.string().trim().min(1).max(160),
+  selected_size_label: z.string().trim().min(1).max(64).optional(),
   material_preset: z.string().trim().min(1).max(120).optional(),
   quality_tier: fitSimulationQualityTierSchema.optional(),
   idempotency_key: z.string().trim().min(1).max(128).optional(),
@@ -182,8 +183,13 @@ export const fitSimulationJobPayloadSchema = fitSimulateHQJobPayloadSchema
             bodyProfileRevision,
             garmentVariantId: value.garmentVariantId,
             garmentRevision,
+            selectedSizeLabel: value.selectedSizeLabel,
             materialPreset: value.materialPreset,
             qualityTier: value.qualityTier,
+            providerId: value.providerId,
+            solverVersion: value.solverVersion,
+            fitPolicyVersion: value.fitPolicyVersion,
+            artifactCertificationStatus: value.artifactCertificationStatus,
           }),
         ),
     };

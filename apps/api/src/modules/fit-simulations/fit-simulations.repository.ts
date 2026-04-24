@@ -259,10 +259,16 @@ export const upsertFitSimulationRecord = async (record: {
   bodyProfileRevision?: FitSimulationRecord["bodyProfileRevision"];
   garmentVariantId: string;
   garmentRevision?: FitSimulationRecord["garmentRevision"];
+  selectedSizeLabel?: FitSimulationRecord["selectedSizeLabel"];
   avatarManifestUrl: string;
   garmentManifestUrl: string;
   materialPreset: string;
   qualityTier: FitSimulationRecord["qualityTier"];
+  providerId?: FitSimulationRecord["providerId"];
+  providerJobId?: FitSimulationRecord["providerJobId"];
+  solverVersion?: FitSimulationRecord["solverVersion"];
+  fitPolicyVersion?: FitSimulationRecord["fitPolicyVersion"];
+  artifactCertificationStatus?: FitSimulationRecord["artifactCertificationStatus"];
   cacheKey?: FitSimulationRecord["cacheKey"];
   bodyProfile: BodyProfile;
   garmentSnapshot: PublishedGarmentAsset;

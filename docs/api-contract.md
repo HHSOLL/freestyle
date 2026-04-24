@@ -119,6 +119,9 @@
   - `GET /v1/admin/garment-certifications/:id`
   - `GET /v1/admin/fit-simulations`
   - `GET /v1/admin/fit-simulations/:id`
+  - `POST /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
   - `POST /v1/admin/garments/:id/publish`
@@ -136,6 +139,12 @@
 - current admin-only HQ artifact inspection seam:
   - `GET /v1/admin/fit-simulations`
   - `GET /v1/admin/fit-simulations/:id`
+- current admin-only generated-asset intake seam:
+  - `POST /v1/admin/asset-generation` creates a vendor-neutral asset-generation request
+  - `GET /v1/admin/asset-generation` lists intake candidates and supports `status` / `provider` filters
+  - `GET /v1/admin/asset-generation/:id` reads one intake candidate
+  - generated assets remain `TECH_CANDIDATE`; provider output can never auto-promote to `CERTIFIED` or `PUBLISHED`
+  - concrete external provider adapters require explicit approval before credentials, webhooks, or paid API calls are enabled
 - canonical success response envelopes are defined in `@freestyle/contracts`:
   - `publishedRuntimeGarmentListResponseSchema`
   - `publishedRuntimeGarmentItemResponseSchema`
@@ -143,6 +152,8 @@
   - `garmentCertificationItemResponseSchema`
   - `fitSimulationAdminInspectionListResponseSchema`
   - `fitSimulationAdminInspectionResponseSchema`
+  - `assetGenerationCreateResponseSchema`
+  - `assetGenerationListResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
@@ -196,6 +207,7 @@
   - the create route resolves snapshot-based `bodyVersionId`, `garmentVariantId`, `avatarManifestUrl`, and `garmentManifestUrl` before queueing `fit_simulate_hq_v1`
   - `avatarVariantId` and `avatarManifestUrl` now come from the published runtime avatar catalog in `packages/runtime-3d/src/avatar-publication-catalog.ts`, not an API-local avatar path map
   - queued requests now also carry canonical `bodyProfileRevision`, `garmentRevision`, and `cacheKey`
+  - queued requests now include size and artifact-truth identity fields when created by the API: `selectedSizeLabel`, `providerId`, `solverVersion`, `fitPolicyVersion`, and `artifactCertificationStatus`
   - when the caller omits `idempotency_key`, the API uses the canonical `cacheKey` as the deterministic dedupe key for that request
   - the detail route reads the API-side fit-simulation persistence port, not the legacy job table directly
   - the detail route now also returns a minimal `avatarPublication` snapshot derived from the published runtime avatar catalog at read time
@@ -203,6 +215,7 @@
   - the lab-facing snapshot is a current read-time convenience view, not persisted historical avatar-publication lineage
   - the active worker now persists `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
   - the current `draped_glb` is an authored-scene merge baseline for artifact persistence/cache and preview swap-in plumbing, not solver-deformed cloth truth
+  - the current baseline marks generated HQ artifacts as `providerId: repo-authored-merge` and `artifactCertificationStatus: preview_only`; callers must not treat them as certified solver output
   - the detail route now also returns the persisted typed `fitMap` snapshot directly in the record, so lab consumers can read overlay evidence without dereferencing the artifact URL first
   - the detail route now also returns `fitMapSummary`, a consumer-friendly dominant-overlay summary derived from the typed `fitMap` payload
   - the detail route returns artifacts in presentation priority order: `draped_glb`, `preview_png`, `fit_map_json`, `metrics_json`
@@ -218,12 +231,14 @@
 ```json
 {
   "garment_id": "published-top-phase-d-smoke",
+  "selected_size_label": "M",
   "quality_tier": "fast",
   "material_preset": "knit_medium",
   "idempotency_key": "fit-sim-123"
 }
 ```
 - `material_preset` is optional; the current baseline service infers a conservative preset string from the published garment metadata when it is omitted
+- `selected_size_label` is optional only when the published garment already declares `metadata.selectedSizeLabel` or has a single size-chart row; otherwise create fails with `409 PRECONDITION_FAILED`
 - missing `BodyProfile` returns `409 PRECONDITION_FAILED`
 - unknown garment id returns `404 NOT_FOUND`
 - success response satisfies `fitSimulationCreateResponseSchema`

@@ -193,7 +193,7 @@ If any of the above regress, stop the release.
 - verify legacy-compatible asset creation still works when a remote store lags optional `assets` columns (`name`, `brand`, `source_url`, `metadata`)
 - verify remote-backed job status reads normalize offset timestamps into canonical ISO `...Z` strings
 - verify fit-simulation jobs dedupe on canonical `cacheKey` when the caller omits an explicit `idempotency_key`
-- verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, and `cacheKey` consistently through API and worker reads
+- verify fit-simulation records persist `bodyProfileRevision`, `garmentRevision`, selected size, provider, solver version, fit-policy version, artifact certification status, and `cacheKey` consistently through API and worker reads
 - verify new jobs preserve `avatarVariantId` through the canonical fit-simulation payload so queue fallback and API create derive the same `cacheKey`
 - verify fit-simulation create still resolves `avatarManifestUrl` from `packages/runtime-3d/src/avatar-publication-catalog.ts` rather than a local API constant
 - verify succeeded fit-simulation records now persist the full artifact bundle: `draped_glb`, `fit_map_json`, `preview_png`, and `metrics_json`
@@ -205,6 +205,15 @@ If any of the above regress, stop the release.
 - verify `workers/fit_simulation/src/worker.ts` can resolve avatar and garment manifest URLs into readable runtime assets under `apps/web/public/assets`
 - verify `node_modules/.bin/gltf-transform` is available to the worker runtime; `draped_glb` generation now depends on the merge command
 - if `draped_glb` is missing but the job succeeded, treat it as a release blocker for the Phase D artifact path
+- if an authored-scene merge artifact is labeled anything stronger than `artifactCertificationStatus: preview_only`, treat it as a release blocker
+
+### Generated asset intake regression
+
+- verify `/v1/admin/asset-generation` stays admin-only and returns `x-freestyle-surface: product`
+- verify external-provider requests produce provider task placeholders only until a concrete adapter is explicitly approved
+- verify generated output starts as `TECH_CANDIDATE` and `auto_publish_allowed: false`
+- verify unsafe non-HTTPS reference images are rejected
+- verify generated output is not added to `/v1/closet/runtime-garments` until the normal certification and publication flow promotes it
 
 ### API namespace regression
 
@@ -259,6 +268,7 @@ When these areas change, update the paired docs:
 - garment contract or fit logic: `garment-fitting-contract.md`
 - physical fit model or source-adoption decisions: `physical-fit-system.md`
 - asset production / certification criteria: `asset-quality-contract.md`, `avatar-production-contract.md`, `garment-production-contract.md`, `material-contract.md`, `fit-quality-contract.md`
+- generated asset intake or external provider seams: `external-asset-generation-pipeline.md`, `api-contract.md`, `quality-gates.md`
 - shell layout or tokens: `design-system.md`
 - deleted or quarantined features: `migration-notes.md`
 - release candidate evidence and deploy freeze notes: `docs/qa/*`, `DEPLOYMENT_STACK_DECISION.md`

@@ -122,6 +122,10 @@ const persistFitSimulationArtifact = async (
 };
 
 const fitSimulationDrapeSource = "authored-scene-merge" as const;
+const fitSimulationProviderId = "repo-authored-merge" as const;
+const fitSimulationSolverVersion = "repo-authored-merge.v1" as const;
+const fitSimulationFitPolicyVersion = "fit-policy.preview-only.v1" as const;
+const fitSimulationArtifactCertificationStatus = "preview_only" as const;
 
 const getPublicAssetBaseHost = () => {
   try {
@@ -375,6 +379,8 @@ export const buildFitSimulationMetricsArtifactPayload = (
     artifactLineageId,
     warnings,
     drapeSource: fitSimulationDrapeSource,
+    providerId: request.providerId,
+    artifactCertificationStatus: request.artifactCertificationStatus,
     artifactKinds,
   });
 
@@ -523,8 +529,16 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         bodyProfileRevision: payload.bodyProfileRevision ?? row.bodyProfileRevision ?? payload.bodyVersionId,
         garmentVariantId: row.garmentVariantId,
         garmentRevision: payload.garmentRevision ?? row.garmentRevision ?? row.garmentVariantId,
+        selectedSizeLabel: row.selectedSizeLabel ?? payload.selectedSizeLabel,
         materialPreset: row.materialPreset,
         qualityTier: row.qualityTier,
+        providerId: row.providerId ?? payload.providerId ?? fitSimulationProviderId,
+        solverVersion: row.solverVersion ?? payload.solverVersion ?? fitSimulationSolverVersion,
+        fitPolicyVersion: row.fitPolicyVersion ?? payload.fitPolicyVersion ?? fitSimulationFitPolicyVersion,
+        artifactCertificationStatus:
+          row.artifactCertificationStatus ??
+          payload.artifactCertificationStatus ??
+          fitSimulationArtifactCertificationStatus,
       } as const;
       const cacheKey = row.cacheKey ?? buildFitSimulationCacheKey(cacheKeyParts);
       const artifactKinds = ["draped_glb", "preview_png", "fit_map_json", "metrics_json"] as const;
@@ -553,11 +567,18 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           bodyProfileRevision: row.bodyProfileRevision,
           garmentVariantId: row.garmentVariantId,
           garmentRevision: row.garmentRevision,
+          selectedSizeLabel: row.selectedSizeLabel,
           avatarVariantId: row.avatarVariantId,
           avatarManifestUrl: row.avatarManifestUrl,
           garmentManifestUrl: row.garmentManifestUrl,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
+          providerId: row.providerId ?? fitSimulationProviderId,
+          providerJobId: row.providerJobId ?? undefined,
+          solverVersion: row.solverVersion ?? fitSimulationSolverVersion,
+          fitPolicyVersion: row.fitPolicyVersion ?? fitSimulationFitPolicyVersion,
+          artifactCertificationStatus:
+            row.artifactCertificationStatus ?? fitSimulationArtifactCertificationStatus,
           cacheKey,
         },
         {
@@ -584,8 +605,12 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         {
           presentationRole: "hq-preview",
           drapeSource: fitSimulationDrapeSource,
+          providerId: row.providerId ?? fitSimulationProviderId,
+          artifactCertificationStatus:
+            row.artifactCertificationStatus ?? fitSimulationArtifactCertificationStatus,
           avatarVariantId: row.avatarVariantId,
           garmentVariantId: row.garmentVariantId,
+          selectedSizeLabel: row.selectedSizeLabel,
           qualityTier: row.qualityTier,
         },
       );
@@ -618,11 +643,18 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           bodyProfileRevision: row.bodyProfileRevision,
           garmentVariantId: row.garmentVariantId,
           garmentRevision: row.garmentRevision,
+          selectedSizeLabel: row.selectedSizeLabel,
           avatarVariantId: row.avatarVariantId,
           avatarManifestUrl: row.avatarManifestUrl,
           garmentManifestUrl: row.garmentManifestUrl,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
+          providerId: row.providerId ?? fitSimulationProviderId,
+          providerJobId: row.providerJobId ?? undefined,
+          solverVersion: row.solverVersion ?? fitSimulationSolverVersion,
+          fitPolicyVersion: row.fitPolicyVersion ?? fitSimulationFitPolicyVersion,
+          artifactCertificationStatus:
+            row.artifactCertificationStatus ?? fitSimulationArtifactCertificationStatus,
           cacheKey,
         },
         {
@@ -644,6 +676,9 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         Buffer.from(JSON.stringify(metricsArtifactPayload, null, 2), "utf8"),
         {
           drapeSource: fitSimulationDrapeSource,
+          providerId: row.providerId ?? fitSimulationProviderId,
+          artifactCertificationStatus:
+            row.artifactCertificationStatus ?? fitSimulationArtifactCertificationStatus,
           dominantOverlayKind: fitMapSummary.dominantOverlayKind,
         },
       );
@@ -658,6 +693,12 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         garmentManifestUrl: row.garmentManifestUrl,
         storageBackend: getFitSimulationArtifactStorageBackend(),
         drapeSource: fitSimulationDrapeSource,
+        providerId: row.providerId ?? fitSimulationProviderId,
+        providerJobId: row.providerJobId ?? undefined,
+        solverVersion: row.solverVersion ?? fitSimulationSolverVersion,
+        fitPolicyVersion: row.fitPolicyVersion ?? fitSimulationFitPolicyVersion,
+        artifactCertificationStatus:
+          row.artifactCertificationStatus ?? fitSimulationArtifactCertificationStatus,
         artifactKinds: [...artifactKinds],
         manifestKey: path.posix.join("fit-simulations", row.id, "artifact-lineage.json"),
         manifestUrl: "",
@@ -723,7 +764,13 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
             bodyProfileRevision: nextRecord.bodyProfileRevision,
             garmentVariantId: nextRecord.garmentVariantId,
             garmentRevision: nextRecord.garmentRevision,
+            selectedSizeLabel: nextRecord.selectedSizeLabel,
             qualityTier: nextRecord.qualityTier,
+            providerId: nextRecord.providerId,
+            providerJobId: nextRecord.providerJobId ?? undefined,
+            solverVersion: nextRecord.solverVersion,
+            fitPolicyVersion: nextRecord.fitPolicyVersion,
+            artifactCertificationStatus: nextRecord.artifactCertificationStatus,
             cacheKey: nextRecord.cacheKey,
           },
           {
@@ -745,8 +792,16 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
           bodyProfileRevision: payload.bodyProfileRevision ?? row.bodyProfileRevision ?? payload.bodyVersionId,
           garmentVariantId: row.garmentVariantId,
           garmentRevision: payload.garmentRevision ?? row.garmentRevision ?? row.garmentVariantId,
+          selectedSizeLabel: row.selectedSizeLabel ?? payload.selectedSizeLabel,
           materialPreset: row.materialPreset,
           qualityTier: row.qualityTier,
+          providerId: row.providerId ?? payload.providerId ?? fitSimulationProviderId,
+          solverVersion: row.solverVersion ?? payload.solverVersion ?? fitSimulationSolverVersion,
+          fitPolicyVersion: row.fitPolicyVersion ?? payload.fitPolicyVersion ?? fitSimulationFitPolicyVersion,
+          artifactCertificationStatus:
+            row.artifactCertificationStatus ??
+            payload.artifactCertificationStatus ??
+            fitSimulationArtifactCertificationStatus,
         }),
         fitMap: row.fitMap ?? null,
         fitMapSummary: row.fitMapSummary ?? null,

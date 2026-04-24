@@ -726,6 +726,169 @@ export const garmentSizeSpecSchema = z
   })
   .strict();
 
+export const assetGenerationProviderSchema = z.enum([
+  "manual-dcc",
+  "internal-blender",
+  "external-api",
+  "mock",
+]);
+
+export const assetGenerationIntentSchema = z.enum([
+  "garment-from-reference-images",
+  "garment-from-pattern",
+  "avatar-from-reference-images",
+  "material-texture-pass",
+]);
+
+export const assetGenerationStatusSchema = z.enum([
+  "queued",
+  "submitted",
+  "generating",
+  "asset-ready",
+  "certification-blocked",
+  "certified",
+  "rejected",
+  "failed",
+]);
+
+export const assetGenerationImageViewSchema = z.enum([
+  "front",
+  "back",
+  "left",
+  "right",
+  "detail",
+  "sole",
+  "texture",
+  "other",
+]);
+
+export const assetGenerationOutputFormatSchema = z.enum(["glb", "fbx", "obj", "usdz"]);
+
+export const assetGenerationTopologySchema = z.enum(["quad", "triangle", "mixed"]);
+
+export const assetGenerationSourceImageSchema = z
+  .object({
+    url: z.url().refine((value) => value.startsWith("https://"), {
+      message: "source image URL must use HTTPS",
+    }),
+    view: assetGenerationImageViewSchema,
+    label: z.string().trim().min(1).max(120).optional(),
+    pixel_width: z.number().int().positive().optional(),
+    pixel_height: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export const assetGenerationMeasurementConstraintsSchema = z
+  .object({
+    size_label: z.string().trim().min(1).max(64),
+    measurements: garmentMeasurementsSchema,
+    measurement_tolerance_mm: z.number().positive().max(50).default(5),
+    body_signature: bodySignatureSchema.optional(),
+    body_signature_hash: z.string().trim().min(1).max(160).optional(),
+  })
+  .strict();
+
+export const assetGenerationOutputRequirementsSchema = z
+  .object({
+    target_formats: z.array(assetGenerationOutputFormatSchema).min(1).max(4).default(["glb"]),
+    topology: assetGenerationTopologySchema.default("quad"),
+    target_polycount: z.number().int().min(100).max(300000).default(30000),
+    require_pbr: z.boolean().default(true),
+    require_fit_mesh: z.literal(true).default(true),
+    require_collision_policy: z.literal(true).default(true),
+    allow_auto_publish: z.literal(false).default(false),
+  })
+  .strict();
+
+export const assetGenerationCertificationGateSchema = z
+  .object({
+    approval_state: z.literal("TECH_CANDIDATE"),
+    auto_publish_allowed: z.literal(false),
+    required_artifacts: z.array(
+      z.enum([
+        "display_glb",
+        "fit_mesh_glb",
+        "material_json",
+        "body_mask_policy_json",
+        "collision_policy_json",
+        "fit_metrics_json",
+        "golden_fit_report",
+      ]),
+    ),
+    hard_blockers: z.array(z.string().trim().min(1).max(240)),
+  })
+  .strict();
+
+export const assetGenerationRequestInputSchema = z
+  .object({
+    provider: assetGenerationProviderSchema,
+    intent: assetGenerationIntentSchema,
+    category: assetCategorySchema,
+    garment_id: z.string().trim().min(1).max(160).optional(),
+    avatar_id: z.string().trim().min(1).max(160).optional(),
+    name: z.string().trim().min(1).max(160),
+    material_class: materialClassSchema.optional(),
+    source_images: z.array(assetGenerationSourceImageSchema).min(1).max(8),
+    measurement_constraints: assetGenerationMeasurementConstraintsSchema,
+    output_requirements: assetGenerationOutputRequirementsSchema.default({
+      target_formats: ["glb"],
+      topology: "quad",
+      target_polycount: 30000,
+      require_pbr: true,
+      require_fit_mesh: true,
+      require_collision_policy: true,
+      allow_auto_publish: false,
+    }),
+    notes: z.string().trim().max(2000).optional(),
+  })
+  .strict();
+
+export const assetGenerationProviderTaskSchema = z
+  .object({
+    provider_task_id: z.string().trim().min(1).max(160),
+    status_url: z.url().optional(),
+    webhook_expected: z.boolean().default(false),
+    raw_status: z.string().trim().min(1).max(120).optional(),
+  })
+  .strict();
+
+export const assetGenerationOutputSchema = z
+  .object({
+    display_model_url: z.url().optional(),
+    thumbnail_url: z.url().optional(),
+    texture_urls: z.array(z.url()).default([]),
+    provider_report_url: z.url().optional(),
+    downloaded_at: z.iso.datetime().optional(),
+  })
+  .strict();
+
+export const assetGenerationRecordSchema = assetGenerationRequestInputSchema
+  .extend({
+    id: z.string().trim().min(1).max(160),
+    created_by: z.string().trim().min(1).max(160),
+    status: assetGenerationStatusSchema,
+    approval_state: z.literal("TECH_CANDIDATE"),
+    provider_task: assetGenerationProviderTaskSchema.nullable().default(null),
+    output: assetGenerationOutputSchema.nullable().default(null),
+    certification_gate: assetGenerationCertificationGateSchema,
+    created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
+  })
+  .strict();
+
+export const assetGenerationCreateResponseSchema = z
+  .object({
+    item: assetGenerationRecordSchema,
+  })
+  .strict();
+
+export const assetGenerationListResponseSchema = z
+  .object({
+    items: z.array(assetGenerationRecordSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const garmentPhysicalProfileSchema = z
   .object({
     materialStretchRatio: z.number().min(0).max(1).optional(),
@@ -1067,14 +1230,42 @@ export const fitSimulationArtifactSchema = jobArtifactSchema
   })
   .strict();
 
+export const fitSimulationExecutionProviderSchema = z.enum([
+  "repo-authored-merge",
+  "internal-xpbd-preview",
+  "external-solver",
+  "manual-certified",
+]);
+
+export const fitSimulationArtifactCertificationStatusSchema = z.enum([
+  "preview_only",
+  "candidate",
+  "certified",
+  "rejected",
+]);
+
+const fitSimulationSelectedSizeLabelSchema = z.string().trim().min(1).max(64);
+const fitSimulationProviderJobIdSchema = z.string().trim().min(1).max(160);
+const fitSimulationSolverVersionSchema = z.string().trim().min(1).max(160);
+const fitSimulationFitPolicyVersionSchema = z.string().trim().min(1).max(160);
+const defaultFitSimulationExecutionProvider = "repo-authored-merge" as const;
+const defaultFitSimulationSolverVersion = "repo-authored-merge.v1";
+const defaultFitSimulationFitPolicyVersion = "fit-policy.preview-only.v1";
+const defaultFitSimulationArtifactCertificationStatus = "preview_only" as const;
+
 export const fitSimulationCacheKeyPartsSchema = z
   .object({
     avatarVariantId: avatarRenderVariantIdSchema.optional(),
     bodyProfileRevision: bodyProfileRevisionSchema,
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema,
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
   })
   .strict();
 
@@ -1089,8 +1280,14 @@ export const buildFitSimulationCacheKey = (
         bodyProfileRevision: parsed.bodyProfileRevision,
         garmentVariantId: parsed.garmentVariantId,
         garmentRevision: parsed.garmentRevision,
+        selectedSizeLabel: parsed.selectedSizeLabel ?? "unspecified",
         materialPreset: parsed.materialPreset,
         qualityTier: parsed.qualityTier,
+        providerId: parsed.providerId ?? defaultFitSimulationExecutionProvider,
+        solverVersion: parsed.solverVersion ?? defaultFitSimulationSolverVersion,
+        fitPolicyVersion: parsed.fitPolicyVersion ?? defaultFitSimulationFitPolicyVersion,
+        artifactCertificationStatus:
+          parsed.artifactCertificationStatus ?? defaultFitSimulationArtifactCertificationStatus,
       }),
     )}`,
   );
@@ -1134,11 +1331,17 @@ export const fitSimulateHQJobPayloadSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
     avatarVariantId: avatarRenderVariantIdSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    providerJobId: fitSimulationProviderJobIdSchema.optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     cacheKey: fitSimulationCacheKeySchema.optional(),
   })
   .strict();
@@ -1157,11 +1360,17 @@ export const fitSimulateHQJobPayloadInputSchema = z.union([
     bodyProfileRevision: value.bodyProfileRevision,
     garmentVariantId: value.garmentVariantId,
     garmentRevision: value.garmentRevision,
+    selectedSizeLabel: value.selectedSizeLabel,
     avatarVariantId: value.avatarVariantId,
     avatarManifestUrl: value.avatarManifestUrl,
     garmentManifestUrl: value.garmentManifestUrl,
     materialPreset: value.materialPreset,
     qualityTier: value.qualityTier,
+    providerId: value.providerId,
+    providerJobId: value.providerJobId,
+    solverVersion: value.solverVersion,
+    fitPolicyVersion: value.fitPolicyVersion,
+    artifactCertificationStatus: value.artifactCertificationStatus,
     cacheKey: value.cacheKey,
   })),
 ]);
@@ -1228,11 +1437,17 @@ const fitSimulationRequestSnapshotSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
     avatarVariantId: avatarRenderVariantIdSchema,
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    providerJobId: fitSimulationProviderJobIdSchema.optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     cacheKey: fitSimulationCacheKeySchema.optional(),
   })
   .strict();
@@ -1271,6 +1486,8 @@ export const fitSimulationMetricsArtifactDataSchema = z
     artifactLineageId: fitSimulationArtifactLineageIdSchema,
     warnings: z.array(z.string().trim().min(1)).default([]),
     drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
   })
   .strict();
@@ -1282,7 +1499,13 @@ export const fitSimulateHQResultDataSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
     qualityTier: fitSimulationQualityTierSchema,
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    providerJobId: fitSimulationProviderJobIdSchema.optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     cacheKey: fitSimulationCacheKeySchema.optional(),
   })
   .strict();
@@ -1321,6 +1544,11 @@ export const fitSimulationArtifactLineageSchema = z
     garmentManifestUrl: z.url(),
     storageBackend: fitSimulationArtifactStorageBackendSchema,
     drapeSource: z.enum(["authored-scene-merge", "solver-output"]),
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    providerJobId: fitSimulationProviderJobIdSchema.optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     artifactKinds: z.array(fitSimulationArtifactKindSchema).min(1),
     manifestKey: z.string().trim().min(1).max(512),
     manifestUrl: z.url(),
@@ -1338,10 +1566,16 @@ export const fitSimulationRecordSchema = z
     bodyProfileRevision: bodyProfileRevisionSchema.optional(),
     garmentVariantId: fitSimulationOpaqueIdSchema,
     garmentRevision: garmentRevisionSchema.optional(),
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
     avatarManifestUrl: z.url(),
     garmentManifestUrl: z.url(),
     materialPreset: z.string().trim().min(1).max(120),
     qualityTier: fitSimulationQualityTierSchema,
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    providerJobId: fitSimulationProviderJobIdSchema.nullable().optional(),
+    solverVersion: fitSimulationSolverVersionSchema.optional(),
+    fitPolicyVersion: fitSimulationFitPolicyVersionSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     cacheKey: fitSimulationCacheKeySchema.optional(),
     instantFit: garmentInstantFitReportSchema.nullable(),
     fitMap: fitMapArtifactDataSchema.nullable().default(null),
@@ -1392,6 +1626,9 @@ export const fitSimulationAdminInspectionSummarySchema = z
     garmentVariantId: fitSimulationOpaqueIdSchema,
     qualityTier: fitSimulationQualityTierSchema,
     materialPreset: z.string().trim().min(1).max(120),
+    selectedSizeLabel: fitSimulationSelectedSizeLabelSchema.optional(),
+    providerId: fitSimulationExecutionProviderSchema.optional(),
+    artifactCertificationStatus: fitSimulationArtifactCertificationStatusSchema.optional(),
     artifactCount: z.number().int().nonnegative(),
     warningCount: z.number().int().nonnegative(),
     hasLineage: z.boolean(),
@@ -2468,6 +2705,24 @@ export type ViewerTelemetryEvent = z.infer<typeof viewerTelemetryEventSchema>;
 export type ViewerTelemetryEnvelope = z.infer<typeof viewerTelemetryEnvelopeSchema>;
 export type ViewerTelemetryRecommendedAction = z.infer<typeof viewerTelemetryRecommendedActionSchema>;
 export type ViewerTelemetryResponse = z.infer<typeof viewerTelemetryResponseSchema>;
+export type AssetGenerationProvider = z.infer<typeof assetGenerationProviderSchema>;
+export type AssetGenerationIntent = z.infer<typeof assetGenerationIntentSchema>;
+export type AssetGenerationStatus = z.infer<typeof assetGenerationStatusSchema>;
+export type AssetGenerationImageView = z.infer<typeof assetGenerationImageViewSchema>;
+export type AssetGenerationOutputFormat = z.infer<typeof assetGenerationOutputFormatSchema>;
+export type AssetGenerationTopology = z.infer<typeof assetGenerationTopologySchema>;
+export type AssetGenerationSourceImage = z.infer<typeof assetGenerationSourceImageSchema>;
+export type AssetGenerationMeasurementConstraints = z.infer<
+  typeof assetGenerationMeasurementConstraintsSchema
+>;
+export type AssetGenerationOutputRequirements = z.infer<typeof assetGenerationOutputRequirementsSchema>;
+export type AssetGenerationCertificationGate = z.infer<typeof assetGenerationCertificationGateSchema>;
+export type AssetGenerationRequestInput = z.infer<typeof assetGenerationRequestInputSchema>;
+export type AssetGenerationProviderTask = z.infer<typeof assetGenerationProviderTaskSchema>;
+export type AssetGenerationOutput = z.infer<typeof assetGenerationOutputSchema>;
+export type AssetGenerationRecord = z.infer<typeof assetGenerationRecordSchema>;
+export type AssetGenerationCreateResponse = z.infer<typeof assetGenerationCreateResponseSchema>;
+export type AssetGenerationListResponse = z.infer<typeof assetGenerationListResponseSchema>;
 export type AvatarGender = z.infer<typeof avatarGenderSchema>;
 export type BodyFrame = z.infer<typeof bodyFrameSchema>;
 export type BodyProfile = z.infer<typeof bodyProfileSchema>;
@@ -2513,6 +2768,10 @@ export type FitSimulationCacheKey = z.infer<typeof fitSimulationCacheKeySchema>;
 export type FitSimulationCacheKeyParts = z.infer<typeof fitSimulationCacheKeyPartsSchema>;
 export type FitSimulationArtifactKind = z.infer<typeof fitSimulationArtifactKindSchema>;
 export type FitSimulationArtifact = z.infer<typeof fitSimulationArtifactSchema>;
+export type FitSimulationExecutionProvider = z.infer<typeof fitSimulationExecutionProviderSchema>;
+export type FitSimulationArtifactCertificationStatus = z.infer<
+  typeof fitSimulationArtifactCertificationStatusSchema
+>;
 export type FitSimulationArtifactLineage = z.infer<typeof fitSimulationArtifactLineageSchema>;
 export type FitMapOverlayKind = z.infer<typeof fitMapOverlayKindSchema>;
 export type FitMapRegionScore = z.infer<typeof fitMapRegionScoreSchema>;

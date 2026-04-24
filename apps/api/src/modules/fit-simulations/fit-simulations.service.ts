@@ -54,6 +54,11 @@ const fitSimulationArtifactPriority = {
   metrics_json: 3,
 } as const satisfies Record<FitSimulationPublicRecord["artifacts"][number]["kind"], number>;
 
+const defaultFitSimulationProviderId = "repo-authored-merge" as const;
+const defaultFitSimulationSolverVersion = "repo-authored-merge.v1" as const;
+const defaultFitSimulationFitPolicyVersion = "fit-policy.preview-only.v1" as const;
+const defaultFitSimulationArtifactCertificationStatus = "preview_only" as const;
+
 const sortFitSimulationArtifactsForPresentation = (
   artifacts: FitSimulationPublicRecord["artifacts"],
 ) =>
@@ -91,6 +96,45 @@ const inferFitSimulationMaterialPreset = (item: PublishedGarmentAsset) => {
           ? "knit"
           : "blended";
   return `${fabricFamily}_${stretchProfile}`;
+};
+
+const resolveSelectedSizeLabel = (
+  garment: PublishedGarmentAsset,
+  requestedSizeLabel?: string,
+) => {
+  const sizeChart = garment.metadata?.sizeChart ?? [];
+  const selectedSizeLabel =
+    requestedSizeLabel ??
+    garment.metadata?.selectedSizeLabel ??
+    (sizeChart.length === 1 ? sizeChart[0]?.label : undefined);
+
+  if (!selectedSizeLabel) {
+    throw new FitSimulationCreateError(
+      "SIZE_REQUIRED",
+      "selected_size_label is required for HQ fit simulation when the garment does not declare a selected size.",
+      409,
+    );
+  }
+
+  if (sizeChart.length > 0) {
+    const selectedRow = sizeChart.find((entry) => entry.label === selectedSizeLabel);
+    if (!selectedRow) {
+      throw new FitSimulationCreateError(
+        "SIZE_NOT_AVAILABLE",
+        "selected_size_label must exist in the garment size chart before HQ fit simulation.",
+        409,
+      );
+    }
+    if (Object.keys(selectedRow.measurements ?? {}).length === 0) {
+      throw new FitSimulationCreateError(
+        "SIZE_MEASUREMENTS_REQUIRED",
+        "selected_size_label must resolve to a size chart row with measurements before HQ fit simulation.",
+        409,
+      );
+    }
+  }
+
+  return selectedSizeLabel;
 };
 
 const buildAvatarPublicationSnapshot = (
@@ -131,13 +175,19 @@ const buildSimulationRequest = (
   );
   const materialPreset = input.material_preset ?? inferFitSimulationMaterialPreset(garment);
   const qualityTier = input.quality_tier ?? "balanced";
+  const selectedSizeLabel = resolveSelectedSizeLabel(garment, input.selected_size_label);
   const cacheKey = buildFitSimulationCacheKey({
     avatarVariantId: avatar.avatarVariantId,
     bodyProfileRevision,
     garmentVariantId,
     garmentRevision,
+    selectedSizeLabel,
     materialPreset,
     qualityTier,
+    providerId: defaultFitSimulationProviderId,
+    solverVersion: defaultFitSimulationSolverVersion,
+    fitPolicyVersion: defaultFitSimulationFitPolicyVersion,
+    artifactCertificationStatus: defaultFitSimulationArtifactCertificationStatus,
   });
 
   return {
@@ -146,10 +196,16 @@ const buildSimulationRequest = (
     bodyVersionId,
     garmentVariantId,
     garmentRevision,
+    selectedSizeLabel,
     avatarManifestUrl: avatar.avatarManifestUrl,
     garmentManifestUrl,
     materialPreset,
     qualityTier,
+    providerId: defaultFitSimulationProviderId,
+    providerJobId: null,
+    solverVersion: defaultFitSimulationSolverVersion,
+    fitPolicyVersion: defaultFitSimulationFitPolicyVersion,
+    artifactCertificationStatus: defaultFitSimulationArtifactCertificationStatus,
     cacheKey,
   } as const;
 };
@@ -272,10 +328,16 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
     bodyProfileRevision: request.bodyProfileRevision,
     garmentVariantId: request.garmentVariantId,
     garmentRevision: request.garmentRevision,
+    selectedSizeLabel: request.selectedSizeLabel,
     avatarManifestUrl: request.avatarManifestUrl,
     garmentManifestUrl: request.garmentManifestUrl,
     materialPreset: request.materialPreset,
     qualityTier: request.qualityTier,
+    providerId: request.providerId,
+    providerJobId: request.providerJobId,
+    solverVersion: request.solverVersion,
+    fitPolicyVersion: request.fitPolicyVersion,
+    artifactCertificationStatus: request.artifactCertificationStatus,
     cacheKey: request.cacheKey,
     bodyProfile: bodyProfileRecord.profile,
     garmentSnapshot: garment,
@@ -301,11 +363,16 @@ export const createFitSimulationJob = async (userId: string, input: CreateFitSim
       bodyProfileRevision: request.bodyProfileRevision,
       garmentVariantId: request.garmentVariantId,
       garmentRevision: request.garmentRevision,
+      selectedSizeLabel: request.selectedSizeLabel,
       avatarVariantId: request.avatarVariantId,
       avatarManifestUrl: request.avatarManifestUrl,
       garmentManifestUrl: request.garmentManifestUrl,
       materialPreset: request.materialPreset,
       qualityTier: request.qualityTier,
+      providerId: request.providerId,
+      solverVersion: request.solverVersion,
+      fitPolicyVersion: request.fitPolicyVersion,
+      artifactCertificationStatus: request.artifactCertificationStatus,
       cacheKey: request.cacheKey,
     } satisfies FitSimulationJobPayload,
     idempotencyKey,
@@ -353,10 +420,16 @@ const buildFitSimulationPublicRecord = (
     bodyProfileRevision: row.bodyProfileRevision,
     garmentVariantId: row.garmentVariantId,
     garmentRevision: row.garmentRevision,
+    selectedSizeLabel: row.selectedSizeLabel,
     avatarManifestUrl: row.avatarManifestUrl,
     garmentManifestUrl: row.garmentManifestUrl,
     materialPreset: row.materialPreset,
     qualityTier: row.qualityTier,
+    providerId: row.providerId,
+    providerJobId: row.providerJobId,
+    solverVersion: row.solverVersion,
+    fitPolicyVersion: row.fitPolicyVersion,
+    artifactCertificationStatus: row.artifactCertificationStatus,
     cacheKey: row.cacheKey,
     instantFit: row.instantFit,
     fitMap: row.fitMap,
@@ -384,6 +457,9 @@ const buildFitSimulationAdminInspectionSummary = (
     garmentVariantId: row.garmentVariantId,
     qualityTier: row.qualityTier,
     materialPreset: row.materialPreset,
+    selectedSizeLabel: row.selectedSizeLabel,
+    providerId: row.providerId,
+    artifactCertificationStatus: row.artifactCertificationStatus,
     artifactCount: row.artifacts.length,
     warningCount,
     hasLineage: Boolean(row.artifactLineage),

@@ -249,6 +249,7 @@ As of `2026-04-20`:
 - `Phase 8 / Batch 1` now hardens the baseline HQ artifact identity:
   - `packages/contracts` defines canonical `fitSimulationCacheKeyParts` and an internal `fitSimulationArtifactLineage` schema
   - `fit_simulate_hq_v1` queue normalization now preserves `avatarVariantId` so API create and worker fallback derive the same `cacheKey`
+  - the cache key now also carries selected size, execution provider, solver version, fit-policy version, and artifact certification status
   - `worker_fit_simulate_hq` now persists an `artifact-lineage.json` sidecar next to the current artifact bundle and stores that lineage on the internal simulation record
   - `metrics_json` now includes `artifactLineageId`, while `GET /v1/lab/fit-simulations/:id` stays intentionally unchanged
   - `GET /v1/lab/fit-simulations/:id/artifact-lineage` is the new owner-scoped inspection seam for that persisted lineage snapshot
@@ -256,6 +257,11 @@ As of `2026-04-20`:
   - `GET /v1/admin/fit-simulations/:id` is the matching admin/operator read-only inspection seam for the same persisted fit simulation and lineage snapshot
   - the current web HQ fit panel may consume that lineage seam separately for inspection links and baseline metadata, but it still must not merge lineage into the main `fitSimulation` detail payload
   - `apps/admin` may now triage current-garment HQ fit evidence through the read-only admin catalog plus detail seam, but this still does not imply approve/reject/certify workflow or solver-grade cloth truth
+- post-Phase 10 commercial-fit work adds a generated-asset intake seam:
+  - `POST /v1/admin/asset-generation` accepts manual/internal/external generated asset requests
+  - `GET /v1/admin/asset-generation` and `GET /v1/admin/asset-generation/:id` expose those requests for admin triage
+  - output remains `TECH_CANDIDATE` and must pass the same generated-garment evidence requirements before certification or publication
+  - provider-generated display meshes are acceptable bootstrap inputs, but they are not fit truth until fit mesh alignment, collision/body-mask policy, fit metrics, and golden matrix reports pass
 - `Phase 3` of the deep-research runtime plan now formalizes the interactive preview seam:
   - `packages/contracts` defines typed preview-frame request/result schemas for backend messaging
   - `packages/fit-kernel` now owns the reduced-preview frame state, stepping, and solve-metrics contract

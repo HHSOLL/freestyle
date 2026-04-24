@@ -68,6 +68,8 @@ import {
   publishedRuntimeGarmentListResponseSchema,
   runtimeAssetAuthoringSummarySchema,
   runtimeGarmentAssetSchema,
+  assetGenerationCreateResponseSchema,
+  assetGenerationRequestInputSchema,
   viewerTelemetryEnvelopeSchema,
   viewerTelemetryResponseSchema,
 } from './index.js';
@@ -163,6 +165,92 @@ test('viewer telemetry schemas preserve operational stop-gate signals', () => {
   });
 
   assert.equal(response.recommended_actions[0]?.action, 'reopen-fit-certification');
+});
+
+test('asset generation schemas force generated assets through certification gates', () => {
+  const request = assetGenerationRequestInputSchema.parse({
+    provider: 'external-api',
+    intent: 'garment-from-reference-images',
+    category: 'tops',
+    garment_id: 'candidate-top-reference-tee',
+    name: 'Reference tee candidate',
+    material_class: 'cotton',
+    source_images: [
+      {
+        url: 'https://assets.example.com/reference/top-front.png',
+        view: 'front',
+        pixel_width: 1600,
+        pixel_height: 2200,
+      },
+      {
+        url: 'https://assets.example.com/reference/top-back.png',
+        view: 'back',
+      },
+    ],
+    measurement_constraints: {
+      size_label: 'M',
+      measurements: {
+        chestCm: 52,
+        shoulderCm: 43,
+        sleeveLengthCm: 21,
+        lengthCm: 64,
+      },
+      measurement_tolerance_mm: 4,
+      body_signature_hash: 'body-sig-average-m',
+    },
+    output_requirements: {
+      target_formats: ['glb'],
+      topology: 'quad',
+      target_polycount: 30000,
+      require_pbr: true,
+      require_fit_mesh: true,
+      require_collision_policy: true,
+      allow_auto_publish: false,
+    },
+  });
+
+  assert.equal(request.output_requirements.allow_auto_publish, false);
+  assert.equal(request.output_requirements.require_fit_mesh, true);
+
+  const response = assetGenerationCreateResponseSchema.parse({
+    item: {
+      ...request,
+      id: 'assetgen_0001',
+      created_by: 'qa@freestyle.app',
+      status: 'certification-blocked',
+      approval_state: 'TECH_CANDIDATE',
+      provider_task: {
+        provider_task_id: 'external-task-0001',
+        webhook_expected: true,
+        raw_status: 'SUCCEEDED',
+      },
+      output: {
+        display_model_url: 'https://assets.example.com/generated/top.glb',
+        thumbnail_url: 'https://assets.example.com/generated/top.png',
+      },
+      certification_gate: {
+        approval_state: 'TECH_CANDIDATE',
+        auto_publish_allowed: false,
+        required_artifacts: [
+          'display_glb',
+          'fit_mesh_glb',
+          'material_json',
+          'body_mask_policy_json',
+          'collision_policy_json',
+          'fit_metrics_json',
+          'golden_fit_report',
+        ],
+        hard_blockers: [
+          'Generated assets must not be published until display/fit mesh alignment and golden fit reports pass.',
+        ],
+      },
+      created_at: '2026-04-24T12:00:00.000Z',
+      updated_at: '2026-04-24T12:02:00.000Z',
+    },
+  });
+
+  assert.equal(response.item.approval_state, 'TECH_CANDIDATE');
+  assert.equal(response.item.certification_gate.auto_publish_allowed, false);
 });
 
 test('bodyProfileSchema accepts detailed optional extension fields inside envelope', () => {
@@ -460,6 +548,40 @@ test('fitSimulateHQRequestSchema accepts the reserved offline simulation request
   assert.equal(parsed.qualityTier, 'balanced');
   assert.equal(parsed.bodyProfileRevision, bodyProfileRevision);
   assert.equal(parsed.garmentRevision, garmentRevision);
+});
+
+test('fit simulation cache key includes size, provider, solver, policy, and certification truth', () => {
+  const base = {
+    bodyProfileRevision: 'body-profile-rev-2026-04-24',
+    garmentVariantId: 'starter-top-soft-casual',
+    garmentRevision: 'starter-top-soft-casual@1.0.0',
+    materialPreset: 'cotton_woven_light',
+    qualityTier: 'balanced' as const,
+    providerId: 'repo-authored-merge' as const,
+    solverVersion: 'repo-authored-merge.v1',
+    fitPolicyVersion: 'fit-policy.preview-only.v1',
+    artifactCertificationStatus: 'preview_only' as const,
+  };
+
+  const medium = buildFitSimulationCacheKey({
+    ...base,
+    selectedSizeLabel: 'M',
+  });
+  const large = buildFitSimulationCacheKey({
+    ...base,
+    selectedSizeLabel: 'L',
+  });
+  const certified = buildFitSimulationCacheKey({
+    ...base,
+    selectedSizeLabel: 'M',
+    providerId: 'manual-certified',
+    solverVersion: 'solver-certified.v1',
+    fitPolicyVersion: 'fit-policy.certified.v1',
+    artifactCertificationStatus: 'certified',
+  });
+
+  assert.notEqual(medium, large);
+  assert.notEqual(medium, certified);
 });
 
 test('fitSimulateHQResultEnvelopeSchema accepts canonical simulation result envelopes', () => {

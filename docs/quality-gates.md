@@ -26,6 +26,7 @@ Current baseline command set:
 Current GitHub workflow enforcement:
 
 - `.github/workflows/quality.yml` runs `npm run check:phase10`
+- `check` now includes `validate:assets`, and `check:viewer` is the targeted gate for the default `viewer-react -> viewer-core` host, resource lifecycle primitive, and deformation-transfer seams
 - `check:phase10` includes the same baseline set above through `npm run check`
 - `check:phase10` also runs asset-budget evidence, the blocking Phase 9 `Closet` viewer-react smoke, the Phase 9 rollback smoke, and operational browser smoke
 
@@ -44,8 +45,8 @@ Run these when the scope touches the matching area.
 | compatibility-stage material or lighting system changed | targeted `tsx --test` runs for `packages/runtime-3d/src/material-system.test.ts`, `packages/runtime-3d/src/studio-lighting-rig.test.ts`, `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`, `packages/viewer-core/src/proxy-stage.test.ts`, plus `npx playwright test apps/web/e2e/material-system.spec.ts --project=chromium`, `npm run build:services`, and `npm run build` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
 | asset generation intake, provider adapter seams, or generated-asset certification contracts changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `apps/api/src/modules/assets/asset-generation.service.test.ts`, `apps/api/src/routes/asset-generation.routes.test.ts`, plus `npm run build:services` |
-| asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
-| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
+| asset-quality, fit-kernel, viewer-protocol, deformation-transfer, footwear-fit, resource lifecycle, or viewer-host seams changed | `npm run check:viewer`, targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, plus `npm run test:fit-golden`, `npm run test:preview-fit-perf`, and `npm run build:services` |
+| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `npm run check:viewer`, `npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
 
 ### L2. Full Local Gate
 
@@ -99,6 +100,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8`: HQ artifact identity and lineage inspection gate is closed for the current baseline bundle and becomes blocking
 - `Post-Phase 10 / Commercial Fit Track`: external or generated asset intake starts through `/v1/admin/asset-generation`; every output remains `TECH_CANDIDATE`, requires fit mesh / collision / material / fit metrics / golden report evidence, and cannot auto-publish from provider webhook status
 - `Post-Phase 10 / Commercial Fit Track`: HQ fit cache identity now includes selected size, provider, solver version, fit-policy version, and artifact certification status so `preview_only` authored merges cannot be mistaken for solver-certified fit artifacts
+- `Post-Phase 10 / Reference Quality Track`: `npm run test:fit-golden`, `npm run test:visual-golden`, `npm run test:preview-fit-perf`, `npm run test:memory-leak`, and `npm run test:context-loss` execute fixture-backed pass/fail gates. Hardware GPU remains `carry-forward` unless a real lane supplies the report; it must not be marked passed by a placeholder.
 - `Phase 8.5 / Batch 1`: `apps/admin` now consumes the admin HQ artifact inspection seam in a separate read-only panel without mixing that state into garment publication editing
 - `Phase 8.5 / Batch 2`: `/v1/admin/fit-simulations` now exposes a bounded read-only HQ fit catalog for operator triage without widening garment publication payloads
 - `Phase 8.5 / Batch 3`: `apps/admin` now shows current-garment HQ fit evidence, local status/lineage filters, and one-click open into the existing detail inspector

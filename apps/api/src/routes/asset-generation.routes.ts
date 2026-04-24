@@ -8,6 +8,8 @@ import {
 } from "@freestyle/contracts";
 import { requireAdminAuth } from "../modules/auth/auth.js";
 import {
+  AssetGenerationProviderRequestError,
+  AssetGenerationProviderUnconfiguredError,
   AssetGenerationValidationError,
   createAssetGenerationRequest,
   getAssetGenerationRequestById,
@@ -59,9 +61,23 @@ export const registerAssetGenerationRoutes = (app: FastifyInstance) => {
     if (!userId) return;
 
     try {
-      const response = createAssetGenerationRequest(request.body, userId);
+      const response = await createAssetGenerationRequest(request.body, userId);
       return reply.code(202).send(assetGenerationCreateResponseSchema.parse(response));
     } catch (error) {
+      if (error instanceof AssetGenerationProviderUnconfiguredError) {
+        return reply.code(503).send({
+          error: "PROVIDER_UNCONFIGURED",
+          message: error.message,
+          provider: error.providerId,
+        });
+      }
+      if (error instanceof AssetGenerationProviderRequestError) {
+        return reply.code(502).send({
+          error: "PROVIDER_REQUEST_FAILED",
+          message: error.message,
+          provider: error.providerId,
+        });
+      }
       if (error instanceof AssetGenerationValidationError) {
         return reply.code(400).send({
           error: "VALIDATION_ERROR",
@@ -73,4 +89,3 @@ export const registerAssetGenerationRoutes = (app: FastifyInstance) => {
     }
   });
 };
-

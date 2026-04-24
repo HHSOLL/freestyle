@@ -1,0 +1,25 @@
+{
+  "fixtureId": "preview-fit-perf-pass",
+  "enforceCoverage": false,
+  "hardwareGpuLane": {
+    "required": false,
+    "supported": false,
+    "lane": "metal"
+  },
+  "cases": [
+    {
+      "id": "preview-pass-balanced",
+      "category": "outerwear",
+      "bodyMatrixId": "B08",
+      "poseMatrixId": "P04",
+      "visiblePenetrationSamplesMm": [0.4, 0.5, 0.6, 0.7, 0.8],
+      "criticalVisiblePenetrationSamplesMm": [0.4, 0.5],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.7, 0.8],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [96, 100, 102, 108, 116],
+      "hqCacheHitDurationsMs": [340, 360, 380, 420, 480]
+    }
+  ]
+}
+

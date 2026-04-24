@@ -1,0 +1,37 @@
+{
+  "fixtureId": "visual-golden-pass",
+  "enforceCoverage": false,
+  "hardwareGpuLane": {
+    "required": false,
+    "supported": false
+  },
+  "cases": [
+    {
+      "id": "visual-pass-top",
+      "category": "tops",
+      "bodyMatrixId": "B01",
+      "poseMatrixId": "P04",
+      "visiblePenetrationSamplesMm": [0.3, 0.4, 0.5, 0.6, 0.7],
+      "criticalVisiblePenetrationSamplesMm": [0.3, 0.4],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.6, 0.7],
+      "bodyMaskVisibility": [{ "region": "abdomen", "visible": false, "forbidden": true }],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [88, 90, 92, 94, 95],
+      "hqCacheHitDurationsMs": [275, 285, 295, 305, 315]
+    },
+    {
+      "id": "visual-pass-sandal",
+      "category": "sandals",
+      "bodyMatrixId": "B05",
+      "poseMatrixId": "P07",
+      "visiblePenetrationSamplesMm": [0.2, 0.3, 0.3, 0.4, 0.4],
+      "criticalVisiblePenetrationSamplesMm": [0.2, 0.3],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.4, 0.4],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [{ "region": "toe_right", "visible": false }],
+      "previewFrameDurationsMs": [78, 80, 82, 84, 85],
+      "hqCacheHitDurationsMs": [220, 230, 240, 250, 260]
+    }
+  ]
+}
+

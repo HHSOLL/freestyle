@@ -1,0 +1,38 @@
+{
+  "fixtureId": "fit-golden-fail",
+  "enforceCoverage": true,
+  "hardwareGpuLane": {
+    "required": false,
+    "supported": false,
+    "lane": "metal"
+  },
+  "cases": [
+    {
+      "id": "fit-fail-b01-p01",
+      "category": "tops",
+      "bodyMatrixId": "B01",
+      "poseMatrixId": "P01",
+      "visiblePenetrationSamplesMm": [1.0, 1.5, 1.9, 2.1, 2.4],
+      "criticalVisiblePenetrationSamplesMm": [1.0, 1.5],
+      "nonCriticalVisiblePenetrationSamplesMm": [2.1, 2.4],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [90, 92, 94, 96, 98],
+      "hqCacheHitDurationsMs": [300, 320, 340, 360, 380]
+    },
+    {
+      "id": "fit-fail-b02-p02",
+      "category": "bottoms",
+      "bodyMatrixId": "B02",
+      "poseMatrixId": "P02",
+      "visiblePenetrationSamplesMm": [0.4, 0.5, 0.6, 0.7, 0.8],
+      "criticalVisiblePenetrationSamplesMm": [0.4, 0.5],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.7, 0.8],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [88, 90, 92, 94, 96],
+      "hqCacheHitDurationsMs": [250, 265, 280, 295, 310]
+    }
+  ]
+}
+

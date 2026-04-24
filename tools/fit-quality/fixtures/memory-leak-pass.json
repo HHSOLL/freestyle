@@ -1,0 +1,12 @@
+{
+  "fixtureId": "memory-leak-pass",
+  "runs": [
+    {
+      "id": "memory-pass-balanced",
+      "category": "outerwear",
+      "memoryHeapUsedMb": [420, 423, 425, 427, 430],
+      "contextLossEvents": []
+    }
+  ]
+}
+

@@ -34,7 +34,7 @@
 - `/share/[slug]`
 
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
-When validating the Phase 9 route-scoped cutover specifically, run `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` and `npm run test:e2e:phase9:rollback`, then keep the active notes under `docs/freestyle-viewer-platform/phase9/` in sync with both cutover and rollback smoke expectations.
+When validating the Phase 9 route-scoped cutover specifically, run `npm run check:viewer`, `npm run test:e2e:phase9:closet`, and `npm run test:e2e:phase9:rollback`, then keep the active notes under `docs/freestyle-viewer-platform/phase9/` in sync with default viewer-react cutover and runtime-3d rollback smoke expectations.
 If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If approval-state or fit-quality contract enforcement changes, also update `docs/freestyle-viewer-platform/phase2_5/closeout.md` in the same PR.
 If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD` coverage, or asset budget reporting changes, also update the relevant note under `docs/freestyle-viewer-platform/phase3/` in the same PR. If the batch claims to close or reopen the phase, update `docs/freestyle-viewer-platform/phase3/closeout.md` too.
@@ -48,6 +48,7 @@ That Phase 7 note now includes `batch1.md`, `batch2.md`, `batch3.md`, `batch4.md
 If the Phase 8 HQ artifact identity seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase8/`, plus `docs/CLOTH_SIMULATE_JOB_DRAFT.md`, `docs/physical-fit-system.md`, and the HQ artifact rules in `docs/quality-gates.md` in the same PR.
 If the Phase 9 `Closet` cutover seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase9/`, plus `docs/rollout-governance/feature-flag-matrix.md`, `docs/DEVELOPMENT_GUIDE.md`, and `docs/quality-gates.md` in the same PR.
 If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR.
+If reference-quality fit gates, deformation-transfer, footwear policy, resource lifecycle, or AI 3D provider intake seams change, run `npm run check:viewer`, `npm run test:fit-golden`, `npm run test:visual-golden`, `npm run test:preview-fit-perf`, `npm run test:memory-leak`, `npm run test:context-loss`, and `npm run build:services`; update `README.md`, `docs/DEVELOPMENT_GUIDE.md`, and `docs/quality-gates.md` in the same PR.
 
 ### Redirect smoke
 
@@ -228,6 +229,7 @@ If any of the above regress, stop the release.
 - verify repeated garment, solver, material-class, and device-tier signals return advisory recommended actions without mutating publication state
 - verify `apps/web/src/lib/viewerTelemetry.ts` remains the only product viewer telemetry forwarder
 - verify Phase 9 tags still include `phase9Enabled`, `phase9KillSwitch`, `phase9Source`, and `viewerHost`
+- verify `/app/closet` defaults to `viewer-react -> viewer-core` when no env override is set, and only uses `runtime-3d` when the kill switch or explicit global host override requests it
 
 ### Admin publish regression
 

@@ -1,5 +1,7 @@
 export * from "./approval-state.js";
 export * from "./quality.js";
+export * from "./garment-category-policy.js";
+export * from "./footwear.schema.js";
 export * from "./manifest-shared.js";
 export * from "./schema-versions.js";
 export * from "./avatar-manifest.schema.js";

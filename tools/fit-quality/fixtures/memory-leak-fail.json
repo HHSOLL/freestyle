@@ -1,0 +1,12 @@
+{
+  "fixtureId": "memory-leak-fail",
+  "runs": [
+    {
+      "id": "memory-fail-balanced",
+      "category": "outerwear",
+      "memoryHeapUsedMb": [420, 430, 441, 452, 446],
+      "contextLossEvents": []
+    }
+  ]
+}
+

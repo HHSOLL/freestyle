@@ -6,6 +6,10 @@ import {
   listAssetGenerationRequests,
   resetAssetGenerationRequestsForTest,
 } from "./asset-generation.service.js";
+import {
+  getConfiguredAi3DProvider,
+  resetAi3DProviderStateForTest,
+} from "./ai-3d-providers.js";
 
 const candidateRequest = {
   provider: "external-api",
@@ -46,11 +50,20 @@ const candidateRequest = {
 
 test.beforeEach(() => {
   resetAssetGenerationRequestsForTest();
+  resetAi3DProviderStateForTest();
+  delete process.env.AI_3D_PROVIDER;
+  delete process.env.ASSET_GENERATION_AI_3D_PROVIDER;
+  delete process.env.MESHY_API_KEY;
+  delete process.env.TRIPO_API_KEY;
+  delete process.env.RODIN_API_KEY;
 });
 
-test("external asset generation requests remain TECH_CANDIDATE after provider submission", () => {
+test("external asset generation requests remain TECH_CANDIDATE after provider submission", async () => {
+  process.env.AI_3D_PROVIDER = "meshy";
+  process.env.MESHY_API_KEY = "test-meshy-key";
+
   const response = assetGenerationCreateResponseSchema.parse(
-    createAssetGenerationRequest(candidateRequest, "admin-user"),
+    await createAssetGenerationRequest(candidateRequest, "admin-user"),
   );
 
   assert.equal(response.item.approval_state, "TECH_CANDIDATE");
@@ -65,18 +78,33 @@ test("external asset generation requests remain TECH_CANDIDATE after provider su
     "fit_metrics_json",
     "golden_fit_report",
   ]);
-  assert.match(response.item.provider_task?.provider_task_id ?? "", /^external-pending-/);
+  assert.match(response.item.provider_task?.provider_task_id ?? "", /^meshy-multi-view-to-3d-/);
+  assert.equal(
+    response.item.certification_gate.hard_blockers.includes(
+      "Vendor or AI-generated assets need license metadata before production registration.",
+    ),
+    true,
+  );
+  assert.equal(
+    response.item.certification_gate.hard_blockers.includes(
+      "Vendor or AI-generated assets need source metadata before production registration.",
+    ),
+    true,
+  );
 });
 
-test("asset generation list can filter by provider", () => {
-  createAssetGenerationRequest(candidateRequest, "admin-user");
+test("asset generation list can filter by provider", async () => {
+  process.env.AI_3D_PROVIDER = "meshy";
+  process.env.MESHY_API_KEY = "test-meshy-key";
+
+  await createAssetGenerationRequest(candidateRequest, "admin-user");
   const list = listAssetGenerationRequests({ provider: "external-api" });
   assert.equal(list.total, 1);
   assert.equal(list.items.every((item) => item.provider === "external-api"), true);
 });
 
-test("asset generation rejects non-https source images", () => {
-  assert.throws(
+test("asset generation rejects non-https source images", async () => {
+  await assert.rejects(
     () =>
       createAssetGenerationRequest(
         {
@@ -91,5 +119,52 @@ test("asset generation rejects non-https source images", () => {
         "admin-user",
       ),
     /source image URL must use HTTPS/,
+  );
+});
+
+test("external asset generation fails closed when provider credentials are missing", async () => {
+  await assert.rejects(
+    () => createAssetGenerationRequest(candidateRequest, "admin-user"),
+    /AI 3D provider is not configured|provider is not configured/,
+  );
+});
+
+test("provider draft registration forbids CERTIFIED or PUBLISHED promotion", () => {
+  process.env.AI_3D_PROVIDER = "meshy";
+  process.env.MESHY_API_KEY = "test-meshy-key";
+
+  const provider = getConfiguredAi3DProvider();
+  assert.throws(
+    () =>
+      provider.registerDraftAsset({
+        assetName: "Generated top candidate",
+        desiredApprovalState: "PUBLISHED",
+        sourceKind: "ai-generated",
+        licenseMetadata: { id: "vendor-license-1" },
+        sourceMetadata: { providerAssetId: "vendor-asset-1" },
+      }),
+    /only be registered as DRAFT or TECH_CANDIDATE/,
+  );
+});
+
+test("configured provider supports create and poll while download fails until a model exists", async () => {
+  process.env.AI_3D_PROVIDER = "meshy";
+  process.env.MESHY_API_KEY = "test-meshy-key";
+
+  const provider = getConfiguredAi3DProvider();
+  const task = await provider.createTextTo3DTask({
+    assetName: "Generated top candidate",
+    prompt: "relaxed cotton shirt",
+  });
+  const pollResult = await provider.pollTask(task.provider_task_id);
+
+  assert.equal(pollResult.ready, false);
+  assert.equal(pollResult.modelUrl, null);
+  await assert.rejects(
+    () =>
+      provider.downloadModel({
+        providerTaskId: task.provider_task_id,
+      }),
+    /not ready for download/,
   );
 });

@@ -25,12 +25,45 @@ export {
   type ViewerProxyGarmentKind,
 } from "./proxy-stage.js";
 export {
+  createBarycentricBinding,
+  applyBarycentricBinding,
+  type BarycentricBinding,
+  type BarycentricBindingEntry,
+  type IndexedRestMesh,
+  type PointRestMesh,
+} from "./fitting/barycentric-binding.js";
+export {
+  createCageBinding,
+  applyCageBinding,
+  type CageBinding,
+  type CageBindingEntry,
+  type CageBindingOptions,
+} from "./fitting/cage-binding.js";
+export {
+  createDeformationTransfer,
+  applyDeformationTransfer,
+  type ApplyDeformationTransferInput,
+  type CreateDeformationTransferInput,
+  type DeformationTransfer,
+  type DeformationTransferMode,
+} from "./fitting/deformation-transfer.js";
+export { evaluateFootwearFit } from "./fitting/footwear-fit.js";
+export {
   createViewerRendererRuntime,
   type ViewerRendererBackend,
   type ViewerRendererFactory,
   type ViewerRendererMetrics,
   type ViewerRendererRuntime,
 } from "./renderer-runtime.js";
+export {
+  createResourceRegistry,
+  type ViewerResourceKind,
+  type ViewerResourceRegistration,
+  type ViewerResourceRegistry,
+  type ViewerResourceRegistryOptions,
+  type ViewerResourceRegistrySnapshot,
+  type ViewerResourceSnapshot,
+} from "./resource-registry.js";
 export {
   FreestyleViewerController,
   type ApplyGarmentsInput,

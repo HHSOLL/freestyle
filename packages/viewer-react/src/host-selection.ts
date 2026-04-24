@@ -19,7 +19,7 @@ type Runtime3DModule = {
 type Runtime3DModuleLoader = () => Promise<Runtime3DModule>;
 
 export const resolveViewerHost = (value = process.env.NEXT_PUBLIC_VIEWER_HOST): ViewerHostMode => {
-  return value === "viewer-react" ? "viewer-react" : "runtime-3d";
+  return value === "runtime-3d" ? "runtime-3d" : "viewer-react";
 };
 
 export const loadRuntime3DModule: Runtime3DModuleLoader = async () => import("@freestyle/runtime-3d");
@@ -43,6 +43,7 @@ export const preloadViewerAssets = async (
 ) => {
   if (host === "viewer-react") {
     await Promise.resolve(FreestyleViewerHost);
+    return;
   }
 
   const runtime3DModule = await loadRuntime3D();

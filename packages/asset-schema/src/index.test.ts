@@ -12,8 +12,11 @@ import {
   ensureBodySignatureHash,
   fitQualityHardFailThresholds,
   phase3AssetBudgetTargets,
+  garmentCategoryPolicies,
+  resolveGarmentCategoryPolicy,
   fitArtifactManifestSchema,
   fitArtifactManifestSchemaVersion,
+  footwearFitGateContracts,
   garmentFitPolicyProfiles,
   garmentManifestSchemaVersion,
   garmentManifestSchema,
@@ -99,6 +102,35 @@ test("fit-quality presets keep hard fail thresholds and golden matrices explicit
     "heel_left",
     "heel_right",
   ]);
+});
+
+test("garment category policies keep deterministic transfer and mask rules explicit", () => {
+  const sandals = resolveGarmentCategoryPolicy("sandals");
+  const looseTop = garmentCategoryPolicies.loose_top;
+
+  assert.deepEqual(sandals.allowedMaskRegions, []);
+  assert.deepEqual(sandals.forbiddenMaskRegions, [
+    "foot_left",
+    "foot_right",
+    "toe_left",
+    "toe_right",
+    "heel_left",
+    "heel_right",
+  ]);
+  assert.equal(sandals.previewPolicy.transferMode, "barycentric");
+  assert.equal(sandals.previewPolicy.solverUsesDisplayMesh, false);
+  assert.equal(looseTop.previewPolicy.transferMode, "cage");
+  assert.equal(looseTop.highQualityPolicy.requiresFitMesh, true);
+});
+
+test("footwear fit contracts keep sandals-specific gates explicit", () => {
+  const sandals = footwearFitGateContracts.sandals;
+
+  assert.equal(sandals.thresholds.bodyMaskVisibleAreaMaxMm2, 0);
+  assert.equal(sandals.thresholds.strapVisiblePenetrationMaxMm, 2);
+  assert.equal(sandals.thresholds.toeAlignmentMaxMm, 4);
+  assert.equal(sandals.thresholds.heelAlignmentMaxMm, 4);
+  assert.equal(sandals.thresholds.soleGroundContactRequired, true);
 });
 
 test("phase 3 asset budget targets keep transfer and render budgets explicit", () => {

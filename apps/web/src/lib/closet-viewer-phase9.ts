@@ -4,7 +4,7 @@ export type ClosetViewerPhase9Source =
   | "phase9-release-flag"
   | "phase9-kill-switch"
   | "global-viewer-host"
-  | "default-runtime-3d";
+  | "default-viewer-react";
 
 export type ClosetViewerPhase9Snapshot = {
   host: ViewerHostMode;
@@ -55,9 +55,9 @@ export const resolveClosetViewerPhase9Snapshot = (
   }
 
   return {
-    host: "runtime-3d",
-    phase9Enabled: false,
+    host: "viewer-react",
+    phase9Enabled: true,
     killSwitch: false,
-    source: "default-runtime-3d",
+    source: "default-viewer-react",
   };
 };

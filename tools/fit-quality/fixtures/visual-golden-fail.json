@@ -1,0 +1,50 @@
+{
+  "fixtureId": "visual-golden-fail",
+  "enforceCoverage": false,
+  "hardwareGpuLane": {
+    "required": false,
+    "supported": false
+  },
+  "cases": [
+    {
+      "id": "visual-fail-penetration",
+      "category": "outerwear",
+      "bodyMatrixId": "B03",
+      "poseMatrixId": "P06",
+      "visiblePenetrationSamplesMm": [1.2, 1.8, 2.1, 2.4, 2.7],
+      "criticalVisiblePenetrationSamplesMm": [2.4, 3.4],
+      "nonCriticalVisiblePenetrationSamplesMm": [2.1, 2.7],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [96, 98, 100, 102, 104],
+      "hqCacheHitDurationsMs": [320, 340, 360, 380, 400]
+    },
+    {
+      "id": "visual-fail-body-mask",
+      "category": "tops",
+      "bodyMatrixId": "B02",
+      "poseMatrixId": "P05",
+      "visiblePenetrationSamplesMm": [0.4, 0.5, 0.6, 0.7, 0.8],
+      "criticalVisiblePenetrationSamplesMm": [0.4, 0.5],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.7, 0.8],
+      "bodyMaskVisibility": [{ "region": "abdomen", "visible": true, "forbidden": true }],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [86, 88, 90, 92, 94],
+      "hqCacheHitDurationsMs": [260, 275, 290, 305, 320]
+    },
+    {
+      "id": "visual-fail-sandal-mask",
+      "category": "sandals",
+      "bodyMatrixId": "B10",
+      "poseMatrixId": "P07",
+      "visiblePenetrationSamplesMm": [0.1, 0.2, 0.2, 0.3, 0.3],
+      "criticalVisiblePenetrationSamplesMm": [0.1, 0.2],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.2, 0.3],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [{ "region": "foot_left", "visible": true }],
+      "previewFrameDurationsMs": [76, 78, 80, 82, 84],
+      "hqCacheHitDurationsMs": [205, 215, 225, 235, 245]
+    }
+  ]
+}
+

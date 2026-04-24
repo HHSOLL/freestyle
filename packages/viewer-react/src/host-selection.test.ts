@@ -8,10 +8,11 @@ import {
   type ViewerPreloadInput,
 } from "./host-selection.js";
 
-test("resolveViewerHost defaults to runtime-3d and only enables viewer-react when requested", () => {
-  assert.equal(resolveViewerHost(undefined), "runtime-3d");
-  assert.equal(resolveViewerHost("invalid"), "runtime-3d");
+test("resolveViewerHost defaults to viewer-react and only falls back to runtime-3d when requested", () => {
+  assert.equal(resolveViewerHost(undefined), "viewer-react");
+  assert.equal(resolveViewerHost("invalid"), "viewer-react");
   assert.equal(resolveViewerHost("viewer-react"), "viewer-react");
+  assert.equal(resolveViewerHost("runtime-3d"), "runtime-3d");
 });
 
 test("loadConfiguredAvatarStageComponent returns the local host for viewer-react mode", async () => {
@@ -29,7 +30,7 @@ test("loadConfiguredAvatarStageComponent resolves the runtime-3d shim lazily", a
   assert.equal(component, runtimeComponent);
 });
 
-test("preloadViewerAssets delegates runtime asset warming for both product hosts", async () => {
+test("preloadViewerAssets delegates runtime asset warming only for the compatibility host", async () => {
   const calls: ViewerPreloadInput[] = [];
   const input: ViewerPreloadInput = {
     avatarVariantIds: ["female-base"],
@@ -37,17 +38,15 @@ test("preloadViewerAssets delegates runtime asset warming for both product hosts
     garmentVariantId: "female-base",
   };
 
+  await preloadViewerAssets(input, "viewer-react", async () => {
+    throw new Error("viewer-react preload must not import runtime-3d");
+  });
+
   await preloadViewerAssets(input, "runtime-3d", async () => ({
     preloadRuntimeAssets(next) {
       calls.push(next ?? {});
     },
   }));
 
-  await preloadViewerAssets(input, "viewer-react", async () => ({
-    preloadRuntimeAssets(next) {
-      calls.push(next ?? {});
-    },
-  }));
-
-  assert.deepEqual(calls, [input, input]);
+  assert.deepEqual(calls, [input]);
 });

@@ -1,0 +1,29 @@
+{
+  "fixtureId": "preview-fit-perf-carry-forward",
+  "enforceCoverage": false,
+  "hardwareGpuLane": {
+    "required": true,
+    "supported": false,
+    "lane": "metal",
+    "reason": "Local fit preview harness does not expose a deterministic hardware GPU lane.",
+    "trackedBy": "gpu-lane-carry-forward",
+    "owner": "fit-quality/performance gate",
+    "nextStep": "Re-run this fixture on a hardware-backed GPU lane and attach the report before RC signoff."
+  },
+  "cases": [
+    {
+      "id": "preview-carry-forward-balanced",
+      "category": "outerwear",
+      "bodyMatrixId": "B08",
+      "poseMatrixId": "P04",
+      "visiblePenetrationSamplesMm": [0.4, 0.5, 0.6, 0.7, 0.8],
+      "criticalVisiblePenetrationSamplesMm": [0.4, 0.5],
+      "nonCriticalVisiblePenetrationSamplesMm": [0.7, 0.8],
+      "bodyMaskVisibility": [],
+      "footMaskVisibility": [],
+      "previewFrameDurationsMs": [94, 98, 102, 108, 114],
+      "hqCacheHitDurationsMs": [320, 340, 360, 390, 430]
+    }
+  ]
+}
+

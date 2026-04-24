@@ -1,0 +1,17 @@
+{
+  "fixtureId": "context-loss-fail",
+  "runs": [
+    {
+      "id": "context-fail-balanced",
+      "category": "outerwear",
+      "memoryHeapUsedMb": [420, 423, 425, 426, 427],
+      "contextLossEvents": [
+        {
+          "frame": 144,
+          "reason": "webgl-context-lost"
+        }
+      ]
+    }
+  ]
+}
+

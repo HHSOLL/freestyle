@@ -75,7 +75,7 @@ Covered:
 
 The following items are intentionally not claimed as solved by this closeout:
 
-1. `draped_glb` is still the authored-scene-merge baseline, not solver-grade cloth truth
+1. `draped_glb` can now be emitted as a starter-path deterministic `solver-output` baseline when vertex deformation is applied, but this is still not certification-grade cloth truth
 2. the admin inspection seam is still read-only and detail-by-id only
 3. there is still no approve/reject/certify workflow for HQ artifact bundles
 4. broader asset + fit certification tooling remains the separate `Phase 8.5` track

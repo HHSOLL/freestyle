@@ -32,6 +32,16 @@ export {
   type ViewerRendererRuntime,
 } from "./renderer-runtime.js";
 export {
+  applyFitKernelDisplayDeformationTransfer,
+  buildFitKernelDisplayTransferBinding,
+  fitKernelDeformationTransferSchemaVersion,
+  type FitKernelApplyDisplayTransferInput,
+  type FitKernelApplyDisplayTransferResult,
+  type FitKernelBuildDisplayTransferBindingInput,
+  type FitKernelDisplayTransferBinding,
+  type FitKernelDisplayTransferInfluence,
+} from "./fitting/deformation-transfer.js";
+export {
   FreestyleViewerController,
   type ApplyGarmentsInput,
   type CreateFreestyleViewerOptions,

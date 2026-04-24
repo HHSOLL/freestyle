@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@freestyle/asset-schema": "file:../asset-schema",
+    "@freestyle/fit-kernel": "file:../fit-kernel",
     "@freestyle/shared-types": "file:../shared-types",
     "@freestyle/viewer-protocol": "file:../viewer-protocol",
     "three": "^0.183.2"

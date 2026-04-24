@@ -270,7 +270,8 @@ As of `2026-04-20`:
   - it operates on fit-mesh positions and inverse masses, never display meshes
   - it emits a `preview-fit-mesh-deformation-buffer.v1` result with position and displacement buffers for cage/barycentric transfer
   - it is intentionally labeled `cpu-xpbd-preview`, not Rust/WASM, until the worker/WASM bootstrap is implemented
-  - `NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW=1` sends that proxy through the same-origin preview worker as transferable ArrayBuffers; product-visible garment geometry still uses the existing transform path until display transfer is wired
+  - `NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW=1` sends that proxy through the same-origin preview worker as transferable ArrayBuffers; the compatibility host now applies those buffers to visible garment `BufferGeometry` through the shared normalized display-transfer helper
+  - the HQ worker now has a deterministic starter-path fit-refiner export: it writes a deformed garment GLB and promotes `drapeSource` to `solver-output` only when vertex deformation is actually applied; missing or zero-deformation inputs keep the authored-merge fallback
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

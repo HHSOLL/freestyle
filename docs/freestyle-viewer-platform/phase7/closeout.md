@@ -60,7 +60,7 @@ NEXT_PUBLIC_VIEWER_HOST=runtime-3d npx playwright test apps/web/e2e/closet-previ
 
 - real WASM preview bootstrap
 - authoritative authored collision / fit-mesh / material-physics assets for preview solves
-- cloth vertex deformation / wrap-map transfer instead of transform-only secondary motion
+- authored fit-mesh topology / wrap-map transfer beyond the current normalized proxy binding
 - solver-grade preview latency and fit-quality gating
 
 Those gaps belong to later fitting-quality phases. They are not reopened inside this compatibility-path closeout.

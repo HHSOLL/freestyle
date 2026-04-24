@@ -14,6 +14,7 @@ import {
 } from "@freestyle/shared";
 import {
   buildFitSimulationDrapedGlbBuffer,
+  buildFitSimulationDrapedGlbArtifact,
   buildFitSimulationMetricsArtifactPayload,
   buildFitMapArtifactPayload,
   buildFitSimulationPreviewPngBuffer,
@@ -75,6 +76,8 @@ const fitSimulationCacheKey = buildFitSimulationCacheKey({
 
 const phase4DrapeWarning =
   "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.";
+const solverOutputBaselineDrapeWarning =
+  "Reference-quality baseline draped_glb contains deterministic fit-refiner vertex deformation for the covered starter path; certification-grade cloth remains gated by golden fit review.";
 
 test("parseFitSimulationJobPayload preserves canonical fit-simulation envelopes", () => {
   const parsed = parseFitSimulationJobPayload(
@@ -291,6 +294,69 @@ test("buildFitSimulationDrapedGlbBuffer merges avatar and garment assets into a 
 
   assert.ok(glb.length > 1024);
   assert.equal(glb.subarray(0, 4).toString("utf8"), "glTF");
+});
+
+test("buildFitSimulationDrapedGlbArtifact exports solver-output when vertex deformation is applied", async () => {
+  const fitAssessment = garmentFitAssessmentSchema.parse({
+    sizeLabel: "L",
+    overallState: "snug",
+    tensionRisk: "medium",
+    clippingRisk: "medium",
+    stretchLoad: 0.76,
+    limitingKeys: ["chestCm", "waistCm"],
+    dimensions: [
+      {
+        key: "chestCm",
+        measurementMode: "body-circumference",
+        garmentCm: 108,
+        bodyCm: 104,
+        effectiveGarmentCm: 110,
+        easeCm: 6,
+        requiredStretchRatio: 0.02,
+        state: "snug",
+      },
+      {
+        key: "waistCm",
+        measurementMode: "body-circumference",
+        garmentCm: 92,
+        bodyCm: 88,
+        effectiveGarmentCm: 94,
+        easeCm: 6,
+        requiredStretchRatio: 0.01,
+        state: "regular",
+      },
+    ],
+  });
+
+  const artifact = await buildFitSimulationDrapedGlbArtifact({
+    fitSimulationId: "00000000-0000-4000-8000-000000000083",
+    avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    garmentManifestUrl: "https://freestyle.local/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+    fitAssessment,
+    qualityTier: "balanced",
+  });
+
+  assert.equal(artifact.drapeSource, "solver-output");
+  assert.deepEqual(artifact.warnings, [solverOutputBaselineDrapeWarning]);
+  assert.ok((artifact.solverOutput?.appliedPrimitiveCount ?? 0) > 0);
+  assert.ok((artifact.solverOutput?.appliedVertexCount ?? 0) > 0);
+  assert.ok((artifact.solverOutput?.maxDisplacementMm ?? 0) > 0.05);
+  assert.ok(artifact.buffer.length > 1024);
+  assert.equal(artifact.buffer.subarray(0, 4).toString("utf8"), "glTF");
+});
+
+test("buildFitSimulationDrapedGlbArtifact keeps authored merge source without solver input", async () => {
+  const artifact = await buildFitSimulationDrapedGlbArtifact({
+    fitSimulationId: "00000000-0000-4000-8000-000000000083",
+    avatarManifestUrl: "https://freestyle.local/assets/avatars/mpfb-female-base.glb",
+    garmentManifestUrl: "https://freestyle.local/assets/garments/mpfb/female/top_soft_casual_v4.glb",
+  });
+
+  assert.equal(artifact.drapeSource, "authored-scene-merge");
+  assert.deepEqual(artifact.warnings, [phase4DrapeWarning]);
+  assert.equal(artifact.solverOutput, undefined);
+  assert.ok(artifact.buffer.length > 1024);
+  assert.equal(artifact.buffer.subarray(0, 4).toString("utf8"), "glTF");
 });
 
 test("buildFitSimulationPreviewPngBuffer rasterizes a PNG preview artifact", async () => {

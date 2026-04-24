@@ -53,6 +53,7 @@ import {
 import {
   buildRuntimePreviewWorkerSetupMessages,
 } from "./preview-session-bridge.js";
+import { applyRuntimePreviewFitMeshDeformation } from "./preview-deformation-transfer.js";
 import {
   getAdaptiveCollisionClearanceMultiplier,
   getAdaptiveGarmentAdjustment,
@@ -684,10 +685,25 @@ function applyPreviewDeformation(
   deformation: {
     rotationRad: [number, number, number];
     position: [number, number, number];
+    transferMode?: string;
+    buffer?: {
+      schemaVersion: string;
+      solverKind: string;
+      vertexCount: number;
+      byteLength: number;
+    };
+    buffers?: {
+      positions?: ArrayBuffer;
+      displacements?: ArrayBuffer;
+    };
   },
 ) {
   if (!motionTarget) {
     return;
+  }
+
+  if (deformation.transferMode === "fit-mesh-deformation-buffer") {
+    applyRuntimePreviewFitMeshDeformation(motionTarget, deformation);
   }
 
   motionTarget.rotation.set(
@@ -971,6 +987,7 @@ function BoundGarment({
               sessionId: string;
               sequence: number;
               settled: boolean;
+              transferMode?: string;
               buffer?: {
                 schemaVersion: string;
                 solverKind: string;

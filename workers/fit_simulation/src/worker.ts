@@ -4,7 +4,16 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { NodeIO } from "@gltf-transform/core";
+import {
+  EXTMeshoptCompression,
+  EXTTextureAVIF,
+  EXTTextureWebP,
+  KHRONOS_EXTENSIONS,
+} from "@gltf-transform/extensions";
+import { MeshoptDecoder, MeshoptEncoder } from "meshoptimizer";
 import sharp from "sharp";
+import { applyFitKernelDisplayDeformationTransfer } from "@freestyle/fit-kernel";
 import { logger } from "@freestyle/observability";
 import { runWorkerLoop, type WorkerDefinition } from "@freestyle/queue";
 import { getStorageAdapter } from "@freestyle/storage";
@@ -121,7 +130,22 @@ const persistFitSimulationArtifact = async (
   };
 };
 
-const fitSimulationDrapeSource = "authored-scene-merge" as const;
+type FitSimulationDrapeSource = FitSimulationArtifactLineage["drapeSource"];
+type FitSimulationDrapedGlbBuildResult = {
+  buffer: Buffer;
+  drapeSource: FitSimulationDrapeSource;
+  warnings: string[];
+  solverOutput?: {
+    appliedPrimitiveCount: number;
+    appliedVertexCount: number;
+    maxDisplacementMm: number;
+  };
+};
+
+const authoredSceneMergeDrapeWarning =
+  "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.";
+const solverOutputBaselineDrapeWarning =
+  "Reference-quality baseline draped_glb contains deterministic fit-refiner vertex deformation for the covered starter path; certification-grade cloth remains gated by golden fit review.";
 
 const getPublicAssetBaseHost = () => {
   try {
@@ -165,17 +189,185 @@ const runtimeAssetPathFromUrl = async (value: string) => {
 const getGltfTransformBinaryPath = () =>
   path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "gltf-transform.cmd" : "gltf-transform");
 
-export const buildFitSimulationDrapedGlbBuffer = async (input: {
+const createFitSimulationGltfIO = async () => {
+  await MeshoptDecoder.ready;
+  await MeshoptEncoder.ready;
+  return new NodeIO()
+    .registerExtensions([
+      ...KHRONOS_EXTENSIONS,
+      EXTMeshoptCompression,
+      EXTTextureWebP,
+      EXTTextureAVIF,
+    ])
+    .registerDependencies({
+      "meshopt.decoder": MeshoptDecoder,
+      "meshopt.encoder": MeshoptEncoder,
+    });
+};
+
+const readAccessorPositions = (accessor: {
+  getCount: () => number;
+  getElement: (index: number, target: number[]) => number[];
+}) => {
+  const count = accessor.getCount();
+  const positions = new Float32Array(count * 3);
+  const target = [0, 0, 0];
+  for (let index = 0; index < count; index += 1) {
+    accessor.getElement(index, target);
+    positions[index * 3] = target[0] ?? 0;
+    positions[index * 3 + 1] = target[1] ?? 0;
+    positions[index * 3 + 2] = target[2] ?? 0;
+  }
+  return positions;
+};
+
+const boundsForPositions = (positions: Float32Array) => {
+  const bounds = {
+    minX: Number.POSITIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+    minZ: Number.POSITIVE_INFINITY,
+    maxX: Number.NEGATIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY,
+    maxZ: Number.NEGATIVE_INFINITY,
+  };
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index] ?? 0;
+    const y = positions[index + 1] ?? 0;
+    const z = positions[index + 2] ?? 0;
+    bounds.minX = Math.min(bounds.minX, x);
+    bounds.minY = Math.min(bounds.minY, y);
+    bounds.minZ = Math.min(bounds.minZ, z);
+    bounds.maxX = Math.max(bounds.maxX, x);
+    bounds.maxY = Math.max(bounds.maxY, y);
+    bounds.maxZ = Math.max(bounds.maxZ, z);
+  }
+  return bounds;
+};
+
+const normalizeAxis = (value: number, min: number, max: number) => {
+  const span = max - min;
+  return Math.abs(span) < 1e-8 ? 0 : ((value - min) / span) * 2 - 1;
+};
+
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const buildHqSolverProxyFromDisplayPositions = (
+  displayRestPositions: Float32Array,
+  fitAssessment: GarmentFitAssessment,
+) => {
+  const displayVertexCount = displayRestPositions.length / 3;
+  const sampleCount = Math.min(128, Math.max(8, displayVertexCount));
+  const stride = Math.max(1, Math.floor(displayVertexCount / sampleCount));
+  const bounds = boundsForPositions(displayRestPositions);
+  const fitRestPositions: number[] = [];
+  const fitDisplacements: number[] = [];
+  const stretchLoad = clampNumber(fitAssessment.stretchLoad, 0, 1.5);
+  const limitingBias = clampNumber(fitAssessment.limitingKeys.length / 4, 0, 1);
+  const collisionBias = fitAssessment.clippingRisk === "high" ? 1 : fitAssessment.clippingRisk === "medium" ? 0.65 : 0.35;
+
+  for (let vertex = 0; vertex < displayVertexCount; vertex += stride) {
+    const offset = vertex * 3;
+    const x = displayRestPositions[offset] ?? 0;
+    const y = displayRestPositions[offset + 1] ?? 0;
+    const z = displayRestPositions[offset + 2] ?? 0;
+    const normalizedX = normalizeAxis(x, bounds.minX, bounds.maxX);
+    const normalizedY = normalizeAxis(y, bounds.minY, bounds.maxY);
+    const normalizedZ = normalizeAxis(z, bounds.minZ, bounds.maxZ);
+    const waistInfluence = 1 - Math.min(1, Math.abs(normalizedY));
+    const hemInfluence = Math.max(0, -normalizedY);
+    const sideSign = normalizedX < 0 ? -1 : 1;
+    const depthSign = normalizedZ < 0 ? -1 : 1;
+    const inwardCompression = stretchLoad * waistInfluence * 0.006;
+    const drapeSag = (0.0025 + stretchLoad * 0.004 + limitingBias * 0.002) * hemInfluence;
+    const collisionLift = collisionBias * waistInfluence * 0.0035;
+
+    fitRestPositions.push(x, y, z);
+    fitDisplacements.push(
+      -sideSign * inwardCompression,
+      -drapeSag,
+      depthSign * collisionLift,
+    );
+  }
+
+  return {
+    fitRestPositions: Float32Array.from(fitRestPositions),
+    fitDisplacements: Float32Array.from(fitDisplacements),
+  };
+};
+
+export const buildFitSimulationSolverDeformedGarmentGlbBuffer = async (input: {
+  garmentManifestUrl: string;
+  fitAssessment: GarmentFitAssessment;
+  qualityTier: FitSimulationQualityTier;
+}) => {
+  const garmentInput =
+    (await runtimeAssetPathFromUrl(input.garmentManifestUrl).catch(() => null)) ?? input.garmentManifestUrl;
+  const io = await createFitSimulationGltfIO();
+  const document = await io.read(garmentInput);
+  let appliedPrimitiveCount = 0;
+  let appliedVertexCount = 0;
+  let maxDisplacementMm = 0;
+  const strength =
+    input.qualityTier === "high" ? 0.95 : input.qualityTier === "balanced" ? 0.78 : 0.62;
+
+  for (const mesh of document.getRoot().listMeshes()) {
+    for (const primitive of mesh.listPrimitives()) {
+      const positionAccessor = primitive.getAttribute("POSITION");
+      if (!positionAccessor || positionAccessor.getCount() < 8) {
+        continue;
+      }
+      const displayRestPositions = readAccessorPositions(positionAccessor);
+      const { fitRestPositions, fitDisplacements } = buildHqSolverProxyFromDisplayPositions(
+        displayRestPositions,
+        input.fitAssessment,
+      );
+      const transfer = applyFitKernelDisplayDeformationTransfer({
+        displayRestPositions,
+        fitRestPositions,
+        fitDisplacements,
+        strength,
+      });
+      if (transfer.appliedVertexCount <= 0 || transfer.maxDisplacementMm <= 0.05) {
+        continue;
+      }
+      const nextPositions: Float32Array<ArrayBuffer> = new Float32Array(transfer.positions.length);
+      nextPositions.set(transfer.positions);
+      positionAccessor.setArray(nextPositions);
+      appliedPrimitiveCount += 1;
+      appliedVertexCount += transfer.appliedVertexCount;
+      maxDisplacementMm = Math.max(maxDisplacementMm, transfer.maxDisplacementMm);
+    }
+  }
+
+  if (appliedPrimitiveCount <= 0 || appliedVertexCount <= 0 || maxDisplacementMm <= 0.05) {
+    return null;
+  }
+
+  return {
+    buffer: Buffer.from(await io.writeBinary(document)),
+    appliedPrimitiveCount,
+    appliedVertexCount,
+    maxDisplacementMm: Number(maxDisplacementMm.toFixed(4)),
+  };
+};
+
+const mergeFitSimulationDrapedGlbBuffer = async (input: {
   fitSimulationId: string;
   avatarManifestUrl: string;
   garmentManifestUrl: string;
+  garmentOverrideBuffer?: Buffer;
 }) => {
   const workingDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "freestyle-fit-sim-"));
   try {
     const avatarInput =
       (await runtimeAssetPathFromUrl(input.avatarManifestUrl).catch(() => null)) ?? input.avatarManifestUrl;
-    const garmentInput =
-      (await runtimeAssetPathFromUrl(input.garmentManifestUrl).catch(() => null)) ?? input.garmentManifestUrl;
+    const garmentInput = input.garmentOverrideBuffer
+      ? path.join(workingDirectory, `${input.fitSimulationId}.solver-garment.glb`)
+      : (await runtimeAssetPathFromUrl(input.garmentManifestUrl).catch(() => null)) ?? input.garmentManifestUrl;
+    if (input.garmentOverrideBuffer) {
+      await fs.writeFile(garmentInput, input.garmentOverrideBuffer);
+    }
     const outputPath = path.join(workingDirectory, `${input.fitSimulationId}.draped.glb`);
     const args = ["merge"];
     if (/^https?:\/\//i.test(avatarInput) || /^https?:\/\//i.test(garmentInput)) {
@@ -195,6 +387,53 @@ export const buildFitSimulationDrapedGlbBuffer = async (input: {
   } finally {
     await fs.rm(workingDirectory, { recursive: true, force: true }).catch(() => undefined);
   }
+};
+
+export const buildFitSimulationDrapedGlbArtifact = async (input: {
+  fitSimulationId: string;
+  avatarManifestUrl: string;
+  garmentManifestUrl: string;
+  fitAssessment?: GarmentFitAssessment | null;
+  qualityTier?: FitSimulationQualityTier;
+}): Promise<FitSimulationDrapedGlbBuildResult> => {
+  const solverGarment = input.fitAssessment
+    ? await buildFitSimulationSolverDeformedGarmentGlbBuffer({
+        garmentManifestUrl: input.garmentManifestUrl,
+        fitAssessment: input.fitAssessment,
+        qualityTier: input.qualityTier ?? "balanced",
+      }).catch(() => null)
+    : null;
+
+  const buffer = await mergeFitSimulationDrapedGlbBuffer({
+    fitSimulationId: input.fitSimulationId,
+    avatarManifestUrl: input.avatarManifestUrl,
+    garmentManifestUrl: input.garmentManifestUrl,
+    garmentOverrideBuffer: solverGarment?.buffer,
+  });
+
+  if (solverGarment) {
+    return {
+      buffer,
+      drapeSource: "solver-output",
+      warnings: [solverOutputBaselineDrapeWarning],
+      solverOutput: solverGarment,
+    };
+  }
+
+  return {
+    buffer,
+    drapeSource: "authored-scene-merge",
+    warnings: [authoredSceneMergeDrapeWarning],
+  };
+};
+
+export const buildFitSimulationDrapedGlbBuffer = async (input: {
+  fitSimulationId: string;
+  avatarManifestUrl: string;
+  garmentManifestUrl: string;
+}) => {
+  const artifact = await buildFitSimulationDrapedGlbArtifact(input);
+  return artifact.buffer;
 };
 
 const coercePenetrationRate = (qualityTier: FitSimulationQualityTier, limitingCount: number, stretchLoad: number) => {
@@ -363,6 +602,7 @@ export const buildFitSimulationMetricsArtifactPayload = (
   artifactLineageId: FitSimulationMetricsArtifactData["artifactLineageId"],
   warnings: string[],
   artifactKinds: FitSimulationMetricsArtifactData["artifactKinds"],
+  drapeSource: FitSimulationDrapeSource = "authored-scene-merge",
 ) =>
   fitSimulationMetricsArtifactDataSchema.parse({
     schemaVersion: fitSimulationMetricsArtifactSchemaVersion,
@@ -374,7 +614,7 @@ export const buildFitSimulationMetricsArtifactPayload = (
     metrics,
     artifactLineageId,
     warnings,
-    drapeSource: fitSimulationDrapeSource,
+    drapeSource,
     artifactKinds,
   });
 
@@ -438,7 +678,7 @@ export const buildFitSimulationPreviewSvg = (
       <text x="70" y="404" fill="#9aa7b6" font-size="20" font-family="Arial, sans-serif">region ${svgLabel(fitMapSummary.dominantOverlayKind)} summary</text>
       ${regionRows}
 
-      <text x="70" y="612" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">Phase 4 baseline now persists typed HQ artifacts. The draped GLB is an authored-scene merge placeholder, not solver-deformed cloth.</text>
+      <text x="70" y="612" fill="#9aa7b6" font-size="18" font-family="Arial, sans-serif">${svgLabel(fitMap.warnings[0] ?? authoredSceneMergeDrapeWarning)}</text>
     </svg>
   `.trim();
 };
@@ -515,9 +755,15 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         );
       }
 
-      const warnings = [
-        "Phase 4 baseline draped_glb is an authored-scene merge artifact; solver-deformed cloth remains future work.",
-      ];
+      const drapedGlbBuild = await buildFitSimulationDrapedGlbArtifact({
+        fitSimulationId: row.id,
+        avatarManifestUrl: row.avatarManifestUrl,
+        garmentManifestUrl: row.garmentManifestUrl,
+        fitAssessment,
+        qualityTier: row.qualityTier,
+      });
+      const warnings = drapedGlbBuild.warnings;
+      const drapeSource = drapedGlbBuild.drapeSource;
       const cacheKeyParts = {
         avatarVariantId: row.avatarVariantId,
         bodyProfileRevision: payload.bodyProfileRevision ?? row.bodyProfileRevision ?? payload.bodyVersionId,
@@ -532,7 +778,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         cacheKey,
         cacheKeyParts,
         artifactKinds: [...artifactKinds],
-        drapeSource: fitSimulationDrapeSource,
+        drapeSource,
       });
       const metrics = {
         durationMs: Math.max(1, Date.now() - startedAt),
@@ -576,14 +822,11 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         "draped_glb",
         "draped.glb",
         "model/gltf-binary",
-        await buildFitSimulationDrapedGlbBuffer({
-          fitSimulationId: row.id,
-          avatarManifestUrl: row.avatarManifestUrl,
-          garmentManifestUrl: row.garmentManifestUrl,
-        }),
+        drapedGlbBuild.buffer,
         {
           presentationRole: "hq-preview",
-          drapeSource: fitSimulationDrapeSource,
+          drapeSource,
+          solverOutput: drapedGlbBuild.solverOutput,
           avatarVariantId: row.avatarVariantId,
           garmentVariantId: row.garmentVariantId,
           qualityTier: row.qualityTier,
@@ -635,6 +878,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         artifactLineageId,
         warnings,
         [...artifactKinds],
+        drapeSource,
       );
       const metricsArtifact = await persistFitSimulationArtifact(
         row.id,
@@ -643,7 +887,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         "application/json",
         Buffer.from(JSON.stringify(metricsArtifactPayload, null, 2), "utf8"),
         {
-          drapeSource: fitSimulationDrapeSource,
+          drapeSource,
           dominantOverlayKind: fitMapSummary.dominantOverlayKind,
         },
       );
@@ -657,7 +901,7 @@ export const fitSimulationWorkerDefinition: WorkerDefinition = {
         avatarManifestUrl: row.avatarManifestUrl,
         garmentManifestUrl: row.garmentManifestUrl,
         storageBackend: getFitSimulationArtifactStorageBackend(),
-        drapeSource: fitSimulationDrapeSource,
+        drapeSource,
         artifactKinds: [...artifactKinds],
         manifestKey: path.posix.join("fit-simulations", row.id, "artifact-lineage.json"),
         manifestUrl: "",

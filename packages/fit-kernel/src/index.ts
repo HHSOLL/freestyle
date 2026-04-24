@@ -1,5 +1,6 @@
 export const fitKernelExecutionModes = [
   "reduced-preview",
+  "cpu-xpbd-preview",
   "wasm-preview",
   "static-fit",
 ] as const;
@@ -12,16 +13,22 @@ export const fitKernelPreviewDeformationSchemaVersion = "preview-deformation.v1"
 export const fitKernelPreviewBackendIds = [
   "static-fit",
   "cpu-reduced",
+  "cpu-xpbd",
   "worker-reduced",
   "experimental-webgpu",
 ] as const;
-export const fitKernelPreviewSolverKinds = ["reduced-preview-spring"] as const;
+export const fitKernelPreviewSolverKinds = [
+  "reduced-preview-spring",
+  "xpbd-cloth-preview",
+] as const;
 export const fitKernelPreviewDeformationTransferModes = [
   "secondary-motion-transform",
+  "fit-mesh-deformation-buffer",
 ] as const;
 export const fitKernelPreviewEngineKinds = [
   "static-fit-compat",
   "reduced-preview-compat",
+  "cpu-xpbd-preview",
   "wasm-preview",
 ] as const;
 export const fitKernelPreviewEngineStatuses = ["ready", "fallback"] as const;
@@ -33,6 +40,19 @@ export const fitKernelPreviewFallbackReasons = [
   "wasm-preview-disabled",
   "engine-boot-failed",
 ] as const;
+
+export {
+  fitKernelXpbdDeformationBufferSchemaVersion,
+  fitKernelXpbdPreviewSolveSchemaVersion,
+  solveFitKernelXpbdPreview,
+  type FitKernelXpbdConstraint,
+  type FitKernelXpbdDeformationBuffer,
+  type FitKernelXpbdDistanceConstraint,
+  type FitKernelXpbdDistanceConstraintKind,
+  type FitKernelXpbdPinConstraint,
+  type FitKernelXpbdSolveInput,
+  type FitKernelXpbdSphereCollisionConstraint,
+} from "./xpbd-preview.js";
 
 export type FitKernelExecutionMode = (typeof fitKernelExecutionModes)[number];
 export type FitKernelBufferTransport = (typeof fitKernelBufferTransports)[number];
@@ -216,6 +236,10 @@ export const resolveFitKernelExecutionMode = (input?: {
 }): FitKernelExecutionMode => {
   if (input?.backend === "static-fit") {
     return "static-fit";
+  }
+
+  if (input?.backend === "cpu-xpbd") {
+    return "cpu-xpbd-preview";
   }
 
   if (input?.wasmPreviewEnabled) {
@@ -467,7 +491,8 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
 }): FitKernelPreviewEngineStatus => {
   const executionMode = resolveFitKernelExecutionMode({ backend: input.backend });
   const workerActive =
-    input.backend === "worker-reduced" && (input.workerAvailable ?? input.featureSnapshot.hasWorker);
+    (input.backend === "worker-reduced" || input.backend === "cpu-xpbd") &&
+    (input.workerAvailable ?? input.featureSnapshot.hasWorker);
 
   if (!input.hasContinuousMotion) {
     return {
@@ -493,10 +518,11 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
     };
   }
 
-  if (input.backend === "worker-reduced") {
+  if (input.backend === "worker-reduced" || input.backend === "cpu-xpbd") {
     if (input.workerBootFailed) {
       return {
-        engineKind: "reduced-preview-compat",
+        engineKind:
+          input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
         executionMode,
         backend: input.backend,
         transport: "main-thread",
@@ -508,7 +534,8 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
 
     if (!workerActive) {
       return {
-        engineKind: "reduced-preview-compat",
+        engineKind:
+          input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
         executionMode,
         backend: input.backend,
         transport: "main-thread",
@@ -519,7 +546,8 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
     }
 
     return {
-      engineKind: "reduced-preview-compat",
+      engineKind:
+        input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
       executionMode,
       backend: input.backend,
       transport: "worker-message",

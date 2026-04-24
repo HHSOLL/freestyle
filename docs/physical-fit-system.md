@@ -266,6 +266,10 @@ As of `2026-04-20`:
   - the same compatibility surface now also exposes `previewEngineStatusSchema`, `data-preview-engine-*` attrs, and `fit:preview-engine-status`, so operational fallback reasons stay explicit when the active path is still `static-fit-compat` or `reduced-preview-compat`
   - the same worker path now also uses the typed preview session protocol for body-signature, collision-body, fit-mesh, and material-physics bootstrap, and emits a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary-motion transfer
   - this closes the current compatibility preview path, but it is still a reduced preview baseline, not a claim that the browser now runs solver-grade cloth or fit-mesh vertex deformation
+- the reference-quality solver follow-up adds a CPU XPBD baseline in `packages/fit-kernel`:
+  - it operates on fit-mesh positions and inverse masses, never display meshes
+  - it emits a `preview-fit-mesh-deformation-buffer.v1` result with position and displacement buffers for cage/barycentric transfer
+  - it is intentionally labeled `cpu-xpbd-preview`, not Rust/WASM, until the worker/WASM bootstrap is implemented
 - the full starter catalog now carries publication-grade sample size charts, measurement interpretation, and physical profiles
 - `Closet` can surface fit summaries and pre-equip fit previews derived from the current body profile and garment metadata
 - `Closet` now surfaces the limiting body dimensions per garment so users can see whether the pressure comes from chest, waist, hip, shoulder, inseam, or hem space

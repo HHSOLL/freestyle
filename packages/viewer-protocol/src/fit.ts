@@ -18,6 +18,7 @@ import {
   fitKernelPreviewFallbackReasons,
   fitKernelPreviewFrameSchemaVersion,
   fitKernelPreviewSolverKinds,
+  fitKernelXpbdDeformationBufferSchemaVersion,
   fitKernelBufferTransports,
   type FitKernelBufferTransport,
 } from "@freestyle/fit-kernel";
@@ -34,6 +35,25 @@ export const previewEngineFallbackReasonSchema = z.enum(fitKernelPreviewFallback
 export const previewDeformationTransferModeSchema = z.enum(
   fitKernelPreviewDeformationTransferModes,
 );
+export const previewDeformationBufferMetadataSchema = z
+  .object({
+    schemaVersion: z.literal(fitKernelXpbdDeformationBufferSchemaVersion),
+    solverKind: z.literal("xpbd-cloth-preview"),
+    vertexCount: z.number().int().positive(),
+    byteLength: z.number().int().positive(),
+    transport: previewTransportBackendSchema,
+    dirtyRange: z
+      .object({
+        firstVertex: z.number().int().nonnegative(),
+        vertexCount: z.number().int().positive(),
+      })
+      .strict(),
+    copyCount: z.number().int().nonnegative().default(0),
+    serializeMs: z.number().nonnegative().optional(),
+    transferMs: z.number().nonnegative().optional(),
+    applyMs: z.number().nonnegative().optional(),
+  })
+  .strict();
 export const previewBodyCollisionSchemaVersion = "preview-body-collision.v1";
 
 export const previewBodyCollisionSchema = z
@@ -223,6 +243,7 @@ export const previewDeformationSchema = z
     transferMode: previewDeformationTransferModeSchema,
     rotationRad: z.tuple([z.number(), z.number(), z.number()]),
     position: z.tuple([z.number(), z.number(), z.number()]),
+    buffer: previewDeformationBufferMetadataSchema.optional(),
     settled: z.boolean(),
   })
   .strict();
@@ -310,6 +331,9 @@ export type FitArtifactCacheKeyParts = z.infer<typeof fitArtifactCacheKeyPartsSc
 export type HqArtifactEnvelope = z.infer<typeof hqArtifactEnvelopeSchema>;
 export type PreviewBodyCollision = z.infer<typeof previewBodyCollisionSchema>;
 export type PreviewDeformation = z.infer<typeof previewDeformationSchema>;
+export type PreviewDeformationBufferMetadata = z.infer<
+  typeof previewDeformationBufferMetadataSchema
+>;
 export type PreviewEngineStatus = z.infer<typeof previewEngineStatusSchema>;
 export type PreviewRuntimeSnapshot = z.infer<typeof previewRuntimeSnapshotSchema>;
 export type PreviewTransportBackend = FitKernelBufferTransport;

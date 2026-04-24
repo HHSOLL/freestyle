@@ -312,6 +312,43 @@ test("preview worker protocol preserves solve requests and deformation envelopes
   assert.equal(deformation.deformation.transferMode, "secondary-motion-transform");
 });
 
+test("preview deformation envelopes can carry XPBD fit-mesh buffer metadata", () => {
+  const deformation = previewDeformationResultEnvelopeSchema.parse({
+    type: "PREVIEW_DEFORMATION",
+    deformation: {
+      schemaVersion: "preview-deformation.v1",
+      garmentId: "starter-top-soft-casual",
+      sessionId: "preview-session",
+      sequence: 8,
+      backend: "cpu-xpbd",
+      executionMode: "cpu-xpbd-preview",
+      transferMode: "fit-mesh-deformation-buffer",
+      rotationRad: [0, 0, 0],
+      position: [0, 0, 0],
+      buffer: {
+        schemaVersion: "preview-fit-mesh-deformation-buffer.v1",
+        solverKind: "xpbd-cloth-preview",
+        vertexCount: 3200,
+        byteLength: 38400,
+        transport: "transferable-array-buffer",
+        dirtyRange: {
+          firstVertex: 0,
+          vertexCount: 3200,
+        },
+        copyCount: 0,
+        serializeMs: 0.4,
+        transferMs: 0.8,
+        applyMs: 1.2,
+      },
+      settled: false,
+    },
+  });
+
+  assert.equal(deformation.deformation.transferMode, "fit-mesh-deformation-buffer");
+  assert.equal(deformation.deformation.buffer?.solverKind, "xpbd-cloth-preview");
+  assert.equal(deformation.deformation.buffer?.copyCount, 0);
+});
+
 test("viewer event envelope preserves preview runtime snapshots as read-only evidence", () => {
   const snapshot = previewRuntimeSnapshotSchema.parse({
     schemaVersion: "preview-runtime-snapshot.v1",

@@ -91,6 +91,7 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 7 / Batch 4`: the same-origin worker now runs on the typed preview session protocol with body/collision/fit-mesh/material bootstrap messages plus a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary motion
 - `Phase 7`: the repo-scoped compatibility preview path is now closed; later phases may replace the compatibility inputs with authoritative authored assets and real cloth deformation, but should not reopen the current evidence surface casually
 - `Phase 7`: preview fit performance gate becomes blocking
+- `Reference-quality follow-up`: `@freestyle/fit-kernel` now includes a CPU XPBD baseline that solves fit-mesh positions only and emits `fit-mesh-deformation-buffer` evidence. `npm run test:preview-fit-perf` is wired into `check:phase10` as the first blocking solver-latency guard; it is not a Rust/WASM claim until the worker bootstrap exists
 - `Phase 8 / Batch 1`: the HQ fit worker now writes an internal `artifact-lineage.json` sidecar and canonical cache-key parts for the current four-artifact bundle without widening the lab read contract
 - `Phase 8 / Batch 2`: `/v1/lab/fit-simulations/:id/artifact-lineage` now exposes that persisted lineage as a separate owner-scoped inspection seam while keeping `/v1/lab/fit-simulations/:id` unchanged
 - `Phase 8 / Batch 3`: the current `Closet` HQ fit panel now consumes that lineage seam as separate read-only state, proving a first web consumer without widening the main fit-simulation detail contract

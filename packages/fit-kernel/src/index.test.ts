@@ -10,6 +10,8 @@ import {
   defaultFitKernelPreviewDeformationTransferMode,
   defaultFitKernelPreviewEngineKind,
   detectFitKernelPreviewFeatures,
+  fitKernelXpbdDeformationBufferSchemaVersion,
+  fitKernelXpbdPreviewSolveSchemaVersion,
   fitKernelBufferTransports,
   fitKernelPreviewDeformationTransferModes,
   fitKernelExecutionModes,
@@ -20,12 +22,14 @@ import {
   resolveFitKernelBufferTransport,
   resolveFitKernelPreviewEngineStatus,
   resolveFitKernelExecutionMode,
+  solveFitKernelXpbdPreview,
   stepFitKernelPreviewFrame,
 } from "./index.js";
 
 test("fit-kernel exposes canonical execution modes and transports", () => {
   assert.deepEqual(fitKernelExecutionModes, [
     "reduced-preview",
+    "cpu-xpbd-preview",
     "wasm-preview",
     "static-fit",
   ]);
@@ -42,10 +46,12 @@ test("fit-kernel exposes canonical execution modes and transports", () => {
   assert.equal(defaultFitKernelPreviewEngineKind, "reduced-preview-compat");
   assert.deepEqual(fitKernelPreviewDeformationTransferModes, [
     "secondary-motion-transform",
+    "fit-mesh-deformation-buffer",
   ]);
   assert.deepEqual(fitKernelPreviewEngineKinds, [
     "static-fit-compat",
     "reduced-preview-compat",
+    "cpu-xpbd-preview",
     "wasm-preview",
   ]);
   assert.deepEqual(fitKernelPreviewEngineStatuses, ["ready", "fallback"]);
@@ -86,6 +92,7 @@ test("fit-kernel detects current preview runtime features without overstating wo
 
 test("fit-kernel resolves current execution mode truthfully for reduced preview backends", () => {
   assert.equal(resolveFitKernelExecutionMode({ backend: "static-fit" }), "static-fit");
+  assert.equal(resolveFitKernelExecutionMode({ backend: "cpu-xpbd" }), "cpu-xpbd-preview");
   assert.equal(resolveFitKernelExecutionMode({ backend: "worker-reduced" }), "reduced-preview");
   assert.equal(
     resolveFitKernelExecutionMode({ backend: "worker-reduced", wasmPreviewEnabled: true }),
@@ -130,6 +137,23 @@ test("fit-kernel resolves preview engine status without overstating wasm availab
       engineKind: "reduced-preview-compat",
       executionMode: "reduced-preview",
       backend: "worker-reduced",
+      transport: "worker-message",
+      status: "ready",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "cpu-xpbd",
+      featureSnapshot,
+      hasContinuousMotion: true,
+      qualityTier: "balanced",
+    }),
+    {
+      engineKind: "cpu-xpbd-preview",
+      executionMode: "cpu-xpbd-preview",
+      backend: "cpu-xpbd",
       transport: "worker-message",
       status: "ready",
       featureSnapshot,
@@ -238,4 +262,109 @@ test("fit-kernel builds reduced preview metrics and result envelopes from steppe
   assert.equal(deformationEnvelope.deformation.garmentId, "starter-top-soft-casual");
   assert.equal(deformationEnvelope.deformation.settled, false);
   assert.notDeepEqual(result.rotationRad, [0, 0, 0]);
+});
+
+test("fit-kernel XPBD preview solves only fit mesh positions and emits a deformation buffer", () => {
+  const result = solveFitKernelXpbdPreview({
+    schemaVersion: fitKernelXpbdPreviewSolveSchemaVersion,
+    sessionId: "xpbd-session",
+    garmentId: "starter-top-soft-casual",
+    sequence: 7,
+    positions: new Float32Array([
+      0, 0, 0,
+      1.4, 0, 0,
+      0, -0.8, 0,
+    ]),
+    previousPositions: new Float32Array([
+      0, 0, 0,
+      1.4, 0, 0,
+      0, -0.8, 0,
+    ]),
+    inverseMasses: new Float32Array([0, 1, 1]),
+    deltaSeconds: 1 / 60,
+    iterations: 18,
+    gravity: [0, 0, 0],
+    constraints: [
+      {
+        kind: "pin",
+        particle: 0,
+        target: [0, 0, 0],
+      },
+      {
+        kind: "stretch",
+        particleA: 0,
+        particleB: 1,
+        restLengthMeters: 1,
+      },
+      {
+        kind: "shear",
+        particleA: 0,
+        particleB: 2,
+        restLengthMeters: 0.75,
+      },
+    ],
+  });
+
+  assert.equal(result.schemaVersion, fitKernelXpbdDeformationBufferSchemaVersion);
+  assert.equal(result.solverKind, "xpbd-cloth-preview");
+  assert.equal(result.transferMode, "fit-mesh-deformation-buffer");
+  assert.equal(result.vertexCount, 3);
+  assert.equal(result.positions.length, 9);
+  assert.equal(result.displacements.length, 9);
+  assert.equal(result.hasNaN, false);
+  assert.equal(result.iterations, 18);
+  assert.ok(result.maxDisplacementMm > 0);
+  assert.ok(result.residualError < 0.05);
+  assert.equal(result.positions[0], 0);
+  assert.equal(result.positions[1], 0);
+  assert.equal(result.positions[2], 0);
+  assert.ok(Math.abs((result.positions[3] ?? 0) - 1) < 0.01);
+  assert.ok(Math.abs((result.positions[7] ?? 0) + 0.75) < 0.01);
+});
+
+test("fit-kernel XPBD preview enforces body sphere collision constraints", () => {
+  const result = solveFitKernelXpbdPreview({
+    schemaVersion: fitKernelXpbdPreviewSolveSchemaVersion,
+    sessionId: "xpbd-session",
+    garmentId: "sandal-strap",
+    sequence: 2,
+    positions: [0, 0.1, 0],
+    previousPositions: [0, 0.1, 0],
+    inverseMasses: [1],
+    deltaSeconds: 1 / 60,
+    iterations: 2,
+    gravity: [0, 0, 0],
+    constraints: [
+      {
+        kind: "sphere-collision",
+        particle: 0,
+        center: [0, 0, 0],
+        radiusMeters: 0.25,
+        marginMeters: 0.01,
+      },
+    ],
+  });
+
+  assert.equal(result.positions.length, 3);
+  assert.ok((result.positions[1] ?? 0) >= 0.259);
+  assert.ok(result.maxDisplacementMm >= 150);
+  assert.equal(result.hasNaN, false);
+});
+
+test("fit-kernel XPBD preview fails closed on invalid numeric input", () => {
+  assert.throws(
+    () =>
+      solveFitKernelXpbdPreview({
+        schemaVersion: fitKernelXpbdPreviewSolveSchemaVersion,
+        sessionId: "xpbd-session",
+        garmentId: "broken",
+        sequence: 1,
+        positions: [0, Number.NaN, 0],
+        inverseMasses: [1],
+        deltaSeconds: 1 / 60,
+        iterations: 1,
+        constraints: [],
+      }),
+    /positions contains a non-finite value/,
+  );
 });

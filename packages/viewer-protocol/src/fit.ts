@@ -54,6 +54,68 @@ export const previewDeformationBufferMetadataSchema = z
     applyMs: z.number().nonnegative().optional(),
   })
   .strict();
+export const previewXpbdFitMeshSchemaVersion = "preview-xpbd-fit-mesh.v1";
+const previewVector3Schema = z.tuple([z.number(), z.number(), z.number()]);
+const previewXpbdDistanceConstraintSchema = z
+  .object({
+    kind: z.enum(["stretch", "shear", "bend", "waistband", "strap", "hem"]),
+    particleA: z.number().int().nonnegative(),
+    particleB: z.number().int().nonnegative(),
+    restLengthMeters: z.number().nonnegative(),
+    compliance: z.number().nonnegative().optional(),
+  })
+  .strict();
+const previewXpbdPinConstraintSchema = z
+  .object({
+    kind: z.literal("pin"),
+    particle: z.number().int().nonnegative(),
+    target: previewVector3Schema,
+    compliance: z.number().nonnegative().optional(),
+  })
+  .strict();
+const previewXpbdSphereCollisionConstraintSchema = z
+  .object({
+    kind: z.literal("sphere-collision"),
+    particle: z.number().int().nonnegative(),
+    center: previewVector3Schema,
+    radiusMeters: z.number().positive(),
+    marginMeters: z.number().nonnegative().optional(),
+    friction: z.number().min(0).max(1).optional(),
+  })
+  .strict();
+export const previewXpbdFitMeshSchema = z
+  .object({
+    schemaVersion: z.literal(previewXpbdFitMeshSchemaVersion),
+    positions: z.array(z.number()).min(3),
+    inverseMasses: z.array(z.number()).min(1),
+    constraints: z.array(
+      z.discriminatedUnion("kind", [
+        previewXpbdDistanceConstraintSchema,
+        previewXpbdPinConstraintSchema,
+        previewXpbdSphereCollisionConstraintSchema,
+      ]),
+    ),
+    iterations: z.number().int().positive().max(128),
+    gravity: previewVector3Schema.optional(),
+    damping: z.number().min(0).max(1).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.positions.length % 3 !== 0) {
+      context.addIssue({
+        code: "custom",
+        message: "positions length must be a multiple of 3",
+        path: ["positions"],
+      });
+    }
+    if (value.inverseMasses.length !== value.positions.length / 3) {
+      context.addIssue({
+        code: "custom",
+        message: "inverseMasses length must match vertex count",
+        path: ["inverseMasses"],
+      });
+    }
+  });
 export const previewBodyCollisionSchemaVersion = "preview-body-collision.v1";
 
 export const previewBodyCollisionSchema = z
@@ -158,6 +220,7 @@ export const previewWorkerMessageSchema = z.discriminatedUnion("type", [
       type: z.literal("SET_GARMENT_FIT_MESH"),
       garmentId: z.string().trim().min(1).max(160),
       fitMesh: garmentSimProxySchema,
+      xpbdFitMesh: previewXpbdFitMeshSchema.optional(),
     })
     .strict(),
   z
@@ -338,6 +401,7 @@ export type PreviewEngineStatus = z.infer<typeof previewEngineStatusSchema>;
 export type PreviewRuntimeSnapshot = z.infer<typeof previewRuntimeSnapshotSchema>;
 export type PreviewTransportBackend = FitKernelBufferTransport;
 export type PreviewWorkerMessage = z.infer<typeof previewWorkerMessageSchema>;
+export type PreviewXpbdFitMesh = z.infer<typeof previewXpbdFitMeshSchema>;
 export type PreviewDeformationResultEnvelope = z.infer<
   typeof previewDeformationResultEnvelopeSchema
 >;

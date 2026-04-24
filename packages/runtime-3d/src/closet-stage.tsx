@@ -899,6 +899,8 @@ function BoundGarment({
   );
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
   const effectivePreviewBackend = secondaryMotionConfig ? previewBackend : "static-fit";
+  const usesPreviewWorker =
+    effectivePreviewBackend === "worker-reduced" || effectivePreviewBackend === "cpu-xpbd";
 
   const publishPreviewRuntimeSnapshot = useCallback(
     (snapshot: PreviewRuntimeSnapshot) => {
@@ -923,7 +925,7 @@ function BoundGarment({
     queuedPreviewRequestRef.current = null;
     previewWorkerPendingRef.current = false;
 
-    if (effectivePreviewBackend !== "worker-reduced" || typeof Worker === "undefined") {
+    if (!usesPreviewWorker || typeof Worker === "undefined") {
       previewWorkerRef.current?.terminate();
       previewWorkerRef.current = null;
       return;
@@ -969,6 +971,16 @@ function BoundGarment({
               sessionId: string;
               sequence: number;
               settled: boolean;
+              buffer?: {
+                schemaVersion: string;
+                solverKind: string;
+                vertexCount: number;
+                byteLength: number;
+              };
+              buffers?: {
+                positions?: ArrayBuffer;
+                displacements?: ArrayBuffer;
+              };
               rotationRad: [number, number, number];
               position: [number, number, number];
             };
@@ -1042,6 +1054,7 @@ function BoundGarment({
     avatarVariantId,
     bodyProfile,
     effectivePreviewBackend,
+    usesPreviewWorker,
     invalidate,
     item,
     previewFeatureSnapshot,
@@ -1201,7 +1214,7 @@ function BoundGarment({
       },
     });
 
-    if (effectivePreviewBackend === "worker-reduced" && previewWorkerRef.current) {
+    if (usesPreviewWorker && previewWorkerRef.current) {
       queuedPreviewRequestRef.current = request;
       if (!previewWorkerPendingRef.current) {
         const nextRequest = queuedPreviewRequestRef.current;
@@ -1487,6 +1500,7 @@ export function ReferenceClosetStageCanvas({
         hasContinuousMotion: scenePolicy.hasContinuousMotion,
         featureSnapshot: previewFeatureSnapshot,
         experimentalWebGPU: process.env.NEXT_PUBLIC_EXPERIMENTAL_WEBGPU_PREVIEW === "1",
+        experimentalXpbdPreview: process.env.NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW === "1",
       }),
     [previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],
   );

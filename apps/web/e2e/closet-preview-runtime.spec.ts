@@ -59,15 +59,15 @@ test.describe("closet preview runtime evidence", () => {
     const root = page.locator("[data-preview-runtime-root]").first();
     await expect(root).toHaveAttribute(
       "data-preview-runtime-execution-mode",
-      /(reduced-preview|static-fit)/,
+      /(reduced-preview|cpu-xpbd-preview|static-fit)/,
     );
     await expect(root).toHaveAttribute(
       "data-preview-runtime-backend",
-      /(worker-reduced|cpu-reduced|static-fit|experimental-webgpu)/,
+      /(worker-reduced|cpu-xpbd|cpu-reduced|static-fit|experimental-webgpu)/,
     );
     await expect(root).toHaveAttribute(
       "data-preview-engine-kind",
-      /(static-fit-compat|reduced-preview-compat|wasm-preview)/,
+      /(static-fit-compat|reduced-preview-compat|cpu-xpbd-preview|wasm-preview)/,
     );
     await expect(root).toHaveAttribute(
       "data-preview-engine-status",

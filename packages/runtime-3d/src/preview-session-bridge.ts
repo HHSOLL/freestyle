@@ -2,7 +2,11 @@
 
 import { ensureBodySignatureHash, type BodySignature } from "@freestyle/asset-schema";
 import type { GarmentMaterialProfile, GarmentSimProxy } from "@freestyle/contracts";
-import type { PreviewBodyCollision, PreviewWorkerMessage } from "@freestyle/viewer-protocol";
+import type {
+  PreviewBodyCollision,
+  PreviewWorkerMessage,
+  PreviewXpbdFitMesh,
+} from "@freestyle/viewer-protocol";
 import type {
   AvatarRenderVariantId,
   BodyProfile,
@@ -187,6 +191,99 @@ export const buildRuntimePreviewFitMesh = (input: {
   };
 };
 
+export const buildRuntimePreviewXpbdFitMesh = (input: {
+  item: RuntimeGarmentAsset;
+  bodyProfile: BodyProfile;
+}): PreviewXpbdFitMesh => {
+  const { item, bodyProfile } = input;
+  const isFootwear = item.category === "shoes";
+  const columns = isFootwear ? 4 : item.category === "hair" ? 5 : 8;
+  const rows = isFootwear ? 3 : item.category === "hair" ? 5 : 8;
+  const widthMeters = isFootwear
+    ? clamp((bodyProfile.detailed?.ankleCm ?? 22) / 100, 0.16, 0.34)
+    : clamp(bodyProfile.simple.chestCm / 100 * 0.46, 0.32, 0.56);
+  const heightMeters = isFootwear
+    ? clamp((bodyProfile.detailed?.outseamCm ?? 26) / 100 * 0.72, 0.16, 0.32)
+    : clamp((bodyProfile.detailed?.torsoLengthCm ?? 61) / 100 * 0.72, 0.36, 0.62);
+  const positions: number[] = [];
+  const inverseMasses: number[] = [];
+  const constraints: PreviewXpbdFitMesh["constraints"] = [];
+  const vertex = (x: number, y: number) => y * columns + x;
+  const columnDivisor = Math.max(columns - 1, 1);
+  const rowDivisor = Math.max(rows - 1, 1);
+
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < columns; x += 1) {
+      const u = x / columnDivisor;
+      const v = y / rowDivisor;
+      const px = (u - 0.5) * widthMeters;
+      const py = isFootwear ? 0.12 - v * heightMeters : 0.95 - v * heightMeters;
+      const pz = isFootwear ? (v - 0.5) * 0.12 : 0;
+      positions.push(Number(px.toFixed(5)), Number(py.toFixed(5)), Number(pz.toFixed(5)));
+      inverseMasses.push(y === 0 || (isFootwear && x === 0) ? 0 : 1);
+      if (y === 0 || (isFootwear && x === 0)) {
+        constraints.push({
+          kind: "pin",
+          particle: vertex(x, y),
+          target: [Number(px.toFixed(5)), Number(py.toFixed(5)), Number(pz.toFixed(5))],
+        });
+      }
+      if (x > 0) {
+        constraints.push({
+          kind: isFootwear ? "strap" : "stretch",
+          particleA: vertex(x - 1, y),
+          particleB: vertex(x, y),
+          restLengthMeters: Number((widthMeters / columnDivisor).toFixed(5)),
+        });
+      }
+      if (y > 0) {
+        constraints.push({
+          kind: y === rows - 1 ? "hem" : "stretch",
+          particleA: vertex(x, y - 1),
+          particleB: vertex(x, y),
+          restLengthMeters: Number((heightMeters / rowDivisor).toFixed(5)),
+        });
+      }
+      if (x > 0 && y > 0) {
+        constraints.push({
+          kind: "shear",
+          particleA: vertex(x - 1, y - 1),
+          particleB: vertex(x, y),
+          restLengthMeters: Number(
+            Math.hypot(
+              widthMeters / columnDivisor,
+              heightMeters / rowDivisor,
+            ).toFixed(5),
+          ),
+          compliance: 0.00002,
+        });
+      }
+    }
+  }
+
+  const centerParticle = vertex(Math.floor(columns / 2), Math.floor(rows / 2));
+  constraints.push({
+    kind: "sphere-collision",
+    particle: centerParticle,
+    center: isFootwear ? [0, 0, 0] : [0, 0.68, 0],
+    radiusMeters: isFootwear
+      ? clamp((bodyProfile.detailed?.ankleCm ?? 22) / 100 * 0.16, 0.03, 0.07)
+      : clamp(bodyProfile.simple.chestCm / 100 * 0.11, 0.08, 0.13),
+    marginMeters: 0.004,
+    friction: categoryMaterialDefaults[item.category].friction,
+  });
+
+  return {
+    schemaVersion: "preview-xpbd-fit-mesh.v1",
+    positions,
+    inverseMasses,
+    constraints,
+    iterations: isFootwear ? 10 : 14,
+    gravity: isFootwear ? [0, 0, 0] : [0, -9.81, 0],
+    damping: clamp(categoryMaterialDefaults[item.category].damping, 0, 1),
+  };
+};
+
 export const buildRuntimePreviewMaterialProfile = (
   item: RuntimeGarmentAsset,
 ): GarmentMaterialProfile => {
@@ -259,6 +356,10 @@ export const buildRuntimePreviewWorkerSetupMessages = (input: {
         fitMesh: buildRuntimePreviewFitMesh({
           item: input.item,
           avatarVariantId: input.avatarVariantId,
+        }),
+        xpbdFitMesh: buildRuntimePreviewXpbdFitMesh({
+          item: input.item,
+          bodyProfile: input.bodyProfile,
         }),
       },
       {

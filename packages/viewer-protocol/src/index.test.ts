@@ -216,6 +216,25 @@ test("preview worker protocol accepts inline body collision, fit mesh, and mater
       pinnedAnchorIds: ["leftShoulder", "rightShoulder", "chestCenter"],
       selfCollision: true,
     },
+    xpbdFitMesh: {
+      schemaVersion: "preview-xpbd-fit-mesh.v1",
+      positions: [0, 0, 0, 0.1, 0, 0, 0, -0.1, 0],
+      inverseMasses: [0, 1, 1],
+      iterations: 8,
+      constraints: [
+        {
+          kind: "pin",
+          particle: 0,
+          target: [0, 0, 0],
+        },
+        {
+          kind: "stretch",
+          particleA: 0,
+          particleB: 1,
+          restLengthMeters: 0.1,
+        },
+      ],
+    },
   });
   const material = previewWorkerMessageSchema.parse({
     type: "SET_MATERIAL_PHYSICS",
@@ -244,6 +263,7 @@ test("preview worker protocol accepts inline body collision, fit mesh, and mater
 
   assert.equal(collision.type, "SET_COLLISION_BODY");
   assert.equal(fitMesh.type, "SET_GARMENT_FIT_MESH");
+  assert.equal(fitMesh.xpbdFitMesh?.schemaVersion, "preview-xpbd-fit-mesh.v1");
   assert.equal(material.type, "SET_MATERIAL_PHYSICS");
 });
 

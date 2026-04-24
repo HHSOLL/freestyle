@@ -48,7 +48,11 @@ export function createPreviewRuntimeSnapshot(
     backend: input.backend,
     solverKind:
       input.solverKind ??
-      (executionMode === "static-fit" ? undefined : defaultFitKernelPreviewSolverKind),
+      (executionMode === "static-fit"
+        ? undefined
+        : input.backend === "cpu-xpbd"
+          ? "xpbd-cloth-preview"
+          : defaultFitKernelPreviewSolverKind),
     solveDurationMs: input.solveDurationMs ?? 0,
     angularEnergy: input.angularEnergy ?? 0,
     positionalEnergy: input.positionalEnergy ?? 0,

@@ -8,6 +8,7 @@ import {
   buildRuntimePreviewFitMesh,
   buildRuntimePreviewMaterialProfile,
   buildRuntimePreviewWorkerSetupMessages,
+  buildRuntimePreviewXpbdFitMesh,
 } from "./preview-session-bridge.js";
 
 test("preview session bridge builds a canonical body signature from body profile", () => {
@@ -34,6 +35,10 @@ test("preview session bridge derives collision, fit mesh, and material inputs fo
     avatarVariantId: "female-base",
   });
   const materialProfile = buildRuntimePreviewMaterialProfile(item);
+  const xpbdFitMesh = buildRuntimePreviewXpbdFitMesh({
+    item,
+    bodyProfile: defaultBodyProfile,
+  });
 
   assert.equal(collisionBody.schemaVersion, "preview-body-collision.v1");
   assert.equal(collisionBody.avatarId, "female-base");
@@ -45,6 +50,11 @@ test("preview session bridge derives collision, fit mesh, and material inputs fo
   );
   assert.equal(materialProfile.runtimeStarterId, "starter-top-soft-casual");
   assert.equal(materialProfile.intendedUse, "solver-authoring");
+  assert.equal(xpbdFitMesh.schemaVersion, "preview-xpbd-fit-mesh.v1");
+  assert.equal(xpbdFitMesh.positions.length % 3, 0);
+  assert.equal(xpbdFitMesh.inverseMasses.length, xpbdFitMesh.positions.length / 3);
+  assert.ok(xpbdFitMesh.constraints.some((constraint) => constraint.kind === "pin"));
+  assert.ok(xpbdFitMesh.constraints.some((constraint) => constraint.kind === "sphere-collision"));
 });
 
 test("preview session bridge emits protocol setup messages in solver bootstrap order", () => {
@@ -63,4 +73,5 @@ test("preview session bridge emits protocol setup messages in solver bootstrap o
   assert.equal(setup.messages[3]?.type, "SET_GARMENT_FIT_MESH");
   assert.equal(setup.messages[4]?.type, "SET_MATERIAL_PHYSICS");
   assert.equal(setup.bodySignature.hash, setup.messages[1]?.bodySignature.hash);
+  assert.equal(setup.messages[3]?.xpbdFitMesh?.schemaVersion, "preview-xpbd-fit-mesh.v1");
 });

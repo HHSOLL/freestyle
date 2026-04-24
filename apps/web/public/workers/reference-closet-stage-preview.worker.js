@@ -5,13 +5,22 @@ const deformationSchemaVersion = "preview-deformation.v1";
 const resultEnvelopeType = "PREVIEW_FRAME_RESULT";
 const deformationEnvelopeType = "PREVIEW_DEFORMATION";
 const defaultSolverKind = "reduced-preview-spring";
+const xpbdSolverKind = "xpbd-cloth-preview";
 const defaultTransferMode = "secondary-motion-transform";
+const xpbdTransferMode = "fit-mesh-deformation-buffer";
+const xpbdDeformationBufferSchemaVersion = "preview-fit-mesh-deformation-buffer.v1";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const degToRad = (value) => (value * Math.PI) / 180;
 
 const resolveExecutionMode = (backend) =>
-  backend === "static-fit" ? "static-fit" : "reduced-preview";
+  backend === "static-fit"
+    ? "static-fit"
+    : backend === "cpu-xpbd"
+      ? "cpu-xpbd-preview"
+      : "reduced-preview";
+
+const resolveSolverKind = (backend) => (backend === "cpu-xpbd" ? xpbdSolverKind : defaultSolverKind);
 
 const springAxis = (value, velocity, target, stiffness, damping, deltaSeconds) => {
   const acceleration = (target - value) * stiffness - velocity * damping;
@@ -46,6 +55,7 @@ const ensureGarmentState = (garmentId) => {
   if (!solverState.garments.has(garmentId)) {
     solverState.garments.set(garmentId, {
       fitMesh: null,
+      xpbdFitMesh: null,
       materialProfile: null,
       lastResult: null,
       lastDeformation: null,
@@ -188,7 +198,7 @@ const buildResultEnvelope = (result, solveDurationMs) => ({
   type: resultEnvelopeType,
   result,
   metrics: {
-    solverKind: defaultSolverKind,
+    solverKind: resolveSolverKind(result.backend),
     executionMode: resolveExecutionMode(result.backend),
     backend: result.backend,
     solveDurationMs,
@@ -199,7 +209,7 @@ const buildResultEnvelope = (result, solveDurationMs) => ({
   },
 });
 
-const buildDeformationEnvelope = (garmentId, result) => ({
+const buildDeformationEnvelope = (garmentId, result, xpbdResult) => ({
   type: deformationEnvelopeType,
   deformation: {
     schemaVersion: deformationSchemaVersion,
@@ -208,12 +218,184 @@ const buildDeformationEnvelope = (garmentId, result) => ({
     sequence: Number.isFinite(result.sequence) ? result.sequence : 0,
     backend: result.backend || "worker-reduced",
     executionMode: resolveExecutionMode(result.backend),
-    transferMode: defaultTransferMode,
+    transferMode: xpbdResult ? xpbdTransferMode : defaultTransferMode,
     rotationRad: Array.isArray(result.rotationRad) ? [...result.rotationRad] : [0, 0, 0],
     position: Array.isArray(result.position) ? [...result.position] : [0, 0, 0],
+    buffer: xpbdResult
+      ? {
+          schemaVersion: xpbdDeformationBufferSchemaVersion,
+          solverKind: xpbdSolverKind,
+          vertexCount: xpbdResult.vertexCount,
+          byteLength: xpbdResult.positions.byteLength + xpbdResult.displacements.byteLength,
+          transport: solverState.transport,
+          dirtyRange: {
+            firstVertex: 0,
+            vertexCount: xpbdResult.vertexCount,
+          },
+          copyCount: 0,
+          serializeMs: xpbdResult.serializeMs,
+          transferMs: 0,
+          applyMs: 0,
+        }
+      : undefined,
+    buffers: xpbdResult
+      ? {
+          positions: xpbdResult.positions.buffer,
+          displacements: xpbdResult.displacements.buffer,
+        }
+      : undefined,
     settled: !result.shouldContinue,
   },
 });
+
+const toFloat32Array = (value) =>
+  value instanceof Float32Array ? new Float32Array(value) : Float32Array.from(Array.isArray(value) ? value : []);
+
+const vectorLength = (x, y, z) => Math.hypot(x, y, z);
+
+const readVector = (positions, particle) => {
+  const offset = particle * 3;
+  return [positions[offset] || 0, positions[offset + 1] || 0, positions[offset + 2] || 0];
+};
+
+const writeVector = (positions, particle, vector) => {
+  const offset = particle * 3;
+  positions[offset] = vector[0];
+  positions[offset + 1] = vector[1];
+  positions[offset + 2] = vector[2];
+};
+
+const applyXpbdDistanceConstraint = (positions, inverseMasses, constraint, deltaSeconds) => {
+  const a = readVector(positions, constraint.particleA);
+  const b = readVector(positions, constraint.particleB);
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  const dz = a[2] - b[2];
+  const length = vectorLength(dx, dy, dz);
+  const weightA = inverseMasses[constraint.particleA] || 0;
+  const weightB = inverseMasses[constraint.particleB] || 0;
+  const weightSum = weightA + weightB;
+  if (length <= 1e-8 || weightSum <= 0) return 0;
+  const residual = length - constraint.restLengthMeters;
+  const alpha = Math.max(constraint.compliance || 0, 0) / Math.max(deltaSeconds * deltaSeconds, 1e-8);
+  const lambda = -residual / (weightSum + alpha);
+  const nx = dx / length;
+  const ny = dy / length;
+  const nz = dz / length;
+  writeVector(positions, constraint.particleA, [
+    a[0] + weightA * lambda * nx,
+    a[1] + weightA * lambda * ny,
+    a[2] + weightA * lambda * nz,
+  ]);
+  writeVector(positions, constraint.particleB, [
+    b[0] - weightB * lambda * nx,
+    b[1] - weightB * lambda * ny,
+    b[2] - weightB * lambda * nz,
+  ]);
+  return Math.abs(residual);
+};
+
+const applyXpbdPinConstraint = (positions, inverseMasses, constraint, deltaSeconds) => {
+  const weight = inverseMasses[constraint.particle] || 0;
+  if (weight <= 0) return 0;
+  const position = readVector(positions, constraint.particle);
+  const dx = constraint.target[0] - position[0];
+  const dy = constraint.target[1] - position[1];
+  const dz = constraint.target[2] - position[2];
+  const alpha = Math.max(constraint.compliance || 0, 0) / Math.max(deltaSeconds * deltaSeconds, 1e-8);
+  const scale = weight / (weight + alpha);
+  writeVector(positions, constraint.particle, [
+    position[0] + dx * scale,
+    position[1] + dy * scale,
+    position[2] + dz * scale,
+  ]);
+  return vectorLength(dx, dy, dz);
+};
+
+const applyXpbdSphereCollision = (positions, inverseMasses, constraint) => {
+  const weight = inverseMasses[constraint.particle] || 0;
+  if (weight <= 0) return 0;
+  const position = readVector(positions, constraint.particle);
+  const dx = position[0] - constraint.center[0];
+  const dy = position[1] - constraint.center[1];
+  const dz = position[2] - constraint.center[2];
+  const distance = vectorLength(dx, dy, dz);
+  const radius = constraint.radiusMeters + (constraint.marginMeters || 0);
+  if (distance >= radius) return 0;
+  const nx = distance > 1e-8 ? dx / distance : 0;
+  const ny = distance > 1e-8 ? dy / distance : 1;
+  const nz = distance > 1e-8 ? dz / distance : 0;
+  writeVector(positions, constraint.particle, [
+    constraint.center[0] + nx * radius,
+    constraint.center[1] + ny * radius,
+    constraint.center[2] + nz * radius,
+  ]);
+  return radius - distance;
+};
+
+const solveXpbdFitMesh = (xpbdFitMesh, sequence) => {
+  if (!xpbdFitMesh || !Array.isArray(xpbdFitMesh.positions) || !Array.isArray(xpbdFitMesh.inverseMasses)) {
+    return null;
+  }
+  const startedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+  const restPositions = toFloat32Array(xpbdFitMesh.positions);
+  const positions = new Float32Array(restPositions);
+  const previousPositions = new Float32Array(restPositions);
+  const inverseMasses = toFloat32Array(xpbdFitMesh.inverseMasses);
+  const vertexCount = restPositions.length / 3;
+  const deltaSeconds = 1 / 60;
+  const gravity = Array.isArray(xpbdFitMesh.gravity) ? xpbdFitMesh.gravity : [0, -9.81, 0];
+  const damping = clamp(xpbdFitMesh.damping || 0.985, 0, 1);
+  const iterations = clamp(Math.round(xpbdFitMesh.iterations || 8), 1, 64);
+
+  for (let particle = 0; particle < vertexCount; particle += 1) {
+    if ((inverseMasses[particle] || 0) <= 0) continue;
+    const offset = particle * 3;
+    positions[offset] =
+      (positions[offset] || 0) +
+      ((positions[offset] || 0) - (previousPositions[offset] || 0)) * damping +
+      gravity[0] * deltaSeconds * deltaSeconds;
+    positions[offset + 1] =
+      (positions[offset + 1] || 0) +
+      ((positions[offset + 1] || 0) - (previousPositions[offset + 1] || 0)) * damping +
+      gravity[1] * deltaSeconds * deltaSeconds;
+    positions[offset + 2] =
+      (positions[offset + 2] || 0) +
+      ((positions[offset + 2] || 0) - (previousPositions[offset + 2] || 0)) * damping +
+      gravity[2] * deltaSeconds * deltaSeconds;
+  }
+
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    for (const constraint of xpbdFitMesh.constraints || []) {
+      if (constraint.kind === "pin") {
+        applyXpbdPinConstraint(positions, inverseMasses, constraint, deltaSeconds);
+      } else if (constraint.kind === "sphere-collision") {
+        applyXpbdSphereCollision(positions, inverseMasses, constraint);
+      } else {
+        applyXpbdDistanceConstraint(positions, inverseMasses, constraint, deltaSeconds);
+      }
+    }
+  }
+
+  const displacements = new Float32Array(restPositions.length);
+  for (let index = 0; index < positions.length; index += 1) {
+    displacements[index] = (positions[index] || 0) - (restPositions[index] || 0);
+  }
+  const finishedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+  return {
+    vertexCount,
+    positions,
+    displacements,
+    sequence,
+    serializeMs: Math.max(0, finishedAt - startedAt),
+  };
+};
 
 const postSolve = (garmentId, frameRequest) => {
   const garmentState = ensureGarmentState(garmentId);
@@ -222,16 +404,34 @@ const postSolve = (garmentId, frameRequest) => {
       ? globalThis.performance.now()
       : Date.now();
   const result = stepFrame(frameRequest);
+  const xpbdResult =
+    frameRequest.backend === "cpu-xpbd" ? solveXpbdFitMesh(garmentState.xpbdFitMesh, result.sequence) : null;
   const finishedAt =
     globalThis.performance && typeof globalThis.performance.now === "function"
       ? globalThis.performance.now()
       : Date.now();
 
   garmentState.lastResult = result;
-  garmentState.lastDeformation = buildDeformationEnvelope(garmentId, result);
+  const deformationEnvelope = buildDeformationEnvelope(garmentId, result, xpbdResult);
+  garmentState.lastDeformation = xpbdResult
+    ? {
+        ...deformationEnvelope,
+        deformation: {
+          ...deformationEnvelope.deformation,
+          buffers: undefined,
+        },
+      }
+    : deformationEnvelope;
 
   globalThis.postMessage(buildResultEnvelope(result, Math.max(0, finishedAt - startedAt)));
-  globalThis.postMessage(garmentState.lastDeformation);
+  if (xpbdResult) {
+    globalThis.postMessage(deformationEnvelope, [
+      xpbdResult.positions.buffer,
+      xpbdResult.displacements.buffer,
+    ]);
+  } else {
+    globalThis.postMessage(deformationEnvelope);
+  }
 };
 
 globalThis.onmessage = (event) => {
@@ -257,6 +457,7 @@ globalThis.onmessage = (event) => {
     case "SET_GARMENT_FIT_MESH": {
       const garmentState = ensureGarmentState(payload.garmentId);
       garmentState.fitMesh = payload.fitMesh || null;
+      garmentState.xpbdFitMesh = payload.xpbdFitMesh || null;
       return;
     }
     case "SET_MATERIAL_PHYSICS": {

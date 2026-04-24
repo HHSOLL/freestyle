@@ -58,14 +58,20 @@ export function resolveReferenceClosetStagePreviewBackend({
   hasContinuousMotion,
   featureSnapshot,
   experimentalWebGPU,
+  experimentalXpbdPreview,
 }: {
   qualityTier: QualityTier;
   hasContinuousMotion: boolean;
   featureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   experimentalWebGPU?: boolean;
+  experimentalXpbdPreview?: boolean;
 }): ReferenceClosetStagePreviewBackendId {
   if (!hasContinuousMotion || qualityTier === "low") {
     return "static-fit";
+  }
+
+  if (experimentalXpbdPreview && featureSnapshot.hasWorker) {
+    return "cpu-xpbd";
   }
 
   if (experimentalWebGPU && qualityTier === "high" && featureSnapshot.hasWebGPU) {

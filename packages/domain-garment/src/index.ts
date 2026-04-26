@@ -1529,7 +1529,7 @@ const defaultClosetLoadoutByVariant: Record<AvatarRenderVariantId, Partial<Recor
   "female-base": {
     tops: "starter-top-soft-casual",
     bottoms: "starter-bottom-soft-wool",
-    shoes: "starter-shoe-soft-day",
+    shoes: "starter-shoe-sneaker",
     hair: defaultHairItemIdsByVariant["female-base"] ?? undefined,
   },
   "male-base": {

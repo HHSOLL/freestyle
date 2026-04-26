@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import { mkdirSync, writeFileSync } from "node:fs";
 import {
   fitKernelXpbdPreviewSolveSchemaVersion,
   solveFitKernelXpbdPreview,
@@ -118,7 +119,12 @@ const result = {
   pass: p95 < 120 && deformationBufferBytes > 0 && lastResult?.hasNaN === false,
 };
 
+const outputPath = "output/fit-quality/preview-fit-perf.latest.json";
+mkdirSync("output/fit-quality", { recursive: true });
+writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+
 console.log(JSON.stringify(result, null, 2));
+console.log(`preview-fit-perf: ${result.pass ? "passed" : "failed"} (${outputPath})`);
 
 if (!result.pass) {
   process.exitCode = 1;

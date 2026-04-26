@@ -8,10 +8,11 @@ import {
   type ViewerPreloadInput,
 } from "./host-selection.js";
 
-test("resolveViewerHost defaults to runtime-3d and only enables viewer-react when requested", () => {
-  assert.equal(resolveViewerHost(undefined), "runtime-3d");
-  assert.equal(resolveViewerHost("invalid"), "runtime-3d");
+test("resolveViewerHost defaults to viewer-react and only uses runtime-3d when explicitly requested", () => {
+  assert.equal(resolveViewerHost(undefined), "viewer-react");
+  assert.equal(resolveViewerHost("invalid"), "viewer-react");
   assert.equal(resolveViewerHost("viewer-react"), "viewer-react");
+  assert.equal(resolveViewerHost("runtime-3d"), "runtime-3d");
 });
 
 test("loadConfiguredAvatarStageComponent returns the local host for viewer-react mode", async () => {

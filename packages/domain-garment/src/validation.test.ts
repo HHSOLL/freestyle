@@ -250,7 +250,7 @@ test("default closet loadout promotes hero starter pieces and variant-aware hair
 
   assert.equal(femaleLoadout.tops, "starter-top-soft-casual");
   assert.equal(maleLoadout.tops, "starter-top-soft-casual");
-  assert.equal(femaleLoadout.shoes, "starter-shoe-soft-day");
+  assert.equal(femaleLoadout.shoes, "starter-shoe-sneaker");
   assert.equal(femaleLoadout.accessories ?? null, null);
   assert.equal(maleLoadout.shoes, "starter-shoe-sneaker");
   assert.equal(femaleLoadout.hair ?? null, defaultHairItemIdsByVariant["female-base"]);

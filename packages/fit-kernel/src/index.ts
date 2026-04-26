@@ -63,6 +63,18 @@ export {
   type FitKernelXpbdSolveInput,
   type FitKernelXpbdSphereCollisionConstraint,
 } from "./xpbd-preview.js";
+export {
+  createFitKernelWasmXpbdAdapter,
+  fitKernelWasmXpbdAbiVersion,
+  fitKernelWasmXpbdFallbackReasons,
+  type FitKernelWasmXpbdAdapter,
+  type FitKernelWasmXpbdAdapterOptions,
+  type FitKernelWasmXpbdCapability,
+  type FitKernelWasmXpbdFallbackReason,
+  type FitKernelWasmXpbdModuleNamespace,
+  type FitKernelWasmXpbdRuntimeMetadata,
+  type FitKernelWasmXpbdSolveResult,
+} from "./wasm-xpbd.js";
 
 export type FitKernelExecutionMode = (typeof fitKernelExecutionModes)[number];
 export type FitKernelBufferTransport = (typeof fitKernelBufferTransports)[number];

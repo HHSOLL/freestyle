@@ -6,10 +6,10 @@
 
 This closeout is intentionally narrow. It means:
 
-- `/app/closet` owns a route-scoped `viewer-react` release flag and kill switch
-- the flagged `viewer-react` path keeps runtime preload parity plus route-level latency / preview evidence
+- `/app/closet` now defaults to the `viewer-react -> viewer-core` path and keeps a route-scoped kill switch back to `runtime-3d`
+- the default `viewer-react` path keeps runtime preload parity plus route-level latency / preview evidence
 - CI now exercises both:
-  - the cutover path (`viewer-react`)
+  - the default cutover path (`viewer-react`)
   - the rollback path (`runtime-3d`)
 
 It does **not** mean:
@@ -24,12 +24,12 @@ It does **not** mean:
 
 ### Batch 1
 
-- explicit `/app/closet` release flag and kill switch
+- explicit `/app/closet` host selection and kill switch
 - hydration-stable route host resolution
 - `viewer-react` preload parity
 - route-level latency attrs on the product host
 - static-fit preview-runtime / preview-engine attrs and typed event parity
-- blocking `viewer-react` latency smoke
+- blocking default `viewer-react` latency smoke
 
 Primary evidence:
 

@@ -7,7 +7,7 @@
 This closeout means:
 
 - GitHub CI now runs the repo-scoped Phase 10 hard gate through `npm run check:phase10`.
-- `check:phase10` includes the full local gate, asset-budget evidence, Phase 9 `viewer-react` cutover smoke, Phase 9 rollback smoke, and operational browser smoke.
+- `check:phase10` includes the full local gate, measured fit golden, measured visual golden, measured memory-growth, measured context-loss, asset-budget evidence, Phase 9 `viewer-react` cutover smoke, Phase 9 rollback smoke, and operational browser smoke.
 - `/app/closet` viewer telemetry is forwarded from the product route to `POST /v1/telemetry/viewer` when the client API base URL is configured.
 - product viewer telemetry carries Phase 9 release-flag, kill-switch, source, and active viewer-host tags.
 - the API can recommend operational actions for garment, solver, material-class, and device-tier regressions without mutating serving state directly.
@@ -27,12 +27,18 @@ It does **not** mean:
 The active workflow now runs one Phase 10 gate instead of a partial command list:
 
 - `npm run check`
+- `npm run test:fit-golden`
+- `npm run test:visual-golden`
+- `npm run test:memory-leak`
+- `npm run test:context-loss`
 - `npm run report:asset-budget`
 - `npm run test:e2e:phase9:closet`
 - `npm run test:e2e:phase9:rollback`
 - `npm run test:e2e:ops-closeout`
 
-CI also retains Playwright artifacts on failure and uploads `output/asset-budget-report/latest.json` as evidence on every run.
+CI also retains Playwright artifacts on failure and writes quality evidence under `output/fit-quality/` plus `output/asset-budget-report/latest.json`.
+
+The fit-quality gate now fails closed without measured input. The hard gate scripts call `scripts/collect-fit-quality-input.mjs` first and then evaluate `output/fit-quality/*.measured.json`; the old implicit default reports are not accepted by `scripts/fit-quality-gate.mjs`.
 
 ### Product telemetry ingress
 
@@ -74,6 +80,8 @@ Primary code evidence:
 - `apps/web/e2e/closet-viewer-react.spec.ts`
 - `.github/workflows/quality.yml`
 - `package.json`
+- `scripts/collect-fit-quality-input.mjs`
+- `scripts/fit-quality-gate.mjs`
 
 Test evidence:
 
@@ -90,10 +98,11 @@ QA note:
 
 These are intentionally documented rather than hidden:
 
-- Hardware-backed GPU lane is still an operational requirement, not a fully automated GitHub-hosted lane.
+- Hardware-backed GPU lane is still an operational requirement, not a fully automated GitHub-hosted lane. `npm run test:visual-golden:hardware` exists to fail closed when hardware-backed evidence is required.
 - `report:asset-budget` remains evidence-only while known LOD coverage debt is present.
 - The product telemetry route currently recommends actions; it does not automatically stop garment serving or roll back solver/material versions.
 - Real render-stat telemetry for draw calls, triangles, GPU texture memory, and context restore remains a future runtime instrumentation task.
+- `starter-shoe-soft-day` is no longer in the default female product loadout and is excluded from the measured production fit-gate input until its authored shoe fit audit is repaired.
 
 ## Closeout Rule
 

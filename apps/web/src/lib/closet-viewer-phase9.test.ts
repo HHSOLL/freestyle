@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveClosetViewerPhase9Snapshot } from "./closet-viewer-phase9";
 
-test("phase 9 closet viewer flag defaults to runtime-3d", () => {
+test("phase 9 closet viewer defaults to viewer-react product host", () => {
   assert.deepEqual(resolveClosetViewerPhase9Snapshot({}), {
-    host: "runtime-3d",
-    phase9Enabled: false,
+    host: "viewer-react",
+    phase9Enabled: true,
     killSwitch: false,
-    source: "default-runtime-3d",
+    source: "default-viewer-react",
   });
 });
 

@@ -74,18 +74,27 @@ test.describe("closet preview runtime evidence", () => {
       /(ready|fallback)/,
     );
 
-    const payload = await page.waitForFunction(() => {
+    await page.waitForFunction(() => {
       const events = (window as Window & { __previewRuntimeEvents?: unknown[] })
         .__previewRuntimeEvents;
       return Array.isArray(events) && events.length > 0 ? events.at(-1) : null;
     });
-    const enginePayload = await page.waitForFunction(() => {
+    await page.waitForFunction(() => {
       const events = (window as Window & { __previewEngineEvents?: unknown[] })
         .__previewEngineEvents;
       return Array.isArray(events) && events.length > 0 ? events.at(-1) : null;
     });
-    const lastEvent = await payload.jsonValue();
-    const lastEngineEvent = await enginePayload.jsonValue();
+    const { lastEvent, lastEngineEvent } = await page.evaluate(() => {
+      const runtimeEvents = (window as Window & { __previewRuntimeEvents?: unknown[] })
+        .__previewRuntimeEvents;
+      const engineEvents = (window as Window & { __previewEngineEvents?: unknown[] })
+        .__previewEngineEvents;
+
+      return {
+        lastEvent: Array.isArray(runtimeEvents) ? runtimeEvents.at(-1) : null,
+        lastEngineEvent: Array.isArray(engineEvents) ? engineEvents.at(-1) : null,
+      };
+    });
 
     expect(lastEvent).toMatchObject({
       schemaVersion: "preview-runtime-snapshot.v1",

@@ -56,3 +56,48 @@ jobs:
           path: output/asset-budget-report/latest.json
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Upload fit quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fit-quality-reports
+          path: output/fit-quality/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  hardware-gpu-visual-gate:
+    if: ${{ vars.RUN_HARDWARE_GPU_CI == 'true' }}
+    runs-on:
+      - self-hosted
+      - hardware-gpu
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run hardware-backed visual gate
+        env:
+          FIT_QUALITY_HARDWARE_GPU_SUPPORTED: "true"
+        run: npm run test:visual-golden:hardware
+
+      - name: Upload hardware visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardware-visual-golden-report
+          path: |
+            output/fit-quality/visual-golden.hardware.measured.json
+            output/fit-quality/visual-golden.latest.json
+          if-no-files-found: error
+          retention-days: 14

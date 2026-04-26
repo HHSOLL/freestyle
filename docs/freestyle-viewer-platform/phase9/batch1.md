@@ -4,10 +4,10 @@
 
 This batch starts `Phase 9` as the first honest product-route cutover slice:
 
-1. `/app/closet` now owns an explicit route-scoped `viewer-react` release flag and kill switch
-2. the flagged `viewer-react` path keeps runtime asset warm-up instead of silently dropping preload
-3. the flagged `viewer-react` path exposes the same preview-runtime / preview-engine evidence surface shape that the compatibility host already used
-4. the first `Closet` UX latency smoke is promoted to a blocking gate under the explicit Phase 9 flag
+1. `/app/closet` now owns an explicit route-scoped `viewer-react` host selection contract and kill switch
+2. the `viewer-react` path keeps runtime asset warm-up instead of silently dropping preload
+3. the `viewer-react` path exposes the same preview-runtime / preview-engine evidence surface shape that the compatibility host already used
+4. the first `Closet` UX latency smoke is promoted to a blocking gate for the default product path
 
 This batch does **not** claim full audience rollout, `runtime-3d` removal, mobile gate freeze, or solver-grade cloth truth.
 
@@ -15,9 +15,8 @@ This batch does **not** claim full audience rollout, `runtime-3d` removal, mobil
 
 - `apps/web/src/lib/closet-viewer-phase9.ts`
   - route-scoped `Phase 9` host selection
-  - release flag: `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true`
   - kill switch: `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_KILL_SWITCH=true`
-  - fallback order: Phase 9 kill switch -> Phase 9 flag -> global viewer host override -> `runtime-3d`
+  - fallback order: Phase 9 kill switch -> explicit `runtime-3d` host override -> default `viewer-react`
   - reads direct `NEXT_PUBLIC_*` env values instead of passing `process.env` through wholesale so the route stays hydration-stable between the server render and client hydration
 - `apps/web/src/components/product/V18ClosetExperience.tsx`
   - passes the resolved host explicitly to both `AvatarStageViewport` and `preloadViewerAssets(...)`
@@ -53,7 +52,7 @@ This batch does **not** claim full audience rollout, `runtime-3d` removal, mobil
 
 ## Non-Goals Carried Forward
 
-1. `runtime-3d` is still the default control host when the Phase 9 release flag is off
+1. `runtime-3d` remains the explicit rollback target, not the default product host
 2. `Canvas`, `Community`, `Profile`, and admin are still outside this cutover
 3. the `Closet` HQ fit panel is still lab-backed and is not promoted to a product namespace in this batch
 4. current `draped_glb` remains an authored-merge artifact, not solver-grade cloth truth

@@ -119,6 +119,9 @@
   - `GET /v1/admin/garment-certifications/:id`
   - `GET /v1/admin/fit-simulations`
   - `GET /v1/admin/fit-simulations/:id`
+  - `POST /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation/:id`
   - `GET /v1/closet/runtime-garments`
 - still reserved for future workflow expansion:
   - `POST /v1/admin/garments/:id/publish`
@@ -143,6 +146,9 @@
   - `garmentCertificationItemResponseSchema`
   - `fitSimulationAdminInspectionListResponseSchema`
   - `fitSimulationAdminInspectionResponseSchema`
+  - `assetGenerationCreateRequestSchema`
+  - `assetGenerationCreateResponseSchema`
+  - `assetGenerationListResponseSchema`
 - current persistence: API-side publication port with a Supabase-backed table or file fallback, selected by `GARMENT_PUBLICATION_PERSISTENCE_DRIVER`
 - current remote store: `published_runtime_garments`
 - current implementation detail: published runtime-garment persistence now sits behind an API-side replaceable port with both a Supabase-backed adapter and a versioned file adapter
@@ -155,6 +161,31 @@
 - certification boundary rule:
   - `/v1/admin/garment-certifications*` is a read-only starter-bundle inspection seam derived from `output/garment-certification/latest.json`
   - it is not persisted publication history and must not be treated as full catalog certification truth
+
+### Admin asset-generation intake boundary
+- implemented admin-only endpoints:
+  - `POST /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation`
+  - `GET /v1/admin/asset-generation/:id`
+- purpose:
+  - intake AI/vendor/partner/internal asset-generation requests as certification candidates
+  - preserve source-image provenance, license metadata, measurement constraints, output requirements, and requested review notes
+  - prevent generated assets from bypassing the Freestyle certification gate
+- current allowed approval states:
+  - `DRAFT`
+  - `TECH_CANDIDATE`
+- hard boundary rules:
+  - `allow_auto_publish` must be `false`
+  - generated assets cannot be created as `CERTIFIED` or `PUBLISHED`
+  - source image URLs must be HTTPS and must not point at localhost/private IPv4 hosts
+  - front-view reference input is required
+  - `TECH_CANDIDATE` requests require back-view reference input
+  - `require_fit_mesh` and `require_collision_policy` must be `true`
+- current implementation detail:
+  - the local registry is in-memory and intended as an intake/certification seam, not durable provider execution history
+- response envelopes are defined in `@freestyle/contracts`:
+  - `assetGenerationCreateResponseSchema`
+  - `assetGenerationListResponseSchema`
 
 ### Admin avatar publication boundary
 - implemented read-only endpoint:

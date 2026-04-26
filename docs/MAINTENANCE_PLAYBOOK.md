@@ -34,7 +34,7 @@
 - `/share/[slug]`
 
 When validating the viewer-platform refactor specifically, also keep `docs/freestyle-viewer-platform/phase1/closeout.md` in sync with the latest harness and forced-host closet evidence.
-When validating the Phase 9 route-scoped cutover specifically, run `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` and `npm run test:e2e:phase9:rollback`, then keep the active notes under `docs/freestyle-viewer-platform/phase9/` in sync with both cutover and rollback smoke expectations.
+When validating the Phase 9 route-scoped cutover specifically, run `npm run test:e2e:phase9:closet` for the default `viewer-react -> viewer-core` product path and `npm run test:e2e:phase9:rollback` for the kill-switch path, then keep the active notes under `docs/freestyle-viewer-platform/phase9/` in sync with both cutover and rollback smoke expectations.
 If a schema/protocol foundation change claims to complete or reopen `Phase 2`, also update `docs/freestyle-viewer-platform/phase2/closeout.md` in the same PR.
 If approval-state or fit-quality contract enforcement changes, also update `docs/freestyle-viewer-platform/phase2_5/closeout.md` in the same PR.
 If Phase 3 loader policy, transcoder sync, KTX2 tooling, committed runtime `LOD` coverage, or asset budget reporting changes, also update the relevant note under `docs/freestyle-viewer-platform/phase3/` in the same PR. If the batch claims to close or reopen the phase, update `docs/freestyle-viewer-platform/phase3/closeout.md` too.
@@ -47,7 +47,7 @@ If the Phase 7 preview-runtime seam changes, also update the relevant note under
 That Phase 7 note now includes `batch1.md`, `batch2.md`, `batch3.md`, `batch4.md`, and `closeout.md`; keep the snapshot seam, preview-engine fallback seam, and preview-session bootstrap seam in sync together.
 If the Phase 8 HQ artifact identity seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase8/`, plus `docs/CLOTH_SIMULATE_JOB_DRAFT.md`, `docs/physical-fit-system.md`, and the HQ artifact rules in `docs/quality-gates.md` in the same PR.
 If the Phase 9 `Closet` cutover seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase9/`, plus `docs/rollout-governance/feature-flag-matrix.md`, `docs/DEVELOPMENT_GUIDE.md`, and `docs/quality-gates.md` in the same PR.
-If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR.
+If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR. Fit/visual/memory/context gate additions must also document their report paths under `output/fit-quality/`.
 
 ### Redirect smoke
 

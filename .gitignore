@@ -23,6 +23,7 @@
 /build
 /dist
 /dump.rdb
+/packages/*/target/
 
 # misc
 .DS_Store

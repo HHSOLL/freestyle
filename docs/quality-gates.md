@@ -27,7 +27,8 @@ Current GitHub workflow enforcement:
 
 - `.github/workflows/quality.yml` runs `npm run check:phase10`
 - `check:phase10` includes the same baseline set above through `npm run check`
-- `check:phase10` also runs asset-budget evidence, the blocking Phase 9 `Closet` viewer-react smoke, the Phase 9 rollback smoke, and operational browser smoke
+- `check:phase10` also runs measured fit golden, measured visual golden, measured memory-growth, measured context-loss, asset-budget evidence, the blocking Phase 9 `Closet` viewer-react smoke, the Phase 9 rollback smoke, and operational browser smoke
+- `fit-quality-gate.mjs` fails closed without `--input`; use the matching `collect:*` script to write `output/fit-quality/*.measured.json` before evaluating a hard gate
 
 ### L1. Surface-Specific Gate
 
@@ -43,8 +44,8 @@ Run these when the scope touches the matching area.
 | viewer-core loader policy, decoder public assets, or Phase 3 asset pipeline scripts changed | `npm run viewer:sync:transcoders`, `npm run viewer:bootstrap:ktx-tools`, `npm run report:asset-budget`, targeted `tsx --test` runs for `packages/viewer-core/src/loader-registry.test.ts` and the runtime loader/model-path tests, plus `npm run build:services` |
 | compatibility-stage material or lighting system changed | targeted `tsx --test` runs for `packages/runtime-3d/src/material-system.test.ts`, `packages/runtime-3d/src/studio-lighting-rig.test.ts`, `packages/runtime-3d/src/reference-closet-stage-policy.test.ts`, `packages/viewer-core/src/proxy-stage.test.ts`, plus `npx playwright test apps/web/e2e/material-system.spec.ts --project=chromium`, `npm run build:services`, and `npm run build` |
 | job contracts, queue runtime, or worker payload/result handling changed | targeted `tsx --test` runs for `packages/contracts/src/domain-contracts.test.ts`, `packages/shared/src/job-contracts.test.ts`, `packages/queue/src/index.test.ts`, and `apps/api/src/modules/jobs/jobs.service.test.ts` plus `npm run build:services` |
-| asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
-| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
+| asset-quality, fit-kernel, viewer-protocol, or viewer-host seams changed | targeted `tsx --test` runs for `packages/asset-schema/src/index.test.ts`, `packages/fit-kernel/src/index.test.ts`, `packages/fit-kernel/src/wasm-xpbd.test.ts`, `packages/viewer-protocol/src/index.test.ts`, `packages/viewer-react/src/route-telemetry.test.ts`, `packages/viewer-react/src/bridge.test.ts`, plus `npm run build:services` and the relevant forced-host Playwright smoke |
+| `/app/closet` Phase 9 cutover seam, route-scoped host flags, or blocking viewer latency evidence changed | `npm run test:e2e:phase9:closet`, `npm run test:e2e:phase9:rollback`, targeted `tsx --test` runs for `apps/web/src/lib/closet-viewer-phase9.test.ts`, `packages/viewer-react/src/host-selection.test.ts`, `packages/viewer-react/src/preview-evidence.test.ts`, plus `npm run build:services` and `npm run build` |
 
 ### L2. Full Local Gate
 
@@ -65,6 +66,10 @@ This includes:
 - `npm run build:services`
 - `npm run build`
 - `npm run build:admin`
+- `npm run test:fit-golden` under `check:phase10` (runs preview-fit performance first and writes measured fit input)
+- `npm run test:visual-golden` under `check:phase10`
+- `npm run test:memory-leak` under `check:phase10`
+- `npm run test:context-loss` under `check:phase10`
 
 ## Progressive Gate Rollout
 
@@ -91,9 +96,11 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 7 / Batch 4`: the same-origin worker now runs on the typed preview session protocol with body/collision/fit-mesh/material bootstrap messages plus a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary motion
 - `Phase 7`: the repo-scoped compatibility preview path is now closed; later phases may replace the compatibility inputs with authoritative authored assets and real cloth deformation, but should not reopen the current evidence surface casually
 - `Phase 7`: preview fit performance gate becomes blocking
-- `Reference-quality follow-up`: `@freestyle/fit-kernel` now includes a CPU XPBD baseline that solves fit-mesh positions only and emits `fit-mesh-deformation-buffer` evidence. `npm run test:preview-fit-perf` is wired into `check:phase10` as the first blocking solver-latency guard; it is not a Rust/WASM claim until the worker bootstrap exists
+- `Reference-quality follow-up`: `@freestyle/fit-kernel` now includes a CPU XPBD baseline that solves fit-mesh positions only and emits `fit-mesh-deformation-buffer` evidence. `npm run test:preview-fit-perf` is wired into `check:phase10` as the first blocking solver-latency guard.
+- `Reference-quality follow-up`: the Rust `packages/fit-kernel` crate and `wasm-xpbd` adapter define the first WASM XPBD ABI and fallback contract. The adapter is covered by `packages/fit-kernel/src/wasm-xpbd.test.ts`, and the Rust crate is covered by `npm run test:fit-kernel:rust`; browser worker bootstrap remains a separate integration seam.
 - `Reference-quality follow-up`: `NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW=1` now exercises the same-origin worker `cpu-xpbd` path, emits transferable fit-mesh buffer metadata, and applies that buffer to visible garment geometry through the shared display-transfer helper. This remains a CPU/proxy baseline, not Rust/WASM.
 - `Reference-quality follow-up`: the HQ worker now has a starter-path solver-output exporter. `drapeSource` may be `solver-output` only when a deformed garment GLB is actually exported and the same source is written to artifact metadata, metrics, and lineage; otherwise the worker remains on `authored-scene-merge`.
+- `Reference-quality follow-up`: the female default closet loadout now uses `starter-shoe-sneaker`; `starter-shoe-soft-day` remains in the starter catalog for lab/regression work but is excluded from the measured production fit gate while its authoring `fitAudit` reports penetrating vertices.
 - `Phase 8 / Batch 1`: the HQ fit worker now writes an internal `artifact-lineage.json` sidecar and canonical cache-key parts for the current four-artifact bundle without widening the lab read contract
 - `Phase 8 / Batch 2`: `/v1/lab/fit-simulations/:id/artifact-lineage` now exposes that persisted lineage as a separate owner-scoped inspection seam while keeping `/v1/lab/fit-simulations/:id` unchanged
 - `Phase 8 / Batch 3`: the current `Closet` HQ fit panel now consumes that lineage seam as separate read-only state, proving a first web consumer without widening the main fit-simulation detail contract
@@ -103,9 +110,9 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8.5 / Batch 2`: `/v1/admin/fit-simulations` now exposes a bounded read-only HQ fit catalog for operator triage without widening garment publication payloads
 - `Phase 8.5 / Batch 3`: `apps/admin` now shows current-garment HQ fit evidence, local status/lineage filters, and one-click open into the existing detail inspector
 - `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
-- `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped release flag plus kill switch for the `viewer-react` cutover, and `NEXT_PUBLIC_CLOSET_VIEWER_PHASE9_ENABLED=true npm run test:e2e:phase9:closet` becomes the first blocking UX latency gate
+- `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped viewer host contract plus kill switch for the `viewer-react` cutover, and `npm run test:e2e:phase9:closet` proves the default `viewer-react -> viewer-core` product path as the blocking UX latency gate
 - `Phase 9 / Batch 2`: CI now also proves the rollback path with `npm run test:e2e:phase9:rollback`, so the current repo-scoped `/app/closet` cutover is closed with both cutover and kill-switch evidence
-- `Phase 10`: CI runs `npm run check:phase10`, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
+- `Phase 10`: CI runs `npm run check:phase10`, enforces measured fit-golden / visual-golden / memory-growth / context-loss reports, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
 - `Phase 10`: hardware-backed GPU CI and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements, not hidden pass claims
 
 ### L3. Operational Closeout Gate

@@ -19,6 +19,7 @@ import { registerCommunityRoutes } from "./routes/community.routes.js";
 import { registerRuntimeAvatarRoutes } from "./routes/runtime-avatars.routes.js";
 import { registerGarmentCertificationRoutes } from "./routes/garment-certification.routes.js";
 import { registerAdminFitSimulationRoutes } from "./routes/admin-fit-simulations.routes.js";
+import { registerAssetGenerationRoutes } from "./routes/asset-generation.routes.js";
 import { registerRuntimeGarmentRoutes } from "./routes/runtime-garments.routes.js";
 import { registerViewerTelemetryRoutes } from "./routes/viewer-telemetry.routes.js";
 import { registerWidgetAssetRoutes, registerWidgetRoutes } from "./routes/widget.routes.js";
@@ -68,6 +69,7 @@ export const buildServer = () => {
     registerRuntimeAvatarRoutes(product);
     registerGarmentCertificationRoutes(product);
     registerAdminFitSimulationRoutes(product);
+    registerAssetGenerationRoutes(product);
     registerRuntimeGarmentRoutes(product);
     registerViewerTelemetryRoutes(product);
     registerCanvasRoutes(product);

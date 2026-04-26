@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T22:35:46.127Z",
+  "generatedAt": "2026-04-26T09:43:08.739Z",
   "policy": {
     "dracoDecoderPath": "/draco/gltf/",
     "ktx2TranscoderPath": "/basis/",
@@ -63,12 +63,12 @@
             "apps/web/public/assets/avatars/mpfb-female-base.glb",
             "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.glb",
             "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.glb",
-            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.glb"
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.glb"
           ],
-          "bytes": 3695492,
+          "bytes": 3204592,
           "drawCalls": 12,
-          "triangles": 136374,
-          "gpuTextureBytes": 24117248,
+          "triangles": 82094,
+          "gpuTextureBytes": 28311552,
           "transferStatus": "pass",
           "textureStatus": "pass",
           "drawCallStatus": "pass",
@@ -79,12 +79,12 @@
             "apps/web/public/assets/avatars/mpfb-female-base.lod1.glb",
             "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod1.glb",
             "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod1.glb",
-            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod1.glb"
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod1.glb"
           ],
-          "bytes": 2854272,
+          "bytes": 2630188,
           "drawCalls": 12,
-          "triangles": 72464,
-          "gpuTextureBytes": 24117248,
+          "triangles": 61148,
+          "gpuTextureBytes": 28311552,
           "transferStatus": "pass",
           "textureStatus": "pass",
           "drawCallStatus": "pass",
@@ -95,12 +95,12 @@
             "apps/web/public/assets/avatars/mpfb-female-base.lod2.glb",
             "apps/web/public/assets/garments/mpfb/female/top_soft_casual_v4.lod2.glb",
             "apps/web/public/assets/garments/mpfb/female/bottom_soft_wool_v1.lod2.glb",
-            "apps/web/public/assets/garments/mpfb/female/shoes_soft_flat_v1.lod2.glb"
+            "apps/web/public/assets/garments/mpfb/female/shoes_soft_sneaker.lod2.glb"
           ],
-          "bytes": 2206456,
+          "bytes": 2041000,
           "drawCalls": 12,
-          "triangles": 46931,
-          "gpuTextureBytes": 24117248,
+          "triangles": 41497,
+          "gpuTextureBytes": 28311552,
           "transferStatus": "pass",
           "textureStatus": "pass",
           "drawCallStatus": "pass",

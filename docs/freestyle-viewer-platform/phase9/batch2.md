@@ -5,7 +5,7 @@
 This batch closes the remaining rollback and closeout gaps for the repo-scoped `Phase 9` baseline:
 
 1. prove that the `/app/closet` release flag and kill switch stay authoritative over the route-scoped cutover
-2. keep `runtime-3d` as the default control host and explicit rollback target while `viewer-react` remains a flagged product path
+2. keep `runtime-3d` as the explicit rollback target while `viewer-react` becomes the default product path
 3. promote rollback evidence into CI so the cutover path and rollback path are both regression-tested
 
 This batch does **not** widen `viewer-react` beyond `/app/closet`, remove `runtime-3d`, or promote HQ fit into a product namespace.
@@ -38,6 +38,6 @@ This batch does **not** widen `viewer-react` beyond `/app/closet`, remove `runti
 
 - `Phase 9` no longer relies on cutover-only evidence
 - the current repo-scoped baseline proves both:
-  - the flagged `/app/closet -> viewer-react` product path
+  - the default `/app/closet -> viewer-react` product path
   - the route-scoped rollback back to `runtime-3d`
 - with both smoke paths in CI, `Phase 9` can now be closed honestly for the current `/app/closet`-only cutover scope

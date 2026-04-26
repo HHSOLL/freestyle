@@ -17,9 +17,32 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-24
+- 2026-04-26
 
 ## 점검 로그
+### 2026-04-26
+- 확인 소스:
+  - `ChatGPT Pulse`
+    - `https://chatgpt.com/pulse`
+  - Three.js official docs:
+    - `https://threejs.org/docs/pages/GLTFLoader.html`
+  - MDN official docs:
+    - `https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated`
+    - `https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer`
+  - Rust / WebAssembly official docs:
+    - `https://rustwasm.github.io/docs/wasm-bindgen/examples/raytrace.html`
+- 신규 변화 요약:
+  - `Pulse`는 현재 접근 가능한 환경에서 프로젝트에 바로 적용할 수 있는 인증된 신규 항목을 제공하지 못했다.
+  - Three.js `GLTFLoader` 문서는 `KHR_texture_basisu`, `KHR_meshopt_compression`, `EXT_meshopt_compression`, `EXT_texture_webp`, `EXT_texture_avif` 지원과 `DRACOLoader` / `KTX2Loader` / `MeshoptDecoder` 연결 방향을 계속 유지한다.
+  - MDN은 `SharedArrayBuffer`와 고정밀 성능/메모리 API 사용 시 `crossOriginIsolated`, `COOP: same-origin`, `COEP: require-corp` 또는 `credentialless` 전제를 유지한다.
+  - Rust WASM thread 예제는 threaded WASM이 `SharedArrayBuffer`와 관련 헤더 전제를 가진다는 기존 결론과 일치한다.
+- 우리 프로젝트 영향:
+  - 이번 배치도 새 외부 기술을 도입하지 않고, 기존 계약인 `Transferable ArrayBuffer default / SharedArrayBuffer optional fast path`와 shared loader registry 방향을 유지한다.
+  - YELLOW 탈출 작업의 우선순위는 외부 라이브러리 변경이 아니라 product default `viewer-react`, 실제 deformation transfer, hard gate 스크립트, Rust/WASM bootstrap evidence를 닫는 것이다.
+- 적용 여부:
+  - 코드/문서 반영 중:
+    - `docs/TECH_WATCH.md`
+
 ### 2026-04-24
 - 확인 소스:
   - `ChatGPT Pulse`

@@ -2238,6 +2238,187 @@ export const publishedRuntimeGarmentItemResponseSchema = z
   })
   .strict();
 
+export const assetGenerationProviderSchema = z.enum([
+  "external-api",
+  "internal-artist",
+  "partner-pipeline",
+]);
+
+export const assetGenerationStatusSchema = z.enum([
+  "submitted",
+  "queued",
+  "in_review",
+  "blocked",
+  "failed",
+  "completed",
+]);
+
+export const assetGenerationIntentSchema = z.enum([
+  "garment-from-reference-images",
+]);
+
+export const assetGenerationApprovalStateSchema = z.enum([
+  "DRAFT",
+  "TECH_CANDIDATE",
+]);
+
+export const assetGenerationImageViewSchema = z.enum([
+  "front",
+  "back",
+  "left",
+  "right",
+  "detail",
+  "fabric",
+]);
+
+export const assetGenerationSourceImageSchema = z
+  .object({
+    url: z.url(),
+    view: assetGenerationImageViewSchema,
+  })
+  .strict();
+
+export const assetGenerationSourceContextSchema = z
+  .object({
+    source_type: z.enum([
+      "brand-catalog",
+      "editorial",
+      "internal-photo",
+      "partner-upload",
+    ]),
+    source_label: z.string().trim().min(1).max(120),
+    source_page_url: z.url().optional(),
+    license_type: z.enum([
+      "owned",
+      "licensed",
+      "partner-authorized",
+    ]),
+    license_reference: z.string().trim().min(1).max(160),
+    authorized_by: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
+const assetGenerationMeasurementsSchema = garmentMeasurementsSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "measurements must include at least one garment measurement",
+  });
+
+export const assetGenerationMeasurementConstraintsSchema = z
+  .object({
+    size_label: z.string().trim().min(1).max(64).nullable().default(null),
+    measurements: assetGenerationMeasurementsSchema,
+    measurement_tolerance_mm: z.number().int().nonnegative().max(25),
+  })
+  .strict();
+
+export const assetGenerationTargetFormatSchema = z.enum(["glb", "gltf"]);
+
+export const assetGenerationOutputRequirementsSchema = z
+  .object({
+    target_formats: z.array(assetGenerationTargetFormatSchema).min(1),
+    topology: z.enum(["quad", "tri", "mixed"]),
+    target_polycount: z.number().int().positive().max(500_000),
+    require_pbr: z.boolean().default(true),
+    require_fit_mesh: z.boolean().default(true),
+    require_collision_policy: z.boolean().default(true),
+    allow_auto_publish: z.boolean().optional().default(false),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.allow_auto_publish) {
+      context.addIssue({
+        code: "custom",
+        path: ["allow_auto_publish"],
+        message: "allow_auto_publish must be false for asset-generation intake.",
+      });
+    }
+  });
+
+export const assetGenerationCertificationRequestSchema = z
+  .object({
+    requested_approval_state: assetGenerationApprovalStateSchema.default("TECH_CANDIDATE"),
+    review_notes: z.array(z.string().trim().min(1).max(240)).min(1),
+  })
+  .strict();
+
+export const assetGenerationCreateRequestSchema = z
+  .object({
+    provider: assetGenerationProviderSchema,
+    intent: assetGenerationIntentSchema,
+    category: assetCategorySchema,
+    garment_id: z.string().trim().min(1).max(160),
+    name: z.string().trim().min(1).max(160),
+    material_class: z.string().trim().min(1).max(120),
+    source_images: z.array(assetGenerationSourceImageSchema).min(1).max(8),
+    source_context: assetGenerationSourceContextSchema,
+    measurement_constraints: assetGenerationMeasurementConstraintsSchema,
+    output_requirements: assetGenerationOutputRequirementsSchema,
+    certification_request: assetGenerationCertificationRequestSchema,
+  })
+  .strict();
+
+export const assetGenerationProviderTaskSchema = z
+  .object({
+    provider_task_id: z.string().trim().min(1).max(160),
+    status: z.enum(["pending", "submitted", "accepted", "failed"]),
+  })
+  .strict();
+
+export const assetGenerationCertificationGateSchema = z
+  .object({
+    requested_approval_state: assetGenerationApprovalStateSchema,
+    auto_publish_allowed: z.literal(false),
+    required_evidence: z.array(z.string().trim().min(1).max(160)).min(1),
+    review_notes: z.array(z.string().trim().min(1).max(240)).min(1),
+  })
+  .strict();
+
+export const assetGenerationRequestRecordSchema = z
+  .object({
+    id: z.uuid(),
+    provider: assetGenerationProviderSchema,
+    intent: assetGenerationIntentSchema,
+    category: assetCategorySchema,
+    garment_id: z.string().trim().min(1).max(160),
+    name: z.string().trim().min(1).max(160),
+    material_class: z.string().trim().min(1).max(120),
+    status: assetGenerationStatusSchema,
+    approval_state: assetGenerationApprovalStateSchema,
+    source_images: z.array(assetGenerationSourceImageSchema).min(1).max(8),
+    source_context: assetGenerationSourceContextSchema,
+    measurement_constraints: assetGenerationMeasurementConstraintsSchema,
+    output_requirements: assetGenerationOutputRequirementsSchema,
+    certification_gate: assetGenerationCertificationGateSchema,
+    provider_task: assetGenerationProviderTaskSchema.nullable().optional(),
+    created_by: z.uuid(),
+    created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
+  })
+  .strict();
+
+export const assetGenerationCreateResponseSchema = z
+  .object({
+    item: assetGenerationRequestRecordSchema,
+  })
+  .strict();
+
+export const assetGenerationListResponseSchema = z
+  .object({
+    items: z.array(assetGenerationRequestRecordSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.total !== value.items.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["total"],
+        message: "total must match items.length",
+      });
+    }
+  });
+
 export const garmentCertificationItemResponseSchema = z
   .object({
     schemaVersion: z.literal(garmentCertificationReportSchemaVersion),
@@ -2570,6 +2751,25 @@ export type GarmentCertificationReportItem = z.infer<typeof garmentCertification
 export type GarmentCertificationReport = z.infer<typeof garmentCertificationReportSchema>;
 export type GarmentCertificationItemResponse = z.infer<typeof garmentCertificationItemResponseSchema>;
 export type GarmentCertificationListResponse = z.infer<typeof garmentCertificationListResponseSchema>;
+export type AssetGenerationProvider = z.infer<typeof assetGenerationProviderSchema>;
+export type AssetGenerationStatus = z.infer<typeof assetGenerationStatusSchema>;
+export type AssetGenerationIntent = z.infer<typeof assetGenerationIntentSchema>;
+export type AssetGenerationApprovalState = z.infer<typeof assetGenerationApprovalStateSchema>;
+export type AssetGenerationSourceImage = z.infer<typeof assetGenerationSourceImageSchema>;
+export type AssetGenerationSourceContext = z.infer<typeof assetGenerationSourceContextSchema>;
+export type AssetGenerationMeasurementConstraints = z.infer<
+  typeof assetGenerationMeasurementConstraintsSchema
+>;
+export type AssetGenerationOutputRequirements = z.infer<typeof assetGenerationOutputRequirementsSchema>;
+export type AssetGenerationCertificationRequest = z.infer<
+  typeof assetGenerationCertificationRequestSchema
+>;
+export type AssetGenerationProviderTask = z.infer<typeof assetGenerationProviderTaskSchema>;
+export type AssetGenerationCertificationGate = z.infer<typeof assetGenerationCertificationGateSchema>;
+export type AssetGenerationCreateRequest = z.infer<typeof assetGenerationCreateRequestSchema>;
+export type AssetGenerationRequestRecord = z.infer<typeof assetGenerationRequestRecordSchema>;
+export type AssetGenerationCreateResponse = z.infer<typeof assetGenerationCreateResponseSchema>;
+export type AssetGenerationListResponse = z.infer<typeof assetGenerationListResponseSchema>;
 export type PublishedRuntimeAvatarItemResponse = z.infer<typeof publishedRuntimeAvatarItemResponseSchema>;
 export type PublishedRuntimeAvatarListResponse = z.infer<typeof publishedRuntimeAvatarListResponseSchema>;
 export type PublishedRuntimeGarmentItemResponse = z.infer<typeof publishedRuntimeGarmentItemResponseSchema>;

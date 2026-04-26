@@ -21,7 +21,7 @@ test("redirects fitting to closet and persists a canvas board from the current c
   await expect(page.getByRole("link", { name: "Profile" })).toBeVisible();
   await expect(page.getByText("Outfit", { exact: true })).toBeVisible();
 
-  await page.goto("/app/canvas", { waitUntil: "domcontentloaded" });
+  await page.getByRole("link", { name: "Canvas" }).click();
 
   await expect(page).toHaveURL(/\/app\/canvas$/);
   await expect(page.getByRole("button", { name: "Import closet" })).toBeVisible();

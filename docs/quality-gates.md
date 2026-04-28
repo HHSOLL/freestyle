@@ -90,14 +90,14 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 6 / Batch 3`: `apps/admin` now consumes that seam as a read-only starter certification inspector while keeping editor/save state isolated from certification payloads
 - `Phase 6 / Batch 4`: `apps/admin` now exposes starter coverage triage over the current admin garment list without widening `/v1/admin/garments*`
 - `Phase 6`: garment certification gate is closed for the current starter-bundle-backed scope
-- `Phase 7 / Batch 1`: the active reduced preview spring contract now lives in `@freestyle/fit-kernel`, and the same-origin worker returns a typed `PREVIEW_FRAME_RESULT` envelope without claiming browser WASM cloth truth
+- `Phase 7 / Batch 1`: the active reduced preview spring contract now lives in `@freestyle/fit-kernel`, and the same-origin worker returns a typed `PREVIEW_FRAME_RESULT` envelope
 - `Phase 7 / Batch 2`: the `runtime-3d` compatibility host now exposes a typed read-only preview runtime snapshot through `data-preview-runtime-*` attrs and `fit:preview-runtime-updated` viewer events, without widening `/v1` payloads
 - `Phase 7 / Batch 3`: the compatibility host now also exposes typed preview-engine status through `data-preview-engine-*` attrs and `fit:preview-engine-status`, including explicit fallback reasons when the active path is not real WASM preview
 - `Phase 7 / Batch 4`: the same-origin worker now runs on the typed preview session protocol with body/collision/fit-mesh/material bootstrap messages plus a typed `PREVIEW_DEFORMATION` envelope for transform-only secondary motion
 - `Phase 7`: the repo-scoped compatibility preview path is now closed; later phases may replace the compatibility inputs with authoritative authored assets and real cloth deformation, but should not reopen the current evidence surface casually
 - `Phase 7`: preview fit performance gate becomes blocking
 - `Reference-quality follow-up`: `@freestyle/fit-kernel` now includes a CPU XPBD baseline that solves fit-mesh positions only and emits `fit-mesh-deformation-buffer` evidence. `npm run test:preview-fit-perf` is wired into `check:phase10` as the first blocking solver-latency guard.
-- `Reference-quality follow-up`: the Rust `packages/fit-kernel` crate and `wasm-xpbd` adapter define the first WASM XPBD ABI and fallback contract. The adapter is covered by `packages/fit-kernel/src/wasm-xpbd.test.ts`, and the Rust crate is covered by `npm run test:fit-kernel:rust`; browser worker bootstrap remains a separate integration seam.
+- `Reference-quality follow-up`: the Rust `packages/fit-kernel` crate and `wasm-xpbd` adapter define the WASM XPBD ABI and fallback contract. The browser worker now lazy-loads the same-origin `apps/web/public/workers/fit-kernel-wasm/` no-modules artifact when `NEXT_PUBLIC_EXPERIMENTAL_WASM_XPBD_PREVIEW=1`, and `npm run test:fit-kernel:wasm` verifies the committed artifact.
 - `Reference-quality follow-up`: `NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW=1` now exercises the same-origin worker `cpu-xpbd` path, emits transferable fit-mesh buffer metadata, and applies that buffer to visible garment geometry through the shared display-transfer helper. This remains a CPU/proxy baseline, not Rust/WASM.
 - `Reference-quality follow-up`: the HQ worker now has a starter-path solver-output exporter. `drapeSource` may be `solver-output` only when a deformed garment GLB is actually exported and the same source is written to artifact metadata, metrics, and lineage; otherwise the worker remains on `authored-scene-merge`.
 - `Reference-quality follow-up`: the female default closet loadout now uses `starter-shoe-sneaker`; `starter-shoe-soft-day` remains in the starter catalog for lab/regression work but is excluded from the measured production fit gate while its authoring `fitAudit` reports penetrating vertices.
@@ -112,8 +112,9 @@ The viewer-platform refactor grows gates forward instead of leaving everything f
 - `Phase 8.5`: the current repo-scoped admin HQ fit tooling track is closed as a read-only inspection + triage gate, not as a certification mutation workflow
 - `Phase 9 / Batch 1`: `/app/closet` now owns a route-scoped viewer host contract plus kill switch for the `viewer-react` cutover, and `npm run test:e2e:phase9:closet` proves the default `viewer-react -> viewer-core` product path as the blocking UX latency gate
 - `Phase 9 / Batch 2`: CI now also proves the rollback path with `npm run test:e2e:phase9:rollback`, so the current repo-scoped `/app/closet` cutover is closed with both cutover and kill-switch evidence
-- `Phase 10`: CI runs `npm run check:phase10`, enforces measured fit-golden / visual-golden / memory-growth / context-loss reports, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
-- `Phase 10`: hardware-backed GPU CI and fail-closed full-catalog asset-budget enforcement remain explicit carry-forward requirements, not hidden pass claims
+- `Phase 10`: CI runs `npm run check:phase10`, enforces measured fit-golden / visual-golden / memory-growth / context-loss reports, verifies the fit-kernel WASM artifact, uploads asset-budget evidence, retains Playwright artifacts on failure, and product viewer telemetry enters `/v1/telemetry/viewer`
+- `Phase 10`: hardware-backed GPU CI is fail-closed through `hardware-gpu-required` plus `hardware-gpu-visual-gate`; it requires `RUN_HARDWARE_GPU_CI=true` and a self-hosted runner labeled `self-hosted`, `linux`, `x64`, `hardware-gpu`
+- `Phase 10`: fail-closed full-catalog asset-budget enforcement remains an explicit carry-forward requirement, not a hidden pass claim
 
 ### L3. Operational Closeout Gate
 

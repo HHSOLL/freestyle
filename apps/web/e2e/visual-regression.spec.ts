@@ -119,7 +119,9 @@ test.describe("closet quality tier visual baselines", () => {
       await expect(page.getByText("Outfit", { exact: true })).toBeVisible();
       const closetRoot = page.locator("[data-closet-visual-root]").first();
       await expect(closetRoot).toBeVisible();
-      await page.waitForTimeout(1200);
+      const viewerHost = page.locator("[data-viewer-host-root]").first();
+      await expect(viewerHost).toHaveAttribute("data-first-avatar-paint-ms", /\d+/, { timeout: 15_000 });
+      await expect(page.getByText("Preparing 3D fitting stage")).toHaveCount(0, { timeout: 15_000 });
       await settlePage(page);
 
       await expect(await closetRoot.screenshot()).toMatchSnapshot(`closet-${qualityTier}-tier.png`, {

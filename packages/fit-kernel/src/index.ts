@@ -14,6 +14,7 @@ export const fitKernelPreviewBackendIds = [
   "static-fit",
   "cpu-reduced",
   "cpu-xpbd",
+  "wasm-preview",
   "worker-reduced",
   "experimental-webgpu",
 ] as const;
@@ -38,6 +39,7 @@ export const fitKernelPreviewFallbackReasons = [
   "low-quality-tier",
   "worker-unavailable",
   "wasm-preview-disabled",
+  "wasm-preview-runtime-fallback",
   "engine-boot-failed",
 ] as const;
 
@@ -262,6 +264,10 @@ export const resolveFitKernelExecutionMode = (input?: {
 
   if (input?.backend === "cpu-xpbd") {
     return "cpu-xpbd-preview";
+  }
+
+  if (input?.backend === "wasm-preview") {
+    return "wasm-preview";
   }
 
   if (input?.wasmPreviewEnabled) {
@@ -513,7 +519,9 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
 }): FitKernelPreviewEngineStatus => {
   const executionMode = resolveFitKernelExecutionMode({ backend: input.backend });
   const workerActive =
-    (input.backend === "worker-reduced" || input.backend === "cpu-xpbd") &&
+    (input.backend === "worker-reduced" ||
+      input.backend === "cpu-xpbd" ||
+      input.backend === "wasm-preview") &&
     (input.workerAvailable ?? input.featureSnapshot.hasWorker);
 
   if (!input.hasContinuousMotion) {
@@ -540,11 +548,21 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
     };
   }
 
-  if (input.backend === "worker-reduced" || input.backend === "cpu-xpbd") {
+  if (
+    input.backend === "worker-reduced" ||
+    input.backend === "cpu-xpbd" ||
+    input.backend === "wasm-preview"
+  ) {
+    const engineKind =
+      input.backend === "wasm-preview"
+        ? "wasm-preview"
+        : input.backend === "cpu-xpbd"
+          ? "cpu-xpbd-preview"
+          : "reduced-preview-compat";
+
     if (input.workerBootFailed) {
       return {
-        engineKind:
-          input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
+        engineKind,
         executionMode,
         backend: input.backend,
         transport: "main-thread",
@@ -556,8 +574,7 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
 
     if (!workerActive) {
       return {
-        engineKind:
-          input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
+        engineKind,
         executionMode,
         backend: input.backend,
         transport: "main-thread",
@@ -568,8 +585,7 @@ export const resolveFitKernelPreviewEngineStatus = (input: {
     }
 
     return {
-      engineKind:
-        input.backend === "cpu-xpbd" ? "cpu-xpbd-preview" : "reduced-preview-compat",
+      engineKind,
       executionMode,
       backend: input.backend,
       transport: "worker-message",

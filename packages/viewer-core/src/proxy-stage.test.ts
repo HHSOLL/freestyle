@@ -16,19 +16,19 @@ test("inferProxyGarmentKind classifies common starter garment ids", () => {
 
 test("resolveProxyCameraOrbit keeps preset camera states explicit", () => {
   assert.deepEqual(resolveProxyCameraOrbit("full-body-front"), {
-    radius: 3.1,
+    radius: 6.8,
     polar: 1.04,
     azimuth: 0,
     targetY: 1.3,
   });
   assert.deepEqual(resolveProxyCameraOrbit("full-body-three-quarter"), {
-    radius: 3.4,
+    radius: 7.1,
     polar: 1.02,
     azimuth: -0.52,
     targetY: 1.28,
   });
   assert.deepEqual(resolveProxyCameraOrbit("full-body-front-tight"), {
-    radius: 2.65,
+    radius: 5.7,
     polar: 1.08,
     azimuth: 0,
     targetY: 1.34,

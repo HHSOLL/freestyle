@@ -14,11 +14,16 @@ This closeout means:
 
 It does **not** mean:
 
-- hardware-backed GPU CI is fully automated.
 - the current asset-budget report is fail-closed for the full catalog.
 - runtime GPU texture memory, draw calls, triangles, and context-loss recovery are measured from real browser GPU counters.
 - rollout automation can pause serving by itself without an operator or later control-plane integration.
 - the current HQ `draped_glb` is solver-deformed cloth truth.
+
+Hardware-backed GPU CI is now fail-closed in the repository workflow, but it still requires user-owned GitHub infrastructure:
+
+- repository variable `RUN_HARDWARE_GPU_CI=true`
+- a self-hosted Linux x64 runner available to this repository with labels `self-hosted`, `linux`, `x64`, `hardware-gpu`
+- Chromium on that runner must report a non-software WebGL renderer; `SwiftShader`, `llvmpipe`, `softpipe`, and software rasterizers fail the probe
 
 ## Implemented Scope
 
@@ -27,6 +32,7 @@ It does **not** mean:
 The active workflow now runs one Phase 10 gate instead of a partial command list:
 
 - `npm run check`
+- `npm run test:fit-kernel:wasm`
 - `npm run test:fit-golden`
 - `npm run test:visual-golden`
 - `npm run test:memory-leak`
@@ -39,6 +45,13 @@ The active workflow now runs one Phase 10 gate instead of a partial command list
 CI also retains Playwright artifacts on failure and writes quality evidence under `output/fit-quality/` plus `output/asset-budget-report/latest.json`.
 
 The fit-quality gate now fails closed without measured input. The hard gate scripts call `scripts/collect-fit-quality-input.mjs` first and then evaluate `output/fit-quality/*.measured.json`; the old implicit default reports are not accepted by `scripts/fit-quality-gate.mjs`.
+
+The hardware visual lane now has two jobs:
+
+- `hardware-gpu-required`: always present, fails if `RUN_HARDWARE_GPU_CI` is not set to `true`
+- `hardware-gpu-visual-gate`: runs on `[self-hosted, linux, x64, hardware-gpu]`, executes `npm run test:e2e:hardware-gpu-probe`, and only then allows `npm run test:visual-golden:hardware`
+
+The collector no longer trusts `FIT_QUALITY_HARDWARE_GPU_SUPPORTED`; it reads `output/fit-quality/hardware-gpu-probe.latest.json` and requires `hardwareAccelerated: true`.
 
 ### Product telemetry ingress
 
@@ -82,6 +95,8 @@ Primary code evidence:
 - `package.json`
 - `scripts/collect-fit-quality-input.mjs`
 - `scripts/fit-quality-gate.mjs`
+- `apps/web/e2e/hardware-gpu-visual.spec.ts`
+- `scripts/verify-fit-kernel-wasm.mjs`
 
 Test evidence:
 
@@ -98,7 +113,7 @@ QA note:
 
 These are intentionally documented rather than hidden:
 
-- Hardware-backed GPU lane is still an operational requirement, not a fully automated GitHub-hosted lane. `npm run test:visual-golden:hardware` exists to fail closed when hardware-backed evidence is required.
+- Hardware-backed GPU lane is fail-closed, but it cannot pass until the repository has the required self-hosted runner and `RUN_HARDWARE_GPU_CI=true`.
 - `report:asset-budget` remains evidence-only while known LOD coverage debt is present.
 - The product telemetry route currently recommends actions; it does not automatically stop garment serving or roll back solver/material versions.
 - Real render-stat telemetry for draw calls, triangles, GPU texture memory, and context restore remains a future runtime instrumentation task.

@@ -29,19 +29,34 @@ type PreviewWorkerTestContext = {
   performance: {
     now: () => number;
   };
+  importScripts?: (...paths: string[]) => void;
+  wasm_bindgen?: unknown;
   postMessage: (message: unknown, transfer?: readonly ArrayBuffer[]) => void;
   onmessage?: (event: { data: unknown }) => void;
 };
 
-const loadPreviewWorker = () => {
+const loadPreviewWorker = (options?: {
+  wasmBindgen?: unknown;
+  failImportScripts?: boolean;
+}) => {
   const source = fs.readFileSync(
     path.join(process.cwd(), "apps/web/public/workers/reference-closet-stage-preview.worker.js"),
     "utf8",
   );
   const posted: Array<{ message: PreviewWorkerTestMessage; transfer?: readonly ArrayBuffer[] }> = [];
+  const importedScripts: string[] = [];
   const context: PreviewWorkerTestContext = {
     performance: {
       now: () => Date.now(),
+    },
+    importScripts: (...paths: string[]) => {
+      importedScripts.push(...paths);
+      if (options?.failImportScripts) {
+        throw new Error("simulated importScripts failure");
+      }
+      if (options?.wasmBindgen) {
+        context.wasm_bindgen = options.wasmBindgen;
+      }
     },
     postMessage: (message: unknown, transfer?: readonly ArrayBuffer[]) => {
       posted.push({ message: message as PreviewWorkerTestMessage, transfer });
@@ -55,8 +70,11 @@ const loadPreviewWorker = () => {
   return {
     post: (data: unknown) => context.onmessage?.({ data }),
     posted,
+    importedScripts,
   };
 };
+
+const flushPreviewWorker = () => new Promise((resolve) => setImmediate(resolve));
 
 const previewFrame = {
   schemaVersion: "preview-simulation-frame.v1",
@@ -94,7 +112,7 @@ const previewFrame = {
   },
 } as const;
 
-test("same-origin preview worker emits cpu-xpbd fit-mesh deformation buffers", () => {
+test("same-origin preview worker emits cpu-xpbd fit-mesh deformation buffers", async () => {
   const worker = loadPreviewWorker();
   worker.post({ type: "INIT_SOLVER", backend: "transferable-array-buffer" });
   worker.post({
@@ -130,6 +148,7 @@ test("same-origin preview worker emits cpu-xpbd fit-mesh deformation buffers", (
     garmentId: "starter-top-soft-casual",
     frame: previewFrame,
   });
+  await flushPreviewWorker();
 
   const result = worker.posted.find((entry) => entry.message.type === "PREVIEW_FRAME_RESULT");
   const deformation = worker.posted.find((entry) => entry.message.type === "PREVIEW_DEFORMATION");
@@ -150,4 +169,118 @@ test("same-origin preview worker emits cpu-xpbd fit-mesh deformation buffers", (
   assert.equal(deformation.transfer?.length, 2);
   assert.equal(deformation.message.deformation.buffers.positions?.byteLength, 36);
   assert.equal(deformation.message.deformation.buffers.displacements?.byteLength, 36);
+});
+
+test("same-origin preview worker lazy-loads the Rust WASM XPBD artifact", async () => {
+  let initializedWith: { module_or_path?: string } | undefined;
+  let solveCalls = 0;
+  const wasmBindgen = Object.assign(
+    async (input?: { module_or_path?: string }) => {
+      initializedWith = input;
+    },
+    {
+      solve_xpbd_preview: (inputJson: string) => {
+        solveCalls += 1;
+        const input = JSON.parse(inputJson) as {
+          garmentId: string;
+          sessionId: string;
+          sequence: number;
+          positions: number[];
+        };
+        return JSON.stringify({
+          schemaVersion: "preview-fit-mesh-deformation-buffer.v1",
+          garmentId: input.garmentId,
+          sessionId: input.sessionId,
+          sequence: input.sequence,
+          solverKind: "xpbd-cloth-preview",
+          transferMode: "fit-mesh-deformation-buffer",
+          vertexCount: input.positions.length / 3,
+          positions: input.positions,
+          displacements: input.positions.map((_, index) => (index === 4 ? -0.02 : 0)),
+          maxDisplacementMm: 20,
+          residualError: 0,
+          hasNaN: false,
+          iterations: 8,
+        });
+      },
+    },
+  );
+  const worker = loadPreviewWorker({ wasmBindgen });
+  worker.post({ type: "INIT_SOLVER", backend: "transferable-array-buffer" });
+  worker.post({
+    type: "SET_GARMENT_FIT_MESH",
+    garmentId: "starter-top-soft-casual",
+    xpbdFitMesh: {
+      schemaVersion: "preview-xpbd-fit-mesh.v1",
+      positions: [0, 0, 0, 0.24, 0, 0, 0, -0.24, 0],
+      inverseMasses: [0, 1, 1],
+      iterations: 8,
+      gravity: [0, 0, 0],
+      constraints: [],
+    },
+  });
+  worker.post({
+    type: "SOLVE_PREVIEW",
+    garmentId: "starter-top-soft-casual",
+    frame: {
+      ...previewFrame,
+      sequence: 2,
+      backend: "wasm-preview",
+    },
+  });
+  await flushPreviewWorker();
+
+  const result = worker.posted.find((entry) => entry.message.type === "PREVIEW_FRAME_RESULT");
+  const deformation = worker.posted.find((entry) => entry.message.type === "PREVIEW_DEFORMATION");
+
+  assert.deepEqual(worker.importedScripts, [
+    "/workers/fit-kernel-wasm/freestyle_fit_kernel.js",
+  ]);
+  assert.equal(initializedWith?.module_or_path, "/workers/fit-kernel-wasm/freestyle_fit_kernel_bg.wasm");
+  assert.equal(solveCalls, 1);
+  assert.equal(result?.message.metrics?.executionMode, "wasm-preview");
+  assert.equal(result?.message.metrics?.solverKind, "xpbd-cloth-preview");
+  assert.equal(deformation?.message.deformation?.transferMode, "fit-mesh-deformation-buffer");
+  assert.equal(deformation?.transfer?.length, 2);
+});
+
+test("same-origin preview worker reports cpu-xpbd fallback when the WASM artifact cannot load", async () => {
+  const worker = loadPreviewWorker({ failImportScripts: true });
+  worker.post({ type: "INIT_SOLVER", backend: "transferable-array-buffer" });
+  worker.post({
+    type: "SET_GARMENT_FIT_MESH",
+    garmentId: "starter-top-soft-casual",
+    xpbdFitMesh: {
+      schemaVersion: "preview-xpbd-fit-mesh.v1",
+      positions: [0, 0, 0, 0.24, 0, 0, 0, -0.24, 0],
+      inverseMasses: [0, 1, 1],
+      iterations: 8,
+      gravity: [0, 0, 0],
+      constraints: [
+        {
+          kind: "pin",
+          particle: 0,
+          target: [0, 0, 0],
+        },
+      ],
+    },
+  });
+  worker.post({
+    type: "SOLVE_PREVIEW",
+    garmentId: "starter-top-soft-casual",
+    frame: {
+      ...previewFrame,
+      sequence: 3,
+      backend: "wasm-preview",
+    },
+  });
+  await flushPreviewWorker();
+
+  const result = worker.posted.find((entry) => entry.message.type === "PREVIEW_FRAME_RESULT");
+  const deformation = worker.posted.find((entry) => entry.message.type === "PREVIEW_DEFORMATION");
+
+  assert.equal(result?.message.metrics?.executionMode, "cpu-xpbd-preview");
+  assert.equal(result?.message.metrics?.solverKind, "xpbd-cloth-preview");
+  assert.equal(deformation?.message.deformation?.transferMode, "fit-mesh-deformation-buffer");
+  assert.equal(deformation?.message.deformation?.buffer?.vertexCount, 3);
 });

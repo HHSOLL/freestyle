@@ -6,6 +6,7 @@ import {
   previewEngineStatusSchemaVersion,
   viewerEventEnvelopeSchema,
   type PreviewEngineStatus,
+  type PreviewRuntimeSnapshot,
   type ViewerEventEnvelope,
 } from "@freestyle/viewer-protocol";
 
@@ -51,6 +52,29 @@ export function hasPreviewEngineStatusChanged(
     previous.featureSnapshot.crossOriginIsolated !==
       next.featureSnapshot.crossOriginIsolated
   );
+}
+
+export function resolveObservedPreviewEngineFallbackStatus(input: {
+  requested: PreviewEngineStatus;
+  runtime: PreviewRuntimeSnapshot;
+}): PreviewEngineStatus | null {
+  if (
+    input.requested.backend !== "wasm-preview" ||
+    input.runtime.executionMode !== "cpu-xpbd-preview"
+  ) {
+    return null;
+  }
+
+  return previewEngineStatusSchema.parse({
+    schemaVersion: previewEngineStatusSchemaVersion,
+    engineKind: "cpu-xpbd-preview",
+    executionMode: "cpu-xpbd-preview",
+    backend: "cpu-xpbd",
+    transport: "worker-message",
+    status: "fallback",
+    fallbackReason: "wasm-preview-runtime-fallback",
+    featureSnapshot: input.requested.featureSnapshot,
+  });
 }
 
 export function applyPreviewEngineStatusDataAttributes(

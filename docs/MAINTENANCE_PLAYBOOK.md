@@ -16,6 +16,7 @@
 12. Run `npm run optimize:runtime:assets` when promoted runtime GLBs changed.
 13. Run `npm run viewer:sync:transcoders` and `npm run report:asset-budget` when Phase 3 loader policy, public decoder assets, or promoted runtime GLBs change.
 14. Run `npm run check:phase10` before closing viewer-platform Phase 10 or release-control changes.
+15. If Rust fit-kernel code changes, run `npm run build:fit-kernel:wasm` and `npm run test:fit-kernel:wasm`; commit the regenerated `apps/web/public/workers/fit-kernel-wasm/` artifact with the source change.
 
 ## 2. Product Smoke Checklist
 
@@ -47,7 +48,7 @@ If the Phase 7 preview-runtime seam changes, also update the relevant note under
 That Phase 7 note now includes `batch1.md`, `batch2.md`, `batch3.md`, `batch4.md`, and `closeout.md`; keep the snapshot seam, preview-engine fallback seam, and preview-session bootstrap seam in sync together.
 If the Phase 8 HQ artifact identity seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase8/`, plus `docs/CLOTH_SIMULATE_JOB_DRAFT.md`, `docs/physical-fit-system.md`, and the HQ artifact rules in `docs/quality-gates.md` in the same PR.
 If the Phase 9 `Closet` cutover seam changes, also update the relevant note under `docs/freestyle-viewer-platform/phase9/`, plus `docs/rollout-governance/feature-flag-matrix.md`, `docs/DEVELOPMENT_GUIDE.md`, and `docs/quality-gates.md` in the same PR.
-If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR. Fit/visual/memory/context gate additions must also document their report paths under `output/fit-quality/`.
+If Phase 10 CI hard gates or product viewer telemetry change, also update `docs/freestyle-viewer-platform/phase10/closeout.md`, `docs/qa/phase10-production-telemetry-2026-04-24.md`, `docs/api-contract.md`, and `docs/quality-gates.md` in the same PR. Fit/visual/memory/context gate additions must also document their report paths under `output/fit-quality/`. Hardware visual gate changes must keep `RUN_HARDWARE_GPU_CI=true` plus a self-hosted runner labeled `self-hosted`, `linux`, `x64`, `hardware-gpu` as an explicit operator requirement.
 
 ### Redirect smoke
 

@@ -217,6 +217,15 @@ const collectFitGolden = async () => {
 };
 
 const collectVisualGolden = async ({ hardwareGpu }) => {
+  const hardwareEvidence = hardwareGpu
+    ? JSON.parse(await readFile("output/fit-quality/hardware-gpu-probe.latest.json", "utf8"))
+    : null;
+  if (hardwareGpu && hardwareEvidence?.hardwareAccelerated !== true) {
+    throw new Error(
+      `Hardware GPU visual collection requires a passing hardware probe. Renderer evidence: ${hardwareEvidence?.rendererText ?? "missing"}`,
+    );
+  }
+
   const snapshotRoot = "apps/web/e2e/visual-regression.spec.ts-snapshots";
   const snapshotFiles = [
     "closet-high-tier-chromium-darwin.png",
@@ -241,14 +250,26 @@ const collectVisualGolden = async ({ hardwareGpu }) => {
   return {
     mode: "visual-golden",
     source: {
-      kind: hardwareGpu ? "hardware-gpu-playwright-visual-regression" : "swiftshader-playwright-visual-regression",
+      kind: hardwareGpu ? "hardware-gpu-playwright-renderer-probe" : "swiftshader-playwright-visual-regression",
       visualRegressionSpec: "apps/web/e2e/visual-regression.spec.ts",
-      note: "Metrics are normalized from a just-passed Playwright screenshot run; detailed diff artifacts are emitted by Playwright on failure.",
+      hardwareGpuProbe: hardwareEvidence
+        ? {
+            path: "output/fit-quality/hardware-gpu-probe.latest.json",
+            browserName: hardwareEvidence.browserName,
+            projectName: hardwareEvidence.projectName,
+            rendererText: hardwareEvidence.rendererText,
+            screenshotPath: hardwareEvidence.screenshotPath,
+          }
+        : undefined,
+      note: hardwareGpu
+        ? "Hardware lane requires a just-passed Playwright WebGL renderer probe and keeps the committed visual-golden metrics as the regression thresholds."
+        : "Metrics are normalized from a just-passed Playwright screenshot run; detailed diff artifacts are emitted by Playwright on failure.",
     },
     hardwareGpuLane: {
       required: hardwareGpu,
-      supported: hardwareGpu && process.env.FIT_QUALITY_HARDWARE_GPU_SUPPORTED === "true",
+      supported: hardwareGpu ? hardwareEvidence?.hardwareAccelerated === true : false,
       lane: hardwareGpu ? "self-hosted-hardware-gpu" : "swiftshader-smoke",
+      rendererText: hardwareEvidence?.rendererText,
     },
     cases: requiredVisualViews.map((viewId, index) => ({
       id: `visual-${viewId}`,

@@ -60,6 +60,16 @@ test("resolveReferenceClosetStagePreviewBackend prefers reduced worker compute w
       qualityTier: "balanced",
       hasContinuousMotion: true,
       featureSnapshot,
+      experimentalWasmPreview: true,
+      experimentalXpbdPreview: true,
+    }),
+    "wasm-preview",
+  );
+  assert.equal(
+    resolveReferenceClosetStagePreviewBackend({
+      qualityTier: "balanced",
+      hasContinuousMotion: true,
+      featureSnapshot,
       experimentalXpbdPreview: true,
     }),
     "cpu-xpbd",

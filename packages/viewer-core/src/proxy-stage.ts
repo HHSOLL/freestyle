@@ -91,14 +91,14 @@ export const resolveProxyCameraOrbit = (preset: ViewerCameraPreset): ViewerCamer
   switch (preset) {
     case "full-body-three-quarter":
       return {
-        radius: 3.4,
+        radius: 7.1,
         polar: 1.02,
         azimuth: -0.52,
         targetY: 1.28,
       };
     case "full-body-front-tight":
       return {
-        radius: 2.65,
+        radius: 5.7,
         polar: 1.08,
         azimuth: 0,
         targetY: 1.34,
@@ -106,7 +106,7 @@ export const resolveProxyCameraOrbit = (preset: ViewerCameraPreset): ViewerCamer
     case "full-body-front":
     default:
       return {
-        radius: 3.1,
+        radius: 6.8,
         polar: 1.04,
         azimuth: 0,
         targetY: 1.3,

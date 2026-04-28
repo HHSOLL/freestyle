@@ -9,6 +9,17 @@ const xpbdSolverKind = "xpbd-cloth-preview";
 const defaultTransferMode = "secondary-motion-transform";
 const xpbdTransferMode = "fit-mesh-deformation-buffer";
 const xpbdDeformationBufferSchemaVersion = "preview-fit-mesh-deformation-buffer.v1";
+const xpbdPreviewSolveSchemaVersion = "xpbd-preview-solve.v1";
+const wasmPreviewBackend = "wasm-preview";
+const cpuXpbdBackend = "cpu-xpbd";
+const wasmGluePath = "/workers/fit-kernel-wasm/freestyle_fit_kernel.js";
+const wasmBinaryPath = "/workers/fit-kernel-wasm/freestyle_fit_kernel_bg.wasm";
+
+const wasmRuntime = {
+  loadPromise: null,
+  moduleNamespace: null,
+  fallbackReason: null,
+};
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const degToRad = (value) => (value * Math.PI) / 180;
@@ -16,11 +27,14 @@ const degToRad = (value) => (value * Math.PI) / 180;
 const resolveExecutionMode = (backend) =>
   backend === "static-fit"
     ? "static-fit"
-    : backend === "cpu-xpbd"
+    : backend === wasmPreviewBackend
+      ? "wasm-preview"
+      : backend === cpuXpbdBackend
       ? "cpu-xpbd-preview"
       : "reduced-preview";
 
-const resolveSolverKind = (backend) => (backend === "cpu-xpbd" ? xpbdSolverKind : defaultSolverKind);
+const resolveSolverKind = (backend) =>
+  backend === cpuXpbdBackend || backend === wasmPreviewBackend ? xpbdSolverKind : defaultSolverKind;
 
 const springAxis = (value, velocity, target, stiffness, damping, deltaSeconds) => {
   const acceleration = (target - value) * stiffness - velocity * damping;
@@ -251,6 +265,9 @@ const buildDeformationEnvelope = (garmentId, result, xpbdResult) => ({
 const toFloat32Array = (value) =>
   value instanceof Float32Array ? new Float32Array(value) : Float32Array.from(Array.isArray(value) ? value : []);
 
+const toNumberArray = (value) =>
+  value instanceof Float32Array ? Array.from(value) : Array.isArray(value) ? [...value] : [];
+
 const vectorLength = (x, y, z) => Math.hypot(x, y, z);
 
 const readVector = (positions, particle) => {
@@ -397,22 +414,151 @@ const solveXpbdFitMesh = (xpbdFitMesh, sequence) => {
   };
 };
 
-const postSolve = (garmentId, frameRequest) => {
+const readWasmBindgenNamespace = () => {
+  if (globalThis.wasm_bindgen) {
+    return globalThis.wasm_bindgen;
+  }
+  try {
+    // wasm-bindgen --target no-modules declares a global lexical binding in classic workers.
+    return wasm_bindgen;
+  } catch {
+    return null;
+  }
+};
+
+const buildWasmSolveInput = (garmentId, xpbdFitMesh, frameRequest) => ({
+  schemaVersion: xpbdPreviewSolveSchemaVersion,
+  sessionId: String(frameRequest.sessionId || ""),
+  garmentId: String(garmentId || ""),
+  sequence: Number.isFinite(frameRequest.sequence) ? frameRequest.sequence : 0,
+  positions: toNumberArray(xpbdFitMesh?.positions),
+  previousPositions: xpbdFitMesh?.previousPositions ? toNumberArray(xpbdFitMesh.previousPositions) : undefined,
+  inverseMasses: toNumberArray(xpbdFitMesh?.inverseMasses),
+  constraints: Array.isArray(xpbdFitMesh?.constraints) ? xpbdFitMesh.constraints : [],
+  iterations: clamp(Math.round(xpbdFitMesh?.iterations || 8), 1, 64),
+  deltaSeconds: clamp(frameRequest.deltaSeconds || 1 / 60, 1 / 240, 1 / 24),
+  gravity: Array.isArray(xpbdFitMesh?.gravity) ? xpbdFitMesh.gravity : [0, -9.81, 0],
+  damping: clamp(xpbdFitMesh?.damping || 0.985, 0, 1),
+});
+
+const resolveWasmBindgenNamespace = async () => {
+  if (wasmRuntime.moduleNamespace) {
+    return wasmRuntime.moduleNamespace;
+  }
+
+  if (!wasmRuntime.loadPromise) {
+    wasmRuntime.loadPromise = (async () => {
+      if (typeof globalThis.importScripts !== "function") {
+        throw new Error("importScripts is unavailable in this worker context.");
+      }
+
+      if (!readWasmBindgenNamespace()) {
+        globalThis.importScripts(wasmGluePath);
+      }
+
+      const namespace = readWasmBindgenNamespace();
+      if (!namespace) {
+        throw new Error("fit-kernel wasm_bindgen namespace was not registered.");
+      }
+
+      const initInput = { module_or_path: wasmBinaryPath };
+      if (typeof namespace === "function") {
+        await namespace(initInput);
+      } else if (typeof namespace.default === "function") {
+        await namespace.default(initInput);
+      } else if (typeof namespace.init === "function") {
+        await namespace.init(initInput);
+      }
+
+      const solve = namespace.solve_xpbd_preview;
+      if (typeof solve !== "function") {
+        throw new Error("fit-kernel WASM artifact does not export solve_xpbd_preview.");
+      }
+
+      wasmRuntime.moduleNamespace = namespace;
+      wasmRuntime.fallbackReason = null;
+      return namespace;
+    })().catch((error) => {
+      wasmRuntime.loadPromise = null;
+      wasmRuntime.moduleNamespace = null;
+      wasmRuntime.fallbackReason = error instanceof Error ? error.message : String(error);
+      throw error;
+    });
+  }
+
+  return wasmRuntime.loadPromise;
+};
+
+const normalizeWasmXpbdResult = (value, sequence, serializeMs) => {
+  const parsed = typeof value === "string" ? JSON.parse(value) : value;
+  const positions = toFloat32Array(parsed?.positions);
+  const displacements = toFloat32Array(parsed?.displacements);
+  const vertexCount = Number.isFinite(parsed?.vertexCount) ? parsed.vertexCount : positions.length / 3;
+  return {
+    vertexCount,
+    positions,
+    displacements,
+    sequence: Number.isFinite(parsed?.sequence) ? parsed.sequence : sequence,
+    serializeMs,
+    backend: wasmPreviewBackend,
+  };
+};
+
+const solveWasmXpbdFitMesh = async (garmentId, xpbdFitMesh, frameRequest, sequence) => {
+  if (!xpbdFitMesh || !Array.isArray(xpbdFitMesh.positions) || !Array.isArray(xpbdFitMesh.inverseMasses)) {
+    return null;
+  }
+
+  const startedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+  const namespace = await resolveWasmBindgenNamespace();
+  const solveInput = buildWasmSolveInput(garmentId, xpbdFitMesh, frameRequest);
+  const output = namespace.solve_xpbd_preview(JSON.stringify(solveInput));
+  const finishedAt =
+    globalThis.performance && typeof globalThis.performance.now === "function"
+      ? globalThis.performance.now()
+      : Date.now();
+  return normalizeWasmXpbdResult(output, sequence, Math.max(0, finishedAt - startedAt));
+};
+
+const solvePreviewFitMesh = async (garmentId, garmentState, frameRequest, sequence) => {
+  if (frameRequest.backend === wasmPreviewBackend) {
+    try {
+      return await solveWasmXpbdFitMesh(garmentId, garmentState.xpbdFitMesh, frameRequest, sequence);
+    } catch {
+      const cpuFallback = solveXpbdFitMesh(garmentState.xpbdFitMesh, sequence);
+      return cpuFallback ? { ...cpuFallback, backend: cpuXpbdBackend } : null;
+    }
+  }
+
+  if (frameRequest.backend === cpuXpbdBackend) {
+    const result = solveXpbdFitMesh(garmentState.xpbdFitMesh, sequence);
+    return result ? { ...result, backend: cpuXpbdBackend } : null;
+  }
+
+  return null;
+};
+
+const postSolve = async (garmentId, frameRequest) => {
   const garmentState = ensureGarmentState(garmentId);
   const startedAt =
     globalThis.performance && typeof globalThis.performance.now === "function"
       ? globalThis.performance.now()
       : Date.now();
   const result = stepFrame(frameRequest);
-  const xpbdResult =
-    frameRequest.backend === "cpu-xpbd" ? solveXpbdFitMesh(garmentState.xpbdFitMesh, result.sequence) : null;
+  const xpbdResult = await solvePreviewFitMesh(garmentId, garmentState, frameRequest, result.sequence);
+  const effectiveResult = xpbdResult?.backend && xpbdResult.backend !== result.backend
+    ? { ...result, backend: xpbdResult.backend }
+    : result;
   const finishedAt =
     globalThis.performance && typeof globalThis.performance.now === "function"
       ? globalThis.performance.now()
       : Date.now();
 
-  garmentState.lastResult = result;
-  const deformationEnvelope = buildDeformationEnvelope(garmentId, result, xpbdResult);
+  garmentState.lastResult = effectiveResult;
+  const deformationEnvelope = buildDeformationEnvelope(garmentId, effectiveResult, xpbdResult);
   garmentState.lastDeformation = xpbdResult
     ? {
         ...deformationEnvelope,
@@ -423,7 +569,7 @@ const postSolve = (garmentId, frameRequest) => {
       }
     : deformationEnvelope;
 
-  globalThis.postMessage(buildResultEnvelope(result, Math.max(0, finishedAt - startedAt)));
+  globalThis.postMessage(buildResultEnvelope(effectiveResult, Math.max(0, finishedAt - startedAt)));
   if (xpbdResult) {
     globalThis.postMessage(deformationEnvelope, [
       xpbdResult.positions.buffer,
@@ -469,7 +615,7 @@ globalThis.onmessage = (event) => {
       if (!payload.frame || payload.frame.schemaVersion !== frameSchemaVersion) {
         return;
       }
-      postSolve(payload.garmentId, payload.frame);
+      void postSolve(payload.garmentId, payload.frame);
       return;
     }
     case "GET_DEFORMATION": {

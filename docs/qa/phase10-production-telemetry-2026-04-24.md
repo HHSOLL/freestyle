@@ -2,7 +2,9 @@
 
 ## Verdict
 
-`PASS` for the repo-scoped Phase 10 closeout.
+`PASS` for the repo-scoped Phase 10 closeout baseline.
+
+2026-04-28 update: the repository now adds fail-closed hardware GPU enforcement and fit-kernel WASM artifact verification on top of this evidence. The 2026-04-24 command log remains historical evidence, not the full current gate.
 
 ## Scope
 
@@ -13,7 +15,7 @@ This evidence covers:
 - `/v1/telemetry/viewer` contract validation and advisory action output
 - Phase 9 cutover-source tags in browser telemetry
 
-It does not claim hardware-backed GPU CI automation or automatic production serving mutation.
+It does not claim automatic production serving mutation.
 
 ## Command Evidence
 
@@ -44,10 +46,12 @@ Targeted telemetry tests:
 Expected Phase 10 gate expansion:
 
 - `npm run check`
+- `npm run test:fit-kernel:wasm`
 - `npm run report:asset-budget`
 - `npm run test:e2e:phase9:closet`
 - `npm run test:e2e:phase9:rollback`
 - `npm run test:e2e:ops-closeout`
+- `npm run test:visual-golden:hardware` on a configured self-hosted GPU runner
 
 Local environment note:
 
@@ -85,5 +89,5 @@ The Phase 9 e2e cutover smoke asserts that at least one viewer telemetry event c
 ## Carry-Forward
 
 - Asset-budget report is uploaded as CI evidence but remains non-blocking until full LOD coverage debt is retired.
-- Hardware-backed GPU evidence remains a required release lane outside the current GitHub-hosted CI workflow.
+- Hardware-backed GPU evidence is now fail-closed in `.github/workflows/quality.yml`, but it requires repository variable `RUN_HARDWARE_GPU_CI=true` and a self-hosted runner labeled `self-hosted`, `linux`, `x64`, `hardware-gpu`.
 - Automatic serving stop / rollback is represented as advisory output only; mutation workflows require a later control-plane integration.

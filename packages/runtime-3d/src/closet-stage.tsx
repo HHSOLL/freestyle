@@ -78,6 +78,7 @@ import {
   buildPreviewEngineStatusEventEnvelope,
   createPreviewEngineStatus,
   hasPreviewEngineStatusChanged,
+  resolveObservedPreviewEngineFallbackStatus,
   type PreviewEngineStatus,
 } from "./preview-engine-status.js";
 import {
@@ -916,7 +917,9 @@ function BoundGarment({
   const baseMotionOffsetY = correctiveTransform.offsetY + poseRuntimeTuning.offsetY + adaptiveAdjustment.offsetY;
   const effectivePreviewBackend = secondaryMotionConfig ? previewBackend : "static-fit";
   const usesPreviewWorker =
-    effectivePreviewBackend === "worker-reduced" || effectivePreviewBackend === "cpu-xpbd";
+    effectivePreviewBackend === "worker-reduced" ||
+    effectivePreviewBackend === "cpu-xpbd" ||
+    effectivePreviewBackend === "wasm-preview";
 
   const publishPreviewRuntimeSnapshot = useCallback(
     (snapshot: PreviewRuntimeSnapshot) => {
@@ -1031,11 +1034,24 @@ function BoundGarment({
         flushQueuedRequest();
         return;
       }
-      publishPreviewRuntimeSnapshot(
-        buildPreviewRuntimeSnapshot({
-          payload,
-        }),
-      );
+      const runtimeSnapshot = buildPreviewRuntimeSnapshot({
+        payload,
+      });
+      publishPreviewRuntimeSnapshot(runtimeSnapshot);
+      const observedFallbackStatus = resolveObservedPreviewEngineFallbackStatus({
+        requested: createPreviewEngineStatus(
+          resolveReferenceClosetStagePreviewEngineStatus({
+            qualityTier,
+            hasContinuousMotion: true,
+            featureSnapshot: previewFeatureSnapshot,
+            backend: effectivePreviewBackend,
+          }),
+        ),
+        runtime: runtimeSnapshot,
+      });
+      if (observedFallbackStatus) {
+        onPreviewEngineStatus?.(observedFallbackStatus);
+      }
       motionStateRef.current = result.state;
     };
 
@@ -1074,6 +1090,7 @@ function BoundGarment({
     usesPreviewWorker,
     invalidate,
     item,
+    onPreviewEngineStatus,
     previewFeatureSnapshot,
     publishPreviewEngineStatus,
     publishPreviewRuntimeSnapshot,
@@ -1517,6 +1534,7 @@ export function ReferenceClosetStageCanvas({
         hasContinuousMotion: scenePolicy.hasContinuousMotion,
         featureSnapshot: previewFeatureSnapshot,
         experimentalWebGPU: process.env.NEXT_PUBLIC_EXPERIMENTAL_WEBGPU_PREVIEW === "1",
+        experimentalWasmPreview: process.env.NEXT_PUBLIC_EXPERIMENTAL_WASM_XPBD_PREVIEW === "1",
         experimentalXpbdPreview: process.env.NEXT_PUBLIC_EXPERIMENTAL_XPBD_PREVIEW === "1",
       }),
     [previewFeatureSnapshot, qualityTier, scenePolicy.hasContinuousMotion],

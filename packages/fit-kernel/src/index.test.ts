@@ -93,6 +93,7 @@ test("fit-kernel detects current preview runtime features without overstating wo
 test("fit-kernel resolves current execution mode truthfully for reduced preview backends", () => {
   assert.equal(resolveFitKernelExecutionMode({ backend: "static-fit" }), "static-fit");
   assert.equal(resolveFitKernelExecutionMode({ backend: "cpu-xpbd" }), "cpu-xpbd-preview");
+  assert.equal(resolveFitKernelExecutionMode({ backend: "wasm-preview" }), "wasm-preview");
   assert.equal(resolveFitKernelExecutionMode({ backend: "worker-reduced" }), "reduced-preview");
   assert.equal(
     resolveFitKernelExecutionMode({ backend: "worker-reduced", wasmPreviewEnabled: true }),
@@ -154,6 +155,23 @@ test("fit-kernel resolves preview engine status without overstating wasm availab
       engineKind: "cpu-xpbd-preview",
       executionMode: "cpu-xpbd-preview",
       backend: "cpu-xpbd",
+      transport: "worker-message",
+      status: "ready",
+      featureSnapshot,
+    },
+  );
+
+  assert.deepEqual(
+    resolveFitKernelPreviewEngineStatus({
+      backend: "wasm-preview",
+      featureSnapshot,
+      hasContinuousMotion: true,
+      qualityTier: "balanced",
+    }),
+    {
+      engineKind: "wasm-preview",
+      executionMode: "wasm-preview",
+      backend: "wasm-preview",
       transport: "worker-message",
       status: "ready",
       featureSnapshot,

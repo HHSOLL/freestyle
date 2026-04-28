@@ -33,6 +33,15 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: "hardware-gpu",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: ["--enable-webgl", "--ignore-gpu-blocklist", "--enable-gpu-rasterization"],
+        },
+      },
+    },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined

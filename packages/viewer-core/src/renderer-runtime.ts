@@ -269,7 +269,6 @@ export const createViewerRendererRuntime: ViewerRendererFactory = (
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       proxyStage.dispose();
       loaderRegistry.dispose();
-      renderer.forceContextLoss?.();
       renderer.dispose();
     },
   };

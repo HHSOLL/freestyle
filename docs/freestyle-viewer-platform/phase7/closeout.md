@@ -3,7 +3,8 @@
 ## Status
 
 - `Phase 7` is closed for the current repo-scoped compatibility preview path.
-- this closeout does **not** claim browser XPBD cloth, fit-mesh vertex deformation, or browser WASM cloth truth yet
+- the compatibility path now includes a real Rust/WASM XPBD browser artifact behind the explicit `wasm-preview` backend.
+- this closeout still does **not** claim authored production cloth truth or certification-grade garment assets.
 
 ## Completed Scope
 
@@ -27,6 +28,11 @@
    - static-fit fallback
    - no `/v1` payload widening
 7. seeded base preview-runtime attrs on the compatibility host so the read-only evidence surface is populated before the first worker solve lands
+8. added a same-origin Rust/WASM XPBD worker bootstrap:
+   - `NEXT_PUBLIC_EXPERIMENTAL_WASM_XPBD_PREVIEW=1` selects `wasm-preview`
+   - the classic worker lazy-loads `apps/web/public/workers/fit-kernel-wasm/freestyle_fit_kernel.js`
+   - the glue initializes `apps/web/public/workers/fit-kernel-wasm/freestyle_fit_kernel_bg.wasm`
+   - artifact failure falls back to `cpu-xpbd` and reports CPU execution truthfully
 
 ## Evidence Trail
 
@@ -42,12 +48,14 @@
 - runtime setup helper: `packages/runtime-3d/src/preview-session-bridge.ts`
 - compatibility host integration: `packages/runtime-3d/src/closet-stage.tsx`
 - same-origin worker: `apps/web/public/workers/reference-closet-stage-preview.worker.js`
+- same-origin Rust/WASM artifact: `apps/web/public/workers/fit-kernel-wasm/`
 - product smoke: `apps/web/e2e/closet-preview-runtime.spec.ts`
 
 ## Commands
 
 ```bash
 ./node_modules/.bin/tsx --test packages/fit-kernel/src/index.test.ts packages/viewer-protocol/src/index.test.ts packages/runtime-3d/src/preview-session-bridge.test.ts packages/runtime-3d/src/reference-closet-stage-preview-simulation.test.ts packages/runtime-3d/src/preview-engine-status.test.ts packages/runtime-3d/src/preview-runtime-snapshot.test.ts
+npm run test:fit-kernel:wasm
 npm --prefix apps/web run typecheck
 npm run test:core
 npm run lint
@@ -58,9 +66,8 @@ NEXT_PUBLIC_VIEWER_HOST=runtime-3d npx playwright test apps/web/e2e/closet-previ
 
 ## Remaining Gap Handed To Later Phases
 
-- real WASM preview bootstrap
 - authoritative authored collision / fit-mesh / material-physics assets for preview solves
 - authored fit-mesh topology / wrap-map transfer beyond the current normalized proxy binding
-- solver-grade preview latency and fit-quality gating
+- full production-grade cloth truth beyond the current XPBD preview kernel
 
 Those gaps belong to later fitting-quality phases. They are not reopened inside this compatibility-path closeout.

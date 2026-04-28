@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build:wasm": "node ../../scripts/build-fit-kernel-wasm.mjs",
+    "test:wasm": "node ../../scripts/verify-fit-kernel-wasm.mjs"
+  },
   "exports": {
     ".": "./src/index.ts"
   }

@@ -58,16 +58,22 @@ export function resolveReferenceClosetStagePreviewBackend({
   hasContinuousMotion,
   featureSnapshot,
   experimentalWebGPU,
+  experimentalWasmPreview,
   experimentalXpbdPreview,
 }: {
   qualityTier: QualityTier;
   hasContinuousMotion: boolean;
   featureSnapshot: ReferenceClosetStagePreviewFeatureSnapshot;
   experimentalWebGPU?: boolean;
+  experimentalWasmPreview?: boolean;
   experimentalXpbdPreview?: boolean;
 }): ReferenceClosetStagePreviewBackendId {
   if (!hasContinuousMotion || qualityTier === "low") {
     return "static-fit";
+  }
+
+  if (experimentalWasmPreview && featureSnapshot.hasWorker) {
+    return "wasm-preview";
   }
 
   if (experimentalXpbdPreview && featureSnapshot.hasWorker) {

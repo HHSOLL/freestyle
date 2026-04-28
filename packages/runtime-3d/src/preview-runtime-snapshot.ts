@@ -50,7 +50,7 @@ export function createPreviewRuntimeSnapshot(
       input.solverKind ??
       (executionMode === "static-fit"
         ? undefined
-        : input.backend === "cpu-xpbd"
+        : input.backend === "cpu-xpbd" || input.backend === "wasm-preview"
           ? "xpbd-cloth-preview"
           : defaultFitKernelPreviewSolverKind),
     solveDurationMs: input.solveDurationMs ?? 0,

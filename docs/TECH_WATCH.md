@@ -17,9 +17,35 @@
 - npm registry latest stable versions (`next`, `react`, `react-dom`)
 
 ## 마지막 점검일
-- 2026-04-26
+- 2026-04-28
 
 ## 점검 로그
+### 2026-04-28
+- 확인 소스:
+  - OpenAI Codex use cases:
+    - `https://developers.openai.com/codex/use-cases`
+  - GitHub Actions official docs:
+    - `https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow`
+    - `https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks`
+  - Rust wasm-bindgen official guide:
+    - `https://rustwasm.github.io/docs/wasm-bindgen/reference/deployment.html`
+- 신규 변화 요약:
+  - Codex use-case 매핑은 이번 작업을 `Refactor your codebase`, `Understand large codebases`, `QA your app`, `Run code migrations` 조합으로 보는 것이 맞다. 코드 변경, gate 증거, 문서 closeout을 한 PR 단위로 묶는 방식이 현재 작업에 가장 적합하다.
+  - GitHub Actions self-hosted runner 문서는 `self-hosted`, OS, architecture, custom GPU label을 조합한 `runs-on` 라우팅을 지원하고, 지정된 label은 누적 매칭된다고 설명한다.
+  - GitHub required status check 문서는 job-level conditional skip이 성공으로 보고될 수 있음을 명시한다. 따라서 hardware GPU lane은 optional job만으로는 release gate가 될 수 없고, 항상 존재하는 guard job이 필요하다.
+  - wasm-bindgen deployment guide는 browser bundler 없이 쓸 수 있는 `--target no-modules` output을 제공한다. 현재 same-origin classic worker에는 module worker 전환보다 no-modules glue + `.wasm` artifact가 더 작은 변경이다.
+- 우리 프로젝트 영향:
+  - preview worker는 `/workers/fit-kernel-wasm/freestyle_fit_kernel.js`와 `_bg.wasm`을 lazy-load하는 `wasm-preview` backend를 가져야 한다.
+  - hardware visual gate는 `FIT_QUALITY_HARDWARE_GPU_SUPPORTED=true` 같은 환경변수를 신뢰하지 말고, Playwright가 실제 WebGL renderer evidence를 남긴 뒤 collector가 그 evidence를 읽어야 한다.
+  - GitHub Actions는 `RUN_HARDWARE_GPU_CI=true`가 없으면 빨간 guard check가 되도록 fail-closed로 유지한다.
+- 적용 여부:
+  - 코드/문서 반영 중:
+    - `.github/workflows/quality.yml`
+    - `apps/web/e2e/hardware-gpu-visual.spec.ts`
+    - `apps/web/public/workers/reference-closet-stage-preview.worker.js`
+    - `apps/web/public/workers/fit-kernel-wasm/*`
+    - `docs/TECH_WATCH.md`
+
 ### 2026-04-26
 - 확인 소스:
   - `ChatGPT Pulse`
